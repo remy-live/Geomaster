@@ -320,7 +320,7 @@
             grid-gap: 8px;
             align-content: start;
             padding: 12px 8px;
-            
+
             z-index: 10;
             overflow-y: auto;
             overflow: visible !important;
@@ -2330,6 +2330,7 @@
 
 
     <script>
+
         const PatternUtils = {
             // Crée un motif de hachures diagonales pour le Canvas
             createHatchPattern(ctx, color) {
@@ -2471,6 +2472,10 @@
                 // --- FIX 360° (CERCLE COMPLET) ---
                 const totalRotation = Math.abs(arcObj.endAngle - arcObj.startAngle);
                 const PI2 = Math.PI * 2;
+
+                // Si c'est un cercle complet, on accepte tout
+                if (totalRotation >= PI2 - 0.01) return true;
+
                 // Normalisation des angles de l'arc (0 à 2PI)
                 let s = (arcObj.startAngle % PI2 + PI2) % PI2;
                 let e = (arcObj.endAngle % PI2 + PI2) % PI2;
@@ -2535,7 +2540,7 @@
                 return pts;
             },
             getIntersections(obj1, obj2) {
-                // 1. Définition des types (J'ai ajouté CompassCircle)
+                // 1. Définition des types
                 const isLin1 = (obj1 instanceof LinearObject || obj1 instanceof ParallelLine || obj1 instanceof PerpendicularLine);
                 const isLin2 = (obj2 instanceof LinearObject || obj2 instanceof ParallelLine || obj2 instanceof PerpendicularLine);
 
@@ -2585,7 +2590,6 @@
                 }
 
                 // --- CAS 2 : LIGNE vs CERCLE (Croisé) ---
-                // C'était là ton erreur : tu vérifiais (isLin1 && isCirc1)
                 else if (isLin1 && isCirc2) {
                     const c = MathUtils.getLineCoords(obj1);
                     const circle = getCircleData(obj2);
@@ -2605,7 +2609,6 @@
                 }
 
                 // 3. Filtrage final : On vérifie si les points sont bien SUR les arcs
-                // (Car intersectLineCircle calcule l'intersection avec le cercle complet)
                 return rawPoints.filter(pt => {
                     let ok1 = true;
                     let ok2 = true;
@@ -2616,7 +2619,8 @@
 
                     return ok1 && ok2;
                 });
-            }, distanceToLine(px, py, A, B, type) {
+            },
+            distanceToLine(px, py, A, B, type) {
                 if (!A || !B) return Infinity;
                 const l2 = (A.x - B.x) ** 2 + (A.y - B.y) ** 2;
                 if (l2 === 0) return Infinity;
@@ -2628,47 +2632,36 @@
                 return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
             },
             getProjectedPoint(px, py, obj) {
-                // 1. CAS CERCLES & ARCS (Le correctif est ici)
+                // 1. CAS CERCLES & ARCS
                 if (obj instanceof Circle || obj instanceof Arc || obj instanceof CompassArc || obj instanceof CompassCircle) {
-                    // Récupération du centre et rayon selon le type d'objet
                     let center, radius;
 
                     if (obj instanceof CompassCircle || obj instanceof CompassArc) {
-                        center = obj.center; // Peut être un Point ou {x,y}
-                        radius = obj.radius; // Stocké directement
-                        // Cas spécifique CompassCircle qui a rP1/rP2
+                        center = obj.center;
+                        radius = obj.radius;
                         if (obj instanceof CompassCircle && obj.rP1) {
                             radius = MathUtils.dist(obj.rP1.x, obj.rP1.y, obj.rP2.x, obj.rP2.y);
                         }
                     } else {
-                        // Cercle ou Arc standard (défini par p1=centre, p2=bord ou rayon stocké)
                         center = obj.center || obj.p1;
                         radius = obj.radius || MathUtils.dist(obj.p1.x, obj.p1.y, obj.p2.x, obj.p2.y);
                     }
 
-                    if (!center) return { x: px, y: py }; // Sécurité
+                    if (!center) return { x: px, y: py };
 
-                    // Calcul de l'angle entre le centre et la souris
                     const angle = Math.atan2(py - center.y, px - center.x);
-
-                    // Position projetée sur le cercle complet
                     const finalX = center.x + radius * Math.cos(angle);
                     const finalY = center.y + radius * Math.sin(angle);
 
-                    // Si c'est un ARC, on vérifie si on est "dans" l'ouverture
                     if (obj instanceof Arc || obj instanceof CompassArc) {
-                        // On utilise la fonction existante pour vérifier si le point projeté est sur l'arc
                         if (MathUtils.isPointOnArc({ x: finalX, y: finalY }, obj)) {
                             return { x: finalX, y: finalY };
                         } else {
-                            // Sinon, on clampe aux extrémités (Start ou End)
-                            // Calcul des positions des extrémités
                             const sx = center.x + radius * Math.cos(obj.startAngle);
                             const sy = center.y + radius * Math.sin(obj.startAngle);
                             const ex = center.x + radius * Math.cos(obj.endAngle);
                             const ey = center.y + radius * Math.sin(obj.endAngle);
 
-                            // On retourne le plus proche de la souris
                             const dStart = (px - sx) ** 2 + (py - sy) ** 2;
                             const dEnd = (px - ex) ** 2 + (py - ey) ** 2;
 
@@ -2755,7 +2748,6 @@
             }
             update() {
                 if (this.subType === 'symmetry_central' && this.parents.length === 2) {
-                    // Parent 0 : Point Original, Parent 1 : Centre
                     const origin = this.parents[0];
                     const center = this.parents[1];
                     const res = MathUtils.getCentralSymmetry(origin, center);
@@ -2764,7 +2756,6 @@
                     return;
                 }
                 if (this.subType === 'symmetry_axial' && this.parents.length === 2) {
-                    // Parent 0 : Point Original, Parent 1 : Axe (Ligne/Seg)
                     const origin = this.parents[0];
                     const axis = this.parents[1];
                     const res = MathUtils.getAxialSymmetry(origin, axis);
@@ -2820,20 +2811,16 @@
                 ctx.lineWidth = w;
                 ctx.setLineDash([]);
                 if (this.pointStyle === 'dot') {
-                    // Disque
                     ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                 }
                 else if (this.pointStyle === 'pixel') {
-                    // Pixel (Carré)
-                    // On utilise rect() au lieu de fillRect() pour pouvoir faire fill() ET stroke()
                     ctx.rect(this.x - 1, this.y - 1, 2, 2);
                     ctx.fill();
-                    ctx.stroke(); // <--- AJOUT
+                    ctx.stroke();
                 }
                 else {
-                    // Croix (Défaut)
                     ctx.moveTo(this.x - this.size, this.y - this.size);
                     ctx.lineTo(this.x + this.size, this.y + this.size);
                     ctx.moveTo(this.x + this.size, this.y - this.size);
@@ -2842,13 +2829,10 @@
                 }
                 if (this.label && this.showLabel) {
                     ctx.fillStyle = "black";
-
-                    // Gestion de la taille
                     const fs = this.fontSize || 14;
                     ctx.font = `bold ${fs}px Arial`;
 
                     const angle = (this.labelAngle !== undefined) ? this.labelAngle : -Math.PI / 4;
-                    // On éloigne un peu le texte si la police est grosse
                     const dist = 12 + fs / 2;
                     const lx = this.x + Math.cos(angle) * dist;
                     const ly = this.y + Math.sin(angle) * dist;
@@ -2870,7 +2854,6 @@
                 this.fontSize = 16;
                 this.fontFamily = "'Segoe UI', sans-serif";
             }
-            // Zone de clic autour du texte
             isNear(mx, my) {
                 if (!this.text) return false;
                 const estWidth = this.text.length * 10;
@@ -2879,13 +2862,11 @@
             }
             draw(ctx, opts) {
                 ctx.font = `${this.fontSize}px ${this.fontFamily}`;
-                // Couleur : Bleu si survolé, Orange si sélectionné, Noir sinon
                 ctx.fillStyle = opts.isHovered ? "#2980b9" : (opts.isSelected ? "#e67e22" : (this.color || "black"));
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(this.text, this.x, this.y);
 
-                // Petit cadre pointillé si survolé
                 if (opts.isHovered || opts.isSelected) {
                     const w = ctx.measureText(this.text).width + 10;
                     ctx.strokeStyle = ctx.fillStyle;
@@ -2944,47 +2925,31 @@
                     ctx.beginPath();
 
                     const h = 6; // hauteur du trait
-                    const sp = 4; // espacement
 
                     if (this.coding === 'mark-1') {
-                        ctx.moveTo(0, -h);
-                        ctx.lineTo(0, h);
+                        ctx.moveTo(0, -h); ctx.lineTo(0, h);
                     } else if (this.coding === 'mark-2') {
-                        ctx.moveTo(-2, -h);
-                        ctx.lineTo(-2, h);
-                        ctx.moveTo(2, -h);
-                        ctx.lineTo(2, h);
+                        ctx.moveTo(-2, -h); ctx.lineTo(-2, h);
+                        ctx.moveTo(2, -h); ctx.lineTo(2, h);
                     } else if (this.coding === 'mark-3') {
-                        ctx.moveTo(-4, -h);
-                        ctx.lineTo(-4, h);
-                        ctx.moveTo(0, -h);
-                        ctx.lineTo(0, h);
-                        ctx.moveTo(4, -h);
-                        ctx.lineTo(4, h);
+                        ctx.moveTo(-4, -h); ctx.lineTo(-4, h);
+                        ctx.moveTo(0, -h); ctx.lineTo(0, h);
+                        ctx.moveTo(4, -h); ctx.lineTo(4, h);
                     } else if (this.coding === 'mark-x') {
-                        ctx.moveTo(-4, -4);
-                        ctx.lineTo(4, 4);
-                        ctx.moveTo(-4, 4);
-                        ctx.lineTo(4, -4);
+                        ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
+                        ctx.moveTo(-4, 4); ctx.lineTo(4, -4);
                     } else if (this.coding === 'mark-xx') {
                         ctx.translate(-5, 0);
-                        ctx.moveTo(-3, -3);
-                        ctx.lineTo(3, 3);
-                        ctx.moveTo(-3, 3);
-                        ctx.lineTo(3, -3);
+                        ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
+                        ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
                         ctx.translate(10, 0);
-                        ctx.moveTo(-3, -3);
-                        ctx.lineTo(3, 3);
-                        ctx.moveTo(-3, 3);
-                        ctx.lineTo(3, -3);
+                        ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
+                        ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
                     } else if (this.coding === 'mark-o') {
                         ctx.arc(0, 0, 4, 0, Math.PI * 2);
                     } else if (this.coding === 'mark-oo') {
-                        ctx.beginPath();
-                        ctx.arc(-5, 0, 3, 0, Math.PI * 2);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.arc(5, 0, 3, 0, Math.PI * 2);
+                        ctx.beginPath(); ctx.arc(-5, 0, 3, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(5, 0, 3, 0, Math.PI * 2);
                     }
                     ctx.stroke();
                     ctx.restore();
@@ -3072,29 +3037,23 @@
             }
         }
         class CompassArc extends GeometryObject {
-            // 1. On ajoute 'counterClockwise' dans les arguments (avant id)
             constructor(center, radius, startAngle, endAngle, counterClockwise = false, id = null) {
                 super(center, null, id);
                 this.center = center;
                 this.radius = radius;
                 this.startAngle = startAngle;
                 this.endAngle = endAngle;
-
-                // 2. IMPORTANT : On stocke directement la valeur passée par le MouseMove.
-                // On supprime toute la logique de calcul de "diff" qui était ici.
                 this.counterClockwise = counterClockwise;
             }
 
             isNear(mx, my) {
                 if (!this.center) return false;
-                // Gestion robuste si center est un objet Point ou {x,y}
                 const cx = this.center.x !== undefined ? this.center.x : 0;
                 const cy = this.center.y !== undefined ? this.center.y : 0;
 
                 const d = MathUtils.dist(mx, my, cx, cy);
                 if (Math.abs(d - this.radius) > 8) return false;
 
-                // On passe l'objet complet à isPointOnArc qui devra gérer le counterClockwise
                 return MathUtils.isPointOnArc({ x: mx, y: my }, this);
             }
 
@@ -3109,7 +3068,6 @@
                 ctx.lineWidth = s.width;
                 ctx.setLineDash(s.dash);
 
-                // Le Canvas va maintenant obéir strictement au sens qu'on a défini
                 ctx.arc(cx, cy, this.radius, this.startAngle, this.endAngle, this.counterClockwise);
                 ctx.stroke();
             }
@@ -3117,46 +3075,32 @@
 
         class Angle extends GeometryObject {
             constructor(p1, p2, p3, id = null) {
-                // 1. Appel du parent
                 super(p1, p2, id);
-
                 this.p3 = p3;
                 this.showValue = true;
                 this.isFilled = false;
-
-                // 2. Valeur par défaut OBLIGATOIRE (pour éviter undefined au chargement)
                 this.isCounterClockwise = false;
 
-                // 3. BLOC DE SÉCURITÉ
-                // On ne calcule que si les 3 points existent vraiment.
-                // Au chargement (deserialize), p1 est null, donc on ne rentre pas ici -> Pas de crash.
                 if (p1 && p2 && p3) {
                     const a1 = Math.atan2(p1.y - p2.y, p1.x - p2.x);
                     const a2 = Math.atan2(p3.y - p2.y, p3.x - p2.x);
-
                     let diff = a2 - a1;
                     while (diff <= -Math.PI) diff += 2 * Math.PI;
                     while (diff > Math.PI) diff -= 2 * Math.PI;
-                    // Par défaut, on prend l'angle saillant (le plus petit, < 180°)
-                    // Si diff est positif, on est dans le sens trigo (CCW)
                     this.isCounterClockwise = (diff > 0);
                 }
             }
 
             isNear(mx, my) {
-                // Sécurité : si p2 n'existe pas encore
                 if (!this.p2) return false;
                 const d = MathUtils.dist(mx, my, this.p2.x, this.p2.y);
                 return (d > 10 && d < 50);
             }
             getAngleValue() {
-                // Sécurité : si un point manque
                 if (!this.p1 || !this.p2 || !this.p3) return 0;
-
                 const a1 = Math.atan2(this.p1.y - this.p2.y, this.p1.x - this.p2.x);
                 const a2 = Math.atan2(this.p3.y - this.p2.y, this.p3.x - this.p2.x);
                 let diff = a2 - a1;
-
                 if (this.isCounterClockwise) {
                     if (diff < 0) diff += 2 * Math.PI;
                 } else {
@@ -3165,22 +3109,16 @@
                 return Math.abs(diff * 180 / Math.PI);
             }
             draw(ctx, { isHovered, isToDelete }) {
-                // Sécurité dessin : on ne dessine rien si incomplet
                 if (!this.p1 || !this.p2 || !this.p3) return;
 
                 const val = this.getAngleValue();
                 const isRightAngle = Math.abs(val - 90) < 0.5;
                 const radius = 25;
 
-                // Récupération de la couleur (compatible Thème Sombre)
                 let baseColor = this.color || "green";
                 if (window.app && window.app.getThemeColor) baseColor = window.app.getThemeColor(baseColor);
 
-                // Note : 'opts' n'est pas passé directement ici dans ton code appelant, 
-                // on utilise les arguments déstructurés { isHovered, isToDelete } 
-                // Pour isSelected, on suppose qu'il est passé aussi ou on utilise arguments[1]
                 const isSelected = arguments[1] ? arguments[1].isSelected : false;
-
                 const s = isToDelete ? "#d32f2f" : (isHovered ? baseColor : (isSelected ? "orange" : baseColor));
                 const width = (isHovered || isSelected || isToDelete) ? 4 : 2;
 
@@ -3211,11 +3149,10 @@
                         ctx.stroke();
                     }
                 } else {
-                    // Secteur fermé (Camembert)
                     ctx.beginPath();
-                    ctx.moveTo(this.p2.x, this.p2.y); // Sommet
+                    ctx.moveTo(this.p2.x, this.p2.y);
                     ctx.arc(this.p2.x, this.p2.y, radius, a1, a2, !this.isCounterClockwise);
-                    ctx.closePath(); // Retour au sommet
+                    ctx.closePath();
 
                     if (this.isFilled) {
                         ctx.fillStyle = this.color ? this.color.replace('0.2', '0.4') : "rgba(39, 174, 96, 0.3)";
@@ -3292,7 +3229,6 @@
                 if (!c.p1 || !c.p2) return null;
                 const dx = c.p2.x - c.p1.x;
                 const dy = c.p2.y - c.p1.y;
-                // Le vecteur perpendiculaire est (-dy, dx)
                 return { x: this.p1.x - dy, y: this.p1.y + dx };
             }
 
@@ -3312,43 +3248,31 @@
                 MathUtils.drawInfiniteLineFromVector(ctx, this.p1.x, this.p1.y, p2.x - this.p1.x, p2.y - this.p1.y, s.color, s.width, s.dash);
 
                 // 2. Tracer le codage (Petit carré)
-                // On a besoin des coordonnées de la ligne de référence
                 const c = MathUtils.getLineCoords(this.refLine);
                 if (c.p1 && c.p2) {
-                    // Astuce : On crée un objet temporaire de type 'Line' (infinie) 
-                    // pour trouver la projection même si on sort du segment
                     const infiniteRef = { p1: c.p1, p2: c.p2, constructor: { name: 'Line' } };
                     const H = MathUtils.getProjectedPoint(this.p1.x, this.p1.y, infiniteRef);
-
-                    // Angle de la ligne de référence
                     const angle = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x);
 
                     ctx.save();
                     ctx.translate(H.x, H.y);
-                    ctx.rotate(angle); // On s'aligne sur la ligne de référence
+                    ctx.rotate(angle);
 
-                    // On détermine de quel côté dessiner le carré (vers le point p1)
-                    // On passe p1 en coordonnées locales
                     const dx = this.p1.x - H.x;
                     const dy = this.p1.y - H.y;
-                    // Formule de rotation inverse pour savoir si le point est "au dessus" ou "en dessous" en local
                     const localY = -dx * Math.sin(angle) + dy * Math.cos(angle);
                     const sign = localY >= 0 ? 1 : -1;
 
-                    const size = 12; // Taille du symbole
-
+                    const size = 12;
                     ctx.beginPath();
-                    ctx.lineWidth = 1.5; // Trait un peu plus fin pour le symbole
+                    ctx.lineWidth = 1.5;
                     ctx.strokeStyle = s.color;
-                    ctx.setLineDash([]); // Toujours en trait plein, même si la droite est en pointillés
+                    ctx.setLineDash([]);
 
-                    // Dessin du "L" du carré
                     ctx.moveTo(size, 0);
                     ctx.lineTo(size, sign * size);
                     ctx.lineTo(0, sign * size);
-
                     ctx.stroke();
-
                     ctx.restore();
                 }
             }
@@ -3379,27 +3303,17 @@
                 };
             }
             isNear(mx, my) {
-                // 1. Vérification de sécurité
-                if (!this.points || this.points.length < 3) {
-                    // console.warn("Polygone invalide (moins de 3 points)");
-                    return false;
-                }
-                // 2. On exclut le clic sur le contour (Segment)
+                if (!this.points || this.points.length < 3) return false;
                 // Si on clique trop près du bord, on laisse la main aux segments du contour
                 if (this.getClosestSegment(mx, my).dist < 8) return false;
 
-                // 3. Algorithme de Ray-Casting (Point dans Polygone)
                 let inside = false;
-
-                // On parcourt tous les côtés du polygone
                 for (let i = 0, j = this.points.length - 1; i < this.points.length; j = i++) {
                     const xi = this.points[i].x;
                     const yi = this.points[i].y;
                     const xj = this.points[j].x;
                     const yj = this.points[j].y;
 
-                    // Logique mathématique pure : on trace une ligne horizontale depuis la souris
-                    // et on compte combien de fois elle traverse les côtés du polygone.
                     const intersect = ((yi > my) !== (yj > my)) &&
                         (mx < (xj - xi) * (my - yi) / (yj - yi) + xi);
 
@@ -3420,12 +3334,10 @@
                 if (this.fillMode === 'solid') {
                     ctx.globalAlpha = this.opacity;
                     ctx.fillStyle = this.color;
-
                     ctx.fill();
                 }
                 else if (this.fillMode === 'hatch') {
-                    ctx.globalAlpha = 1; // Hachures toujours nettes
-                    // On génère le motif à la volée avec la couleur de l'objet
+                    ctx.globalAlpha = 1;
                     ctx.fillStyle = PatternUtils.createHatchPattern(ctx, this.color);
                     ctx.fill();
                 }
@@ -3495,7 +3407,6 @@
                 const headY = -h;
                 if (MathUtils.dist(local.x, local.y, this.radius, 0) < 20) return 'trace';
                 if (MathUtils.distanceToSegment(local.x, local.y, headX, headY, 0, 0) < 20) return 'move';
-                const gripTopRatio = 0.45;
                 const legStartX = this.radius;
                 const legStartY = 0;
                 const legEndX = headX;
@@ -3562,10 +3473,10 @@
                 ctx.moveTo(resizeEndPos.x, resizeEndPos.y);
                 ctx.lineTo(triStartPos.x, triStartPos.y);
                 ctx.stroke();
- 
-                if (app.draggedWidgetMode === 'resize') {  
+
+                if (app.draggedWidgetMode === 'resize') {
                     ctx.save();
-                    //console.log('echo');
+                    // Code mort supprimé ici
                     // 1. La ligne
                     ctx.beginPath();
                     ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
@@ -3577,7 +3488,7 @@
 
                     // 2. Le texte
                     ctx.translate(this.radius / 2, -15);
-                    ctx.rotate(-this.angle); // Contre-rotation pour garder le texte droit
+                    ctx.rotate(-this.angle); // Contre-rotation
 
                     const text = Math.round((this.radius * 2) / 10) / 10 + "";
                     ctx.font = "bold 12px Arial";
@@ -3780,7 +3691,7 @@
                 this.angle = 0;
                 this.radius = 180;
                 this.isLocked = false;
-                this.isReversed = false; // NOUVEAU : État des graduations
+                this.isReversed = false;
             }
 
             toLocal(mx, my) {
@@ -3796,11 +3707,10 @@
                 const l = this.toLocal(mx, my);
                 const d = Math.sqrt(l.x * l.x + l.y * l.y);
 
-                // 1. BOUTON CADENAS (Centré) : x entre -12 et 12
+                // 1. BOUTON CADENAS (Centré)
                 if (Math.abs(l.x) < 12 && l.y < -30 && l.y > -60) return 'toggleLock';
 
-                // 2. NOUVEAU : BOUTON SWAP (À droite du cadenas)
-                // x entre 20 et 44 (soit un carré de 24px décalé)
+                // 2. BOUTON SWAP
                 if (Math.abs(l.x) < 12 && l.y >= -85 && l.y <= -61) return 'toggleSwap';
 
                 // 3. LOGIQUE DE MOUVEMENT
@@ -3810,7 +3720,7 @@
                 }
 
                 if (d < 20) return 'move';
-                // Zone de rotation (anneau extérieur)
+                // Zone de rotation
                 if (d > this.radius - 30 && d < this.radius + 10 && l.y < 0) return 'rotate';
                 // Corps du rapporteur
                 if (d < this.radius && l.y < 0) return 'move';
@@ -3825,12 +3735,10 @@
 
                 // --- 1. FOND ---
                 ctx.beginPath();
-                // Arc de 180 à 0 degrés
                 ctx.arc(0, 0, this.radius, Math.PI, 0);
-                // MODIFICATION ICI : Fermer le chemin proprement (ligne plate en bas)
                 ctx.closePath();
 
-                ctx.fillStyle = "rgba(255, 255, 255, 0.4)"; // Un peu plus opaque pour bien voir le fond plat
+                ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
                 ctx.fill();
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = this.isLocked ? "#aaa" : "#444";
@@ -3838,15 +3746,14 @@
 
                 // --- 2. CROIX CENTRALE ---
                 ctx.beginPath();
-                ctx.moveTo(0, -10); ctx.lineTo(0, 0); // Ligne verticale (arrêtée au centre)
-                ctx.moveTo(-10, 0); ctx.lineTo(10, 0); // Ligne horizontale
+                ctx.moveTo(0, -10); ctx.lineTo(0, 0);
+                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
                 ctx.strokeStyle = "red";
                 ctx.stroke();
 
-                // Petit cercle central
                 ctx.beginPath();
                 ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                ctx.stroke(); // Cercle vide pour viser
+                ctx.stroke();
 
                 // --- 3. GRADUATIONS ---
                 ctx.strokeStyle = "#333";
@@ -3869,23 +3776,18 @@
 
                     // Affichage des chiffres
                     if (i % 10 === 0) {
-                        // MODIFICATION ICI : Calcul de la valeur selon l'état inversé
                         let labelValue = this.isReversed ? (180 - i) : i;
-
-                        // Rotation du texte pour qu'il soit lisible
                         ctx.save();
                         ctx.translate(cos * (this.radius - 25), sin * (this.radius - 25));
-                        // Optionnel : tourner le texte pour suivre l'arc (décommenter si voulu)
-                        // ctx.rotate(ang + Math.PI/2); 
                         ctx.fillText(labelValue, 0, 0);
                         ctx.restore();
                     }
                 }
 
-                // --- 4. BOUTON CADENAS (Rouge/Vert) ---
+                // --- 4. BOUTON CADENAS ---
                 ctx.fillStyle = this.isLocked ? "#e74c3c" : "#2ecc71";
                 ctx.beginPath();
-                ctx.rect(-12, -55, 24, 24); // Centré en X
+                ctx.rect(-12, -55, 24, 24);
                 ctx.fill();
                 ctx.strokeStyle = "#fff";
                 ctx.lineWidth = 2;
@@ -3894,28 +3796,25 @@
                 // Dessin cadenas
                 ctx.beginPath();
                 if (this.isLocked) {
-                    ctx.strokeRect(-6, -45, 12, 9); // Corps
-                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke(); // Anse fermée
+                    ctx.strokeRect(-6, -45, 12, 9);
+                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke();
                 } else {
-                    ctx.strokeRect(-6, -43, 12, 7); // Corps
-                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke(); // Anse (symbolique)
+                    ctx.strokeRect(-6, -43, 12, 7);
+                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke();
                 }
 
-                // Positionné au-dessus du cadenas
-                ctx.fillStyle = "#3498db"; // Bleu
+                // Bouton Swap
+                ctx.fillStyle = "#3498db";
                 ctx.beginPath();
-                // x: -12 (aligné avec cadenas), y: -85 (au-dessus)
                 ctx.rect(-12, -85, 24, 24);
                 ctx.fill();
                 ctx.strokeStyle = "#fff";
                 ctx.stroke();
 
-                // Icône flèches (↔)
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.font = "bold 16px sans-serif";
-                // x: 0 (centre), y: -73 (centre du carré -85 + 12)
                 ctx.fillText("↔", 0, -73);
 
                 ctx.restore();
@@ -4112,7 +4011,6 @@
                     }
                     else if (e instanceof Arc || e instanceof CompassArc) {
                         // Simplification : on prend la boite englobante du cercle complet pour être sûr
-                        // (Calculer la boite exacte d'un arc est complexe mathématiquement)
                         if (e.center) {
                             extend(e.center.x - e.radius, e.center.y - e.radius);
                             extend(e.center.x + e.radius, e.center.y + e.radius);
@@ -4257,8 +4155,7 @@
                             this.updateDependents();
 
                             this.render();
-                            // Note : Pour les flèches, on ne sauvegarde pas l'état à chaque pixel pour ne pas saturer l'historique,
-                            // mais idéalement on devrait le faire au "keyup".
+                            // Note : Pour les flèches, on ne sauvegarde pas l'état à chaque pixel pour ne pas saturer l'historique
                         }
                     }
                 });
@@ -4272,7 +4169,6 @@
                 // CAS 1 : Symétrique d'un POINT
                 if (targetObj instanceof Point) {
                     // On crée le nouveau point qui dépend de (Original + Référence)
-                    // Astuce : On ajoute "'" au nom
                     const newLabel = targetObj.label + "'";
                     const newPt = new Point(0, 0, newLabel, [targetObj, referenceObj], null, subType);
                     newPt.pointStyle = targetObj.pointStyle;
@@ -4283,11 +4179,9 @@
 
                 // CAS 2 : Symétrique d'un SEGMENT (On crée 2 points symétriques + 1 segment)
                 else if (targetObj instanceof Segment) {
-                    // Récursion : on crée le symétrique de P1 et P2
                     this.createSymmetry(targetObj.p1, referenceObj, type);
                     this.createSymmetry(targetObj.p2, referenceObj, type);
 
-                    // On récupère les deux derniers points créés (qui sont les symétriques)
                     const p2_prime = this.entities[this.entities.length - 1];
                     const p1_prime = this.entities[this.entities.length - 2];
 
@@ -4299,13 +4193,9 @@
 
                 // CAS 3 : Symétrique d'un CERCLE
                 else if (targetObj instanceof Circle) {
-                    // On crée le symétrique du centre
                     this.createSymmetry(targetObj.center || targetObj.p1, referenceObj, type);
                     const newCenter = this.entities[this.entities.length - 1];
 
-                    // On crée un nouveau cercle avec le MEME rayon (ou basé sur p2 symétrique)
-                    // Simplification : Cercle défini par Centre + Rayon fixe (copié)
-                    // Mais pour garder la dynamique, le mieux est de créer le symétrique du point de bord (p2)
                     if (targetObj.p2) {
                         this.createSymmetry(targetObj.p2, referenceObj, type);
                         const newP2 = this.entities[this.entities.length - 1];
@@ -4334,9 +4224,8 @@
                 this.render();
             }
             getClosestPointOnEntity(mx, my, entity) {
-                // 1. CAS DU SEGMENT (Vous l'avez déjà probablement, mais voici la version propre)
+                // 1. CAS DU SEGMENT
                 if (entity instanceof Segment) {
-                    // Projection vectorielle
                     const A = entity.p1;
                     const B = entity.p2;
                     const AtocX = mx - A.x;
@@ -4346,7 +4235,6 @@
                     const len2 = AtoBX * AtoBX + AtoBY * AtoBY;
                     let t = (AtocX * AtoBX + AtocY * AtoBY) / len2;
 
-                    // On contraint le point à rester ENTRE A et B (segment), pas sur la droite infinie
                     t = Math.max(0, Math.min(1, t));
 
                     return {
@@ -4355,7 +4243,6 @@
                     };
                 }
                 if (entity instanceof Circle) {
-                    // On calcule l'angle entre le centre et la souris
                     const angle = Math.atan2(my - entity.center.y, mx - entity.center.x);
                     const radius = MathUtils.dist(entity.center.x, entity.center.y, entity.p2.x, entity.p2.y);
 
@@ -4369,36 +4256,16 @@
                     const radius = MathUtils.dist(entity.center.x, entity.center.y, entity.p2.x, entity.p2.y);
                     let angle = Math.atan2(my - entity.center.y, mx - entity.center.x);
 
-                    // Position théorique sur le cercle complet
                     const projX = entity.center.x + radius * Math.cos(angle);
                     const projY = entity.center.y + radius * Math.sin(angle);
 
-                    // B. Vérifier si cet angle est DANS l'ouverture de l'arc
-                    // On récupère les angles de l'arc (supposons qu'ils sont calculés comme dans draw)
                     const aStart = Math.atan2(entity.p1.y - entity.center.y, entity.p1.x - entity.center.x);
                     const aEnd = Math.atan2(entity.p2.y - entity.center.y, entity.p2.x - entity.center.x);
 
-                    // Gestion complexe des angles (le passage de -PI à +PI)
-                    // Pour faire simple : on regarde si le point projeté est plus proche 
-                    // du point projeté libre ou des extrémités.
-
-                    // Distance souris <-> projection libre
                     const dProj = MathUtils.dist(mx, my, projX, projY);
-                    // Distance souris <-> Extrémité 1
                     const dEnd1 = MathUtils.dist(mx, my, entity.p1.x, entity.p1.y);
-                    // Distance souris <-> Extrémité 2
                     const dEnd2 = MathUtils.dist(mx, my, entity.p2.x, entity.p2.y);
 
-                    // Si la souris est plus proche d'une extrémité que de l'arc courbe, on snape aux bouts
-                    // (C'est une astuce qui évite les maths complexes d'angles)
-                    // Mais pour être précis, il faut savoir si 'angle' est entre aStart et aEnd.
-
-                    // Méthode simplifiée "Visuelle" :
-                    // Si le point projeté est sur l'arc visible, on le garde. Sinon on prend le bout le plus proche.
-                    // Comment savoir s'il est sur l'arc ? On utilise `isNear` ou on vérifie l'angle.
-                    // Ici, assumons que si on vise l'arc, on est "proche".
-
-                    // Vérification angulaire (CounterClockwise)
                     let start = aStart;
                     let end = aEnd;
                     let curr = angle;
@@ -4411,25 +4278,21 @@
                         if (curr < end) curr += 2 * Math.PI;
                     }
 
-                    // Si l'angle est dans la fourchette (avec une petite tolérance), c'est bon
                     const isInside = entity.isCounterClockwise ? (curr >= start && curr <= end) : (curr >= end && curr <= start);
 
                     if (isInside) {
                         return { x: projX, y: projY };
                     } else {
-                        // Sinon, on retourne l'extrémité la plus proche
                         return (dEnd1 < dEnd2) ? { x: entity.p1.x, y: entity.p1.y } : { x: entity.p2.x, y: entity.p2.y };
                     }
                 }
 
-                // Par défaut, on renvoie la souris
                 return { x: mx, y: my };
             }
 
             setGlobalPointStyle(style) {
                 this.defaultPointStyle = style;
 
-                // Mise à jour visuelle des boutons du header
                 ['cross', 'dot', 'pixel'].forEach(s => {
                     const btn = document.getElementById('btnPt' + s.charAt(0).toUpperCase() + s.slice(1));
                     if (btn) {
@@ -4448,42 +4311,34 @@
                 const btn = document.getElementById('btnPan');
 
                 if (this.currentTool === 'pan') {
-                    // Si on était déjà en main -> On revient en sélection (Move)
                     this.setTool('move');
                     btn.classList.remove('active');
                 } else {
-                    // Sinon on active la main
                     this.setTool('pan');
                     btn.classList.add('active');
                 }
             }
             // --- AUTO CODAGE (Baguette Magique) ---
             autoCodeSegments() {
-                // 1. Récupérer tous les segments
                 const segments = this.entities.filter(e => e instanceof Segment);
                 if (segments.length < 2) return;
 
-                // 2. Réinitialiser les codages existants (pour éviter les conflits)
                 segments.forEach(s => s.coding = null);
 
-                // 3. Grouper par longueur (Tolérance pour les petits écarts de pixel)
                 const groups = {};
                 segments.forEach(seg => {
                     const len = MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y);
-                    // On arrondit pour la tolérance (à 0.1 près)
                     const key = Math.round(len * 10) / 10;
 
                     if (!groups[key]) groups[key] = [];
                     groups[key].push(seg);
                 });
 
-                // 4. Attribuer les marques
                 const marks = ['mark-1', 'mark-2', 'mark-3', 'mark-o', 'mark-oo', 'mark-x', 'mark-xx'];
                 let markIndex = 0;
 
                 for (const key in groups) {
                     const group = groups[key];
-                    // S'il y a au moins 2 segments de même longueur dans ce groupe
                     if (group.length > 1) {
                         const currentMark = marks[markIndex % marks.length];
                         group.forEach(seg => seg.coding = currentMark);
@@ -4503,31 +4358,23 @@
                 txt.innerText = message;
                 modal.style.display = 'flex';
 
-                // On définit ce que fait le bouton "Confirmer"
                 btn.onclick = () => {
                     onConfirm(); // On lance l'action
                     this.closeModal(); // On ferme
                 };
 
-                // Petit focus pour pouvoir faire Entrée (optionnel mais sympa)
                 btn.focus();
             }
 
             closeModal() {
                 document.getElementById('customModal').style.display = 'none';
             }
-            // --- DANS LE CONSTRUCTOR ---
-            // this.isShift = false; (Pense à l'ajouter)
-            // this.initVirtualKeyboard();
+
             toggleGlobalLabels() {
-                // On regarde s'il y a des points
                 const points = this.entities.filter(e => e instanceof Point);
                 if (points.length === 0) return;
 
-                // Est-ce qu'il y en a au moins un de caché ?
                 const hasHidden = points.some(p => p.showLabel === false);
-
-                // Si oui, on force tout le monde à Visible. Sinon, tout le monde à Caché.
                 const newState = hasHidden ? true : false;
 
                 points.forEach(p => p.showLabel = newState);
@@ -4543,14 +4390,11 @@
 
                 points.forEach(p => {
                     let newSize = (p.fontSize || 14) + delta;
-                    // Limites de sécurité
                     if (newSize < 8) newSize = 8;
                     if (newSize > 32) newSize = 32;
                     p.fontSize = newSize;
                 });
 
-                // On met à jour la taille par défaut pour les futurs points
-                // On prend la taille du dernier point modifié comme référence
                 if (points.length > 0) this.defaultFontSize = points[0].fontSize;
 
                 this.saveState();
@@ -4562,9 +4406,7 @@
                 const points = this.entities.filter(e => e instanceof Point);
                 if (points.length === 0) return;
 
-                // Remplacement du confirm natif
                 this.showModal("Remettre tous les textes à la taille standard (14px) et visibles ?", () => {
-                    // --- Le code qui s'exécute si on dit OUI ---
                     points.forEach(p => {
                         p.fontSize = 14;
                         p.showLabel = true;
@@ -4579,7 +4421,6 @@
                 if (!this.selectedObject || !(this.selectedObject instanceof Point)) return;
 
                 const currentLabel = this.selectedObject.label;
-                // On garde les primes (', '') pour ne changer que la lettre de base
                 const baseChar = currentLabel.replace(/['’]/g, "");
                 const primes = currentLabel.substring(baseChar.length);
 
@@ -4587,7 +4428,6 @@
                 let currentIndex = alphabet.indexOf(baseChar);
                 if (currentIndex === -1) currentIndex = 0;
 
-                // Liste des noms interdits (ceux des AUTRES points)
                 const usedNames = this.entities
                     .filter(e => e instanceof Point && e !== this.selectedObject)
                     .map(e => e.label);
@@ -4595,26 +4435,19 @@
                 let newChar = baseChar;
                 let loops = 0;
 
-                // On tourne tant qu'on tombe sur un nom déjà pris
                 do {
                     currentIndex += direction;
-
-                    // Boucle Z -> A
                     if (currentIndex >= alphabet.length) currentIndex = 0;
                     if (currentIndex < 0) currentIndex = alphabet.length - 1;
 
                     newChar = alphabet[currentIndex];
                     loops++;
-
-                    // Sécurité (si les 26 lettres sont prises, on s'arrête)
                     if (loops > 26) break;
 
                 } while (usedNames.includes(newChar + primes));
 
-                // On applique le nom libre trouvé
                 this.selectedObject.label = newChar + primes;
 
-                // Mise à jour de l'affichage dans le menu
                 const display = document.getElementById('renamerDisplay');
                 if (display) display.innerText = this.selectedObject.label;
 
@@ -4622,22 +4455,16 @@
                 this.render();
             }
 
-            // Ajoute ou retire des ' au nom
             addPrime() {
                 if (!this.selectedObject || !(this.selectedObject instanceof Point)) return;
 
                 let label = this.selectedObject.label;
 
-                // Si on a déjà 3 primes, on revient à 0 (A''' -> A)
                 if (label.endsWith("'''")) {
                     label = label.substring(0, label.length - 3);
                 } else {
                     label += "'";
                 }
-
-                // Vérification doublon rapide (si A' existe déjà, on ne l'interdit pas forcément ici 
-                // car l'utilisateur peut vouloir créer le doublon temporairement, 
-                // mais on pourrait ajouter une logique de saut ici aussi si tu veux).
 
                 this.selectedObject.label = label;
                 document.getElementById('renamerDisplay').innerText = label;
@@ -4645,18 +4472,14 @@
                 this.render();
             }
 
-            // --- NOUVELLES METHODES ---
-
             resizeCanvas() {
                 const container = this.canvas.parentElement;
                 const rect = container.getBoundingClientRect();
                 this.dpr = window.devicePixelRatio || 1;
 
-                // Taille réelle en pixels (HD)
                 this.canvas.width = Math.round(rect.width * this.dpr);
                 this.canvas.height = Math.round(rect.height * this.dpr);
 
-                // Taille d'affichage CSS (pour ne pas que ça grossisse)
                 this.canvas.style.width = rect.width + 'px';
                 this.canvas.style.height = rect.height + 'px';
 
@@ -4664,12 +4487,10 @@
             }
 
             rewindState() {
-                // Parcours inverse pour que le tout premier mouvement écrase les suivants
                 for (let i = this.entities.length - 1; i >= 0; i--) {
                     const ent = this.entities[i];
 
                     if (ent instanceof ToolAnimation && (ent.widgetType === 'pointMove' || ent.widgetType === 'textMove')) {
-                        // Maintenant ent.targetId n'est plus undefined !
                         const target = this.entities.find(e => e.id === ent.targetId);
 
                         if (target) {
@@ -4689,7 +4510,7 @@
                 const btn = document.getElementById('btnMagnet');
                 if (this.isMagnetActive) {
                     btn.classList.add('active');
-                    btn.style.background = '#e67e22'; // Orange pour bien voir
+                    btn.style.background = '#e67e22';
                 } else {
                     btn.classList.remove('active');
                     btn.style.background = '';
@@ -4703,10 +4524,8 @@
                 this.render();
             }
 
-            // Le cœur du magnétisme de proximité
             getSmartCoords(evt) {
                 const raw = this.getMousePos(evt);
-                // Si aimant désactivé ou mode "Page Blanche" (3), pas d'aimant
                 if (!this.isMagnetActive || this.gridMode === 3) {
                     this.activeSnapPoint = null;
                     return raw;
@@ -4717,37 +4536,26 @@
                 let nx = x,
                     ny = y;
 
-                // --- CAS 1 : GRILLE CARRÉE (0) OU POINTS (1) ---
                 if (this.gridMode === 0 || this.gridMode === 1) {
                     nx = Math.round(x / UNIT) * UNIT;
                     ny = Math.round(y / UNIT) * UNIT;
                 }
 
-                // --- CAS 2 : GRILLE ISOMÉTRIQUE (2) ---
                 else if (this.gridMode === 2) {
-                    // Hauteur d'une ligne iso
                     const isoH = UNIT * Math.sqrt(3) / 2;
-
-                    // On trouve la ligne la plus proche (Y)
                     const row = Math.round(y / isoH);
                     ny = row * isoH;
-
-                    // Décalage : Une ligne sur deux est décalée de la moitié d'une unité
                     const offset = (row % 2 !== 0) ? (UNIT / 2) : 0;
-
-                    // On trouve la colonne la plus proche (X) en tenant compte du décalage
                     nx = Math.round((x - offset) / UNIT) * UNIT + offset;
                 }
 
-                // Calcul de distance pour le magnétisme de proximité
                 const dist = Math.sqrt((x - nx) ** 2 + (y - ny) ** 2);
 
-                // SEUIL (15px) : Si on est assez près, on "snap" et on allume
                 if (dist < 15) {
                     this.activeSnapPoint = {
                         x: nx,
                         y: ny
-                    }; // Pour l'affichage "lumière"
+                    };
                     return {
                         x: nx,
                         y: ny,
@@ -4755,7 +4563,7 @@
                     };
                 }
 
-                this.activeSnapPoint = null; // Trop loin, on éteint la lumière
+                this.activeSnapPoint = null;
                 return raw;
             }
 
@@ -4763,13 +4571,10 @@
                 this.vkContainer = document.getElementById('virtualKeyboard');
                 this.renderKeyboard();
 
-                // LOGIQUE DE DÉPLACEMENT DU CLAVIER
-                const handle = document.getElementById('vkHandle'); // Créé dans renderKeyboard
+                const handle = document.getElementById('vkHandle');
                 let isDraggingVK = false;
                 let startX, startY, initLeft, initTop;
 
-                // Comme renderKeyboard peut être rappelé (Shift), on utilise un délégué ou on réattache
-                // Ici on utilise l'événement sur le conteneur en filtrant la cible
                 this.vkContainer.addEventListener('mousedown', (e) => {
                     if (e.target.closest('.vk-drag-handle')) {
                         isDraggingVK = true;
@@ -4788,38 +4593,27 @@
                     const dy = e.clientY - startY;
                     this.vkContainer.style.left = (initLeft + dx) + 'px';
                     this.vkContainer.style.top = (initTop + dy) + 'px';
-                    this.vkContainer.style.transform = 'none'; // On enlève le centrage CSS auto
+                    this.vkContainer.style.transform = 'none';
                 });
 
                 window.addEventListener('mouseup', () => { isDraggingVK = false; });
             }
 
             renderKeyboard() {
-                this.vkContainer.innerHTML = ''; // Reset
+                this.vkContainer.innerHTML = '';
 
-                // 1. AJOUT DE LA POIGNÉE DE DÉPLACEMENT
                 const handle = document.createElement('div');
                 handle.className = 'vk-drag-handle';
-                handle.id = 'vkHandle'; // ID pour le listener
+                handle.id = 'vkHandle';
                 this.vkContainer.appendChild(handle);
 
-                // Définition des lignes (AZERTY)
-                // Ligne 0 : Chiffres (toujours pareils)
                 const row0 = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
-
-                // Ligne 1 : AZERTY...
                 const row1_low = ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"];
                 const row1_up = ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"];
-
-                // Ligne 2 : QSDFG...
                 const row2_low = ["q", "s", "d", "f", "g", "h", "j", "k", "l", "m"];
                 const row2_up = ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "M"];
-
-                // Ligne 3 : WXCV... + Accents + Ponctuation
                 const row3_low = ["w", "x", "c", "v", "b", "n", ".", ",", "?", "!"];
                 const row3_up = ["W", "X", "C", "V", "B", "N", ".", ":", ";", "/"];
-
-                // Ligne 4 : Accents (spécifique FR)
                 const row4_low = ["é", "è", "à", "ù", "ç", "'", "-", "(", ")", "="];
                 const row4_up = ["É", "È", "À", "Ù", "Ç", '"', "+", "[", "]", "*"];
 
@@ -4828,32 +4622,22 @@
                 const currentR3 = this.isShift ? row3_up : row3_low;
                 const currentR4 = this.isShift ? row4_up : row4_low;
 
-                // --- CONSTRUCTION DU DOM ---
-
-                // 1. Ligne Chiffres
                 this.createRow(row0, 'num');
-
-                // 2. Ligne AZERTY
                 this.createRow(currentR1);
-
-                // 3. Ligne QSDFGH
                 this.createRow(currentR2);
 
-                // 4. Ligne Shift + WXCVBN + Backspace
                 const div3 = document.createElement('div');
                 div3.className = 'vk-row';
 
-                // Bouton SHIFT
                 const btnShift = document.createElement('button');
                 btnShift.className = 'vk-btn special' + (this.isShift ? ' active-shift' : '');
-                btnShift.innerHTML = '⇧'; // Flèche haut
+                btnShift.innerHTML = '⇧';
                 btnShift.onmousedown = (e) => {
                     e.preventDefault();
                     this.toggleShift();
                 };
                 div3.appendChild(btnShift);
 
-                // Lettres W...N
                 currentR3.forEach(char => {
                     const btn = document.createElement('button');
                     btn.className = 'vk-btn';
@@ -4865,7 +4649,6 @@
                     div3.appendChild(btn);
                 });
 
-                // Bouton BACKSPACE
                 const btnBack = document.createElement('button');
                 btnBack.className = 'vk-btn special';
                 btnBack.innerHTML = '⌫';
@@ -4877,10 +4660,8 @@
 
                 this.vkContainer.appendChild(div3);
 
-                // 5. Ligne Accents
                 this.createRow(currentR4);
 
-                // 6. Ligne Espace
                 const divSpace = document.createElement('div');
                 divSpace.className = 'vk-row';
                 const btnSpace = document.createElement('button');
@@ -4894,7 +4675,6 @@
                 this.vkContainer.appendChild(divSpace);
             }
 
-            // Helper pour créer une ligne simple
             createRow(chars, extraClass = '') {
                 const div = document.createElement('div');
                 div.className = 'vk-row';
@@ -4902,7 +4682,6 @@
                     const btn = document.createElement('button');
                     btn.className = `vk-btn ${extraClass}`;
                     btn.innerText = char;
-                    // preventDefault est CRUCIAL pour ne pas perdre le focus de l'input
                     btn.onmousedown = (e) => {
                         e.preventDefault();
                         this.typeChar(char);
@@ -4914,12 +4693,11 @@
 
             toggleShift() {
                 this.isShift = !this.isShift;
-                this.renderKeyboard(); // On redessine tout le clavier
+                this.renderKeyboard();
             }
 
             typeChar(char) {
                 if (this.editorInput) {
-                    // Insertion au curseur (plus pro que juste ajouter à la fin)
                     const start = this.editorInput.selectionStart;
                     const end = this.editorInput.selectionEnd;
                     const text = this.editorInput.value;
@@ -4929,11 +4707,6 @@
                     this.editorInput.value = before + char + after;
                     this.editorInput.selectionStart = this.editorInput.selectionEnd = start + 1;
                     this.editorInput.focus();
-
-                    // Si on était en majuscule, on repasse en minuscule après une lettre (comportement standard)
-                    // Sauf si on veut un CapsLock, mais pour la géométrie c'est mieux comme ça.
-                    // Uncomment below si tu veux que Shift s'enlève après une lettre
-                    // if(this.isShift) this.toggleShift(); 
                 }
             }
 
@@ -4956,7 +4729,6 @@
                 }
             }
 
-            // Valide le texte
             applyTextEdit() {
                 const val = this.editorInput.value.trim();
                 if (this.editingEntity) {
@@ -4964,61 +4736,55 @@
                         this.editingEntity.label = val;
                     } else if (this.editingEntity instanceof TextLabel) {
                         if (val === "") {
-                            // Si on vide le texte, on supprime l'étiquette
                             this.entities = this.entities.filter(e => e !== this.editingEntity);
                         } else {
                             this.editingEntity.text = val;
                         }
                     } else if (this.editingEntity.type === 'new' && val !== "") {
-                        // Création d'un nouveau TextLabel
                         this.addEntity(new TextLabel(this.editingEntity.x, this.editingEntity.y, val));
                     }
                     this.saveState();
                 }
-                this.cancelTextEdit(); // Fermer la boîte
+                this.cancelTextEdit();
                 this.render();
             }
 
-            // Ferme la boîte
             cancelTextEdit() {
                 this.editorDiv.style.display = 'none';
                 this.editingEntity = null;
                 this.editorInput.value = "";
-                this.canvas.focus(); // Redonner le focus au canvas
-                // CACHER LE CLAVIER
+                this.canvas.focus();
                 document.getElementById('virtualKeyboard').classList.remove('visible');
             }
 
 
             constructor(canvasId) {
-                this.view = { x: 0, y: 0, zoom: 1 }; // x,y = décalage, zoom = échelle
+                this.view = { x: 0, y: 0, zoom: 1 };
                 this.projectTitle = "Nom";
 
-                // Écouteur pour mettre à jour la variable quand on tape
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
                     titleInput.oninput = (e) => {
                         this.projectTitle = e.target.value;
-                        // Optionnel : Mettre à jour le titre de l'onglet du navigateur
                         document.title = "GéoSoft - " + this.projectTitle;
                     };
                 }
                 this.isPanning = false;
-                this.lastMouseScreen = { x: 0, y: 0 }; // Pour calculer le mouvement de la souris
+                this.lastMouseScreen = { x: 0, y: 0 };
                 this.initAnimationState();
-                // ... dans le constructor ...
+
                 this.isShift = false;
                 this.initVirtualKeyboard();
-                this.editingEntity = null; // L'objet qu'on est en train de modifier (Point ou TextLabel)
+                this.editingEntity = null;
                 this.editorDiv = document.getElementById('textEditor');
                 this.editorInput = document.getElementById('textInput');
-                // Initialiser les écouteurs du petit clavier virtuel
+
                 document.getElementById('btnTextSave').onclick = () => this.applyTextEdit();
                 document.getElementById('btnTextCancel').onclick = () => this.cancelTextEdit();
                 this.editorInput.onkeydown = (e) => {
                     if (e.key === 'Enter') this.applyTextEdit();
                     if (e.key === 'Escape') this.cancelTextEdit();
-                    e.stopPropagation(); // Empêche les raccourcis clavier de l'appli
+                    e.stopPropagation();
                 };
                 this.canvas = document.getElementById(canvasId);
                 this.ctx = this.canvas.getContext('2d');
@@ -5039,7 +4805,7 @@
 
                 this.draggedPoint = null;
                 this.draggedText = null;
-                // REPLAY & ANIMATION
+
                 this.replayIndex = null;
                 this.isPlaying = false;
                 this.playInterval = null;
@@ -5074,22 +4840,19 @@
                     y: 0
                 };
 
-                this.widgetStartState = null; // For recording start position
-                this.draggedWidgetType = null; // For knowing what we dragged
-                this.compassArcStartAngle = null;
+                this.widgetStartState = null;
+                this.draggedWidgetType = null;
                 this.historyPast = [];
                 this.historyFuture = [];
                 this.contextMenu = document.getElementById('contextMenu');
                 this.selectedObject = null;
                 this.initEventListeners();
                 this.initShortcuts();
-                //this.saveState();
                 this.render();
 
             }
 
 
-            // --- Helper for Animation Recording ---
             getWidgetState(widget) {
                 if (!widget) return null;
                 return {
@@ -5100,18 +4863,14 @@
                 };
             }
 
-            // --- Animation Interpolation ---
             applyInterpolation(anim, t) {
-                // 1. Fonction d'adoucissement (Ease in-out)
-                const ease = t;// < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                const ease = t;
 
                 const s = anim.startState;
                 const e = anim.endState;
 
-                // Utilitaires d'interpolation
                 const lerp = (a, b, t) => a + (b - a) * t;
 
-                // Interpolation circulaire (Chemin le plus court) pour les outils standards
                 const lerpAngle = (a, b, t) => {
                     let diff = b - a;
                     while (diff > Math.PI) diff -= Math.PI * 2;
@@ -5119,7 +4878,6 @@
                     return a + diff * t;
                 };
 
-                // --- CAS 1 : OBJETS DE LA SCÈNE (Point, Texte...) ---
                 if (anim.widgetType === 'pointMove' || anim.widgetType === 'textMove') {
                     const targetObj = this.entities.find(ent => ent.id === anim.targetId);
                     if (targetObj) {
@@ -5131,7 +4889,6 @@
                     return;
                 }
 
-                // Gestion masquage outils
                 if (anim.widgetType.endsWith('Hide')) {
                     const realType = anim.widgetType.replace('Hide', '');
                     this.activeWidgets[realType] = false;
@@ -5140,7 +4897,6 @@
                     return;
                 }
 
-                // --- CAS 2 : OUTILS (Compas, Règle...) ---
                 this.activeWidgets[anim.widgetType] = true;
                 const btn = document.getElementById('btn-' + anim.widgetType);
                 if (btn) btn.classList.add('widget-active');
@@ -5161,24 +4917,16 @@
                 }
 
                 if (w) {
-                    // Position toujours linéaire
                     w.x = lerp(s.x, e.x, ease);
                     w.y = lerp(s.y, e.y, ease);
 
-                    // --- GESTION INTELLIGENTE DE L'ANGLE ---
                     if (anim.widgetType === 'compass' && this.ArcTracing) {
-                        // Le compas utilise 'lerp' (linéaire).
-                        // Comme on a stocké l'angle brut (rawEndAngle) dans l'animation,
-                        // il va faire exactement le même chemin que ta souris.
                         w.angle = lerp(s.angle, e.angle, ease);
                     }
                     else {
-                        // Les autres outils (équerre, règle...) continuent d'utiliser lerpAngle
-                        // pour prendre le chemin le plus court (modulo 2PI)
                         w.angle = lerpAngle(s.angle, e.angle, ease);
                     }
 
-                    // Rayon du compas
                     if (w.radius !== undefined && s.radius !== undefined) {
                         w.radius = lerp(s.radius, e.radius, ease);
                     }
@@ -5191,9 +4939,7 @@
             }
 
             clearAll() {
-                // Remplacement du confirm natif par la modale
                 this.showModal("Voulez-vous vraiment tout effacer ?", () => {
-                    // --- Le code qui s'exécute si on dit OUI ---
                     this.entities = [];
                     this.historyPast = [];
                     this.historyFuture = [];
@@ -5211,24 +4957,22 @@
 
             saveFile() {
                 const content = document.getElementById('instrContent').innerHTML;
-                // On regarde si la boite est visible
                 const isVisible = document.getElementById('instructionBox').style.display !== 'none';
                 const saveData = {
-                    title: this.projectTitle, // <--- On sauve le titre !
+                    title: this.projectTitle,
                     data: this.serialize(),
                     instructions: {
                         html: content,
                         visible: isVisible
-                    } // Tes données géométriques
+                    }
                 };
 
-                const json = JSON.stringify(saveData, null, 2); // Joli JSON
+                const json = JSON.stringify(saveData, null, 2);
                 const blob = new Blob([json], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
 
-                // Nom du fichier .geo basé sur le titre
                 a.download = this.getSafeFilename('geo');
                 document.body.appendChild(a);
                 a.click();
@@ -5243,10 +4987,8 @@
                     try {
                         const content = JSON.parse(e.target.result);
 
-                        // Cas 1 : Nouveau format (Objet avec title et data)
                         if (content.title && content.data) {
                             this.projectTitle = content.title;
-                            // Mise à jour de l'input HTML
                             if (content.instructions) {
                                 const box = document.getElementById('instructionBox');
                                 const div = document.getElementById('instrContent');
@@ -5255,12 +4997,11 @@
 
                                 if (content.instructions.visible) {
                                     box.style.display = 'flex';
-                                    this.initInstructionDrag(); // On réactive le drag
+                                    this.initInstructionDrag();
                                 } else {
                                     box.style.display = 'none';
                                 }
                             } else {
-                                // Si pas de consignes dans le fichier, on remet par défaut
                                 document.getElementById('instrContent').innerHTML = '<h3>Exercice :</h3><p>...</p>';
                                 document.getElementById('instructionBox').style.display = 'none';
                             }
@@ -5269,10 +5010,8 @@
 
                             this.entities = this.deserialize(content.data);
                         }
-                        // Cas 2 : Ancien format (Juste le tableau de données)
                         else {
-                            this.entities = this.deserialize(e.target.result); // On passe la string brute ou l'objet
-                            // On garde "Sans titre" ou le nom du fichier éventuellement
+                            this.entities = this.deserialize(e.target.result);
                         }
 
                         this.historyPast = [];
@@ -5287,50 +5026,38 @@
                 input.value = '';
             }
 
-            // --- REPLAY SYSTEM ---
-            // Initialisation des variables d'anim (A ajouter dans le constructor si tu veux être propre, sinon ça s'ajoute ici dynamiquement)
             initAnimationState() {
-                // Dans initAnimationState ou constructor
                 this.defaultPointStyle = 'cross';
                 this.globalStyle = {
                     color: '#000000',
                     width: 2,
-                    dash: [] // [] = plein, [5,5] = pointillés
+                    dash: []
                 };
                 this.ArcTracing = false;
                 this.isPaintMode = false;
                 this.defaultFontSize = 14;
-                this.gridMode = 0; // 0: Carrés, 1: Points, 2: Iso, 3: Blanc
+                this.gridMode = 0;
                 this.isMagnetActive = false;
-                this.playbackSpeed = 500; // ms par étape (défaut moyen)
-                this.loopDelay = 1000; // ms de pause à la fin
+                this.playbackSpeed = 500;
+                this.loopDelay = 1000;
                 this.isLooping = false;
-                this.isLocked = false; // Interface verrouillée ?
-                this.waitEndTime = 0; // Pour gérer la pause de fin de boucle
-                this.view = { x: 0, y: 0, zoom: 1 }; // x,y = décalage, zoom = échelle
-                this.isPanning = false; // Est-ce qu'on est en train de glisser la feuille ?
-                this.lastMouseScreen = { x: 0, y: 0 }; // Pour calculer le mouvement
-                this.dpr = window.devicePixelRatio || 1; // Qualité HD
+                this.isLocked = false;
+                this.waitEndTime = 0;
+                this.view = { x: 0, y: 0, zoom: 1 };
+                this.isPanning = false;
+                this.lastMouseScreen = { x: 0, y: 0 };
+                this.dpr = window.devicePixelRatio || 1;
             }
-
-            // --- GESTION DU STYLE GLOBAL ---
 
             setGlobalColor(val) {
                 const colorMap = { 'black': '#202124', 'blue': '#1a73e8', 'red': '#d93025', 'green': '#1e8e3e', 'orange': '#e37400' };
                 const hex = colorMap[val] || val;
                 this.globalStyle.color = hex;
 
-                // --- NOUVEAU : GESTION VISUELLE DES PASTILLES ---
-                // 1. On enlève 'active' de toutes les pastilles
                 document.querySelectorAll('.header-dot').forEach(dot => dot.classList.remove('active'));
-                // 2. On cherche celle qu'on vient de cliquer (par sa couleur) et on la rend active
-                // C'est une astuce simple qui marche si on clique sur les pastilles prédéfinies
                 const customDot = document.getElementById('colorPreview');
                 customDot.classList.add('active');
-                // ET on change sa couleur de fond pour montrer la sélection !
                 customDot.style.background = hex;
-                //   if (activeDot) activeDot.classList.add('active');
-                // ------------------------------------------------
 
                 const picker = document.getElementById('globalColorPicker');
                 if (picker) picker.value = hex;
@@ -5340,25 +5067,20 @@
                 const w = parseInt(val);
                 this.globalStyle.width = w;
 
-                // --- MISE A JOUR VISUELLE DE L'ICÔNE ---
                 const icon = document.getElementById('headerStrokeIcon');
                 if (icon) {
-                    // On limite un peu visuellement pour pas que l'icône explose (max 6px visuel)
                     icon.setAttribute('stroke-width', Math.min(w, 6));
                 }
             }
 
             toggleGlobalDash() {
                 const btn = document.getElementById('btnGlobalDash');
-                // Si vide -> on met des pointillés
                 if (this.globalStyle.dash.length === 0) {
                     this.globalStyle.dash = [5, 5];
-                    // Changer l'icône pour montrer des pointillés
                     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="2" y1="12" x2="22" y2="12" stroke-width="2" stroke-dasharray="4,2"/></svg>';
-                    btn.classList.add('active'); // Visuel optionnel
+                    btn.classList.add('active');
                 } else {
                     this.globalStyle.dash = [];
-                    // Icone trait plein
                     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="2" y1="12" x2="22" y2="12" stroke-width="2"/></svg>';
                     btn.classList.remove('active');
                 }
@@ -5370,11 +5092,8 @@
             }
 
             setSpeed(val) {
-                // Val de 1 (lent) à 10 (rapide)
-                // Mapping inversé : 1 -> 1500ms, 10 -> 50ms
                 const min = 50;
                 const max = 1500;
-                // Formule pour que 10 soit rapide et 1 lent
                 this.playbackSpeed = max - ((val - 1) * (max - min) / 9);
             }
 
@@ -5394,27 +5113,21 @@
                 }
             }
 
-            // 1. Lance la lecture depuis le début (Index 0)
             playFromStart() {
                 this.saveState();
                 if (this.isPlaying) return;
 
                 this.activeWidgets = { compass: false, protractor: false, setsquare: false, ruler: false };
-                // On met à jour l'apparence des boutons (on enlève la surbrillance orange)
                 ['compass', 'protractor', 'setsquare', 'ruler'].forEach(t => {
                     const btn = document.getElementById('btn-' + t);
                     if (btn) btn.classList.remove('widget-active');
                 });
-                // 1. Charger l'état final (qui contient tous les objets et les anims)
                 if (this.historyPast.length > 0) {
                     this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
                 }
 
-                // 2. --- LE CORRECTIF EST ICI : ON REMBOBINE ---
                 this.rewindState();
-                // ---------------------------------------------
 
-                // 3. Init lecture
                 this.replayIndex = 0;
                 this.lockInterface(true);
                 this.isPlaying = true;
@@ -5429,7 +5142,6 @@
                 this.animateLoop();
             }
 
-            // Fonction Pause (optionnelle si on clique sur le bouton pendant la lecture)
             pauseAnimation() {
                 this.isPlaying = false;
                 const btn = document.getElementById('btnPlay');
@@ -5446,17 +5158,13 @@
                 this.animateLoop();
             }
 
-            // 2. Stop : Va à la fin, débloque tout
             stopAnimation() {
                 this.isPlaying = false;
                 this.isToolAnimating = false;
                 this.waitEndTime = 0;
 
-                // On va à la fin
                 this.replayIndex = this.entities.length;
 
-                // On rétablit l'état final complet (depuis l'historique ou en laissant faire le code)
-                // Le plus sûr est de recharger le dernier état de l'historique si dispo
                 if (this.historyPast.length > 0) {
                     this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
                 }
@@ -5464,18 +5172,15 @@
                 this.lockInterface(false);
                 this.render();
 
-                // Reset bouton Play
                 const btn = document.getElementById('btnPlay');
                 btn.innerHTML = "▶";
                 btn.onclick = () => this.playFromStart();
             }
 
-            // Verrouillage visuel et logique
             lockInterface(locked) {
                 this.isLocked = locked;
                 if (locked) {
                     document.body.classList.add('interface-locked');
-                    // Fermer les menus contextuels si ouverts
                     document.getElementById('contextMenu').style.display = 'none';
                     document.getElementById('textEditor').style.display = 'none';
                 } else {
@@ -5483,20 +5188,17 @@
                 }
             }
 
-            // Boucle principale d'animation
             animateLoop() {
                 if (!this.isPlaying) return;
 
                 const now = performance.now();
                 const max = this.entities.length;
 
-                // --- A. GESTION DE LA PAUSE DE FIN DE BOUCLE ---
                 if (this.waitEndTime > 0) {
                     if (now > this.waitEndTime) {
                         this.waitEndTime = 0;
                         this.replayIndex = 0;
 
-                        // Rechargement pour le bouclage
                         if (this.historyPast.length > 0) {
                             this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
                         }
@@ -5509,51 +5211,35 @@
                     return;
                 }
 
-                // --- B. GESTION D'UNE ANIMATION EN COURS (Mouvement fluide) ---
                 if (this.isToolAnimating) {
                     const elapsed = now - this.toolAnimStartTime;
-
-                    // 1. On récupère l'animation
                     const anim = this.entities[this.replayIndex];
-
-                    // 2. Durée par défaut
                     let duration = this.playbackSpeed;
 
-                    // 3. LOGIQUE PROPORTIONNELLE (Correction structure state)
-                    // On vérifie qu'on a bien startState et endState, et qu'ils contiennent un angle
                     if (anim && anim.startState && anim.endState &&
                         typeof anim.startState.angle === 'number' &&
                         typeof anim.endState.angle === 'number') {
 
-                        // C'est ici qu'on va chercher l'angle dans les sous-objets
                         const startA = anim.startState.angle;
                         const endA = anim.endState.angle;
-
                         const delta = Math.abs(endA - startA);
 
-                        // Si delta est significatif (ce n'est pas juste un micro-mouvement)
                         if (delta > 0.01) {
-                            // Facteur 0.5 pour équilibrer la vitesse
                             duration = delta * (this.playbackSpeed * 0.5);
                         }
                     }
 
-                    // Sécurité durée min
                     if (duration < 150) duration = 150;
 
-                    // 4. Calcul t
                     let t = elapsed / duration;
                     if (t > 1) t = 1;
 
-                    // Interpolation
                     if (anim) this.applyInterpolation(anim, t);
 
-                    // 5. Fin
                     if (t === 1) {
                         this.isToolAnimating = false;
                         this.replayIndex++;
 
-                        // === CORRECTIF ANTI-CLIGNOTEMENT ===
                         if (this.replayIndex < this.entities.length) {
                             const nextObj = this.entities[this.replayIndex];
                             if (nextObj instanceof CompassArc ||
@@ -5566,7 +5252,6 @@
                                 this.replayIndex++;
                             }
                         }
-                        // ===================================
 
                         this.lastStepTime = now;
                     }
@@ -5576,38 +5261,32 @@
                     return;
                 }
 
-                // --- C. PAS À PAS (Apparition des objets statiques ou lancement anim) ---
                 if (now - this.lastStepTime > this.playbackSpeed) {
 
-                    // Fin de la liste ?
                     if (this.replayIndex >= max) {
                         if (this.isLooping) {
-                            this.waitEndTime = now + this.loopDelay; // Pause avant rebouclage
+                            this.waitEndTime = now + this.loopDelay;
                         } else {
-                            this.stopAnimation(); // Stop final
+                            this.stopAnimation();
                             return;
                         }
                     } else {
-                        // On regarde ce qui arrive
                         const nextEnt = this.entities[this.replayIndex];
 
                         if (nextEnt instanceof ToolAnimation) {
-                            // C'est un mouvement -> On initie l'animation fluide pour la prochaine Frame
                             this.isToolAnimating = true;
                             this.toolAnimStartTime = now;
                         } else {
-                            // C'est un objet (Point, Ligne...) -> Il apparaît d'un coup
                             this.replayIndex++;
                             this.lastStepTime = now;
                         }
                     }
-                    this.render();
                 }
-
+                this.render();
                 requestAnimationFrame(() => this.animateLoop());
             }
             drawRuler(ctx, start, end) {
-                if(this.activeWidgets.ruler) return;
+                if (this.activeWidgets.ruler) return;
                 const dist = MathUtils.dist(start.x, start.y, end.x, end.y);
                 const angle = Math.atan2(end.y - start.y, end.x - start.x);
                 const length = 600;
@@ -5667,12 +5346,10 @@
                 if (!this.selectedObject) return;
                 if (action.startsWith('fill-')) {
                     if (this.selectedObject instanceof Polygon) {
-                        // Extrait 'solid', 'hatch', 'dots', 'none'
                         this.selectedObject.fillMode = action.replace('fill-', '');
                     }
                 }
 
-                // 1. GESTION COULEURS
                 const colorMap = {
                     'black': '#333',
                     'blue': '#2980b9',
@@ -5690,29 +5367,24 @@
                     else this.selectedObject.color = colorMap[action];
                 }
 
-                // 2. GESTION STYLE TRAIT
                 else if (action === 'solid') this.selectedObject.dash = [];
                 else if (action === 'dashed') this.selectedObject.dash = [5, 5];
 
-                // 3. GESTION SEGMENT (MESURES & CODAGE)
                 else if (this.selectedObject instanceof Segment) {
-                    // Triple Switch Mesure
                     if (action === 'toggleLength-off') {
                         this.selectedObject.showLength = false;
                     } else if (action === 'measureUp') {
                         this.selectedObject.showLength = true;
-                        this.selectedObject.measureOffset = -15; // Dessus
+                        this.selectedObject.measureOffset = -15;
                     } else if (action === 'measureDown') {
                         this.selectedObject.showLength = true;
-                        this.selectedObject.measureOffset = 20; // Dessous
+                        this.selectedObject.measureOffset = 20;
                     }
-                    // Codage
                     else if (action.startsWith('mark-')) {
                         this.selectedObject.coding = action;
                     }
                 }
 
-                // 4. GESTION ANGLE
                 else if (this.selectedObject instanceof Angle) {
                     if (action === 'flipAngle') this.selectedObject.isCounterClockwise = !this.selectedObject.isCounterClockwise;
                     else if (action === 'toggleAngleVal') this.selectedObject.showValue = !this.selectedObject.showValue;
@@ -5725,7 +5397,7 @@
                     if (this.selectedObject instanceof Point) {
                         this.selectedObject.fontSize = (this.selectedObject.fontSize || 14) + 2;
                         if (this.selectedObject.fontSize > 32) this.selectedObject.fontSize = 32;
-                        this.defaultFontSize = this.selectedObject.fontSize; // Mémorise pour les suivants
+                        this.defaultFontSize = this.selectedObject.fontSize;
                     }
                 } else if (action === 'textSize-dec') {
                     if (this.selectedObject instanceof Point) {
@@ -5740,24 +5412,16 @@
                     }
                 }
 
-                // Mise à jour visuelle du menu (Boutons actifs)
                 this.updateContextMenuUI();
-                // On ne ferme plus le menu automatiquement pour permettre d'enchaîner (ex: Couleur + Épaisseur)
-                // Sauf pour la suppression
-                // this.contextMenu.style.display = 'none'; 
                 this.render();
             }
 
             updateContextMenuUI() {
-                // alert(this.selectedObject);
                 if (!this.selectedObject) return;
 
-
-                // 1. Reset des boutons standards
                 document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
 
-                // 3. Gestion Mesures (Segments)
                 if (this.selectedObject instanceof Segment) {
                     if (!this.selectedObject.showLength) {
                         document.getElementById('btnMesNone').classList.add('active');
@@ -5768,41 +5432,28 @@
                     }
                 }
 
-                //    document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
-                //document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
-
-                // On récupère les éléments du DOM
                 const rowFill = document.getElementById('rowFill');
                 const sepFill = document.getElementById('sepFill');
 
 
-                // 2. LOGIQUE POLYGONE
                 if (this.selectedObject instanceof Polygon) {
-                    // console.log("UI: Mode Polygone activé -> Affichage du menu Hachures");
-
-                    // On affiche la ligne de hachures
                     rowFill.style.display = 'flex';
                     sepFill.style.display = 'block';
 
-                    // On active le bouton correspondant au mode actuel
                     const mode = this.selectedObject.fillMode || 'solid';
-                    // Sélecteur CSS précis pour retrouver le bon bouton
                     const btn = rowFill.querySelector(`.icon-btn[onclick="app.styleObject('fill-${mode}')"]`);
                     if (btn) btn.classList.add('active');
 
-                    // On cache les menus inutiles pour un polygone (Angle, Mesure...)
                     if (document.getElementById('rowAngle')) document.getElementById('rowAngle').style.display = 'none';
                     if (document.getElementById('rowMeasure')) document.getElementById('rowMeasure').style.display = 'none';
                     if (document.getElementById('rowCoding')) document.getElementById('rowCoding').style.display = 'none';
 
                 }
                 else {
-                    // Si ce n'est PAS un polygone, on CACHE le menu hachures
                     rowFill.style.display = 'none';
                     sepFill.style.display = 'none';
                 }
 
-                // 4. Gestion Angles
                 if (this.selectedObject instanceof Angle) {
                     if (this.selectedObject.showValue) document.getElementById('btnToggleAngleVal').classList.add('active');
                     if (this.selectedObject.isFilled) document.getElementById('btnToggleAngleFill').classList.add('active');
@@ -5833,7 +5484,6 @@
 
             serialize() {
                 const state = this.entities.map(e => {
-                    // Handle ToolAnimation
                     if (e instanceof ToolAnimation) {
                         return {
                             type: 'ToolAnimation',
@@ -5871,7 +5521,6 @@
                     } else if (e instanceof Segment) {
                         data.p1Id = e.p1.id;
                         data.p2Id = e.p2.id;
-                        // On ajoute ça :
                         if (e.coding) data.coding = e.coding;
                     } else if (e instanceof Angle) {
                         data.p1Id = e.p1.id;
@@ -5945,14 +5594,12 @@
                     else if (data.type === 'Arc') obj = new Arc(null, data.radius, data.startA, data.endA, data.id);
                     else if (data.type === 'TextLabel') {
                         obj = new TextLabel(data.x, data.y, data.text, data.id);
-                        // AJOUTER CES LIGNES (avec fallback pour les vieux fichiers)
                         if (data.fontSize) obj.fontSize = data.fontSize;
                         if (data.fontFamily) obj.fontFamily = data.fontFamily;
                     }
                     else if (data.type === 'Polygon') {
                         obj = new Polygon([], data.id);
                         obj.points = data.pointIds.map(pid => idMap.get(pid)).filter(p => p);
-                        // AJOUT
                         if (data.fillMode) obj.fillMode = data.fillMode;
                     }
                     if (obj) {
@@ -6014,10 +5661,8 @@
                 if (this.historyPast.length > 0) {
                     const lastState = this.historyPast[this.historyPast.length - 1];
                     if (lastState === currentState) {
-                        // Si c'est identique, on ne sauvegarde pas à nouveau.
-                        // On s'assure juste que l'index de lecture est bien à la fin.
                         this.replayIndex = this.entities.length;
-                        return; // On sort de la fonction
+                        return;
                     }
                 }
 
@@ -6071,7 +5716,6 @@
             }
 
             toggleWidget(type) {
-                // 1. Bascule ON/OFF
                 const wasActive = this.activeWidgets[type];
                 this.activeWidgets[type] = !wasActive;
                 const btn = document.getElementById(`btn-${type}`);
@@ -6090,29 +5734,21 @@
                     const worldX = (screenCenterX - viewX) / viewZ;
                     const worldY = (screenCenterY - viewY) / viewZ;
 
-                    // ----------------------------
-
-                    // E. On place l'outil
                     if (type === 'compass') {
-                        // Compas : On place la pointe (x,y) au centre
                         if (!this.compassWidget) this.compassWidget = new CompassWidget(worldX, worldY);
                         else { this.compassWidget.x = worldX; this.compassWidget.y = worldY; }
                     }
                     else if (type === 'protractor') {
-                        // Rapporteur : On place la cible (x,y) au centre
                         if (!this.protractorWidget) this.protractorWidget = new ProtractorWidget(worldX, worldY);
                         else { this.protractorWidget.x = worldX; this.protractorWidget.y = worldY; }
                     }
                     else if (type === 'ruler') {
-                        // Règle : On décale pour que le MILIEU de la règle soit au centre
-                        // La règle fait 600 de large, donc on retire 300
                         const rx = worldX - 300;
-                        const ry = worldY - 30; // Hauteur 60, on retire 30
+                        const ry = worldY - 30;
                         if (!this.rulerWidget) this.rulerWidget = new RulerWidget(rx, ry);
                         else { this.rulerWidget.x = rx; this.rulerWidget.y = ry; }
                     }
                     else if (type === 'setsquare') {
-                        // Équerre : On centre "à l'oeil" pour qu'elle soit bien placée
                         const sx = worldX - 140;
                         const sy = worldY - 100;
                         if (!this.setSquareWidget) this.setSquareWidget = new SetSquareWidget(sx, sy);
@@ -6120,7 +5756,6 @@
                     }
 
                 } else {
-                    // Désactivation
                     if (btn) btn.classList.remove('widget-active');
                     const anim = new ToolAnimation(type + 'Hide', {}, {});
                     this.addEntity(anim);
@@ -6130,7 +5765,6 @@
             }
 
             setTool(toolName) {
-                // Si on change vraiment d'outil (hors navigation), on coupe la peinture
                 if (this.isPaintMode && toolName !== 'move' && toolName !== 'pan') {
                     this.isPaintMode = false;
                     const btnPaint = document.getElementById('btnPaint');
@@ -6138,21 +5772,17 @@
                     this.canvas.style.cursor = 'default';
                 }
 
-                // Logique standard
                 this.currentTool = toolName;
                 this.resetInteraction();
 
-                // Gestion Bouton Pan (Main)
                 const btnPan = document.getElementById('btnPan');
                 if (btnPan) {
                     if (toolName === 'pan') btnPan.classList.add('active');
                     else btnPan.classList.remove('active');
                 }
 
-                // Gestion Barre Outils Gauche
                 document.querySelectorAll('.tool-btn:not([id^="btn-"])').forEach(btn => btn.classList.remove('active'));
 
-                // Active le bouton cliqué (sauf si c'est Pan qui est dans le header)
                 if (toolName !== 'pan') {
                     const btn = document.querySelector(`.tool-btn[onclick="app.setTool('${toolName}')"]`);
                     if (btn) btn.classList.add('active');
@@ -6166,27 +5796,21 @@
                 const btn = document.getElementById('btnPaint');
 
                 if (this.isPaintMode) {
-                    btn.classList.add('active'); // Devient noir
+                    btn.classList.add('active');
 
-                    // Si on était en mode "Main" (Pan), on l'enlève
                     if (this.currentTool === 'pan') {
-                        // On enlève juste la classe visuelle et le flag, sans appeler setTool
                         this.isPanning = false;
                         const btnPan = document.getElementById('btnPan');
                         if (btnPan) btnPan.classList.remove('active');
                     }
 
-                    // On force l'outil interne sur 'move' sans passer par la fonction setTool
-                    // pour éviter qu'elle ne désactive la peinture
                     this.currentTool = 'move';
                     this.resetInteraction();
 
-                    // Visuel : On active la flèche dans la barre de gauche
                     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
                     const btnMove = document.querySelector(`.tool-btn[onclick="app.setTool('move')"]`);
                     if (btnMove) btnMove.classList.add('active');
 
-                    // Curseur Peinture
                     this.canvas.style.cursor = 'crosshair';
                 } else {
                     btn.classList.remove('active');
@@ -6202,11 +5826,9 @@
                 const cssY = evt.clientY - rect.top;
 
                 // 2. Conversion vers le Monde Géométrique (Caméra)
-                // Formule : (Pixel - Décalage) / Zoom
                 return {
                     x: (cssX - this.view.x) / this.view.zoom,
                     y: (cssY - this.view.y) / this.view.zoom,
-                    // On garde les brutes pour gérer le Panoramique (Drag de la feuille)
                     screenX: cssX,
                     screenY: cssY
                 };
@@ -6219,13 +5841,10 @@
                 const left = -this.view.x / this.view.zoom;
                 const top = -this.view.y / this.view.zoom;
 
-                // 2. ENSUITE : Gestion du mode "Page Blanche" (pour l'export JPG)
                 if (this.gridMode === 3) {
-                    // On dessine un grand rectangle blanc pour remplir le fond
-                    // (Sinon le JPG sera noir car le fond du canvas est transparent par défaut)
                     this.ctx.fillStyle = 'white';
                     this.ctx.fillRect(left, top, width, height);
-                    return; // On s'arrête là, on ne dessine pas les traits
+                    return;
                 }
                 const pad = 2;
 
@@ -6237,7 +5856,6 @@
 
                 this.ctx.beginPath();
 
-                // Épaisseur constante (1px visuel)
                 this.ctx.lineWidth = 1 / this.view.zoom;
 
                 // --- MODE 0 : CARRÉS ---
@@ -6260,22 +5878,19 @@
                     }
                 }
 
-                // --- MODE 2 : ISOMÉTRIQUE (CORRIGÉ) ---
+                // --- MODE 2 : ISOMÉTRIQUE ---
                 else if (this.gridMode === 2) {
-                    this.ctx.strokeStyle = "#dcdcdc"; // Un peu plus foncé pour être visible
+                    this.ctx.strokeStyle = "#dcdcdc";
 
                     const isoH = UNIT * Math.sqrt(3) / 2;
 
-                    // On élargit les boucles car les diagonales traversent l'écran
                     const rowStart = Math.floor(startY / isoH) - 1;
                     const rowEnd = Math.ceil(endY / isoH) + 1;
-                    const colStart = Math.floor(startX / UNIT) - 2; // Marge X plus grande
+                    const colStart = Math.floor(startX / UNIT) - 2;
                     const colEnd = Math.ceil(endX / UNIT) + 2;
 
                     for (let r = rowStart; r < rowEnd; r++) {
                         const y = r * isoH;
-                        // Calcul précis du décalage (pair/impair)
-                        // Math.abs est important pour les coordonnées négatives (panoramique)
                         const offset = (Math.abs(r) % 2 === 1) ? (UNIT / 2) : 0;
 
                         // 1. Ligne Horizontale
@@ -6297,30 +5912,25 @@
                 }
             }
 
-            // Cherche le premier nom disponible (A, B, C...)
             getNextLabel() {
                 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                // On liste tous les noms actuels
                 const existingLabels = this.entities
                     .filter(e => e instanceof Point && e.label)
                     .map(e => e.label);
 
-                // 1. On cherche dans les lettres simples A-Z
                 for (let char of alphabet) {
                     if (!existingLabels.includes(char)) return char;
                 }
 
-                // 2. Si A-Z sont tous pris, on cherche A', B'...
                 for (let char of alphabet) {
                     if (!existingLabels.includes(char + "'")) return char + "'";
                 }
 
-                // 3. Si A'-Z' sont pris, on cherche A'', B''...
                 for (let char of alphabet) {
                     if (!existingLabels.includes(char + "''")) return char + "''";
                 }
 
-                return ""; // Fallback
+                return "";
             }
 
             findIntersectionAtMouse(x, y) {
@@ -6383,23 +5993,18 @@
                 return toDelete;
             }
             createPointAt(x, y) {
-                // 1. Si on clique sur un point existant, on le retourne (pas de création)
                 const existing = this.hoveredEntities.filter(e => e instanceof Point).pop();
                 if (existing) return existing;
 
                 const label = this.getNextLabel();
                 let newPoint;
 
-                // 2. Si c'est une intersection détectée (croix grise)
                 if (this.ghostIntersection) {
                     newPoint = new Point(this.ghostIntersection.x, this.ghostIntersection.y, label, this.ghostIntersection.parents);
                 }
                 else {
-                    // 3. Vérification Polygone (inchangée)
                     const poly = this.entities.filter(e => e instanceof Polygon).find(p => p.isNear(x, y) === false && p.getClosestSegment(x, y).dist < 8);
 
-                    // 4. LE FIX EST ICI : On cherche n'importe quel support (Ligne, Cercle, Arc...)
-                    // On inclut tout ce qui est "supportable"
                     const support = this.hoveredEntities.slice().reverse().find(e =>
                         e instanceof LinearObject ||
                         e instanceof ParallelLine ||
@@ -6412,25 +6017,20 @@
 
                     if (poly) {
                         const edge = poly.getClosestSegment(x, y);
-                        // ... logique polygone existante ...
                         const segObj = { constructor: { name: 'Segment' }, p1: edge.seg[0], p2: edge.seg[1] };
                         const proj = MathUtils.getProjectedPoint(x, y, segObj);
-                        newPoint = new Point(proj.x, proj.y, label, [edge.seg]); // Stockage spécial pour polygone
+                        newPoint = new Point(proj.x, proj.y, label, [edge.seg]);
                     }
                     else if (support) {
-                        // C'est ici que ça plantait avant car getProjectedPoint ne gérait pas les cercles
-                        // et renvoyait undefined. Maintenant ça renvoie {x,y} correct.
                         const proj = MathUtils.getProjectedPoint(x, y, support);
 
                         if (proj) {
                             newPoint = new Point(proj.x, proj.y, label, [support]);
                         } else {
-                            // Sécurité absolue : si le calcul échoue, on crée le point là où on a cliqué
                             newPoint = new Point(x, y, label);
                         }
                     }
                     else {
-                        // Point libre dans le vide
                         newPoint = new Point(x, y, label);
                     }
                 }
@@ -6446,12 +6046,9 @@
                 return newPoint;
             }
 
-            /* --- DANS LA CLASSE GeometrieApp --- */
-
             startTextEditor(x, y, entity = null) {
                 this.editingEntity = entity;
 
-                // 1. D'abord on positionne et on affiche la boîte de texte
                 const rect = this.canvas.getBoundingClientRect();
                 const editorX = x + rect.left;
                 const editorY = y + rect.top;
@@ -6460,12 +6057,10 @@
                 this.editorDiv.style.top = editorY + 'px';
                 this.editorDiv.style.display = 'flex';
 
-                // Récupération des éléments DOM
                 const fontInput = document.getElementById('fontFamilyInput');
                 const sizeInput = document.getElementById('fontSizeInput');
                 const textInput = document.getElementById('textInput');
 
-                // Remplissage des valeurs...
                 if (entity instanceof TextLabel) {
                     textInput.value = entity.text;
                     fontInput.value = entity.fontFamily || "'Segoe UI', sans-serif";
@@ -6479,94 +6074,100 @@
 
                 setTimeout(() => textInput.focus(), 50);
 
-                // 2. GESTION DU CLAVIER VIRTUEL (CORRIGÉ)
                 const vk = document.getElementById('virtualKeyboard');
                 if (vk) {
-                    // A. On l'affiche d'abord (pour qu'il ait une taille)
                     vk.classList.add('visible');
 
-                    // B. On attend un micro-instant que le navigateur le "dessine" pour avoir les vraies dimensions
-                    // requestAnimationFrame assure qu'on est synchronisé avec le rendu
                     requestAnimationFrame(() => {
-                        // C. Maintenant on mesure
                         const inputRect = this.editorDiv.getBoundingClientRect();
                         const vkRect = vk.getBoundingClientRect();
 
-                        // D. Calcul de la position (Centré sous le champ texte)
                         let top = inputRect.bottom + 10;
-                        // Centrage horizontal : (Gauche du champ) + (Moitié du champ) - (Moitié du clavier)
                         let left = inputRect.left + (inputRect.width / 2) - (vkRect.width / 2);
 
-                        // E. Sécurité Bords d'écran (Garde-fous)
                         const winW = window.innerWidth;
                         const winH = window.innerHeight;
 
-                        // Si ça sort à gauche
                         if (left < 10) left = 10;
-                        // Si ça sort à droite
                         if (left + vkRect.width > winW) left = winW - vkRect.width - 10;
-                        // Si ça sort en bas, on le met au-dessus du champ
                         if (top + vkRect.height > winH) top = inputRect.top - vkRect.height - 10;
 
-                        // F. Application
                         vk.style.left = left + 'px';
                         vk.style.top = top + 'px';
-                        // Important : on annule les transforms CSS qui pourraient gêner le positionnement absolu
                         vk.style.transform = 'none';
                     });
                 }
             }
 
-            // 2. Valide le texte et ferme
-            applyTextEdit() {
-                const val = document.getElementById('textInput').value.trim();
-                // On récupère les nouvelles valeurs
-                const newFont = document.getElementById('fontFamilyInput').value;
-                const newSize = parseInt(document.getElementById('fontSizeInput').value);
-
-                if (this.editingEntity) {
-                    // Cas 1 : Point (on ne change que le label, pas la police pour l'instant, sauf si tu veux)
-                    if (this.editingEntity instanceof Point) {
-                        this.editingEntity.label = val;
-                    }
-                    // Cas 2 : TextLabel existant
-                    else if (this.editingEntity instanceof TextLabel) {
-                        if (val === "") {
-                            this.entities = this.entities.filter(e => e !== this.editingEntity);
-                        } else {
-                            this.editingEntity.text = val;
-                            this.editingEntity.fontFamily = newFont;
-                            this.editingEntity.fontSize = newSize;
-                        }
-                    }
-                    // Cas 3 : Nouveau TextLabel
-                    else if (this.editingEntity.type === 'new' && val !== "") {
-                        const t = new TextLabel(this.editingEntity.x, this.editingEntity.y, val);
-                        t.fontFamily = newFont;
-                        t.fontSize = newSize;
-                        this.addEntity(t);
-                    }
-                    this.saveState();
-                }
-                this.cancelTextEdit();
-                this.render();
-            }
-            // 3. Annule et ferme
-            cancelTextEdit() {
-                this.editorDiv.style.display = 'none';
-                this.editingEntity = null;
-                this.editorInput.value = "";
-                this.canvas.focus(); // Redonner le focus au canvas
-
-                // CACHER LE CLAVIER VIRTUEL
-                const vk = document.getElementById('virtualKeyboard');
-                if (vk) vk.classList.remove('visible');
-            }
-
             initEventListeners() {
+                // --- GESTION TACTILE (TABLETTES) ---
+                const touchHandler = (e, type) => {
+                    if (e.touches.length > 1) return; // Ignore le zoom à 2 doigts
+                    e.preventDefault(); // Empêche le scroll
 
+                    const touch = e.changedTouches[0];
+                    const mouseEvent = new MouseEvent(type, {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        button: 0,
+                        bubbles: true
+                    });
 
+                    this.canvas.dispatchEvent(mouseEvent);
+                };
 
+                let longPressTimer;
+                const LONG_PRESS_DELAY = 600; // Temps en ms avant déclenchement (0.6s)
+                let touchStartCoords = { x: 0, y: 0 };
+
+                this.canvas.addEventListener('touchstart', (e) => {
+                    // On ne gère que le doigt unique
+                    if (e.touches.length !== 1) return;
+
+                    const touch = e.touches[0];
+                    touchStartCoords = { x: touch.clientX, y: touch.clientY };
+
+                    // On lance le chronomètre
+                    longPressTimer = setTimeout(() => {
+                        // Le temps est écoulé : C'est un appui long !
+
+                        // 1. On crée un faux événement "Clic Droit"
+                        const contextMenuEvent = new MouseEvent('contextmenu', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            button: 2, // 2 = Clic droit
+                            buttons: 2,
+                            clientX: touch.clientX,
+                            clientY: touch.clientY
+                        });
+
+                        // 2. On l'envoie au canvas (votre écouteur existant va réagir)
+                        this.canvas.dispatchEvent(contextMenuEvent);
+
+                        // Optionnel : petite vibration haptique (Android uniquement)
+                        if (navigator.vibrate) navigator.vibrate(50);
+
+                    }, LONG_PRESS_DELAY);
+                }, { passive: false });
+
+                // Si on bouge le doigt ou qu'on relâche, on annule le chronomètre
+                const cancelLongPress = (e) => {
+                    // Si on bouge un tout petit peu, ça va, mais si on glisse vraiment, on annule
+                    if (e.type === 'touchmove') {
+                        const touch = e.touches[0];
+                        const dist = Math.sqrt(
+                            (touch.clientX - touchStartCoords.x) ** 2 +
+                            (touch.clientY - touchStartCoords.y) ** 2
+                        );
+                        if (dist < 10) return; // Mouvement négligeable (< 10px), on continue le timer
+                    }
+                    clearTimeout(longPressTimer);
+                };
+
+                this.canvas.addEventListener('touchmove', cancelLongPress, { passive: false });
+                this.canvas.addEventListener('touchend', cancelLongPress, { passive: false });
+                this.canvas.addEventListener('touchcancel', cancelLongPress, { passive: false });
                 // --- ZOOM (Molette) ---
                 this.canvas.addEventListener('wheel', (e) => {
                     e.preventDefault();
@@ -6575,14 +6176,10 @@
                     const direction = e.deltaY < 0 ? 1 : -1;
                     const factor = (direction > 0) ? (1 + zoomIntensity) : (1 / (1 + zoomIntensity));
 
-                    // On zoom vers la souris : Mathématiques de zoom
-                    const mouse = this.getMousePos(e); // Coords monde actuelles
+                    const mouse = this.getMousePos(e);
 
-                    // 1. On applique le zoom
                     this.view.zoom *= factor;
 
-                    // 2. On compense le décalage pour que la souris reste au même endroit
-                    // Nouvelle Vue X = Souris Ecran - (Souris Monde * Nouveau Zoom)
                     this.view.x = mouse.screenX - (mouse.x * this.view.zoom);
                     this.view.y = mouse.screenY - (mouse.y * this.view.zoom);
 
@@ -6595,20 +6192,16 @@
                 let isDraggingMenu = false;
                 let startX, startY, initialLeft, initialTop;
 
-                // 1. On attrape la poignée
                 handle.addEventListener('mousedown', (e) => {
                     isDraggingMenu = true;
                     startX = e.clientX;
                     startY = e.clientY;
-                    // On récupère la position actuelle du menu (convertie en nombre)
                     const rect = menu.getBoundingClientRect();
                     initialLeft = rect.left;
                     initialTop = rect.top;
-                    // Empêche la sélection de texte
                     e.preventDefault();
                 });
 
-                // 2. On bouge la souris (sur toute la fenêtre)
                 window.addEventListener('mousemove', (e) => {
                     if (!isDraggingMenu) return;
                     const dx = e.clientX - startX;
@@ -6617,7 +6210,6 @@
                     menu.style.top = `${initialTop + dy}px`;
                 });
 
-                // 3. On relâche
                 window.addEventListener('mouseup', () => {
                     isDraggingMenu = false;
                 });
@@ -6629,24 +6221,15 @@
                         y
                     } = this.getMousePos(e);
 
-                    // On cherche ce qu'il y a sous la souris
                     const targets = this.entities.filter(ent => ent.isNear(x, y));
 
-                    // Priorité de sélection (Point > Angle > Polygone > Ligne)
                     targets.sort((a, b) => {
-                        // A. Les Points sont toujours prioritaires (pour pouvoir les déplacer)
                         if (a instanceof Point) return 1;
                         if (b instanceof Point) return -1;
-
-                        // B. Les Angles ensuite
                         if (a instanceof Angle) return 1;
                         if (b instanceof Angle) return -1;
-
-                        // C. Les Polygones AVANT les lignes !
                         if (a instanceof Polygon) return 1;
                         if (b instanceof Polygon) return -1;
-
-                        // Le reste (Segments, Lignes, Cercles) a la priorité la plus basse
                         return 0;
                     });
 
@@ -6654,20 +6237,15 @@
                         this.selectedObject = targets.pop();
                         this.updateContextMenuUI();
 
-                        // 1. Récupération de TOUS les éléments du menu contextuel
                         const rowMeasure = document.getElementById('rowMeasure');
                         const rowCoding = document.getElementById('rowCoding');
                         const rowAngle = document.getElementById('rowAngle');
                         const rowStyle = document.getElementById('rowStyle');
-                        //const rowWidth = document.getElementById('rowWidth');
                         const sep1 = document.getElementById('sep1');
                         const slider = document.getElementById('widthRange');
-                        // <--- INDISPENSABLE
 
-                        // 2. GESTION SEGMENT
                         if (this.selectedObject instanceof Segment) {
                             rowMeasure.style.display = 'block';
-                            // Force l'affichage GRILLE pour le codage
                             rowCoding.style.cssText = "display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 4px;";
                             this.updateContextMenuUI();
                         } else {
@@ -6675,57 +6253,46 @@
                             rowCoding.style.cssText = "display: none !important;";
                         }
 
-                        // 3. GESTION POINT (Afficher Positionneur, Cacher Style Trait)
                         const isPoint = this.selectedObject instanceof Point;
                         const rowPointStyle = document.getElementById('rowPointStyle')
                         const rowLabelPos = document.getElementById('rowLabelPos');
-                        const rowRenamer = document.getElementById('rowRenamer'); // <--- NOUVEAU
+                        const rowRenamer = document.getElementById('rowRenamer');
 
                         if (isPoint) {
                             rowLabelPos.style.display = 'block';
-                            rowRenamer.style.display = 'block'; // <--- AFFICHER LE WIDGET
+                            rowRenamer.style.display = 'block';
                             rowPointStyle.style.display = 'flex';
                             rowTextProps.style.display = 'flex';
-                            // Met à jour l'état visuel du bouton Oeil (Actif si visible)
                             const btnEye = document.getElementById('btnToggleLabel');
                             if (this.selectedObject.showLabel) btnEye.classList.add('active');
                             else btnEye.classList.remove('active');
-                            // Mettre à jour le texte affiché dans le widget avec le nom actuel du point
                             document.getElementById('renamerDisplay').innerText = this.selectedObject.label;
 
-                            // ... (code positionneur widget existant) ...
                             const angle = this.selectedObject.labelAngle || -Math.PI / 4;
                             const knob = document.getElementById('labelPosKnob');
                             const r = 24;
                             knob.style.left = (30 + Math.cos(angle) * r) + 'px';
                             knob.style.top = (30 + Math.sin(angle) * r) + 'px';
 
-                            // Masquer les autres
                             rowStyle.style.display = 'none';
-                            // rowWidth.style.display = 'none';
                             sep1.style.display = 'none';
                         } else {
                             rowLabelPos.style.display = 'none';
                             rowTextProps.style.display = 'none';
-                            rowRenamer.style.display = 'none'; // <--- CACHER LE WIDGET
+                            rowRenamer.style.display = 'none';
 
                             rowStyle.style.display = 'flex';
-                            // rowWidth.style.display = 'flex';
                             sep1.style.display = 'block';
                             slider.value = this.selectedObject.lineWidth || 2;
                         }
 
-                        // 4. GESTION ANGLE
                         if (this.selectedObject instanceof Angle) {
-                            // Force l'alignement horizontal
                             rowAngle.style.cssText = "display: flex !important; flex-direction: row; justify-content: center; gap: 8px;";
                             this.updateContextMenuUI();
-                            //rowStyle.style.display = 'none';
                         } else {
                             rowAngle.style.cssText = "display: none !important;";
                         }
 
-                        // 5. OUVERTURE DU MENU
                         const menu = document.getElementById('contextMenu');
                         menu.style.left = e.clientX + 'px';
                         menu.style.top = e.clientY + 'px';
@@ -6738,69 +6305,62 @@
                 });
 
                 this.canvas.onmousedown = (e) => {
-                    // Dans onmousedown, tout au début :
+
+                    // =========================================================================
+                    // 1. SÉCURITÉS & GESTION PANNING
+                    // =========================================================================
+
                     if (e.button === 1 || (this.currentTool === 'pan' && e.button === 0)) {
                         this.isPanning = true;
                         this.lastMouseScreen = { x: e.clientX, y: e.clientY };
-                        this.canvas.style.cursor = 'grabbing'; // Main fermée
+                        this.canvas.style.cursor = 'grabbing';
                         e.preventDefault();
-                        return; // On arrête tout, on ne dessine pas
-                    }
-                    // 1. SÉCURITÉ : Si l'animation joue, on interdit le clic
-                    if (this.isLocked) return;
-                    const menu = document.getElementById('contextMenu');
-                    // Si le menu est visible (display n'est pas 'none' ou vide)
-                    if (menu.style.display && menu.style.display !== 'none') {
-                        // On le cache
-                        menu.style.display = 'none';
-                        // ET ON ARRÊTE LA FONCTION ICI. Le clic ne servira qu'à fermer.
                         return;
                     }
+
+                    if (this.isLocked) return;
+
+                    const menu = document.getElementById('contextMenu');
+                    if (menu.style.display && menu.style.display !== 'none') {
+                        menu.style.display = 'none';
+                        return;
+                    }
+
                     if (e.button !== 0 && e.button !== 2) return;
 
-                    // 2. COORDONNÉES DE BASE (Grille / Aimant standard)
+
+                    // =========================================================================
+                    // 2. CALCUL DES COORDONNÉES (RAW vs SMART)
+                    // =========================================================================
+                    // AJOUT POUR TACTILE : Force la détection sous le curseur/doigt au moment du clic
+                    const mousePos = this.getMousePos(e);
+                    this.hoveredEntities = this.entities.filter(ent => ent.isNear(mousePos.x, mousePos.y));
+
                     let smart;
                     if (this.getSmartCoords) {
                         smart = this.getSmartCoords(e);
                     } else {
                         const mp = this.getMousePos(e);
-                        smart = {
-                            x: mp.x,
-                            y: mp.y
-                        };
+                        smart = { x: mp.x, y: mp.y };
                     }
 
-                    // On stocke temporairement dans x et y
                     let finalX = smart.x;
                     let finalY = smart.y;
 
-
-                    // =================================================================
-                    // 3. SURCHARGE RÈGLE : C'EST ICI QUE LA MAGIE OPÈRE AU CLIC
-                    // =================================================================
                     if (this.activeWidgets.ruler && this.rulerWidget) {
                         const r = this.rulerWidget;
-                        // On teste la position brute de la souris (e) par rapport à la règle
                         const rawMouse = this.getMousePos(e);
                         const local = r.toLocal(rawMouse.x, rawMouse.y);
+                        const rulerZeroOffset = 0;
 
-                        // --- MÊME RÉGLAGE QUE DANS MOUSEMOVE ---
-                        const rulerZeroOffset = 0; // Doit être identique à votre onmousemove
-                        // ---------------------------------------
-
-                        // Si on clique près du zéro visuel
                         if (Math.abs(local.x - rulerZeroOffset) < 20 && Math.abs(local.y) < 30) {
-                            // ALORS ON FORCE LES COORDONNÉES DU CLIC SUR LE ZÉRO DE LA RÈGLE
                             finalX = r.x + rulerZeroOffset * Math.cos(r.angle);
                             finalY = r.y + rulerZeroOffset * Math.sin(r.angle);
                         }
                     }
-                    // =================================================================
 
-                    // On applique les coordonnées finales
                     const x = finalX;
                     const y = finalY;
-
                     const ghost = this.findIntersectionAtMouse(x, y);
                     let snapX = x;
                     let snapY = y;
@@ -6808,208 +6368,165 @@
                     if (ghost) {
                         snapX = ghost.x;
                         snapY = ghost.y;
-                        this.ghostIntersection = ghost; // On s'assure que le cercle gris reste allumé
+                        this.ghostIntersection = ghost;
                     }
 
+
+                    // =========================================================================
+                    // 3. OUTIL "POT DE PEINTURE" (STYLE)
+                    // =========================================================================
                     if (this.isPaintMode && e.button === 0) {
-                        // On cherche l'objet sous la souris (le plus au-dessus)
-                        // Maintenant 'x' et 'y' existent, donc ça ne plantera plus !
                         const target = [...this.entities].reverse().find(ent => ent.isNear(x, y));
 
                         if (target) {
-                            // On applique le style global
                             target.color = this.globalStyle.color;
                             target.lineWidth = this.globalStyle.width;
                             target.dash = [...this.globalStyle.dash];
 
-                            // Si c'est un point, on ne change que la couleur (pas l'épaisseur)
                             if (target instanceof Point) {
-                                target.lineWidth = 2; // On garde une épaisseur standard pour le point
+                                target.lineWidth = 2;
                             }
 
                             this.saveState();
                             this.render();
                         }
-                        return; // ON S'ARRÊTE LÀ
+                        return;
                     }
 
 
+                    // =========================================================================
+                    // 4. DÉTECTION DES OBJETS SOUS LA SOURIS (HIT TESTING)
+                    // =========================================================================
                     const entities = this.hoveredEntities || [];
-
-                    // Le point le plus proche (ou null)
                     const clickedPoint = entities.filter(ent => ent instanceof Point).pop();
-
-                    // Le texte le plus proche (ou null)
                     const clickedText = entities.find(ent => ent instanceof TextLabel);
-
-                    // La ligne/segment/cercle le plus proche (ou null)
                     const clickedLinear = entities.filter(ent =>
                         ent instanceof LinearObject ||
                         ent instanceof ParallelLine ||
                         ent instanceof PerpendicularLine ||
                         ent instanceof Circle ||
                         ent instanceof Arc ||
-                        ent instanceof Segment // Sécurité si Segment n'hérite pas correctement dans ta version
+                        ent instanceof Segment
                     ).pop();
-                    // ===============================================================
 
+
+                    // =========================================================================
+                    // 5. GESTION DES WIDGETS (INTERACTION OUTILS)
+                    // =========================================================================
                     let targetWidget = null;
                     let wType = '';
 
-                    // On vérifie quel widget est touché
                     if (this.activeWidgets.ruler && this.rulerWidget && this.rulerWidget.getHitZone(x, y)) {
-                        targetWidget = this.rulerWidget;
-                        wType = 'ruler';
+                        targetWidget = this.rulerWidget; wType = 'ruler';
                     } else if (this.activeWidgets.setsquare && this.setSquareWidget && this.setSquareWidget.getHitZone(x, y)) {
-                        targetWidget = this.setSquareWidget;
-                        wType = 'setsquare';
+                        targetWidget = this.setSquareWidget; wType = 'setsquare';
                     } else if (this.activeWidgets.protractor && this.protractorWidget && this.protractorWidget.getHitZone(x, y)) {
-                        targetWidget = this.protractorWidget;
-                        wType = 'protractor';
+                        targetWidget = this.protractorWidget; wType = 'protractor';
                     } else if (this.activeWidgets.compass && this.compassWidget && this.compassWidget.getHitZone(x, y)) {
-                        targetWidget = this.compassWidget;
-                        wType = 'compass';
+                        targetWidget = this.compassWidget; wType = 'compass';
                     }
 
                     if (targetWidget) {
                         const zone = targetWidget.getHitZone(x, y);
                         if (zone) {
                             if (zone === 'toggleSwap' && targetWidget instanceof ProtractorWidget) {
-                                targetWidget.isReversed = !targetWidget.isReversed; // On inverse le booléen
-                                this.render();
-                                return; // On arrête, on a juste inversé les graduations
+                                targetWidget.isReversed = !targetWidget.isReversed;
+                                this.render(); return;
                             }
                             if (zone === 'toggleLock' && targetWidget instanceof ProtractorWidget) {
                                 targetWidget.isLocked = !targetWidget.isLocked;
-                                this.render();
-                                return; // On arrête là, on a juste switché
+                                this.render(); return;
                             }
-
-
-
                             if (zone === 'toggleSlide' && targetWidget instanceof SetSquareWidget) {
                                 targetWidget.slideMode = !targetWidget.slideMode;
-                            } else {
-                                // Initialisation du drag de widget
+                            }
+                            else {
                                 this.draggedWidget = targetWidget;
                                 this.draggedWidgetMode = zone;
-                                this.widgetStartState = this.getWidgetState(targetWidget); // Pour l'anim
+                                this.widgetStartState = this.getWidgetState(targetWidget);
                                 this.draggedWidgetType = wType;
 
-                                // Logique spécifique par zone
                                 if (zone === 'rotate') this.widgetRotationOffset = Math.atan2(y - targetWidget.y, x - targetWidget.x) - targetWidget.angle;
+
                                 if (zone === 'slideX' || zone === 'slideY') {
-                                    this.dragStartMouse = {
-                                        x: x,
-                                        y: y
-                                    };
-                                    this.dragStartWidget = {
-                                        x: targetWidget.x,
-                                        y: targetWidget.y
-                                    };
+                                    this.dragStartMouse = { x: x, y: y };
+                                    this.dragStartWidget = { x: targetWidget.x, y: targetWidget.y };
                                 }
+
                                 if (targetWidget instanceof CompassWidget && zone === 'trace') {
                                     const w = targetWidget;
                                     w.isTracing = true;
-
-                                    // 1. Calcul précis de l'angle souris/centre
-                                    // Attention : utilise bien les coordonnées de la souris (snapX/Y ou x/y)
                                     const startAngle = Math.atan2(snapY - w.y, snapX - w.x);
-
-                                    // 2. Stockage dans le widget (C'est cette valeur qui fixe le départ)
                                     w.startAngle = startAngle;
-
-
                                     this.widgetStartState.angle = startAngle;
-
-
                                     w.angle = startAngle;
                                     w.lastMouseAngle = startAngle;
                                     w.totalRotation = 0;
-
-                                    // 3. Reset
                                     this.currentTracingArc = null;
                                 }
+
                                 if (zone === 'move') {
                                     this.widgetOffset.x = x - targetWidget.x;
                                     this.widgetOffset.y = y - targetWidget.y;
                                 }
                             }
                             this.render();
-                            return; // On arrête là si on touche un widget
+                            return;
                         }
                     }
 
 
-                    // 4. OUTIL TEXTE (Édition)
+                    // =========================================================================
+                    // 6. ÉDITEUR DE TEXTE
+                    // =========================================================================
                     if (this.currentTool === 'text') {
                         if (this.editorDiv && this.editorDiv.style.display !== 'none') {
                             this.applyTextEdit();
                             return;
                         }
-                        // Priorité au clic sur un objet existant pour le modifier
                         if (clickedPoint) this.startTextEditor(clickedPoint.x, clickedPoint.y, clickedPoint);
                         else if (clickedText) this.startTextEditor(clickedText.x, clickedText.y, clickedText);
-                        else this.startTextEditor(smart.x, smart.y, null); // Sinon nouveau texte
+                        else this.startTextEditor(smart.x, smart.y, null);
 
                         this.render();
                         return;
                     }
 
-                    // 6. GESTION DES OUTILS DE DESSIN (Clic Gauche uniquement)
+
+                    // =========================================================================
+                    // 7. OUTILS DE DESSIN GÉOMÉTRIQUE (CLIC GAUCHE)
+                    // =========================================================================
                     if (e.button !== 0) return;
 
-                    // Si on dessine alors qu'on était en mode replay "fini", on reset la barre
                     if (this.replayIndex !== null && this.replayIndex < this.entities.length) {
                         this.replayIndex = this.entities.length;
                     }
 
-                    // --- SAUVEGARDE DE L'ÉTAT AVANT ACTION ---
-                    // On ne sauvegarde que si on va faire une modification
                     const toolsModifying = ['point', 'segment', 'line', 'ray', 'circle', 'midpoint', 'parallel', 'perpendicular', 'delete', 'polygon', 'angle', 'compass'];
                     if (toolsModifying.includes(this.currentTool) || (this.currentTool === 'move' && (clickedPoint || clickedText))) {
-
                         this.saveState();
-                        // console.log(this.entities.length);
                     }
 
-                    // --- OUTIL DÉPLACER (MOVE) ---
                     if (this.currentTool === 'move') {
-                        // Cas A : Déplacer un POINT (sauf si c'est une intersection calculée type milieu fixe)
                         if (clickedPoint && clickedPoint.parents.length !== 2) {
                             this.draggedPoint = clickedPoint;
-                            // MEMORISATION DEPART (Pour l'animation vidéo)
-                            this.dragStartPos = {
-                                x: clickedPoint.x,
-                                y: clickedPoint.y
-                            };
-                        }
-                        // Cas B : Déplacer un TEXTE
-                        else if (clickedText) {
+                            this.dragStartPos = { x: clickedPoint.x, y: clickedPoint.y };
+                        } else if (clickedText) {
                             this.draggedText = clickedText;
-                            this.dragStartPos = {
-                                x: clickedText.x,
-                                y: clickedText.y
-                            };
-                            this.dragOffset = {
-                                x: x - clickedText.x,
-                                y: y - clickedText.y
-                            };
+                            this.dragStartPos = { x: clickedText.x, y: clickedText.y };
+                            this.dragOffset = { x: x - clickedText.x, y: y - clickedText.y };
                         }
                     }
 
-                    // --- OUTIL POINT ---
                     else if (this.currentTool === 'point') {
                         this.createPointAt(x, y);
                     }
 
-                    // --- OUTILS DE TRAÇAGE (LIGNE, CERCLE...) ---
                     else if (['segment', 'ray', 'line', 'circle'].includes(this.currentTool)) {
                         this.creationStartPoint = this.createPointAt(x, y);
                         this.isDraggingCreation = true;
                     }
 
-                    // --- OUTIL ANGLE (3 points) ---
                     else if (this.currentTool === 'angle') {
                         const pt = this.createPointAt(x, y);
                         this.anglePoints.push(pt);
@@ -7023,43 +6540,33 @@
                         }
                     }
 
-                    // --- OUTIL POLYGONE ---
                     else if (this.currentTool === 'polygon') {
-                        // Fermeture du polygone si on clique sur le premier point
                         if (clickedPoint && this.polygonPoints.length > 2 && clickedPoint === this.polygonPoints[0]) {
                             const poly = new Polygon([...this.polygonPoints]);
                             this.addEntity(poly);
-                            // On trace aussi les segments contours
+
                             for (let i = 0; i < this.polygonPoints.length; i++) {
                                 const p1 = this.polygonPoints[i];
                                 const p2 = this.polygonPoints[(i + 1) % this.polygonPoints.length];
                                 const seg = new Segment(p1, p2);
-
-                                // Appliquer le style aux segments du contour aussi
                                 seg.color = this.globalStyle.color;
                                 seg.lineWidth = this.globalStyle.width;
                                 seg.dash = [...this.globalStyle.dash];
-
                                 this.addEntity(seg);
                             }
                             this.polygonPoints = [];
                             this.saveState();
                         } else {
-                            // Ajout d'un point au polygone
                             this.polygonPoints.push(this.createPointAt(x, y));
                         }
                     }
 
-                    // --- OUTIL MILIEU ---
                     else if (this.currentTool === 'midpoint') {
-                        // Cas 1 : Clic sur un segment -> Milieu du segment
                         if (clickedLinear instanceof Segment) {
                             const mid = new Point(0, 0, this.getNextLabel(), [clickedLinear.p1, clickedLinear.p2]);
                             mid.update();
                             this.addEntity(mid);
-                        }
-                        // Cas 2 : Clic sur deux points -> Milieu des deux points
-                        else if (clickedPoint) {
+                        } else if (clickedPoint) {
                             if (this.creationStartPoint && this.creationStartPoint !== clickedPoint) {
                                 const mid = new Point(0, 0, this.getNextLabel(), [this.creationStartPoint, clickedPoint]);
                                 mid.update();
@@ -7071,7 +6578,6 @@
                         }
                     }
 
-                    // --- OUTILS PARALLELE / PERPENDICULAIRE ---
                     else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
                         if (clickedLinear) {
                             this.referenceObject = clickedLinear;
@@ -7079,23 +6585,14 @@
                         }
                     }
 
-                    // --- OUTILS DE TRANSFORMATION (Symétries) ---
                     else if (['sym_central', 'sym_axial'].includes(this.currentTool)) {
-                        // 1. On cherche ce qu'on clique
-                        // On réutilise ta logique de détection existante (Polygon > Point > Ligne)
                         let target = clickedPoint || clickedText || clickedLinear || this.hoveredEntities.filter(e => e instanceof Polygon).pop();
 
                         if (target) {
-                            // ÉTAPE 1 : Sélection de l'objet à transformer
                             if (!this.transformationSource) {
                                 this.transformationSource = target;
-                                // Feedback visuel : on le met en évidence (ou on stocke juste)
-                                //  console.log("Source sélectionnée :", target);
-                                // Petit hack visuel temporaire : curseur
                                 this.canvas.style.cursor = "copy";
-                            }
-                            // ÉTAPE 2 : Sélection du Centre ou de l'Axe
-                            else {
+                            } else {
                                 let ref = target;
                                 const mode = (this.currentTool === 'sym_central') ? 'central' : 'axial';
                                 let valid = false;
@@ -7105,56 +6602,39 @@
 
                                 if (valid) {
                                     this.createSymmetry(this.transformationSource, ref, mode);
-                                    this.transformationSource = null; // Reset
+                                    this.transformationSource = null;
                                     this.canvas.style.cursor = "default";
                                 }
                             }
                         }
                     }
 
-                    // --- OUTIL GOMME ---
                     else if (this.currentTool === 'delete') {
-                        // On supprime ce qu'on trouve (Point > Texte > Ligne)
                         let target = clickedPoint || clickedText;
-
-                        // Si clic dans le vide, on cherche l'objet proche
-                        if (!target) {
-                            target = this.entities.slice().reverse().find(e => e.isNear && e.isNear(smart.x, smart.y));
-                        }
+                        if (!target) target = this.entities.slice().reverse().find(e => e.isNear && e.isNear(smart.x, smart.y));
 
                         if (target) {
                             let listToDelete = this.getNetworkToDelete(target);
 
-                            // --- CICATRISATION AVEC CRÉATION DE SEGMENT ---
                             if (target instanceof Point) {
                                 this.entities.forEach(poly => {
                                     if (poly instanceof Polygon) {
                                         const idx = poly.points.indexOf(target);
-
                                         if (idx !== -1) {
-                                            // 1. On repère les voisins AVANT de supprimer le point
-                                            // (Le point d'avant et le point d'après)
                                             const len = poly.points.length;
                                             const prevPoint = poly.points[(idx - 1 + len) % len];
                                             const nextPoint = poly.points[(idx + 1) % len];
 
-                                            // 2. On enlève le point du polygone
                                             poly.points.splice(idx, 1);
 
-                                            // 3. Si le polygone survit (>= 3 points)
                                             if (poly.points.length >= 3) {
-                                                // A. On sauve le polygone de la suppression
                                                 listToDelete = listToDelete.filter(item => item !== poly);
 
-                                                // B. ON CRÉE LE NOUVEAU SEGMENT MANQUANT (Le "Pont")
-                                                // On vérifie s'il n'existe pas déjà pour éviter les doublons
                                                 const segmentExists = this.entities.some(e =>
                                                     e instanceof Segment &&
                                                     ((e.p1 === prevPoint && e.p2 === nextPoint) || (e.p1 === nextPoint && e.p2 === prevPoint))
                                                 );
-
                                                 if (!segmentExists) {
-                                                    // Hop ! On crée le nouveau segment qui ferme la cicatrice
                                                     const newSeg = new Segment(prevPoint, nextPoint);
                                                     this.entities.push(newSeg);
                                                 }
@@ -7163,6 +6643,7 @@
                                     }
                                 });
                             }
+
                             this.entities = this.entities.filter(e => !listToDelete.includes(e));
                             this.toDeletePreview = [];
                             this.selectedObject = null;
@@ -7170,64 +6651,62 @@
                             this.render();
                         }
                     }
+
                     this.render();
                 };
 
                 this.canvas.onmousemove = (e) => {
+                    // =========================================================================
+                    // 1. GESTION DU PANNING (DÉPLACEMENT DE LA VUE)
+                    // =========================================================================
                     if (this.isPanning) {
                         const dx = e.clientX - this.lastMouseScreen.x;
                         const dy = e.clientY - this.lastMouseScreen.y;
-
                         this.view.x += dx;
                         this.view.y += dy;
-
                         this.lastMouseScreen = { x: e.clientX, y: e.clientY };
                         this.render();
                         return;
                     }
-                    //  this.mousePos = this.getMousePos(e); 
+
+                    // =========================================================================
+                    // 2. CALCUL DES COORDONNÉES & MAGNÉTISME (SNAP)
+                    // =========================================================================
                     this.mousePos = this.getSmartCoords(e);
 
-                    // 2. PRIORITÉ INTERSECTION : On cherche s'il y a une intersection sous la souris
-                    // On utilise findIntersectionAtMouse avec les coordonnées déjà grillées ou brutes
                     const ghost = this.findIntersectionAtMouse(this.mousePos.x, this.mousePos.y);
 
                     if (ghost) {
-                        // Si une intersection est trouvée, elle devient la position officielle de la souris
                         this.mousePos = { x: ghost.x, y: ghost.y, snapped: true };
-                        this.ghostIntersection = ghost; // Pour l'affichage de la croix grise dans render()
+                        this.ghostIntersection = ghost;
                     } else {
                         this.ghostIntersection = null;
                     }
-                    const {
-                        x,
-                        y
-                    } = this.mousePos;
 
-                    // Widget Dragging Logic (Compactée)
+                    const { x, y } = this.mousePos;
+
+
+                    // =========================================================================
+                    // 3. LOGIQUE DE DRAG & DROP DES WIDGETS (OUTILS)
+                    // =========================================================================
                     if (this.draggedWidget) {
                         const w = this.draggedWidget;
                         const mode = this.draggedWidgetMode;
+
+                        // A. DÉPLACEMENT DE L'OUTIL (MOVE)
                         if (mode === 'move') {
-                            // 1. Position brute calculée (où l'outil devrait être par rapport à la souris)
                             let targetX = x - this.widgetOffset.x;
                             let targetY = y - this.widgetOffset.y;
 
-                            // 2. TENTATIVE D'AIMANTATION (Le secret est ici)
-                            // On ne regarde pas seulement si la SOURIS est sur une intersection,
-                            // on regarde si la POINTE de l'outil (targetX, targetY) est proche d'une intersection.
                             const snap = this.findIntersectionAtMouse(targetX, targetY);
 
                             if (snap) {
-                                // Si la pointe approche d'un croisement, on la verrouille dessus
                                 w.x = snap.x;
                                 w.y = snap.y;
-                                this.ghostIntersection = snap; // On affiche la croix pour confirmer l'aimantation
+                                this.ghostIntersection = snap;
                             } else {
-                                // 3. SINON : Snapping classique sur les points réels (ton code)
                                 w.x = targetX;
                                 w.y = targetY;
-
                                 const allPoints = this.entities.filter(ent => ent instanceof Point);
                                 for (let pt of allPoints) {
                                     if (MathUtils.dist(w.x, w.y, pt.x, pt.y) < 15) {
@@ -7237,42 +6716,53 @@
                                     }
                                 }
                             }
-                        } else if (mode === 'slideX' || mode === 'slideY') {
+                        }
+                        // B. GLISSEMENT SUR AXES (EQUERRE/RÈGLE)
+                        else if (mode === 'slideX' || mode === 'slideY') {
                             const dx = x - this.dragStartMouse.x;
                             const dy = y - this.dragStartMouse.y;
                             let axisAngle = w.angle;
                             if (mode === 'slideY') axisAngle += Math.PI / 2;
+
                             const dot = dx * Math.cos(axisAngle) + dy * Math.sin(axisAngle);
                             w.x = this.dragStartWidget.x + dot * Math.cos(axisAngle);
                             w.y = this.dragStartWidget.y + dot * Math.sin(axisAngle);
-                        } else if (mode === 'rotate') {
+                        }
+                        // C. ROTATION
+                        else if (mode === 'rotate') {
                             const angleMouse = Math.atan2(y - w.y, x - w.x);
                             let newAngle = angleMouse - this.widgetRotationOffset;
-                            // Magnetic rotation logic...
+
                             let snappedAngle = null;
                             let bestDist = 25;
+
                             for (let ent of this.entities) {
                                 if (ent instanceof Point) {
                                     const distMousePoint = MathUtils.dist(x, y, ent.x, ent.y);
                                     if (distMousePoint < bestDist) {
                                         const angleToPoint = Math.atan2(ent.y - w.y, ent.x - w.x);
                                         const norm = (a) => (a + Math.PI * 4) % (Math.PI * 2);
+
                                         const targetA = norm(angleToPoint);
                                         const targetB = norm(angleToPoint + Math.PI);
                                         const currentForCalc = norm(newAngle);
+
                                         const distA = Math.min(Math.abs(currentForCalc - targetA), 2 * Math.PI - Math.abs(currentForCalc - targetA));
                                         const distB = Math.min(Math.abs(currentForCalc - targetB), 2 * Math.PI - Math.abs(currentForCalc - targetB));
+
                                         if (distA < distB) snappedAngle = angleToPoint;
                                         else snappedAngle = angleToPoint + Math.PI;
                                         bestDist = distMousePoint;
                                     }
                                 }
                             }
-                            if (snappedAngle !== null) w.angle = snappedAngle;
-                            else w.angle = newAngle;
-                        } else if (mode === 'resize' && w instanceof CompassWidget) {
+                            w.angle = (snappedAngle !== null) ? snappedAngle : newAngle;
+                        }
+                        // D. REDIMENSIONNEMENT (COMPAS)
+                        else if (mode === 'resize' && w instanceof CompassWidget) {
                             let newRadius = MathUtils.dist(x, y, w.x, w.y);
                             const snap = this.entities.filter(ent => ent instanceof Point).find(p => MathUtils.dist(x, y, p.x, p.y) < 15);
+
                             if (snap) {
                                 newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y);
                                 w.angle = Math.atan2(snap.y - w.y, snap.x - w.x);
@@ -7280,49 +6770,35 @@
                                 w.angle = Math.atan2(y - w.y, x - w.x);
                             }
                             w.radius = newRadius;
-                        } else if (mode === 'trace' && w instanceof CompassWidget) {
-                            // 1. Calculs d'angles
+                        }
+                        // E. TRACÉ (COMPAS)
+                        else if (mode === 'trace' && w instanceof CompassWidget) {
                             const currentAngle = Math.atan2(y - w.y, x - w.x);
                             let diff = currentAngle - w.lastMouseAngle;
 
-                            // Normalisation du saut -PI / PI
                             while (diff > Math.PI) diff -= 2 * Math.PI;
                             while (diff < -Math.PI) diff += 2 * Math.PI;
 
-                            // --- CORRECTION : SÉCURITÉ 360° (CLAMP) ---
-                            // On calcule la future rotation
                             let nextTotal = w.totalRotation + diff;
                             const TWO_PI = Math.PI * 2;
 
-                            // On limite strictement entre -360° et +360°
-                            // On triche un peu pour pouvoir être repéré et l'export en SVG
                             if (nextTotal > TWO_PI) nextTotal = TWO_PI - 0.001;
                             if (nextTotal < -TWO_PI) nextTotal = -TWO_PI + 0.001;
 
-                            // On applique la rotation bornée
                             w.totalRotation = nextTotal;
                             w.lastMouseAngle = currentAngle;
-
-                            // Mise à jour visuelle du compas
                             w.angle = w.startAngle + w.totalRotation;
 
-                            // 2. Détermination du sens (Basé sur le signe)
                             const isCCW = (w.totalRotation < 0);
 
-                            // 3. GESTION DE L'ARC (Suppression / Recréation)
-
-                            // A. Nettoyage de l'arc précédent
                             if (this.currentTracingArc) {
                                 const idx = this.entities.indexOf(this.currentTracingArc);
                                 if (idx !== -1) this.entities.splice(idx, 1);
                                 this.currentTracingArc = null;
                             }
 
-                            // B. Création du nouvel arc
-                            // On ne crée rien si on est trop proche de 0 (évite les points)
                             if (Math.abs(w.totalRotation) > 0.01) {
                                 const center = { x: w.x, y: w.y };
-                                // Magnétisme (si disponible)
                                 const centerPoint = this.entities.filter(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, center.x, center.y) < 5).pop();
 
                                 this.currentTracingArc = new CompassArc(
@@ -7337,18 +6813,47 @@
                                 this.addEntity(this.currentTracingArc);
                             }
                         }
+
                         this.render();
                         return;
                     }
 
-                    // Hover Effects
+
+                    // =========================================================================
+                    // 4. LOGIQUE DE DÉPLACEMENT D'ENTITÉS (POINTS, TEXTE)
+                    // =========================================================================
+                    if (this.currentTool === 'move') {
+                        if (this.draggedPoint) {
+                            if (this.draggedPoint.parents.length === 1) {
+                                const pObj = this.draggedPoint.parents[0];
+                                const p = Array.isArray(pObj) ? { constructor: { name: 'Segment' }, p1: pObj[0], p2: pObj[1] } : pObj;
+
+                                const proj = MathUtils.getProjectedPoint(x, y, p);
+                                this.draggedPoint.x = proj.x;
+                                this.draggedPoint.y = proj.y;
+                            } else {
+                                this.draggedPoint.x = x;
+                                this.draggedPoint.y = y;
+                            }
+                            this.updateDependents();
+                        }
+                        else if (this.draggedText) {
+                            this.draggedText.x = x - this.dragOffset.x;
+                            this.draggedText.y = y - this.dragOffset.y;
+                            this.render();
+                        }
+                    }
+
+
+                    // =========================================================================
+                    // 5. SURVOL, CURSEURS ET SNAP OUTILS (MODE PASSIF)
+                    // =========================================================================
+
                     this.hoveredEntities = this.entities.filter(ent => ent.isNear(x, y));
-                    this.ghostIntersection = this.findIntersectionAtMouse(x, y);
-                    // ---------------------------------------------------------
 
                     let cursor = 'default';
-                    // Check widgets hover
                     let activeWidget = null;
+
                     if (this.activeWidgets.compass && this.compassWidget.getHitZone(x, y)) activeWidget = this.compassWidget;
                     else if (this.activeWidgets.ruler && this.rulerWidget.getHitZone(x, y)) activeWidget = this.rulerWidget;
                     else if (this.activeWidgets.setsquare && this.setSquareWidget.getHitZone(x, y)) activeWidget = this.setSquareWidget;
@@ -7356,48 +6861,34 @@
 
                     if (activeWidget) {
                         const zone = activeWidget.getHitZone(x, y);
-                        if (zone === 'move') cursor = 'move';
-                        else if (zone === 'rotate') cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M21 2v6h-6\'/><path d=\'M3 22v-6h6\'/><path d=\'M2 11.5a10 10 0 0 1 18.8-4.3\'/><path d=\'M22 12.5a10 10 0 0 1-18.8 4.3\'/></svg>") 16 16, auto';
-                        else if (zone === 'resize') cursor = 'ew-resize';
-                        else if (zone === 'slideY') cursor = 'col-resize';
-                        else if (zone === 'slideX') cursor = 'row-resize';
-                        else if (zone === 'trace' || zone == 'traceAngle') cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M18.5 2.5a2.121 2.121 0 0 1 3 3L7.5 20.5 2 22l1.5-5.5L18.5 2.5z\' fill=\'white\'/><path d=\'M2 22 L7.5 20.5 L3.5 16.5 Z\' fill=\'black\'/></svg>") 2 22, crosshair';
+                        const cursors = {
+                            'move': 'move',
+                            'resize': 'ew-resize',
+                            'slideY': 'col-resize',
+                            'slideX': 'row-resize',
+                            'rotate': 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M21 2v6h-6\'/><path d=\'M3 22v-6h6\'/><path d=\'M2 11.5a10 10 0 0 1 18.8-4.3\'/><path d=\'M22 12.5a10 10 0 0 1-18.8 4.3\'/></svg>") 16 16, auto',
+                            'trace': 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M18.5 2.5a2.121 2.121 0 0 1 3 3L7.5 20.5 2 22l1.5-5.5L18.5 2.5z\' fill=\'white\'/><path d=\'M2 22 L7.5 20.5 L3.5 16.5 Z\' fill=\'black\'/></svg>") 2 22, crosshair'
+                        };
+                        if (zone === 'traceAngle') cursors.traceAngle = cursors.trace;
+                        if (cursors[zone]) cursor = cursors[zone];
                     }
+
                     if (this.currentTool === 'pan') {
                         cursor = this.isPanning ? 'grabbing' : 'grab';
+                    } else if (['segment', 'line', 'point'].includes(this.currentTool) && cursor === 'default') {
+                        cursor = 'crosshair';
+                    } else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
+                        const clickedLinear = this.hoveredEntities.filter(e => e instanceof LinearObject || e instanceof ParallelLine || e instanceof PerpendicularLine).pop();
+                        if (clickedLinear) cursor = 'pointer';
                     }
-                    else if (['segment', 'line', 'point'].includes(this.currentTool) && cursor === 'default') cursor = 'crosshair';
-                    if (this.currentTool === 'move' && this.hoveredEntities.length > 0) cursor = 'pointer';
+
+                    if (this.currentTool === 'move' && this.hoveredEntities.length > 0 && !activeWidget) {
+                        cursor = 'pointer';
+                    }
+
                     this.canvas.style.cursor = cursor;
 
-                    if (this.currentTool === 'move' && this.draggedPoint) {
-                        if (this.draggedPoint.parents.length === 1) {
-                            const p = Array.isArray(this.draggedPoint.parents[0]) ? {
-                                constructor: {
-                                    name: 'Segment'
-                                },
-                                p1: this.draggedPoint.parents[0][0],
-                                p2: this.draggedPoint.parents[0][1]
-                            } : this.draggedPoint.parents[0];
-                            const proj = MathUtils.getProjectedPoint(x, y, p);
-                            this.draggedPoint.x = proj.x;
-                            this.draggedPoint.y = proj.y;
-                        } else {
-                            this.draggedPoint.x = x;
-                            this.draggedPoint.y = y;
-                        }
-                        this.updateDependents();
-                    }
-
-                    if (this.currentTool === 'move' && this.draggedText) {
-                        // On applique la nouvelle position en gardant le décalage du clic
-                        this.draggedText.x = x - this.dragOffset.x;
-                        this.draggedText.y = y - this.dragOffset.y;
-                        this.render();
-                    }
-
-                    // Snapping to Ruler Edge
-                    if (['segment', 'line', 'ray'].includes(this.currentTool) && this.activeWidgets.ruler) { ;
+                    if (['segment', 'line', 'ray'].includes(this.currentTool) && this.activeWidgets.ruler) {
                         const r = this.rulerWidget;
                         const local = r.toLocal(x, y);
                         if (Math.abs(local.y) < 25 && local.x > -25 && local.x < r.width + 5) {
@@ -7409,26 +6900,26 @@
                             };
                         }
                     }
-                    if (['parallel', 'perpendicular'].includes(this.currentTool)) {
-                        const clickedLinear = this.hoveredEntities.filter(e => e instanceof LinearObject || e instanceof ParallelLine || e instanceof PerpendicularLine).pop();
-                        if (clickedLinear) this.canvas.style.cursor = 'pointer';
-                    }
+
                     this.render();
                 };
 
+                // =============================================================================
+                // GESTIONNAIRE D'ÉVÉNEMENT GLOBAL : MOUSEUP (FIN D'ACTION)
+                // =============================================================================
                 window.addEventListener('mouseup', () => {
+
                     // 1. GESTION DU PANNING (Déplacement de vue)
                     if (this.isPanning) {
                         this.isPanning = false;
                         return;
                     }
 
-                    // 2. GESTION DU DÉPLACEMENT DE POINT (Animation)
+                    // 2. FIN DÉPLACEMENT D'UN POINT (Animation + Sauvegarde)
                     if (this.draggedPoint) {
                         const dx = this.draggedPoint.x - this.dragStartPos.x;
                         const dy = this.draggedPoint.y - this.dragStartPos.y;
 
-                        // Si le mouvement est significatif (> 1px)
                         if (Math.sqrt(dx * dx + dy * dy) > 1) {
                             const anim = new ToolAnimation('pointMove', this.dragStartPos, {
                                 x: this.draggedPoint.x,
@@ -7446,18 +6937,15 @@
                     if (this.draggedWidget instanceof ProtractorWidget && this.draggedWidgetMode === 'traceAngle') {
                         const w = this.draggedWidget;
 
-                        // A. Point Central (Existant ou Nouveau)
                         let p1 = this.entities.find(e => e instanceof Point && MathUtils.dist(e.x, e.y, w.x, w.y) < 5);
                         if (!p1) {
                             p1 = new Point(w.x, w.y, this.getNextLabel());
                             this.addEntity(p1);
                         }
 
-                        // B. Point d'Arrivée (Souris)
                         const p2 = new Point(this.mousePos.x, this.mousePos.y, this.getNextLabel());
                         this.addEntity(p2);
 
-                        // C. Demi-droite
                         const ray = new Ray(p1, p2);
                         ray.color = this.globalStyle.color;
                         ray.lineWidth = this.globalStyle.width;
@@ -7470,11 +6958,10 @@
                         return;
                     }
 
-                    // 4. GESTION GÉNÉRALE DES WIDGETS (C'est ici que se trouve la correction Compas)
+                    // 4. GESTION GÉNÉRALE DES WIDGETS (Règle, Equerre, Compas)
                     if (this.draggedWidget) {
                         const w = this.draggedWidget;
 
-                        // Calcul du mouvement pour préparer l'animation
                         const endState = this.getWidgetState(w);
                         let anim = null;
 
@@ -7484,57 +6971,40 @@
                             const moved = (Math.abs(s.x - e.x) > 0.1 || Math.abs(s.y - e.y) > 0.1 || Math.abs(s.angle - e.angle) > 0.001 || Math.abs(s.radius - e.radius) > 0.1);
 
                             if (moved) {
-                                //  console.log('a bougé');
-                                //  console.log(w);
                                 anim = new ToolAnimation(this.draggedWidgetType, s, e);
-                                // ATTENTION : On n'ajoute pas l'animation tout de suite !
-                                // On attend de voir si on doit l'insérer avant un arc.
                             }
                         }
 
-                        // --- CAS SPÉCIFIQUE : COMPAS EN MODE TRACE ---
                         if (w instanceof CompassWidget && this.draggedWidgetMode === 'trace') {
 
-                            const rawEndAngle = w.startAngle + w.totalRotation; // L'angle "déroulé" (ex: -720°)
-                            const isCCW = (w.totalRotation < 0);                // Le sens
+                            const rawEndAngle = w.startAngle + w.totalRotation;
+                            const isCCW = (w.totalRotation < 0);
 
-                            // 2. Si on a une animation (parce qu'on a bougé)
                             if (anim) {
-                                // --- C'EST ICI QU'ON SAUVEGARDE L'INFO DANS L'ANIM ---
-
-                                // On force l'angle de fin à être la valeur brute (non modulo 2PI)
                                 anim.endState.angle = rawEndAngle;
-
-                                // On stocke le sens pour que le rendu graphique (le trait noir) soit correct
                                 anim.counterClockwise = isCCW;
 
-                                // Insertion avant l'arc (pour l'ordre d'affichage)
                                 const arcIndex = this.entities.indexOf(this.currentTracingArc);
                                 if (arcIndex !== -1) this.entities.splice(arcIndex, 0, anim);
                                 else this.entities.push(anim);
                             }
 
-                            // 3. On finalise l'arc statique
                             this.currentTracingArc.endAngle = rawEndAngle;
                             this.currentTracingArc.counterClockwise = isCCW;
                             this.saveState();
 
-
-                            // Nettoyage des variables temporaires du compas
                             this.currentTracingArc = null;
                             w.isTracing = false;
                             w.totalRotation = 0;
                             w.lastMouseAngle = null;
 
                         } else {
-                            // --- CAS STANDARD (Déplacement Règle, Equerre, ou Compas sans trace) ---
                             if (anim) {
-                                this.addEntity(anim); // Ajout normal à la fin de la liste
+                                this.addEntity(anim);
                                 this.saveState();
                             }
                         }
 
-                        // Reset global du widget traîné
                         this.draggedWidget = null;
                         this.draggedWidgetMode = null;
                     }
@@ -7602,7 +7072,7 @@
                         this.draggedText = null;
                     }
 
-                    // 8. LABEL ANGLE (Si variable locale définie)
+                    // 8. RESET LABEL ANGLE
                     if (typeof isDraggingLabel !== 'undefined' && isDraggingLabel) {
                         isDraggingLabel = false;
                     }
@@ -7618,13 +7088,10 @@
                     const centerX = rect.left + rect.width / 2;
                     const centerY = rect.top + rect.height / 2;
 
-                    // Calcul de l'angle souris <-> centre du widget
                     const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
 
-                    // 1. Appliquer à l'objet
                     this.selectedObject.labelAngle = angle;
 
-                    // 2. Bouger le bouton visuellement (Rayon de 24px dans la boite de 60px)
                     const r = 24;
                     knob.style.left = (30 + Math.cos(angle) * r) + 'px';
                     knob.style.top = (30 + Math.sin(angle) * r) + 'px';
@@ -7636,7 +7103,7 @@
 
                 box.addEventListener('mousedown', (e) => {
                     isDraggingLabel = true;
-                    updateLabelAngle(e); // Mise à jour immédiate au clic
+                    updateLabelAngle(e);
                     e.preventDefault();
                 });
 
@@ -7647,25 +7114,20 @@
                 window.addEventListener('mouseup', () => {
                     if (isDraggingLabel) {
                         isDraggingLabel = false;
-                        this.saveState(); // On sauvegarde quand on lâche
+                        this.saveState();
                     }
                 });
 
                 const renamerDisplay = document.getElementById('renamerDisplay');
 
                 renamerDisplay.addEventListener('wheel', (e) => {
-                    // Empêche la page de scroller quand on change la lettre
                     e.preventDefault();
                     e.stopPropagation();
-
-                    // Détection du sens (Haut/Bas ou Gauche/Droite pour trackpad)
-                    // deltaY > 0 signifie qu'on descend (vers la suite de l'alphabet)
                     const direction = e.deltaY > 0 ? 1 : -1;
-
                     this.cyclePointName(direction);
 
-                }, { passive: false }); // <--- C'EST LE SECRET pour que ça marche sur Mac/Trackpad  
-            } // <- Fin initevent
+                }, { passive: false });
+            }
 
             drawCreationGhost() {
 
@@ -7885,9 +7347,9 @@
                     const val2 = 180 - val1;
                     let txt = ``;
                     if (w.isReversed) { txt = `${val1}° / ${val2}°`; } else { txt = `${val2}° / ${val1}°`; }
-                    this.ctx.save(); 
+                    this.ctx.save();
                     this.ctx.font = "bold 14px Segoe UI";
-                    this.ctx.textBaseline = "middle"; 
+                    this.ctx.textBaseline = "middle";
                     this.ctx.textAlign = "center";
 
                     const tw = this.ctx.measureText(txt).width;
