@@ -1467,7 +1467,7 @@
             background-color: rgba(44, 62, 80, 0.95);
             color: #fff;
             text-align: center;
-            border-radius: 50px;
+            border-radius: 5px;
             padding: 12px 24px;
             position: fixed;
             z-index: 6000;
@@ -1483,7 +1483,7 @@
 
         #toast-notification.show {
             visibility: visible;
-            opacity: 1;
+            opacity: 0.8;
             bottom: 50px;
         }
 
@@ -1505,7 +1505,7 @@
             font-size: 12px;
             font-family: sans-serif;
             white-space: nowrap;
-            z-index: 1000;
+            z-index: 7000;
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
@@ -1793,7 +1793,7 @@
             </div>
 
             <div class="header-dropdown">
-                <button class="top-btn" aria-label="Options de Texte" data-tooltip="Options de Texte">
+                <button class="top-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <text x="12" y="18" font-family="serif" font-size="18" fill="currentColor" stroke="none"
                             font-weight="bold" text-anchor="middle">A</text>
@@ -1859,10 +1859,29 @@
                     <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
             </button>
-            <button class="top-btn" onclick="app.toggleHelp()" aria-label="Aide & Raccourcis"
-                data-tooltip="Aide & Raccourcis" style="margin-left:auto;">
-                <span style="font-weight:bold; font-size:18px;">?</span>
-            </button>
+            <div class="header-right" style="display: flex; align-items: center;">
+
+                <button class="top-btn" onclick="app.cycleStyle()" aria-label="Changer de Thème"
+                    data-tooltip="Changer de Thème" style="margin-left:auto; margin-right: 10px;">
+                    <span style="font-size:22px; line-height: 1;">◐</span>
+                </button>
+                <button class="top-btn" id="btn-fullscreen" onclick="app.toggleFullscreen()" aria-label="Plein Écran"
+                    data-tooltip="Plein Écran"
+                    style="margin-right: 10px; display:flex; align-items:center; justify-content:center;">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M7 14H5V19H10V17H7V14ZM5 10H7V7H10V5H5V10ZM17 17H14V19H19V14H17V17ZM14 5V7H17V10H19V5H14Z" />
+                    </svg>
+
+                </button>
+                <button class="top-btn" onclick="app.toggleHelp()" aria-label="Aide & Raccourcis"
+                    data-tooltip="Aide & Raccourcis">
+                    <span style="font-weight:bold; font-size:18px;">?</span>
+                </button>
+
+            </div>
         </div>
     </header>
     <div class="main-container">
@@ -2802,6 +2821,7 @@
                 return this.visible && Math.sqrt((mx - this.x) ** 2 + (my - this.y) ** 2) < 12;
             }
             draw(ctx, opts) {
+                if (this.visible === false) return;
                 if (!this.visible && !opts.isSelected) return;
                 ctx.beginPath();
                 const base = this.color || (this.parents.length > 0 ? "#333" : "red");
@@ -3383,6 +3403,357 @@
         }
 
         // --- WIDGETS ---
+        // =================================================================
+        // CONFIGURATION GLOBALE DU STYLE
+        // Modifiez ces valeurs pour changer l'apparence de tous les outils
+        // =================================================================
+
+        const ToolStyleArray = {
+            pantoneVibrant: {
+                name: "Pantone Vibrant 🎨",
+                compass: {
+                    // Mélange de "Little Boy Blue" et "Nautical Blue"
+                    // Contour très foncé (Bleu marine profond)
+                    colors: {
+                        metalLight: '#7AA8D4', // Little Boy Blue
+                        metalDark: '#2E4884',  // Nautical Blue
+                        joint: '#BD3874',      // Pink Yarrow (Jointure rose vif)
+                        needle: '#000000',
+                        pencil: '#BD3874',     // Pink Yarrow
+                        wood: '#FBC49F',       // Peach Fuzz
+                        lead: '#000000',
+                        knob: '#2E4884',       // Nautical Blue
+                        outline: '#1A2B52'     // Nautical Blue très foncé
+                    },
+                    widths: { outline: 15, body: 13, arm: 11 }
+                },
+                setSquare: {
+                    background: { color: '116, 201, 179', opacity: 0.8 }, // Bermuda (#74C9B3)
+                    border: { color: '45, 99, 99', opacity: 1, width: 2 }, // Baltic Foncé
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" },
+                    toggleBtn: { active: '#BD3874', inactive: '#E190AB' } // Pink Yarrow / Aurora
+                },
+                ruler: {
+                    background: { color: '251, 196, 159', opacity: 0.85 }, // Peach Fuzz (#FBC49F)
+                    border: { color: '186, 107, 30', opacity: 1, width: 2 }, // Blazing Orange Foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" },
+                },
+                protractor: {
+                    background: { color: '225, 144, 171', opacity: 0.75 }, // Aurora Pink (#E190AB)
+                    border: { color: '138, 34, 81', opacity: 1, width: 2 }, // Pink Yarrow Foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" },
+                    components: { target: '#000000', lockActive: '#2E4884', lockInactive: '#74C9B3', swap: '#FCA757' }
+                }
+            },
+            // =================================================================
+            // 7. BOHO CHIC (Version Révisée : Textes Noirs & Bords Foncés)
+            // =================================================================
+            default: {
+                name: "Défaut",
+                compass: {
+                    // Outline très foncé (#5e2a18) pour bien voir le compas
+                    colors: { metalLight: '#D97D55', metalDark: '#A05030', joint: '#F4E9D7', needle: '#000000', pencil: '#6FA4AF', wood: '#F4E9D7', lead: '#000000', knob: '#F4E9D7', outline: '#5e2a18' },
+                    widths: { outline: 14, body: 12, arm: 10 }
+                },
+                setSquare: {
+                    background: { color: '244, 233, 215', opacity: 0.85 }, // Fond Lin
+                    border: { color: '140, 70, 47', opacity: 1, width: 2 }, // Bordure Rouille foncé
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" }, // Texte Noir
+                    toggleBtn: { active: '#6FA4AF', inactive: '#D97D55' }
+                },
+                ruler: {
+                    background: { color: '184, 196, 169', opacity: 0.8 }, // Fond Vert gris
+                    border: { color: '85, 96, 70', opacity: 1, width: 2 }, // Bordure Olive foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" }, // Texte Noir
+                },
+                protractor: {
+                    background: { color: '111, 164, 175', opacity: 0.7 }, // Fond Bleu gris
+                    border: { color: '40, 62, 68', opacity: 1, width: 2 }, // Bordure Bleu pétrole foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" }, // Texte Noir
+                    components: { target: '#000000', lockActive: '#D97D55', lockInactive: '#B8C4A9', swap: '#F4E9D7' }
+                }
+            },
+            // =================================================================
+            // 1. DEFAULT (Style Polypad / Material)
+            // =================================================================
+            classic: {
+                name: "Classique 🟦", // <--- Le nom est ici maintenant
+                compass: {
+                    colors: { metalLight: '#dfe6e9', metalDark: '#b2bec3', joint: '#2d3436', needle: '#636e72', pencil: '#c0392b', wood: '#f3d2b5', lead: '#2d3436', knob: '#34495e', outline: '#000000' },
+                    widths: { outline: 16, body: 14, arm: 12 }
+                },
+                setSquare: {
+                    background: { color: '255, 213, 79', opacity: 0.6 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 1 },
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" },
+                    toggleBtn: { active: '#66bb6a', inactive: '#ffa726' }
+                },
+                ruler: {
+                    background: { color: '41, 182, 246', opacity: 0.6 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 1 },
+                    graduations: { color: '#000000', strokeOpacity: 0.8, width: 1.5, font: "bold 12px sans-serif" },
+                },
+                protractor: {
+                    background: { color: '128, 222, 234', opacity: 0.5 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 1 },
+                    graduations: { color: '#000000', strokeOpacity: 0.8, width: 1, widthMajor: 2, font: "bold 11px sans-serif" },
+                    components: { target: '#000000', lockActive: '#ef5350', lockInactive: '#66bb6a', swap: '#42a5f5' }
+                }
+            },
+            // =================================================================
+            // 8. MODERN GRAY (Version Monochrome : Contraste & Élégance)
+            // =================================================================
+            modernGray: {
+                name: "Gris Moderne 🌚",
+                compass: {
+                    // Outline très foncé (#1F2937) pour détacher le compas du fond
+                    // MetalLight/Dark : Effet argenté et acier
+                    colors: { metalLight: '#D1D5DB', metalDark: '#6B7280', joint: '#F3F4F6', needle: '#000000', pencil: '#9CA3AF', wood: '#E5E7EB', lead: '#000000', knob: '#F3F4F6', outline: '#1F2937' },
+                    widths: { outline: 14, body: 12, arm: 10 }
+                },
+                setSquare: {
+                    background: { color: '229, 231, 235', opacity: 0.85 }, // Fond Gris très clair (presque blanc)
+                    border: { color: '55, 65, 81', opacity: 1, width: 2 }, // Bordure Gris Anthracite
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" }, // Texte Noir
+                    toggleBtn: { active: '#374151', inactive: '#D1D5DB' }
+                },
+                ruler: {
+                    background: { color: '209, 213, 219', opacity: 0.8 }, // Fond Gris Argenté (un peu plus soutenu)
+                    border: { color: '31, 41, 55', opacity: 1, width: 2 }, // Bordure Gris très foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" }, // Texte Noir
+                },
+                protractor: {
+                    background: { color: '156, 163, 175', opacity: 0.7 }, // Fond Gris Moyen (effet verre fumé)
+                    border: { color: '17, 24, 39', opacity: 1, width: 2 }, // Bordure Presque Noir
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" }, // Texte Noir
+                    components: { target: '#000000', lockActive: '#4B5563', lockInactive: '#E5E7EB', swap: '#F9FAFB' }
+                }
+            },
+
+            // =================================================================
+            // 2. BLACK & WHITE
+            // =================================================================
+            blackAndWhite: {
+                name: "Noir & Blanc 📓",
+                compass: {
+                    colors: { metalLight: '#ffffff', metalDark: '#dcdcdc', joint: '#000000', needle: '#000000', pencil: '#ffffff', wood: '#ffffff', lead: '#000000', knob: '#ffffff', outline: '#000000' },
+                    widths: { outline: 16, body: 14, arm: 12 }
+                },
+                setSquare: {
+                    background: { color: '255, 255, 255', opacity: 0.8 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 2 },
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px Courier New" },
+                    toggleBtn: { active: '#000000', inactive: '#ffffff' }
+                },
+                ruler: {
+                    background: { color: '255, 255, 255', opacity: 0.8 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 2 },
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px Courier New" },
+                },
+                protractor: {
+                    background: { color: '255, 255, 255', opacity: 0.8 },
+                    border: { color: '0, 0, 0', opacity: 1, width: 2 },
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px Courier New" },
+                    components: { target: '#000000', lockActive: '#000000', lockInactive: '#ffffff', swap: '#000000' }
+                }
+            },
+
+            // =================================================================
+            // 3. RETRO VINTAGE
+            // =================================================================
+            retro: {
+                name: "Rétro Vintage 📜",
+                compass: {
+                    colors: { metalLight: '#d4af37', metalDark: '#aa8c2c', joint: '#3e2723', needle: '#2f3640', pencil: '#8b4513', wood: '#deb887', lead: '#2f3640', knob: '#8b4513', outline: '#3e2723' },
+                    widths: { outline: 16, body: 14, arm: 12 }
+                },
+                setSquare: {
+                    background: { color: '210, 105, 30', opacity: 0.5 },
+                    border: { color: '139, 69, 19', opacity: 1, width: 2 },
+                    graduations: { color: '#3e2723', width: 1.5, font: "bold 12px Times New Roman" },
+                    toggleBtn: { active: '#556b2f', inactive: '#cd853f' }
+                },
+                ruler: {
+                    background: { color: '222, 184, 135', opacity: 0.8 },
+                    border: { color: '139, 69, 19', opacity: 1, width: 2 },
+                    graduations: { color: '#3e2723', strokeOpacity: 0.9, width: 1.5, font: "bold 12px Times New Roman" },
+                },
+                protractor: {
+                    background: { color: '240, 230, 140', opacity: 0.6 },
+                    border: { color: '85, 107, 47', opacity: 1, width: 2 },
+                    graduations: { color: '#3e2723', strokeOpacity: 0.9, width: 1, widthMajor: 2, font: "bold 11px Times New Roman" },
+                    components: { target: '#3e2723', lockActive: '#8b0000', lockInactive: '#556b2f', swap: '#cd853f' }
+                }
+            },
+
+
+
+
+            // =================================================================
+            // 6. EARTH & FOREST
+            // =================================================================
+            earthForest: {
+                name: "Forêt & Terre 🌲",
+                compass: {
+                    colors: { metalLight: '#9E3C59', metalDark: '#1A253A', joint: '#E5BA41', needle: '#D1855C', pencil: '#D1855C', wood: '#E5BA41', lead: '#2c3e50', knob: '#94A378', outline: '#1A253A' },
+                    widths: { outline: 16, body: 14, arm: 12 }
+                },
+                setSquare: {
+                    background: { color: '148, 163, 120', opacity: 0.75 },
+                    border: { color: '45, 60, 89', opacity: 1, width: 2 },
+                    graduations: { color: '#2D3C59', width: 1.5, font: "bold 12px serif" },
+                    toggleBtn: { active: '#E5BA41', inactive: '#D1855C' }
+                },
+                ruler: {
+                    background: { color: '229, 186, 65', opacity: 0.7 },
+                    border: { color: '209, 133, 92', opacity: 1, width: 2 },
+                    graduations: { color: '#2D3C59', strokeOpacity: 0.9, width: 1.5, font: "bold 12px serif" },
+                },
+                protractor: {
+                    background: { color: '209, 133, 92', opacity: 0.7 },
+                    border: { color: '100, 50, 30', opacity: 1, width: 2 },
+                    graduations: { color: '#2D3C59', strokeOpacity: 0.9, width: 1, widthMajor: 2, font: "bold 11px serif" },
+                    components: { target: '#2D3C59', lockActive: '#2D3C59', lockInactive: '#94A378', swap: '#E5BA41' }
+                }
+            },
+
+            // =================================================================
+            // 7. BOHO CHIC
+            // =================================================================
+
+
+
+            // =================================================================
+            // STYLE B : INTERIOR 2025 (Image 3)
+            // Couleurs : Mocha, True Joy (Moutarde), Purple Basil, Encore (Bleu)
+            // =================================================================
+
+
+            // =================================================================
+            // STYLE C : POP ART CYMK (Image 4)
+            // Couleurs : Violet (#7F58AF), Cyan (#64C5EB), Rose (#E84D8A), Jaune (#FEB326)
+            // =================================================================
+            popArt: {
+                name: "Pop Art 🍭",
+                compass: {
+                    colors: { metalLight: '#7F58AF', metalDark: '#503080', joint: '#FEB326', needle: '#000000', pencil: '#E84D8A', wood: '#FEB326', lead: '#000000', knob: '#64C5EB', outline: '#503080' },
+                    widths: { outline: 15, body: 13, arm: 11 }
+                },
+                setSquare: {
+                    background: { color: '100, 197, 235', opacity: 0.8 }, // Cyan
+                    border: { color: '40, 120, 160', opacity: 1, width: 2 }, // Cyan foncé
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" },
+                    toggleBtn: { active: '#E84D8A', inactive: '#FEB326' }
+                },
+                ruler: {
+                    background: { color: '254, 179, 38', opacity: 0.85 }, // Jaune
+                    border: { color: '180, 120, 10', opacity: 1, width: 2 }, // Moutarde foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" },
+                },
+                protractor: {
+                    background: { color: '232, 77, 138', opacity: 0.75 }, // Rose
+                    border: { color: '150, 40, 80', opacity: 1, width: 2 }, // Bordeaux
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" },
+                    components: { target: '#000000', lockActive: '#7F58AF', lockInactive: '#FEB326', swap: '#64C5EB' }
+                }
+            },
+
+            // =================================================================
+            // STYLE D : NAVY & CORAL (Image 5)
+            // Couleurs : Navy (#1A2C79), Magenta (#E80566), Pêche (#FF8D68), Crème (#F4EABC)
+            // =================================================================
+
+
+            // =================================================================
+            // STYLE E : BERRY & TEAL (Image 6)
+            // Couleurs : Berry (#C14364), Coral (#FF916B), Cream (#EEE2D1), Teal (#2CA18C)
+            // =================================================================
+
+
+            // =================================================================
+            // STYLE F : BLUE LAGOON (Image 7)
+            // Couleurs : Navy (#0A1D37), Slate (#3A6D8C), Muted Blue (#6A9AB0), Beige (#EAD8B1)
+            // =================================================================
+            blueLagoon: {
+                name: "Blue Lagoon 🌊",
+                compass: {
+                    colors: { metalLight: '#3A6D8C', metalDark: '#0A1D37', joint: '#EAD8B1', needle: '#000000', pencil: '#6A9AB0', wood: '#EAD8B1', lead: '#000000', knob: '#0A1D37', outline: '#000000' },
+                    widths: { outline: 15, body: 13, arm: 11 }
+                },
+                setSquare: {
+                    background: { color: '234, 216, 177', opacity: 0.85 }, // Beige
+                    border: { color: '10, 29, 55', opacity: 1, width: 2 }, // Bordure Navy pour contraste fort
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" },
+                    toggleBtn: { active: '#3A6D8C', inactive: '#6A9AB0' }
+                },
+                ruler: {
+                    background: { color: '58, 109, 140', opacity: 0.8 }, // Slate Blue
+                    border: { color: '10, 29, 55', opacity: 1, width: 2 }, // Navy
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" },
+                },
+                protractor: {
+                    background: { color: '106, 154, 176', opacity: 0.75 }, // Muted Blue
+                    border: { color: '30, 60, 80', opacity: 1, width: 2 }, // Bleu foncé
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" },
+                    components: { target: '#000000', lockActive: '#EAD8B1', lockInactive: '#0A1D37', swap: '#3A6D8C' }
+                }
+            },
+
+            // =================================================================
+            // 9. NORDIC ICE
+            // =================================================================
+
+            // =================================================================
+            // 17. TREND 2025 (Palette Design)
+            // Couleurs : Mocha Mousse, Rumors, Cinnamon Slate, True Joy,
+            //            Purple Basil, Encore, Raku, Quietude.
+            // =================================================================
+            trend2025: {
+                name: "Trend 2025 🎨",
+                compass: {
+                    // Un mélange sophistiqué de Gris chaud, Sauge et accents Prune
+                    colors: {
+                        metalLight: '#A8B8B0', // Quietude (Sauge clair)
+                        metalDark: '#7C6E70',  // Cinnamon Slate (Gris chaud)
+                        joint: '#683B39',      // Rumors (Bordeaux)
+                        needle: '#000000',
+                        pencil: '#DDB756',     // True Joy (Moutarde)
+                        wood: '#9A6B58',       // Mocha Mousse (Terracotta)
+                        lead: '#000000',
+                        knob: '#554452',       // Purple Basil (Prune)
+                        outline: '#38221D'     // Raku (Brun noir très foncé)
+                    },
+                    widths: { outline: 15, body: 13, arm: 11 }
+                },
+                setSquare: {
+                    background: { color: '221, 183, 86', opacity: 0.85 }, // True Joy (Moutarde)
+                    border: { color: '85, 68, 82', opacity: 1, width: 2 }, // Purple Basil (Prune foncé)
+                    graduations: { color: '#000000', width: 1.5, font: "bold 12px sans-serif" },
+                    toggleBtn: { active: '#683B39', inactive: '#9A6B58' } // Rumors / Mocha
+                },
+                ruler: {
+                    background: { color: '154, 107, 88', opacity: 0.8 }, // Mocha Mousse (Terracotta)
+                    border: { color: '56, 34, 29', opacity: 1, width: 2 }, // Raku (Brun noir)
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1.5, font: "bold 12px sans-serif" },
+                },
+                protractor: {
+                    background: { color: '168, 184, 176', opacity: 0.8 }, // Quietude (Sauge)
+                    border: { color: '36, 70, 107', opacity: 1, width: 2 }, // Encore (Bleu Nuit)
+                    graduations: { color: '#000000', strokeOpacity: 1, width: 1, widthMajor: 2, font: "bold 11px sans-serif" },
+                    components: { target: '#000000', lockActive: '#683B39', lockInactive: '#24466B', swap: '#DDB756' }
+                }
+            }
+        }
+
+
+        let ToolStyle = ToolStyleArray['default'];
+
+        // =================================================================
+
+        // =================================================================
+        // CLASSES DES WIDGETS
+        // =================================================================
+
         class CompassWidget {
             constructor(x, y) {
                 this.x = x;
@@ -3391,6 +3762,14 @@
                 this.angle = 0;
                 this.legLength = 280;
                 this.widgetRotationOffset = 0;
+                // On utilise directement ToolStyle.compass dans le draw
+            }
+            toGlobal(lx, ly) {
+                // On inverse la formule de rotation/translation
+                return {
+                    x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
+                    y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
+                };
             }
             toLocal(mx, my) {
                 const dx = mx - this.x;
@@ -3400,134 +3779,250 @@
                     y: dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle)
                 };
             }
+
             getHitZone(mx, my) {
                 const local = this.toLocal(mx, my);
                 const h = Math.sqrt(this.legLength ** 2 - (this.radius / 2) ** 2);
                 const headX = this.radius / 2;
                 const headY = -h;
+
+                // 1. Zone de TRACÉ (La mine du crayon)
                 if (MathUtils.dist(local.x, local.y, this.radius, 0) < 20) return 'trace';
-                if (MathUtils.distanceToSegment(local.x, local.y, headX, headY, 0, 0) < 20) return 'move';
+
+                // 2. Zone de DÉPLACEMENT (Le corps principal)
+                if (MathUtils.distanceToSegment(local.x, local.y, headX, headY - 30, 0, 0) < 15) return 'move';
+                // Pointe sèche
+                //if (MathUtils.dist(local.x, local.y, 0, 0) < 5) return 'move';
+
+                // 3. Zone d'ÉCARTEMENT (La branche du crayon)
                 const legStartX = this.radius;
                 const legStartY = 0;
-                const legEndX = headX;
-                const legEndY = headY;
-                const resizeEndPos = {
-                    x: legStartX + (legEndX - legStartX) * 0.15,
-                    y: legStartY + (legEndY - legStartY) * 0.15
-                };
-                if (MathUtils.distanceToSegment(local.x, local.y, legStartX, legStartY - 20, resizeEndPos.x, resizeEndPos.y) < 15) return 'resize';
-                if (MathUtils.dist(local.x, local.y, 0, 0) < 30) return 'move';
-                if (MathUtils.distanceToSegment(local.x, local.y, resizeEndPos.x, resizeEndPos.y, headX, headY) < 15) return 'rotate';
+                const resizeEndPos = { x: legStartX + (headX - legStartX) * 0.15, y: legStartY + (headY - legStartY) * 0.15 };
+                if (MathUtils.distanceToSegment(local.x, local.y, legStartX, legStartY - 20, resizeEndPos.x, resizeEndPos.y) < 20) return 'resize';
+
+                // ==================================================
+                // 4. NOUVELLE ZONE DE ROTATION (Le "Coude" droit)
+                // ==================================================
+                const elbowX = this.radius;
+                const elbowY = -25;
+                // On définit une zone ronde autour de l'articulation du crayon
+                if (MathUtils.distanceToSegment(local.x, local.y, headX, headY, elbowX, elbowY) < 25) {
+                    return 'rotate'; // <--- C'est ici que la magie opère
+                }
+
+                // (L'ancienne zone en haut est supprimée)
+
                 return null;
             }
+
             draw(ctx) {
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
+
+                const style = ToolStyle.compass; // Raccourci vers la config
+
+                // --- GÉOMÉTRIE ---
                 const h = Math.sqrt(this.legLength ** 2 - (this.radius / 2) ** 2);
                 const headX = this.radius / 2;
                 const headY = -h;
+
                 ctx.lineCap = "round";
                 ctx.lineJoin = "round";
+
+                // ==================================================
+                // 1. BRANCHE GAUCHE (Pointe Sèche)
+                // ==================================================
+
+                // A. Le contour NOIR
                 ctx.beginPath();
-                ctx.strokeStyle = "#7f8c8d";
-                ctx.lineWidth = 8;
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = style.widths.outline;
                 ctx.moveTo(headX, headY);
-                ctx.lineTo(headX * 0.15, headY * 0.15);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = "#2c3e50";
-                ctx.lineWidth = 2;
-                ctx.moveTo(headX * 0.15, headY * 0.15);
-                ctx.lineTo(0, 0);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.fillStyle = "#2c3e50";
-                ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                ctx.fill();
-                const legStartX = this.radius;
-                const legStartY = 0;
-                const legEndX = headX;
-                const legEndY = headY;
-                const resizeEndRatio = 0.2;
-                const resizeEndPos = {
-                    x: legStartX + (legEndX - legStartX) * resizeEndRatio,
-                    y: legStartY + (legEndY - legStartY) * resizeEndRatio
-                };
-                ctx.beginPath();
-                ctx.strokeStyle = "#f39c12";
-                ctx.lineWidth = 7;
-                ctx.moveTo(headX, headY);
-                ctx.lineTo(resizeEndPos.x, resizeEndPos.y);
-                ctx.stroke();
-                const triangleHeight = 25;
-                const legLen = Math.sqrt((legEndX - legStartX) ** 2 + (legEndY - legStartY) ** 2);
-                const triStartRatio = triangleHeight / legLen;
-                const triStartPos = {
-                    x: legStartX + (legEndX - legStartX) * triStartRatio,
-                    y: legStartY + (legEndY - legStartY) * triStartRatio
-                };
-                ctx.beginPath();
-                ctx.strokeStyle = "#95a5a6";
-                ctx.lineWidth = 8;
-                ctx.moveTo(resizeEndPos.x, resizeEndPos.y);
-                ctx.lineTo(triStartPos.x, triStartPos.y);
+                ctx.lineTo(0, -15);
                 ctx.stroke();
 
-                if (app.draggedWidgetMode === 'resize') {
+                // B. L'intérieur MÉTAL
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.metalLight;
+                ctx.lineWidth = style.widths.body;
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(0, -15);
+                ctx.stroke();
+
+                // Pointe
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.needle;
+                ctx.moveTo(-3, -15); ctx.lineTo(3, -15); ctx.lineTo(0, 0); ctx.fill();
+                ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1; ctx.moveTo(-1, -14); ctx.lineTo(0, -2); ctx.stroke();
+
+                // Articulation bas gauche
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.outline;
+                ctx.arc(0, -15, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.metalDark;
+                ctx.arc(0, -15, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.joint;
+                ctx.arc(0, -15, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ==================================================
+                // 2. BRANCHE DROITE (Porte-Crayon)
+                // ==================================================
+                const elbowX = this.radius;
+                const elbowY = -25;
+
+                // A. Le contour NOIR
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = style.widths.outline;
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(elbowX - 6, elbowY - 10);
+                ctx.stroke();
+
+                // B. L'intérieur MÉTAL
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.metalLight;
+                ctx.lineWidth = style.widths.body;
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(elbowX - 6, elbowY - 10);
+                ctx.stroke();
+
+                // ==================================================
+                // 3. LE CRAYON
+                // ==================================================
+                ctx.save();
+                ctx.translate(this.radius, 0);
+                // Mine
+                ctx.beginPath(); ctx.fillStyle = style.colors.lead; ctx.moveTo(0, 0); ctx.lineTo(1.5, -5); ctx.lineTo(-1.5, -5); ctx.fill();
+                // Bois
+                ctx.beginPath(); ctx.fillStyle = style.colors.wood; ctx.moveTo(-1.5, -5); ctx.lineTo(1.5, -5); ctx.lineTo(5, -18); ctx.lineTo(-5, -18); ctx.fill();
+
+                // Corps du crayon
+                const penH = 55;
+                ctx.fillStyle = style.colors.pencil;
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = 1;
+
+                ctx.fillRect(-5, -18 - penH, 10, penH);
+                ctx.strokeRect(-5, -18 - penH, 10, penH);
+
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(-2, -18 - penH, 2, penH);
+
+                // Bague
+                ctx.translate(0, elbowY);
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.metalDark;
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = 1;
+                if (ctx.roundRect) {
+                    ctx.roundRect(-7, -8, 14, 16, 2);
+                    ctx.fill(); ctx.stroke();
+                } else {
+                    ctx.rect(-7, -8, 14, 16);
+                    ctx.fill(); ctx.stroke();
+                }
+                ctx.restore();
+
+                // ==================================================
+                // 4. BRAS DE FIXATION & VIS
+                // ==================================================
+
+                // A. Contour Noir
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = style.widths.arm + 2; // +2 pour le contour
+                ctx.lineCap = "butt";
+                ctx.moveTo(elbowX - 10, elbowY - 10);
+                ctx.lineTo(this.radius, elbowY - 10);
+                ctx.stroke();
+
+                // B. Intérieur Métal
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.metalLight;
+                ctx.lineWidth = style.widths.arm;
+                ctx.lineCap = "butt";
+                ctx.moveTo(elbowX - 10, elbowY - 10);
+                ctx.lineTo(this.radius, elbowY - 10);
+                ctx.stroke();
+
+                // 5. POIGNÉE DE ROTATION (MOLETTE)
+                ctx.save();
+                ctx.translate(elbowX, elbowY - 10);
+                ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 3;
+
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.knob;
+                ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 1; ctx.strokeStyle = "#000"; ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath(); ctx.fillStyle = style.colors.metalDark; ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.fillStyle = "#dfe6e9"; ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+
+                ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 2;
+                for (let i = 0; i < 12; i++) {
+                    ctx.save(); ctx.rotate((i / 12) * Math.PI * 2); ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(14, 0); ctx.stroke(); ctx.restore();
+                }
+                ctx.restore();
+
+                // 6. TÊTE DU COMPAS
+                ctx.save();
+                ctx.translate(headX, headY);
+
+                ctx.beginPath();
+                ctx.fillStyle = style.colors.metalLight;
+                ctx.arc(0, 0, 13, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.strokeStyle = style.colors.outline;
+                ctx.lineWidth = 1.5;
+                ctx.arc(0, 0, 13, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.beginPath(); ctx.fillStyle = style.colors.joint; ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // 7. GHOST (Mesure)
+                if (typeof app !== 'undefined' && app.draggedWidgetMode === 'resize' && app.draggedWidget === this) {
                     ctx.save();
-                    // Code mort supprimé ici
-                    // 1. La ligne
                     ctx.beginPath();
-                    ctx.strokeStyle = "rgba(100, 100, 100, 0.8)";
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([3, 3]);
                     ctx.moveTo(0, 0);
                     ctx.lineTo(this.radius, 0);
                     ctx.stroke();
-
-                    // 2. Le texte
-                    ctx.translate(this.radius / 2, -15);
-                    ctx.rotate(-this.angle); // Contre-rotation
-
-                    const text = Math.round((this.radius * 2) / 10) / 10 + "";
-                    ctx.font = "bold 12px Arial";
-                    const textWidth = ctx.measureText(text).width + 8;
-
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                    ctx.fillRect(-textWidth / 2, -10, textWidth, 14);
-
-                    ctx.fillStyle = "#333";
+                    ctx.translate(this.radius / 2, -40);
+                    ctx.rotate(-this.angle);
+                    const val = Math.round(this.radius / 5) / 10;
+                    const text = val + " cm";
+                    ctx.font = "bold 13px Segoe UI, sans-serif";
+                    const w = ctx.measureText(text).width + 12;
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+                    ctx.shadowColor = "rgba(0,0,0,0.2)";
+                    ctx.shadowBlur = 4;
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(-w / 2, -12, w, 24, 4);
+                    else ctx.fillRect(-w / 2, -12, w, 24);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = "#2c3e50";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
-                    ctx.fillText(text, 0, -3);
-
+                    ctx.fillText(text, 0, 1);
                     ctx.restore();
                 }
-                const vecX = legEndX - legStartX;
-                const vecY = legEndY - legStartY;
-                const len = Math.sqrt(vecX * vecX + vecY * vecY);
-                const perpX = -vecY / len;
-                const perpY = vecX / len;
-                const halfWidth = 4;
-                ctx.beginPath();
-                ctx.moveTo(triStartPos.x + perpX * halfWidth, triStartPos.y + perpY * halfWidth);
-                ctx.lineTo(triStartPos.x - perpX * halfWidth, triStartPos.y - perpY * halfWidth);
-                ctx.lineTo(this.radius, 0);
-                ctx.closePath();
-                ctx.fillStyle = "#3498db";
-                ctx.fill();
-                ctx.beginPath();
-                ctx.fillStyle = "#34495e";
-                ctx.arc(headX, headY, 14, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = "#ecf0f1";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.fillStyle = "#bdc3c7";
-                ctx.arc(headX, headY, 6, 0, Math.PI * 2);
-                ctx.fill();
+
                 ctx.restore();
             }
         }
@@ -3543,6 +4038,13 @@
                 this.widgetRotationOffset = 0;
                 this.slideMode = false;
             }
+            toGlobal(lx, ly) {
+                // On inverse la formule de rotation/translation
+                return {
+                    x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
+                    y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
+                };
+            }
             toLocal(mx, my) {
                 const dx = mx - this.x;
                 const dy = my - this.y;
@@ -3552,80 +4054,175 @@
                 };
             }
             getHitZone(mx, my) {
+                const coll = 15; // Constante pour laisser l'angle droit
                 const l = this.toLocal(mx, my);
+                if (l.x < coll && l.y < coll) return null;
                 if (l.x > 20 && l.x < 60 && l.y > 20 && l.y < 60) return 'toggleSlide';
-                if (l.x >= 5 && l.y >= 5 && (l.y <= -this.height / this.width * l.x + this.height)) {
+                if (l.x >= coll && l.y >= coll && (l.y <= -this.height / this.width * l.x + this.height)) {
                     if (l.y < 30) return this.slideMode ? 'slideX' : 'rotate';
                     if (l.x < 30) return this.slideMode ? 'slideY' : 'rotate';
                     return 'move';
                 }
                 return null;
             }
+
             draw(ctx) {
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
+
+                const style = ToolStyle.setSquare;
+
+                // --- 0. FONCTION CONTRASTE ---
+                const getContrastColor = (hex) => {
+                    if (!hex) return 'white';
+                    hex = hex.replace('#', '');
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                    return (yiq >= 128) ? '#333333' : 'white';
+                };
+
+                // --- 1. FORME PRINCIPALE ---
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.lineTo(this.width, 0);
                 ctx.lineTo(0, this.height);
                 ctx.closePath();
-                ctx.fillStyle = "rgba(200, 240, 255, 0.5)";
+
+                ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`;
                 ctx.fill();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = "#2980b9";
+
+                ctx.lineWidth = style.border.width;
+                ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`;
                 ctx.stroke();
+
+                // --- 2. GRADUATIONS ---
                 const mm = 5;
                 const cm = 50;
                 const padding = 30;
-                ctx.fillStyle = "#333";
+
+                ctx.fillStyle = style.graduations.color;
+                ctx.strokeStyle = style.graduations.color;
                 ctx.textAlign = "center";
-                ctx.font = "10px sans-serif";
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = "#333";
+                ctx.textBaseline = "bottom";
+                ctx.font = style.graduations.font;
+                ctx.lineWidth = style.graduations.width;
+
+                // Axe X
                 for (let i = 0; i <= this.width - padding; i += mm) {
-                    let len = 5;
-                    if (i % cm === 0) len = 12;
-                    else if (i % (cm / 2) === 0) len = 8;
+                    let len = 6;
+                    if (i % cm === 0) len = 14;
+                    else if (i % (cm / 2) === 0) len = 9;
+
                     ctx.beginPath();
                     ctx.moveTo(i, 0);
                     ctx.lineTo(i, len);
                     ctx.stroke();
-                    if (i > 0 && i % cm === 0) {
-                        ctx.fillText(i / cm, i, 24);
-                    }
+                    if (i > 0 && i % cm === 0) ctx.fillText(i / cm, i, 28);
                 }
+
+                // Axe Y
+                ctx.textBaseline = "middle";
                 for (let i = 0; i <= this.height - padding; i += mm) {
-                    let len = 5;
-                    if (i % cm === 0) len = 12;
-                    else if (i % (cm / 2) === 0) len = 8;
+                    let len = 6;
+                    if (i % cm === 0) len = 14;
+                    else if (i % (cm / 2) === 0) len = 9;
+
                     ctx.beginPath();
                     ctx.moveTo(0, i);
                     ctx.lineTo(len, i);
                     ctx.stroke();
                     if (i > 0 && i % cm === 0) {
                         ctx.save();
-                        ctx.translate(24, i);
+                        ctx.translate(22, i);
                         ctx.rotate(-Math.PI / 2);
                         ctx.fillText(i / cm, 0, 0);
                         ctx.restore();
                     }
                 }
-                ctx.strokeStyle = "red";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(15, 0);
-                ctx.lineTo(15, 15);
-                ctx.lineTo(0, 15);
-                ctx.stroke();
-                ctx.fillStyle = this.slideMode ? "#4caf50" : "#e67e22";
-                ctx.fillRect(40, 40, 20, 20);
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 2;
-                ctx.strokeRect(40, 40, 20, 20);
-                ctx.fillStyle = "white";
-                ctx.font = "14px Arial";
-                ctx.fillText(this.slideMode ? "-" : "↻", 50, 53);
+
+                // --- 3. BOUTON TOGGLE AJUSTÉ ---
+
+                // Décalage léger en bas à droite (+3px)
+                const btnX = 50;
+                const btnY = 50;
+                const btnColor = this.slideMode ? style.toggleBtn.active : style.toggleBtn.inactive;
+
+                const drawBtn = (bx, by, color, isSlideMode) => {
+                    const size = 26; // Taille réduite (était 30)
+                    const radius = 6; // Arrondi un peu plus doux
+
+                    ctx.save();
+                    ctx.translate(bx, by);
+
+                    // A. Fond Carré Arrondi
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(-size / 2, -size / 2, size, size, radius);
+                    else ctx.rect(-size / 2, -size / 2, size, size);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+
+                    // B. Contour
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = "white";
+                    ctx.stroke();
+
+                    // C. Icône
+                    const iconColor = getContrastColor(color);
+                    ctx.strokeStyle = iconColor;
+                    ctx.fillStyle = iconColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+
+                    if (isSlideMode) {
+                        // MODE SLIDE (Croix fine)
+                        const len = 6; // un peu plus petit pour rentrer dans 26px
+                        const tip = 2;
+
+                        ctx.beginPath();
+                        // Horizontal
+                        ctx.moveTo(-len, 0); ctx.lineTo(len, 0);
+                        ctx.moveTo(-len + tip, -tip); ctx.lineTo(-len, 0); ctx.lineTo(-len + tip, tip);
+                        ctx.moveTo(len - tip, -tip); ctx.lineTo(len, 0); ctx.lineTo(len - tip, tip);
+                        // Vertical
+                        ctx.moveTo(0, -len); ctx.lineTo(0, len);
+                        ctx.moveTo(-tip, -len + tip); ctx.lineTo(0, -len); ctx.lineTo(tip, -len + tip);
+                        ctx.moveTo(-tip, len - tip); ctx.lineTo(0, len); ctx.lineTo(tip, len - tip);
+                        ctx.stroke();
+
+                    } else {
+                        // MODE ROTATION (Sens inversé : Horaire)
+                        const r = 5.5; // Rayon adapté à la nouvelle taille
+
+                        ctx.beginPath();
+                        // Arc de cercle (sens horaire : de PI à -PI/2 par ex)
+                        // On part de la gauche (PI) on va vers le haut (-PI/2)
+                        ctx.arc(0, 0, r, 0, 3 * Math.PI / 2, false);
+                        ctx.stroke();
+
+                        // Pointe de la flèche (au bout, en haut)
+                        // L'arc finit à -PI/2 (en haut : 0, -r)
+                        // La flèche doit pointer vers la droite (sens horaire)
+                        ctx.beginPath();
+                        ctx.moveTo(-2, -r - 2); // Point haut gauche
+                        ctx.lineTo(1, -r);      // Pointe sur le cercle (un peu décalée pour le style)
+                        ctx.lineTo(-2, -r + 2); // Point bas gauche
+                        ctx.stroke();
+
+                        // Pivot central
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                };
+
+                drawBtn(btnX, btnY, btnColor, this.slideMode);
+
                 ctx.restore();
             }
         }
@@ -3638,6 +4235,13 @@
                 this.width = 600;
                 this.height = 60;
                 this.widgetRotationOffset = 0;
+            }
+            toGlobal(lx, ly) {
+                // On inverse la formule de rotation/translation
+                return {
+                    x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
+                    y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
+                };
             }
             toLocal(mx, my) {
                 const dx = mx - this.x;
@@ -3656,29 +4260,56 @@
                 }
                 return null;
             }
+
             draw(ctx) {
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
-                ctx.fillStyle = "rgba(255, 245, 200, 0.6)";
-                ctx.fillRect(0, 0, this.width, this.height);
-                ctx.strokeStyle = "#888";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(0, 0, this.width, this.height);
+
+                const style = ToolStyle.ruler; // CONFIG
+
+                // --- FOND ---
+                ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`;
+
+                ctx.beginPath();
+                ctx.rect(0, 0, this.width, this.height);
+                ctx.fill();
+
+                // Reflet léger (reste en blanc pur pour l'instant avec opacité faible)
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.fillRect(0, 0, this.width, this.height / 2);
+
+                // Bordure (si définie)
+                if (style.border.width > 0) {
+                    ctx.lineWidth = style.border.width;
+                    ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`;
+                    ctx.strokeRect(0, 0, this.width, this.height);
+                }
+
                 const mm = 5;
                 const cm = 50;
-                ctx.fillStyle = "#333";
+
+                // --- GRADUATIONS ---
+                ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`;
+                ctx.fillStyle = style.graduations.color;
                 ctx.textAlign = "center";
-                ctx.font = "11px sans-serif";
+                ctx.textBaseline = "top";
+                ctx.font = style.graduations.font;
+                ctx.lineWidth = style.graduations.width;
+
                 for (let i = 0; i <= this.width - 20; i += mm) {
-                    let len = 5;
-                    if (i % cm === 0) len = 15;
-                    else if (i % (cm / 2) === 0) len = 10;
+                    let len = 6;
+                    if (i % cm === 0) len = 18;
+                    else if (i % (cm / 2) === 0) len = 12;
+
                     ctx.beginPath();
                     ctx.moveTo(i, 0);
                     ctx.lineTo(i, len);
                     ctx.stroke();
-                    if (i > 0 && i % cm === 0) ctx.fillText(i / cm, i, 26);
+
+                    if (i > 0 && i % cm === 0) {
+                        ctx.fillText(i / cm, i, 22);
+                    }
                 }
                 ctx.restore();
             }
@@ -3693,7 +4324,13 @@
                 this.isLocked = false;
                 this.isReversed = false;
             }
-
+            toGlobal(lx, ly) {
+                // On inverse la formule de rotation/translation
+                return {
+                    x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
+                    y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
+                };
+            }
             toLocal(mx, my) {
                 const dx = mx - this.x;
                 const dy = my - this.y;
@@ -3706,122 +4343,218 @@
             getHitZone(mx, my) {
                 const l = this.toLocal(mx, my);
                 const d = Math.sqrt(l.x * l.x + l.y * l.y);
-
-                // 1. BOUTON CADENAS (Centré)
                 if (Math.abs(l.x) < 12 && l.y < -30 && l.y > -60) return 'toggleLock';
-
-                // 2. BOUTON SWAP
                 if (Math.abs(l.x) < 12 && l.y >= -85 && l.y <= -61) return 'toggleSwap';
-
-                // 3. LOGIQUE DE MOUVEMENT
                 if (this.isLocked) {
                     if (d < 30) return 'traceAngle';
                     return null;
                 }
-
                 if (d < 20) return 'move';
-                // Zone de rotation
                 if (d > this.radius - 30 && d < this.radius + 10 && l.y < 0) return 'rotate';
-                // Corps du rapporteur
                 if (d < this.radius && l.y < 0) return 'move';
-
                 return null;
             }
 
+
             draw(ctx) {
+                if (!ToolStyle.protractor) return;
+
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
 
-                // --- 1. FOND ---
+                const style = ToolStyle.protractor;
+                const r = this.radius;
+                const skirt = 15;
+
+                // --- 0. FONCTION MAGIQUE (Calcul du contraste) ---
+                // Cette fonction décide si l'icône doit être blanche ou noire
+                const getContrastColor = (hex) => {
+                    if (!hex) return 'white';
+                    // On enlève le # si présent
+                    hex = hex.replace('#', '');
+                    // On extrait Rouge, Vert, Bleu
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    // Formule de luminosité perçue (YIQ)
+                    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                    // Si > 128 c'est clair -> texte foncé (#333), sinon texte blanc
+                    return (yiq >= 128) ? '#333333' : 'white';
+                };
+
+                // ============================================================
+                // 1. FOND
+                // ============================================================
                 ctx.beginPath();
-                ctx.arc(0, 0, this.radius, Math.PI, 0);
+                ctx.moveTo(-r, skirt);
+                ctx.lineTo(r, skirt);
+                ctx.lineTo(r, 0);
+                ctx.arc(0, 0, r, 0, Math.PI, true);
                 ctx.closePath();
 
-                ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                ctx.fillStyle = `rgba(${style.background.color}, 0.4)`;
                 ctx.fill();
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = this.isLocked ? "#aaa" : "#444";
-                ctx.stroke();
 
-                // --- 2. CROIX CENTRALE ---
+                if (style.border.width > 0) {
+                    ctx.lineWidth = style.border.width;
+                    ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`;
+                    ctx.stroke();
+                }
+
+                // ============================================================
+                // 2. LIGNE DE BASE & VISEUR
+                // ============================================================
+                const gap = 35;
                 ctx.beginPath();
-                ctx.moveTo(0, -10); ctx.lineTo(0, 0);
-                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-                ctx.strokeStyle = "red";
+                ctx.moveTo(-(r - gap), 0);
+                ctx.lineTo((r - gap), 0);
+
+                // Viseur
+                ctx.moveTo(0, -6); ctx.lineTo(0, 8);
+                ctx.moveTo(-6, 0); ctx.lineTo(6, 0);
+
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#000000';
                 ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                ctx.stroke();
-
-                // --- 3. GRADUATIONS ---
-                ctx.strokeStyle = "#333";
-                ctx.fillStyle = "#333";
+                // ============================================================
+                // 3. GRADUATIONS
+                // ============================================================
                 ctx.textAlign = "center";
-                ctx.font = "10px sans-serif";
+                ctx.textBaseline = "middle";
+                ctx.font = style.graduations.font;
 
                 for (let i = 0; i <= 180; i++) {
                     const ang = Math.PI + (i * Math.PI / 180);
                     const cos = Math.cos(ang);
                     const sin = Math.sin(ang);
-                    let len = 5;
+
+                    let len = 6;
+                    ctx.lineWidth = style.graduations.width;
+                    ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`;
+
                     if (i % 5 === 0) len = 10;
-                    if (i % 10 === 0) len = 15;
+                    if (i % 10 === 0) {
+                        len = 15;
+                        ctx.lineWidth = style.graduations.widthMajor;
+                    }
 
                     ctx.beginPath();
-                    ctx.moveTo(cos * (this.radius - len), sin * (this.radius - len));
-                    ctx.lineTo(cos * this.radius, sin * this.radius);
+                    ctx.moveTo(cos * (r - len), sin * (r - len));
+                    ctx.lineTo(cos * r, sin * r);
                     ctx.stroke();
 
-                    // Affichage des chiffres
                     if (i % 10 === 0) {
-                        let labelValue = this.isReversed ? (180 - i) : i;
-                        ctx.save();
-                        ctx.translate(cos * (this.radius - 25), sin * (this.radius - 25));
-                        ctx.fillText(labelValue, 0, 0);
-                        ctx.restore();
+                        const valOuter = this.isReversed ? (180 - i) : i;
+                        ctx.fillStyle = style.graduations.color;
+                        let tx = cos * (r - 25);
+                        let ty = sin * (r - 25);
+                        if (i === 0 || i === 180) ty = 0;
+                        ctx.fillText(valOuter, tx, ty);
                     }
                 }
 
-                // --- 4. BOUTON CADENAS ---
-                ctx.fillStyle = this.isLocked ? "#e74c3c" : "#2ecc71";
-                ctx.beginPath();
-                ctx.rect(-12, -55, 24, 24);
-                ctx.fill();
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                // ============================================================
+                // 4. BOUTONS AUTOMATIQUES
+                // ============================================================
 
-                // Dessin cadenas
-                ctx.beginPath();
-                if (this.isLocked) {
-                    ctx.strokeRect(-6, -45, 12, 9);
-                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke();
-                } else {
-                    ctx.strokeRect(-6, -43, 12, 7);
-                    ctx.beginPath(); ctx.arc(0, -45, 4, Math.PI, 0); ctx.stroke();
-                }
+                // J'ai enlevé le paramètre "iconColor" car il est calculé dedans maintenant
+                const drawIconBtn = (y, btnColor, type) => {
+                    const size = 24;
+                    const radius = 6;
 
-                // Bouton Swap
-                ctx.fillStyle = "#3498db";
-                ctx.beginPath();
-                ctx.rect(-12, -85, 24, 24);
-                ctx.fill();
-                ctx.strokeStyle = "#fff";
-                ctx.stroke();
+                    // --- AUTO-CONTRASTE ICI ---
+                    const autoIconColor = getContrastColor(btnColor);
 
-                ctx.fillStyle = "white";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.font = "bold 16px sans-serif";
-                ctx.fillText("↔", 0, -73);
+                    ctx.save();
+                    ctx.translate(0, y);
+
+                    // A. Fond
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(-size / 2, -size / 2, size, size, radius);
+                    else ctx.rect(-size / 2, -size / 2, size, size);
+
+                    ctx.fillStyle = btnColor;
+                    ctx.fill();
+
+                    // B. Contour
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = "white";
+                    ctx.stroke();
+
+                    // C. Icône (avec la couleur automatique)
+                    ctx.fillStyle = autoIconColor;
+                    ctx.strokeStyle = autoIconColor;
+
+                    ctx.lineCap = "round";
+                    ctx.lineJoin = "round";
+                    ctx.lineWidth = 2;
+
+                    if (type === 'swap') {
+                        const w = 5; // Demi-largeur (total 10px)
+                        const h = 2.5; // Demi-hauteur de la pointe (total 5px)
+
+                        ctx.beginPath();
+
+                        // 1. La barre horizontale (fine)
+                        ctx.moveTo(-w, 0);
+                        ctx.lineTo(w, 0);
+
+                        // 2. Pointe Gauche (<)
+                        ctx.moveTo(-w + h, -h);
+                        ctx.lineTo(-w, 0);
+                        ctx.lineTo(-w + h, h);
+
+                        // 3. Pointe Droite (>)
+                        ctx.moveTo(w - h, -h);
+                        ctx.lineTo(w, 0);
+                        ctx.lineTo(w - h, h);
+
+                        ctx.stroke();
+
+                    } else if (type === 'lock' || type === 'unlock') {
+                        // Corps
+                        const w = 10; const h = 8;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(-w / 2, 0, w, h, 2);
+                        else ctx.rect(-w / 2, 0, w, h);
+                        ctx.fill(); // Rempli plein
+
+                        // Anse
+                        ctx.beginPath();
+                        const arcR = 3.5;
+                        if (type === 'lock') ctx.arc(0, -1, arcR, Math.PI, 0);
+                        else ctx.arc(2, -1, arcR, Math.PI, 0);
+                        ctx.stroke();
+
+                        // Trou de serrure (Inverse de l'icone pour le contraste)
+                        ctx.fillStyle = btnColor;
+                        ctx.beginPath();
+                        ctx.arc(0, 4, 1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                };
+
+                // --- APPEL SIMPLIFIÉ ---
+
+                // Plus besoin de préciser la couleur de l'icône !
+
+                // 1. Swap
+                drawIconBtn(-73, style.components.swap, 'swap');
+
+                // 2. Lock
+                const lockColor = this.isLocked ? style.components.lockActive : style.components.lockInactive;
+                const lockType = this.isLocked ? 'lock' : 'unlock';
+                drawIconBtn(-45, lockColor, lockType);
 
                 ctx.restore();
             }
-        }
+        }      // ADDED: ToolAnimation class for recording movements
 
-        // ADDED: ToolAnimation class for recording movements
+
         class ToolAnimation {
             constructor(widgetType, startState, endState, id = null) {
                 this.id = id || generateId();
@@ -3836,6 +4569,92 @@
         }
 
         class GeometrieApp {
+            getSnappedPos(mx, my) {
+                const snapDistPoint = 10; // Distance pour coller au point (coin)
+                const snapDistLine = 10;  // Distance pour coller à la ligne (bord)
+
+                // 1. ÉQUERRE (SetSquare)
+                if (this.activeWidgets.setsquare && this.setSquareWidget) {
+                    const w = this.setSquareWidget;
+                    const l = w.toLocal(mx, my);
+
+                    // A. Coller à l'angle droit (Origine 0,0)
+                    if (Math.abs(l.x) < snapDistPoint && Math.abs(l.y) < snapDistPoint) {
+                        return { ...w.toGlobal(0, 0), snapped: true };
+                    }
+
+                    // B. Coller au bord Horizontal (Axe X)
+                    // Si on est le long de la règle (entre 0 et width) et proche de 0 en Y
+                    if (l.x > 0 && l.x < w.width && Math.abs(l.y) < snapDistLine) {
+                        // On force Y à 0 (on colle au bord), on garde X tel quel
+                        return { ...w.toGlobal(l.x, 0), snapped: true };
+                    }
+
+                    // C. Coller au bord Vertical (Axe Y)
+                    if (l.y > 0 && l.y < w.height && Math.abs(l.x) < snapDistLine) {
+                        // On force X à 0, on garde Y tel quel
+                        return { ...w.toGlobal(0, l.y), snapped: true };
+                    }
+
+                    // (Optionnel) D. Coller à l'hypoténuse
+                    // C'est un peu plus complexe (projection sur la pente), dis-moi si tu le veux !
+                }
+
+                // 2. RAPPORTEUR (Protractor)
+                if (this.activeWidgets.protractor && this.protractorWidget) {
+                    const w = this.protractorWidget;
+                    const l = w.toLocal(mx, my);
+
+                    // Coller au centre
+                    if (Math.abs(l.x) < snapDistPoint && Math.abs(l.y) < snapDistPoint) {
+                        return { ...w.toGlobal(0, 0), snapped: true };
+                    }
+                }
+
+                // 3. COMPAS (Compass)
+                if (this.activeWidgets.compass && this.compassWidget) {
+                    const w = this.compassWidget;
+                    const l = w.toLocal(mx, my);
+                    // Coller à la pointe sèche
+                    if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) { // Seuil plus petit pour précision
+                        return { ...w.toGlobal(0, 0), snapped: true };
+                    }
+                }
+
+                // Si rien n'est trouvé, on retourne la position normale
+                return { x: mx, y: my, snapped: false };
+            }
+            toggleFullscreen() {
+                const elem = document.documentElement; // Tout le document
+
+                if (!document.fullscreenElement) {
+                    // --- 1. ENTRER EN PLEIN ÉCRAN ---
+                    if (elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(err => {
+                            this.showToast(`Erreur : ${err.message}`);
+                        });
+                    }
+                } else {
+                    // --- 2. QUITTER LE PLEIN ÉCRAN ---
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            }
+            cycleStyle() {
+                // 1. Récupérer les clés des styles disponibles
+                const styles = Object.keys(ToolStyleArray);
+
+                let currentKey = styles.find(key => ToolStyleArray[key] === ToolStyle) || 'default';
+                let currentIndex = styles.indexOf(currentKey);
+                let nextIndex = (currentIndex + 1) % styles.length;
+                let nextKey = styles[nextIndex];
+                ToolStyle = ToolStyleArray[nextKey];
+                localStorage.setItem('geoToolStyle', nextKey);
+                this.render();
+                const nomStyle = ToolStyle.name || "Style Inconnu";
+                this.showToast(`🎨 Thème : ${nomStyle}`)
+            }
 
 
             showToast(message) {
@@ -4551,7 +5370,7 @@
 
                 const dist = Math.sqrt((x - nx) ** 2 + (y - ny) ** 2);
 
-                if (dist < 15) {
+                if (dist < 10) {
                     this.activeSnapPoint = {
                         x: nx,
                         y: ny
@@ -4769,6 +5588,8 @@
                         document.title = "GéoSoft - " + this.projectTitle;
                     };
                 }
+
+                this.widgetZOrder = ['ruler', 'setsquare', 'protractor', 'compass'];
                 this.isPanning = false;
                 this.lastMouseScreen = { x: 0, y: 0 };
                 this.initAnimationState();
@@ -5514,6 +6335,7 @@
                         data.labelAngle = e.labelAngle;
                         data.fontSize = e.fontSize;
                         data.showLabel = e.showLabel;
+                        data.visible = e.visible;
                         data.parentIds = e.parents.map(p => {
                             if (Array.isArray(p)) return [p[0].id, p[1].id];
                             return p.id;
@@ -5581,6 +6403,7 @@
                         if (data.showLabel !== undefined) obj.showLabel = data.showLabel;
                         if (data.labelAngle !== undefined) obj.labelAngle = data.labelAngle;
                         if (data.fontSize !== undefined) obj.fontSize = data.fontSize;
+                        if (data.visible !== undefined) obj.visible = data.visible;
                         if (data.showLabel !== undefined) obj.showLabel = data.showLabel;
                     } else if (data.type === 'Segment') obj = new Segment(null, null, data.id);
                     else if (data.type === 'Ray') obj = new Ray(null, null, data.id);
@@ -6099,6 +6922,8 @@
                 }
             }
 
+
+
             initEventListeners() {
                 // --- GESTION TACTILE (TABLETTES) ---
                 const touchHandler = (e, type) => {
@@ -6304,10 +7129,13 @@
                     if (!e.target.closest('#contextMenu')) document.getElementById('contextMenu').style.display = 'none';
                 });
 
+
+
+
                 this.canvas.onmousedown = (e) => {
 
                     // =========================================================================
-                    // 1. SÉCURITÉS & GESTION PANNING
+                    // 1. SÉCURITÉS & GESTION PANNING (DÉPLACEMENT DE LA VUE)
                     // =========================================================================
 
                     if (e.button === 1 || (this.currentTool === 'pan' && e.button === 0)) {
@@ -6330,46 +7158,84 @@
 
 
                     // =========================================================================
-                    // 2. CALCUL DES COORDONNÉES (RAW vs SMART)
+                    // 2. CALCUL DES COORDONNÉES INTELLIGENTES (LE "SNAP")
                     // =========================================================================
-                    // AJOUT POUR TACTILE : Force la détection sous le curseur/doigt au moment du clic
+
+                    // A. Coordonnées brutes et Grid
                     const mousePos = this.getMousePos(e);
                     this.hoveredEntities = this.entities.filter(ent => ent.isNear(mousePos.x, mousePos.y));
 
                     let smart;
                     if (this.getSmartCoords) {
-                        smart = this.getSmartCoords(e);
+                        smart = this.getSmartCoords(e); // Grille ou point existant
                     } else {
-                        const mp = this.getMousePos(e);
-                        smart = { x: mp.x, y: mp.y };
+                        smart = { x: mousePos.x, y: mousePos.y };
                     }
 
                     let finalX = smart.x;
                     let finalY = smart.y;
 
-                    if (this.activeWidgets.ruler && this.rulerWidget) {
-                        const r = this.rulerWidget;
-                        const rawMouse = this.getMousePos(e);
-                        const local = r.toLocal(rawMouse.x, rawMouse.y);
-                        const rulerZeroOffset = 0;
+                    // B. Aimantation aux Outils (Règle, Équerre, etc.)
+                    // Seulement si on est en train de tracer quelque chose
+                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon'];
 
-                        if (Math.abs(local.x - rulerZeroOffset) < 20 && Math.abs(local.y) < 30) {
-                            finalX = r.x + rulerZeroOffset * Math.cos(r.angle);
-                            finalY = r.y + rulerZeroOffset * Math.sin(r.angle);
+                    if (drawingTools.includes(this.currentTool)) {
+                        const rawM = this.getMousePos(e);
+                        let toolSnap = null;
+                        const snapDist = 15; // Distance d'aimantation
+
+                        // 1. ÉQUERRE
+                        if (this.activeWidgets.setsquare && this.setSquareWidget) {
+                            const w = this.setSquareWidget;
+                            const l = w.toLocal(rawM.x, rawM.y);
+                            // Coin ou Bords
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                            else if (l.x > 0 && l.x < w.width && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(l.x, 0);
+                            else if (l.y > 0 && l.y < w.height && Math.abs(l.x) < snapDist) toolSnap = w.toGlobal(0, l.y);
+                        }
+
+                        // 2. RÈGLE (Priorité si pas encore trouvé)
+                        if (!toolSnap && this.activeWidgets.ruler && this.rulerWidget) {
+                            const w = this.rulerWidget;
+                            const l = w.toLocal(rawM.x, rawM.y);
+                            // Zéro ou Bord
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                            else if (Math.abs(l.y) < snapDist && l.x > -50 && l.x < 500) toolSnap = w.toGlobal(l.x, 0);
+                        }
+
+                        // 3. RAPPORTEUR
+                        if (!toolSnap && this.activeWidgets.protractor && this.protractorWidget) {
+                            const w = this.protractorWidget;
+                            const l = w.toLocal(rawM.x, rawM.y);
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                        }
+
+                        // 4. COMPAS
+                        if (!toolSnap && this.activeWidgets.compass && this.compassWidget) {
+                            const w = this.compassWidget;
+                            const l = w.toLocal(rawM.x, rawM.y);
+                            if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) toolSnap = w.toGlobal(0, 0);
+                        }
+
+                        // Appliquer le snap outil si trouvé
+                        if (toolSnap) {
+                            finalX = toolSnap.x;
+                            finalY = toolSnap.y;
                         }
                     }
 
-                    const x = finalX;
-                    const y = finalY;
-                    const ghost = this.findIntersectionAtMouse(x, y);
-                    let snapX = x;
-                    let snapY = y;
-
+                    // C. Intersections (Ghost) - Priorité Absolue
+                    // Si on détecte une intersection entre deux objets, elle écrase tout le reste
+                    const ghost = this.findIntersectionAtMouse(finalX, finalY);
                     if (ghost) {
-                        snapX = ghost.x;
-                        snapY = ghost.y;
+                        finalX = ghost.x;
+                        finalY = ghost.y;
                         this.ghostIntersection = ghost;
                     }
+
+                    // Coordonnées finales à utiliser pour tout le reste
+                    const x = finalX;
+                    const y = finalY;
 
 
                     // =========================================================================
@@ -6377,16 +7243,11 @@
                     // =========================================================================
                     if (this.isPaintMode && e.button === 0) {
                         const target = [...this.entities].reverse().find(ent => ent.isNear(x, y));
-
                         if (target) {
                             target.color = this.globalStyle.color;
                             target.lineWidth = this.globalStyle.width;
                             target.dash = [...this.globalStyle.dash];
-
-                            if (target instanceof Point) {
-                                target.lineWidth = 2;
-                            }
-
+                            if (target instanceof Point) target.lineWidth = 2;
                             this.saveState();
                             this.render();
                         }
@@ -6395,85 +7256,102 @@
 
 
                     // =========================================================================
-                    // 4. DÉTECTION DES OBJETS SOUS LA SOURIS (HIT TESTING)
+                    // 4. GESTION DES WIDGETS (DÉPLACEMENT / ROTATION)
                     // =========================================================================
-                    const entities = this.hoveredEntities || [];
-                    const clickedPoint = entities.filter(ent => ent instanceof Point).pop();
-                    const clickedText = entities.find(ent => ent instanceof TextLabel);
-                    const clickedLinear = entities.filter(ent =>
-                        ent instanceof LinearObject ||
-                        ent instanceof ParallelLine ||
-                        ent instanceof PerpendicularLine ||
-                        ent instanceof Circle ||
-                        ent instanceof Arc ||
-                        ent instanceof Segment
-                    ).pop();
+                    // On vérifie d'abord si on clique SUR un outil pour le bouger.
+                    // Si oui, on arrête tout, on ne dessine pas de géométrie.
 
-
-                    // =========================================================================
-                    // 5. GESTION DES WIDGETS (INTERACTION OUTILS)
-                    // =========================================================================
                     let targetWidget = null;
                     let wType = '';
 
-                    if (this.activeWidgets.ruler && this.rulerWidget && this.rulerWidget.getHitZone(x, y)) {
-                        targetWidget = this.rulerWidget; wType = 'ruler';
-                    } else if (this.activeWidgets.setsquare && this.setSquareWidget && this.setSquareWidget.getHitZone(x, y)) {
-                        targetWidget = this.setSquareWidget; wType = 'setsquare';
-                    } else if (this.activeWidgets.protractor && this.protractorWidget && this.protractorWidget.getHitZone(x, y)) {
-                        targetWidget = this.protractorWidget; wType = 'protractor';
-                    } else if (this.activeWidgets.compass && this.compassWidget && this.compassWidget.getHitZone(x, y)) {
-                        targetWidget = this.compassWidget; wType = 'compass';
+                    const widgetMap = {
+                        'ruler': this.rulerWidget,
+                        'setsquare': this.setSquareWidget,
+                        'protractor': this.protractorWidget,
+                        'compass': this.compassWidget
+                    };
+
+                    // Parcours Z-Order inversé (du dessus vers le dessous)
+                    for (let i = this.widgetZOrder.length - 1; i >= 0; i--) {
+                        const type = this.widgetZOrder[i];
+                        if (!this.activeWidgets[type]) continue;
+
+                        const widget = widgetMap[type];
+                        // On utilise les vraies coordonnées souris pour le hit test du widget, pas le snap
+                        if (widget && widget.getHitZone(mousePos.x, mousePos.y)) {
+                            targetWidget = widget;
+                            wType = type;
+                            // Bring to front
+                            this.widgetZOrder.splice(i, 1);
+                            this.widgetZOrder.push(type);
+                            break;
+                        }
                     }
 
                     if (targetWidget) {
-                        const zone = targetWidget.getHitZone(x, y);
+                        const zone = targetWidget.getHitZone(mousePos.x, mousePos.y);
                         if (zone) {
+                            // Actions immédiates (Toggle)
                             if (zone === 'toggleSwap' && targetWidget instanceof ProtractorWidget) {
                                 targetWidget.isReversed = !targetWidget.isReversed;
-                                this.render(); return;
                             }
-                            if (zone === 'toggleLock' && targetWidget instanceof ProtractorWidget) {
+                            else if (zone === 'toggleLock' && targetWidget instanceof ProtractorWidget) {
                                 targetWidget.isLocked = !targetWidget.isLocked;
-                                this.render(); return;
                             }
-                            if (zone === 'toggleSlide' && targetWidget instanceof SetSquareWidget) {
+                            else if (zone === 'toggleSlide' && targetWidget instanceof SetSquareWidget) {
                                 targetWidget.slideMode = !targetWidget.slideMode;
                             }
+                            // Actions de Drag (Move, Rotate, Slide)
                             else {
                                 this.draggedWidget = targetWidget;
                                 this.draggedWidgetMode = zone;
                                 this.widgetStartState = this.getWidgetState(targetWidget);
                                 this.draggedWidgetType = wType;
 
-                                if (zone === 'rotate') this.widgetRotationOffset = Math.atan2(y - targetWidget.y, x - targetWidget.x) - targetWidget.angle;
-
+                                // Calcul de l'offset pour rotation
+                                if (zone === 'rotate') {
+                                    this.widgetRotationOffset = Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x) - targetWidget.angle;
+                                }
+                                // Initialisation pour Slide X/Y
                                 if (zone === 'slideX' || zone === 'slideY') {
-                                    this.dragStartMouse = { x: x, y: y };
+                                    this.dragStartMouse = { x: mousePos.x, y: mousePos.y };
                                     this.dragStartWidget = { x: targetWidget.x, y: targetWidget.y };
                                 }
-
+                                // Initialisation Compas Trace
                                 if (targetWidget instanceof CompassWidget && zone === 'trace') {
-                                    const w = targetWidget;
-                                    w.isTracing = true;
-                                    const startAngle = Math.atan2(snapY - w.y, snapX - w.x);
-                                    w.startAngle = startAngle;
+                                    targetWidget.isTracing = true;
+                                    // On utilise snapX/Y ici pour que le tracé commence bien sur le point aimanté si besoin
+                                    const startAngle = Math.atan2(y - targetWidget.y, x - targetWidget.x);
+                                    targetWidget.startAngle = startAngle;
                                     this.widgetStartState.angle = startAngle;
-                                    w.angle = startAngle;
-                                    w.lastMouseAngle = startAngle;
-                                    w.totalRotation = 0;
+                                    targetWidget.angle = startAngle;
+                                    targetWidget.lastMouseAngle = startAngle;
+                                    targetWidget.totalRotation = 0;
                                     this.currentTracingArc = null;
                                 }
-
+                                // Initialisation Move
                                 if (zone === 'move') {
-                                    this.widgetOffset.x = x - targetWidget.x;
-                                    this.widgetOffset.y = y - targetWidget.y;
+                                    this.widgetOffset.x = mousePos.x - targetWidget.x;
+                                    this.widgetOffset.y = mousePos.y - targetWidget.y;
                                 }
                             }
                             this.render();
-                            return;
+                            return; // IMPORTANT : On s'arrête là, on ne crée pas de point si on bouge un outil
                         }
                     }
+
+
+                    // =========================================================================
+                    // 5. PRÉPARATION OBJETS SOUS SOURIS (POUR ÉDITION/SUPPRESSION)
+                    // =========================================================================
+                    const entities = this.hoveredEntities || [];
+                    const clickedPoint = entities.filter(ent => ent instanceof Point).pop();
+                    const clickedText = entities.find(ent => ent instanceof TextLabel);
+                    const clickedLinear = entities.filter(ent =>
+                        ent instanceof LinearObject || ent instanceof ParallelLine ||
+                        ent instanceof PerpendicularLine || ent instanceof Circle ||
+                        ent instanceof Arc || ent instanceof Segment
+                    ).pop();
 
 
                     // =========================================================================
@@ -6484,9 +7362,10 @@
                             this.applyTextEdit();
                             return;
                         }
+                        // On utilise les coordonnées snappées (x,y) pour placer le texte proprement
                         if (clickedPoint) this.startTextEditor(clickedPoint.x, clickedPoint.y, clickedPoint);
                         else if (clickedText) this.startTextEditor(clickedText.x, clickedText.y, clickedText);
-                        else this.startTextEditor(smart.x, smart.y, null);
+                        else this.startTextEditor(x, y, null);
 
                         this.render();
                         return;
@@ -6498,15 +7377,18 @@
                     // =========================================================================
                     if (e.button !== 0) return;
 
+                    // Reset du Replay si on dessine
                     if (this.replayIndex !== null && this.replayIndex < this.entities.length) {
                         this.replayIndex = this.entities.length;
                     }
 
+                    // Sauvegarde de l'état (Undo/Redo)
                     const toolsModifying = ['point', 'segment', 'line', 'ray', 'circle', 'midpoint', 'parallel', 'perpendicular', 'delete', 'polygon', 'angle', 'compass'];
                     if (toolsModifying.includes(this.currentTool) || (this.currentTool === 'move' && (clickedPoint || clickedText))) {
                         this.saveState();
                     }
 
+                    // --- A. Outil MOVE (Déplacer des points/textes) ---
                     if (this.currentTool === 'move') {
                         if (clickedPoint && clickedPoint.parents.length !== 2) {
                             this.draggedPoint = clickedPoint;
@@ -6518,15 +7400,19 @@
                         }
                     }
 
+                    // --- B. Outil POINT ---
                     else if (this.currentTool === 'point') {
-                        this.createPointAt(x, y);
+                        this.createPointAt(x, y); // Utilise x,y snappés
                     }
 
+                    // --- C. Outils de TRACÉ (Segment, Droite...) ---
                     else if (['segment', 'ray', 'line', 'circle'].includes(this.currentTool)) {
+                        // Premier point créé aux coordonnées snappées
                         this.creationStartPoint = this.createPointAt(x, y);
                         this.isDraggingCreation = true;
                     }
 
+                    // --- D. Outil ANGLE ---
                     else if (this.currentTool === 'angle') {
                         const pt = this.createPointAt(x, y);
                         this.anglePoints.push(pt);
@@ -6540,11 +7426,14 @@
                         }
                     }
 
+                    // --- E. Outil POLYGONE ---
                     else if (this.currentTool === 'polygon') {
+                        // Fermeture du polygone ?
                         if (clickedPoint && this.polygonPoints.length > 2 && clickedPoint === this.polygonPoints[0]) {
                             const poly = new Polygon([...this.polygonPoints]);
                             this.addEntity(poly);
 
+                            // Création des segments finaux
                             for (let i = 0; i < this.polygonPoints.length; i++) {
                                 const p1 = this.polygonPoints[i];
                                 const p2 = this.polygonPoints[(i + 1) % this.polygonPoints.length];
@@ -6561,12 +7450,15 @@
                         }
                     }
 
+                    // --- F. Outil MILIEU ---
                     else if (this.currentTool === 'midpoint') {
                         if (clickedLinear instanceof Segment) {
+                            // Milieu d'un segment existant
                             const mid = new Point(0, 0, this.getNextLabel(), [clickedLinear.p1, clickedLinear.p2]);
                             mid.update();
                             this.addEntity(mid);
                         } else if (clickedPoint) {
+                            // Milieu entre deux points
                             if (this.creationStartPoint && this.creationStartPoint !== clickedPoint) {
                                 const mid = new Point(0, 0, this.getNextLabel(), [this.creationStartPoint, clickedPoint]);
                                 mid.update();
@@ -6578,6 +7470,7 @@
                         }
                     }
 
+                    // --- G. Outils PARALLELE / PERPENDICULAIRE ---
                     else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
                         if (clickedLinear) {
                             this.referenceObject = clickedLinear;
@@ -6585,6 +7478,7 @@
                         }
                     }
 
+                    // --- H. Outils SYMÉTRIE ---
                     else if (['sym_central', 'sym_axial'].includes(this.currentTool)) {
                         let target = clickedPoint || clickedText || clickedLinear || this.hoveredEntities.filter(e => e instanceof Polygon).pop();
 
@@ -6609,13 +7503,15 @@
                         }
                     }
 
+                    // --- I. Outil SUPPRIMER (Gomme) ---
                     else if (this.currentTool === 'delete') {
                         let target = clickedPoint || clickedText;
-                        if (!target) target = this.entities.slice().reverse().find(e => e.isNear && e.isNear(smart.x, smart.y));
+                        if (!target) target = this.entities.slice().reverse().find(e => e.isNear && e.isNear(x, y));
 
                         if (target) {
                             let listToDelete = this.getNetworkToDelete(target);
 
+                            // Gestion spéciale pour ne pas casser les polygones
                             if (target instanceof Point) {
                                 this.entities.forEach(poly => {
                                     if (poly instanceof Polygon) {
@@ -6629,7 +7525,7 @@
 
                                             if (poly.points.length >= 3) {
                                                 listToDelete = listToDelete.filter(item => item !== poly);
-
+                                                // On recrée le segment manquant
                                                 const segmentExists = this.entities.some(e =>
                                                     e instanceof Segment &&
                                                     ((e.p1 === prevPoint && e.p2 === nextPoint) || (e.p1 === nextPoint && e.p2 === prevPoint))
@@ -6653,9 +7549,8 @@
                     }
 
                     this.render();
-                };
+                }; this.canvas.onmousemove = (e) => {
 
-                this.canvas.onmousemove = (e) => {
                     // =========================================================================
                     // 1. GESTION DU PANNING (DÉPLACEMENT DE LA VUE)
                     // =========================================================================
@@ -6670,57 +7565,109 @@
                     }
 
                     // =========================================================================
-                    // 2. CALCUL DES COORDONNÉES & MAGNÉTISME (SNAP)
+                    // 2. CALCUL DES COORDONNÉES & MAGNÉTISME (SNAP INTELLIGENT)
                     // =========================================================================
-                    this.mousePos = this.getSmartCoords(e);
 
-                    const ghost = this.findIntersectionAtMouse(this.mousePos.x, this.mousePos.y);
+                    // A. Base : Grille ou Position Libre
+                    let smartPos;
+                    if (this.getSmartCoords) smartPos = this.getSmartCoords(e);
+                    else {
+                        const mp = this.getMousePos(e);
+                        smartPos = { x: mp.x, y: mp.y };
+                    }
 
+                    // On stocke la position brute pour certains calculs (déplacement widget)
+                    const rawMouse = this.getMousePos(e);
+
+                    // B. Aimantation aux Outils (Le cercle rouge qui suit)
+                    // On calcule 'snappedPos' qui sera la position officielle du curseur géométrique
+                    let snappedPos = { x: smartPos.x, y: smartPos.y, snapped: false };
+
+                    // On active l'aimantation outil seulement si on dessine ou si on survole
+                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon'];
+                    const isDrawingOrHovering = drawingTools.includes(this.currentTool) || this.currentTool === 'move';
+
+                    if (isDrawingOrHovering && !this.draggedWidget) {
+                        let toolSnap = null;
+                        const snapDist = 15;
+
+                        // 1. ÉQUERRE
+                        if (this.activeWidgets.setsquare && this.setSquareWidget) {
+                            const w = this.setSquareWidget;
+                            const l = w.toLocal(rawMouse.x, rawMouse.y);
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                            else if (l.x > 0 && l.x < w.width && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(l.x, 0);
+                            else if (l.y > 0 && l.y < w.height && Math.abs(l.x) < snapDist) toolSnap = w.toGlobal(0, l.y);
+                        }
+                        // 2. RÈGLE
+                        if (!toolSnap && this.activeWidgets.ruler && this.rulerWidget) {
+                            const w = this.rulerWidget;
+                            const l = w.toLocal(rawMouse.x, rawMouse.y);
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                            else if (Math.abs(l.y) < snapDist && l.x > -50 && l.x < 500) toolSnap = w.toGlobal(l.x, 0);
+                        }
+                        // 3. RAPPORTEUR
+                        if (!toolSnap && this.activeWidgets.protractor && this.protractorWidget) {
+                            const w = this.protractorWidget;
+                            const l = w.toLocal(rawMouse.x, rawMouse.y);
+                            if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
+                        }
+                        // 4. COMPAS
+                        if (!toolSnap && this.activeWidgets.compass && this.compassWidget) {
+                            const w = this.compassWidget;
+                            const l = w.toLocal(rawMouse.x, rawMouse.y);
+                            if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) toolSnap = w.toGlobal(0, 0);
+                        }
+
+                        if (toolSnap) {
+                            snappedPos = { x: toolSnap.x, y: toolSnap.y, snapped: true };
+                        }
+                    }
+
+                    // C. Aimantation aux Intersections (Ghost) - Priorité Absolue
+                    const ghost = this.findIntersectionAtMouse(snappedPos.x, snappedPos.y);
                     if (ghost) {
-                        this.mousePos = { x: ghost.x, y: ghost.y, snapped: true };
+                        snappedPos = { x: ghost.x, y: ghost.y, snapped: true };
                         this.ghostIntersection = ghost;
                     } else {
                         this.ghostIntersection = null;
                     }
 
-                    const { x, y } = this.mousePos;
+                    // Mise à jour finale de la position globale de la souris
+                    this.mousePos = snappedPos;
+                    const { x, y } = this.mousePos; // x, y sont maintenant "aimantés" si besoin
 
-
+                    let resizeCursor = '';
                     // =========================================================================
-                    // 3. LOGIQUE DE DRAG & DROP DES WIDGETS (OUTILS)
+                    // 3. LOGIQUE DE DRAG & DROP DES WIDGETS (DÉPLACEMENT OUTILS)
                     // =========================================================================
                     if (this.draggedWidget) {
                         const w = this.draggedWidget;
                         const mode = this.draggedWidgetMode;
 
+                        // Pour le déplacement fluide, on utilise rawMouse, pas le snap géométrique
+                        const rx = rawMouse.x;
+                        const ry = rawMouse.y;
+
                         // A. DÉPLACEMENT DE L'OUTIL (MOVE)
                         if (mode === 'move') {
-                            let targetX = x - this.widgetOffset.x;
-                            let targetY = y - this.widgetOffset.y;
+                            let targetX = rx - this.widgetOffset.x;
+                            let targetY = ry - this.widgetOffset.y;
 
-                            const snap = this.findIntersectionAtMouse(targetX, targetY);
-
-                            if (snap) {
-                                w.x = snap.x;
-                                w.y = snap.y;
-                                this.ghostIntersection = snap;
+                            // Petit snap magnétique vers les points existants
+                            const snapPoint = this.entities.find(ent => ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
+                            if (snapPoint) {
+                                w.x = snapPoint.x;
+                                w.y = snapPoint.y;
                             } else {
                                 w.x = targetX;
                                 w.y = targetY;
-                                const allPoints = this.entities.filter(ent => ent instanceof Point);
-                                for (let pt of allPoints) {
-                                    if (MathUtils.dist(w.x, w.y, pt.x, pt.y) < 15) {
-                                        w.x = pt.x;
-                                        w.y = pt.y;
-                                        break;
-                                    }
-                                }
                             }
                         }
                         // B. GLISSEMENT SUR AXES (EQUERRE/RÈGLE)
                         else if (mode === 'slideX' || mode === 'slideY') {
-                            const dx = x - this.dragStartMouse.x;
-                            const dy = y - this.dragStartMouse.y;
+                            const dx = rx - this.dragStartMouse.x;
+                            const dy = ry - this.dragStartMouse.y;
                             let axisAngle = w.angle;
                             if (mode === 'slideY') axisAngle += Math.PI / 2;
 
@@ -6730,25 +7677,25 @@
                         }
                         // C. ROTATION
                         else if (mode === 'rotate') {
-                            const angleMouse = Math.atan2(y - w.y, x - w.x);
+                            const angleMouse = Math.atan2(ry - w.y, rx - w.x);
                             let newAngle = angleMouse - this.widgetRotationOffset;
 
+                            // Snap angulaire intelligent vers les points
                             let snappedAngle = null;
                             let bestDist = 25;
-
                             for (let ent of this.entities) {
                                 if (ent instanceof Point) {
-                                    const distMousePoint = MathUtils.dist(x, y, ent.x, ent.y);
+                                    const distMousePoint = MathUtils.dist(rx, ry, ent.x, ent.y);
                                     if (distMousePoint < bestDist) {
                                         const angleToPoint = Math.atan2(ent.y - w.y, ent.x - w.x);
+                                        // Normalisation et comparaison d'angles...
+                                        // (Je garde ta logique existante ici, elle est bonne)
                                         const norm = (a) => (a + Math.PI * 4) % (Math.PI * 2);
-
                                         const targetA = norm(angleToPoint);
                                         const targetB = norm(angleToPoint + Math.PI);
-                                        const currentForCalc = norm(newAngle);
-
-                                        const distA = Math.min(Math.abs(currentForCalc - targetA), 2 * Math.PI - Math.abs(currentForCalc - targetA));
-                                        const distB = Math.min(Math.abs(currentForCalc - targetB), 2 * Math.PI - Math.abs(currentForCalc - targetB));
+                                        const current = norm(newAngle);
+                                        const distA = Math.min(Math.abs(current - targetA), 2 * Math.PI - Math.abs(current - targetA));
+                                        const distB = Math.min(Math.abs(current - targetB), 2 * Math.PI - Math.abs(current - targetB));
 
                                         if (distA < distB) snappedAngle = angleToPoint;
                                         else snappedAngle = angleToPoint + Math.PI;
@@ -6758,20 +7705,7 @@
                             }
                             w.angle = (snappedAngle !== null) ? snappedAngle : newAngle;
                         }
-                        // D. REDIMENSIONNEMENT (COMPAS)
-                        else if (mode === 'resize' && w instanceof CompassWidget) {
-                            let newRadius = MathUtils.dist(x, y, w.x, w.y);
-                            const snap = this.entities.filter(ent => ent instanceof Point).find(p => MathUtils.dist(x, y, p.x, p.y) < 15);
-
-                            if (snap) {
-                                newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y);
-                                w.angle = Math.atan2(snap.y - w.y, snap.x - w.x);
-                            } else {
-                                w.angle = Math.atan2(y - w.y, x - w.x);
-                            }
-                            w.radius = newRadius;
-                        }
-                        // E. TRACÉ (COMPAS)
+                        // D. COMPAS (RESIZE & TRACE)
                         else if (mode === 'trace' && w instanceof CompassWidget) {
                             const currentAngle = Math.atan2(y - w.y, x - w.x);
                             let diff = currentAngle - w.lastMouseAngle;
@@ -6813,97 +7747,117 @@
                                 this.addEntity(this.currentTracingArc);
                             }
                         }
-
-                        this.render();
-                        return;
+                        else if (mode === 'resize' && w instanceof CompassWidget) {
+                            let newRadius = MathUtils.dist(x, y, w.x, w.y);
+                            const snap = this.entities.filter(ent => ent instanceof Point).find(p => MathUtils.dist(x, y, p.x, p.y) < 15);
+                            if (snap) {
+                                newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y);
+                                w.angle = Math.atan2(snap.y - w.y, snap.x - w.x);
+                            } else {
+                                w.angle = Math.atan2(y - w.y, x - w.x);
+                            }
+                            w.radius = newRadius;
+                            this.render();
+                            return; // On s'arrête ici si on bouge un outil
+                        }
                     }
 
 
                     // =========================================================================
-                    // 4. LOGIQUE DE DÉPLACEMENT D'ENTITÉS (POINTS, TEXTE)
+                    // 4. MISE À JOUR DE LA CRÉATION EN COURS (LE TRAIT QUI SUIT)
+                    // =========================================================================
+                    if (this.isDraggingCreation && this.creationStartPoint) {
+                        // C'est ici que la magie opère : on utilise x,y (snapped) pour mettre à jour
+                        // le point final temporaire. Le trait va donc "suivre" l'aimantation.
+
+                        // Note: On ne modifie pas directement creationStartPoint, mais l'objet temporaire
+                        // que tu gères probablement dans render() ou via un objet temporaire.
+                        // Si tu n'as pas d'objet temporaire, tu stockes juste la pos souris pour le render.
+                        this.currentMousePosForPreview = { x: x, y: y };
+                    }
+
+
+                    // =========================================================================
+                    // 5. DÉPLACEMENT DE POINTS (MOVE)
                     // =========================================================================
                     if (this.currentTool === 'move') {
                         if (this.draggedPoint) {
+                            // Point contraint (sur segment/cercle)
                             if (this.draggedPoint.parents.length === 1) {
                                 const pObj = this.draggedPoint.parents[0];
                                 const p = Array.isArray(pObj) ? { constructor: { name: 'Segment' }, p1: pObj[0], p2: pObj[1] } : pObj;
-
-                                const proj = MathUtils.getProjectedPoint(x, y, p);
+                                const proj = MathUtils.getProjectedPoint(rawMouse.x, rawMouse.y, p); // On utilise rawMouse pour la projection fluide
                                 this.draggedPoint.x = proj.x;
                                 this.draggedPoint.y = proj.y;
-                            } else {
+                            }
+                            // Point libre
+                            else {
+                                // Ici on utilise x,y (snapped) pour que le point suive la grille/aimantation
                                 this.draggedPoint.x = x;
                                 this.draggedPoint.y = y;
                             }
                             this.updateDependents();
+                            this.render();
                         }
                         else if (this.draggedText) {
-                            this.draggedText.x = x - this.dragOffset.x;
-                            this.draggedText.y = y - this.dragOffset.y;
+                            this.draggedText.x = rawMouse.x - this.dragOffset.x;
+                            this.draggedText.y = rawMouse.y - this.dragOffset.y;
                             this.render();
                         }
                     }
 
 
                     // =========================================================================
-                    // 5. SURVOL, CURSEURS ET SNAP OUTILS (MODE PASSIF)
+                    // 6. GESTION DES CURSEURS
                     // =========================================================================
-
-                    this.hoveredEntities = this.entities.filter(ent => ent.isNear(x, y));
+                    this.hoveredEntities = this.entities.filter(ent => ent.isNear(rawMouse.x, rawMouse.y));
 
                     let cursor = 'default';
-                    let activeWidget = null;
+                    let hoveredWidget = null;
 
-                    if (this.activeWidgets.compass && this.compassWidget.getHitZone(x, y)) activeWidget = this.compassWidget;
-                    else if (this.activeWidgets.ruler && this.rulerWidget.getHitZone(x, y)) activeWidget = this.rulerWidget;
-                    else if (this.activeWidgets.setsquare && this.setSquareWidget.getHitZone(x, y)) activeWidget = this.setSquareWidget;
-                    else if (this.activeWidgets.protractor && this.protractorWidget.getHitZone(x, y)) activeWidget = this.protractorWidget;
+                    // On teste les zones avec rawMouse.x / rawMouse.y
+                    if (this.activeWidgets.compass && this.compassWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.compassWidget;
+                    else if (this.activeWidgets.ruler && this.rulerWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.rulerWidget;
+                    else if (this.activeWidgets.setsquare && this.setSquareWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.setSquareWidget;
+                    else if (this.activeWidgets.protractor && this.protractorWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.protractorWidget;
 
-                    if (activeWidget) {
-                        const zone = activeWidget.getHitZone(x, y);
+                    if (hoveredWidget) {
+                        const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
+
                         const cursors = {
                             'move': 'move',
                             'resize': 'ew-resize',
                             'slideY': 'col-resize',
                             'slideX': 'row-resize',
-                            'rotate': 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M21 2v6h-6\'/><path d=\'M3 22v-6h6\'/><path d=\'M2 11.5a10 10 0 0 1 18.8-4.3\'/><path d=\'M22 12.5a10 10 0 0 1-18.8 4.3\'/></svg>") 16 16, auto',
-                            'trace': 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'black\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'filter: drop-shadow(1px 1px 0px white);\'><path d=\'M18.5 2.5a2.121 2.121 0 0 1 3 3L7.5 20.5 2 22l1.5-5.5L18.5 2.5z\' fill=\'white\'/><path d=\'M2 22 L7.5 20.5 L3.5 16.5 Z\' fill=\'black\'/></svg>") 2 22, crosshair'
+                            'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto",
+                            'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto",
+                            'traceAngle': 'crosshair',
+                            'toggleLock': 'pointer',
+                            'toggleSwap': 'pointer',
+                            'toggleSlide': 'pointer'
                         };
-                        if (zone === 'traceAngle') cursors.traceAngle = cursors.trace;
-                        if (cursors[zone]) cursor = cursors[zone];
-                    }
 
-                    if (this.currentTool === 'pan') {
+                        if (cursors[zone]) cursor = cursors[zone];
+                        else cursor = 'pointer'; // Fallback
+                    }
+                    else if (this.currentTool === 'pan') {
                         cursor = this.isPanning ? 'grabbing' : 'grab';
-                    } else if (['segment', 'line', 'point'].includes(this.currentTool) && cursor === 'default') {
+                    }
+                    else if (['segment', 'line', 'point'].includes(this.currentTool)) {
                         cursor = 'crosshair';
-                    } else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
+                    }
+                    else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
+                        // Pour les outils qui nécessitent de cliquer sur une ligne
                         const clickedLinear = this.hoveredEntities.filter(e => e instanceof LinearObject || e instanceof ParallelLine || e instanceof PerpendicularLine).pop();
                         if (clickedLinear) cursor = 'pointer';
                     }
-
-                    if (this.currentTool === 'move' && this.hoveredEntities.length > 0 && !activeWidget) {
+                    else if (this.currentTool === 'move' && this.hoveredEntities.length > 0) {
                         cursor = 'pointer';
                     }
 
                     this.canvas.style.cursor = cursor;
-
-                    if (['segment', 'line', 'ray'].includes(this.currentTool) && this.activeWidgets.ruler) {
-                        const r = this.rulerWidget;
-                        const local = r.toLocal(x, y);
-                        if (Math.abs(local.y) < 25 && local.x > -25 && local.x < r.width + 5) {
-                            let snapX = local.x;
-                            if (Math.abs(local.x) < 15) snapX = 0;
-                            this.mousePos = {
-                                x: r.x + snapX * Math.cos(r.angle),
-                                y: r.y + snapX * Math.sin(r.angle)
-                            };
-                        }
-                    }
-
                     this.render();
                 };
-
                 // =============================================================================
                 // GESTIONNAIRE D'ÉVÉNEMENT GLOBAL : MOUSEUP (FIN D'ACTION)
                 // =============================================================================
@@ -6937,15 +7891,26 @@
                     if (this.draggedWidget instanceof ProtractorWidget && this.draggedWidgetMode === 'traceAngle') {
                         const w = this.draggedWidget;
 
-                        let p1 = this.entities.find(e => e instanceof Point && MathUtils.dist(e.x, e.y, w.x, w.y) < 5);
+                        // 1. CENTRE (p1)
+                        // On cherche un point existant près du centre du rapporteur
+                        let p1 = this.entities.find(e => e instanceof Point && MathUtils.dist(e.x, e.y, w.x, w.y) < 10);
                         if (!p1) {
                             p1 = new Point(w.x, w.y, this.getNextLabel());
                             this.addEntity(p1);
                         }
 
-                        const p2 = new Point(this.mousePos.x, this.mousePos.y, this.getNextLabel());
-                        this.addEntity(p2);
+                        // 2. DIRECTION (p2)
+                        // On regarde si l'utilisateur vise un point existant
+                        let p2 = this.entities.find(e => e instanceof Point && MathUtils.dist(e.x, e.y, this.mousePos.x, this.mousePos.y) < 10);
 
+                        if (!p2) {
+                            // CAS : Clic dans le vide -> On crée un point INVISIBLE
+                            p2 = new Point(this.mousePos.x, this.mousePos.y, ""); // Pas de label
+                            p2.visible = false; // <--- MAGIE : Le point existe mais ne se dessine pas
+                            this.addEntity(p2);
+                        }
+
+                        // 3. Création de la demi-droite
                         const ray = new Ray(p1, p2);
                         ray.color = this.globalStyle.color;
                         ray.lineWidth = this.globalStyle.width;
@@ -6984,15 +7949,21 @@
                                 anim.endState.angle = rawEndAngle;
                                 anim.counterClockwise = isCCW;
 
-                                const arcIndex = this.entities.indexOf(this.currentTracingArc);
+                                // On vérifie si l'arc existe pour savoir où insérer l'anim
+                                const arcIndex = this.currentTracingArc ? this.entities.indexOf(this.currentTracingArc) : -1;
+
                                 if (arcIndex !== -1) this.entities.splice(arcIndex, 0, anim);
                                 else this.entities.push(anim);
                             }
 
-                            this.currentTracingArc.endAngle = rawEndAngle;
-                            this.currentTracingArc.counterClockwise = isCCW;
-                            this.saveState();
+                            // --- CORRECTION : ON VÉRIFIE QUE L'ARC EXISTE ---
+                            if (this.currentTracingArc) {
+                                this.currentTracingArc.endAngle = rawEndAngle;
+                                this.currentTracingArc.counterClockwise = isCCW;
+                                this.saveState(); // On sauvegarde uniquement si on a tracé quelque chose
+                            }
 
+                            // Nettoyage standard (toujours exécuté)
                             this.currentTracingArc = null;
                             w.isTracing = false;
                             w.totalRotation = 0;
@@ -7235,7 +8206,7 @@
                     const startX = -20;
 
                     // Check if snapping for drawing (mouse is at 0) OR if just hovering near zero
-                    if (['segment', 'line', 'ray'].includes(this.currentTool) && Math.abs(l.x) < 2 && Math.abs(l.y) < 2) {
+                    if (['segment', 'line', 'ray'].includes(this.currentTool) && Math.abs(l.x) < 10 && Math.abs(l.y) < 10) {
                         const ang = this.rulerWidget.angle;
                         const zx = this.rulerWidget.x; //+ (-20) * Math.cos(ang);
                         const zy = this.rulerWidget.y; // + (-20) * Math.sin(ang);
@@ -7259,7 +8230,7 @@
                     // If drawing near snap
                     if (['segment', 'line', 'ray'].includes(this.currentTool)) {
                         const l = this.setSquareWidget.toLocal(this.mousePos.x, this.mousePos.y);
-                        if (Math.abs(l.x) < 2 && Math.abs(l.y) < 2) {
+                        if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
                             const ang = this.setSquareWidget.angle;
                             const zx = this.setSquareWidget.x;
                             const zy = this.setSquareWidget.y;
@@ -7275,7 +8246,7 @@
                     this.protractorWidget.draw(this.ctx);
                     if (['segment', 'line', 'ray'].includes(this.currentTool)) {
                         const l = this.protractorWidget.toLocal(this.mousePos.x, this.mousePos.y);
-                        if (Math.abs(l.x) < 2 && Math.abs(l.y) < 2) {
+                        if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
                             const zx = this.protractorWidget.x;
                             const zy = this.protractorWidget.y;
                             this.ctx.beginPath();
@@ -7438,8 +8409,10 @@
 
                 for (const entity of toDraw) {
                     if (entity instanceof ToolAnimation) continue;
+                    if (entity.visible === false) continue;
                     if (this.isPlaying) {
                         const entityBeingCreated = this.entities[this.replayIndex + 1];
+
                         //     if (entity === entityBeingCreated && entity instanceof CompassArc) {
                         //         continue;
                         //    }
@@ -7447,7 +8420,6 @@
                     const isSelected = (entity === this.creationStartPoint) || (entity === this.referenceObject) || (entity === this.compassP1) || this.anglePoints.includes(entity);
                     const isHovered = this.hoveredEntities.includes(entity);
                     const isToDelete = this.toDeletePreview.includes(entity);
-
                     entity.draw(this.ctx, {
                         isSelected,
                         isHovered,
@@ -7517,11 +8489,19 @@
                     this.ctx.lineWidth = 2;
                     this.ctx.stroke();
                 }
+                const widgetMap = {
+                    'ruler': this.rulerWidget,
+                    'setsquare': this.setSquareWidget,
+                    'protractor': this.protractorWidget,
+                    'compass': this.compassWidget
+                };
 
-                if (this.activeWidgets.ruler) this.rulerWidget.draw(this.ctx);
-                if (this.activeWidgets.setsquare) this.setSquareWidget.draw(this.ctx);
-                if (this.activeWidgets.protractor) this.protractorWidget.draw(this.ctx);
-                if (this.activeWidgets.compass) this.compassWidget.draw(this.ctx);
+                // On dessine dans l'ordre de la liste (du bas vers le haut)
+                this.widgetZOrder.forEach(type => {
+                    if (this.activeWidgets[type] && widgetMap[type]) {
+                        widgetMap[type].draw(this.ctx); // Ou ta méthode de dessin spécifique
+                    }
+                });
             }
 
             exportSVG() {
