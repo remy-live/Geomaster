@@ -198,6 +198,19 @@
             align-items: center;
         }
 
+        .header-dropdown-content [data-tooltip]::after {
+            top: 50%;
+            /* Centré verticalement */
+            left: 100%;
+            /* Complètement à droite du bouton */
+            transform: translateY(-50%);
+            /* Ajustement du centrage */
+            margin-top: 0;
+            /* On annule la marge du haut par défaut */
+            margin-left: 10px;
+            /* Un petit espace pour ne pas coller */
+        }
+
         .header-dropdown:hover .header-dropdown-content {
             display: flex;
             animation: fadeIn 0.2s;
@@ -1505,7 +1518,7 @@
             font-size: 12px;
             font-family: sans-serif;
             white-space: nowrap;
-            z-index: 7000;
+            z-index: 70000;
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
@@ -1517,6 +1530,38 @@
             visibility: visible;
             z-index: 10000;
             transition-delay: 0.5s;
+        }
+
+        .donate-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            /* Ou 'left: 90px' si ta toolbar est à gauche */
+            background-color: #ff4757;
+            /* Un rouge sympa (ou #FFC439 pour Jaune PayPal) */
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 1000;
+        }
+
+        .donate-float:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background-color: #ff6b81;
+        }
+
+        .donate-float svg {
+            fill: white;
         }
     </style>
 </head>
@@ -1642,247 +1687,270 @@
                     </svg>
                 </button>
 
-                <button class="top-btn" onclick="document.getElementById('fileInput').click()"
-                    aria-label="Ouvrir un fichier" data-tooltip="Ouvrir un fichier">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                    </svg>
-                </button>
-                <input type="file" id="fileInput" accept=".geo" onchange="app.loadFile(this)">
-
-                <button class="top-btn" onclick="app.saveFile()" aria-label="Sauvegarder" data-tooltip="Sauvegarder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
-                    </svg>
-                </button>
-
-                <button class="top-btn" onclick="app.exportSVG()" aria-label="Exporter en SVG"
-                    data-tooltip="Exporter en SVG">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                </button>
-
-                <button class="top-btn" onclick="app.exportImage('png')" aria-label="Exporter l'image (PNG)"
-                    data-tooltip="Exporter l'image (PNG)">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                </button>
-
-                <button class="top-btn" id="btnCopy" onclick="app.copyToClipboard()"
-                    aria-label="Copier la figure (Presse-papier)" data-tooltip="Copier la figure (Presse-papier)">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                </button>
-            </div>
-
-
-            <div class="toolbar-group">
-                <button class="top-btn" id="btnGrid" onclick="app.toggleGrid()" aria-label="Changer de Grille"
-                    data-tooltip="Changer de Grille">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <line x1="3" y1="9" x2="21" y2="9" />
-                        <line x1="3" y1="15" x2="21" y2="15" />
-                        <line x1="9" y1="3" x2="9" y2="21" />
-                        <line x1="15" y1="3" x2="15" y2="21" />
-                    </svg>
-                </button>
-                <button class="top-btn" id="btnMagnet" onclick="app.toggleMagnet()" aria-label="Aimantation (Grille)"
-                    data-tooltip="Aimantation (Grille)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M3 14v-9h4v9a5 5 0 0 0 10 0v-9h4v9a9 9 0 0 1-18 0Z" fill="currentColor"
-                            fill-opacity="0.2" />
-                        <line x1="3" y1="9" x2="7" y2="9" />
-                        <line x1="17" y1="9" x2="21" y2="9" />
-                    </svg>
-                </button>
-                <button class="top-btn" onclick="app.autoCodeSegments()" aria-label="Codage Automatique des longueurs"
-                    data-tooltip="Codage Automatique des longueurs">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="m17 6 1 3 3 0.5-2.5 2 1 3L17 13l-2.5 1.5 1-3L13 9.5l3-0.5z" />
-                        <path d="M15 12 4 22" />
-                    </svg>
-                </button>
-            </div>
-
-            <div class="toolbar-group">
-                <div class="header-dropdown">
-                    <button class="top-btn" aria-label="Style du Point" data-tooltip="Style du Point">
-                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                            <circle cx="12" cy="12" r="3" fill="currentColor" />
-                            <circle cx="12" cy="12" r="8" />
-                        </svg>
-                    </button>
-
-                    <div class="header-dropdown-content">
-                        <div class="icon-btn" id="btnPtCross" onclick="app.setGlobalPointStyle('cross')"
-                            aria-label="Croix" data-tooltip="Croix">
-                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
-                                <path d="M6 6l12 12M18 6l-12 12" />
+                <div class="toolbar-group">
+                    <div class="header-dropdown">
+                        <button class="top-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                             </svg>
-                        </div>
-                        <div class="icon-btn" id="btnPtDot" onclick="app.setGlobalPointStyle('dot')" aria-label="Disque"
-                            data-tooltip="Disque">
-                            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                <circle cx="12" cy="12" r="5" />
-                            </svg>
-                        </div>
-                        <div class="icon-btn" id="btnPtPixel" onclick="app.setGlobalPointStyle('pixel')"
-                            aria-label="Pixel" data-tooltip="Pixel">
-                            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                <rect x="10" y="10" width="4" height="4" />
-                            </svg>
+                        </button>
+
+                        <div class="header-dropdown-content">
+
+                            <div class="icon-btn" onclick="document.getElementById('fileInput').click()"
+                                aria-label="Ouvrir" data-tooltip="Ouvrir un fichier">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <path
+                                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                </svg>
+                            </div>
+
+                            <div class="icon-btn" onclick="app.saveFile()" aria-label="Sauvegarder"
+                                data-tooltip="Sauvegarder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                    <polyline points="17 21 17 13 7 13 7 21" />
+                                    <polyline points="7 3 7 8 15 8" />
+                                </svg>
+                            </div>
+
+                            <div class="sep-h"></div>
+                            <div class="icon-btn" onclick="app.exportSVG()" aria-label="Exporter SVG"
+                                data-tooltip="Exporter en SVG">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                            </div>
+
+                            <div class="icon-btn" onclick="app.exportImage('png')" aria-label="Exporter PNG"
+                                data-tooltip="Exporter l'image (PNG)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </div>
+
+                            <div class="icon-btn" id="btnCopy" onclick="app.copyToClipboard()" aria-label="Copier"
+                                data-tooltip="Copier la figure">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </div>
                         </div>
                     </div>
+
+                    <input type="file" id="fileInput" accept=".geo" onchange="app.loadFile(this)" style="display:none;">
                 </div>
-
-                <div
-                    style="position:relative; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
-                    <input type="color" id="globalColorPicker" value="#000000" oninput="app.setGlobalColor(this.value)"
-                        onchange="app.setGlobalColor(this.value)"
-                        style="position:absolute; opacity:0; width:100%; height:100%; cursor:pointer;"
-                        aria-label="Choisir la couleur" data-tooltip="Choisir la couleur">
-
-                    <div id="colorPreview"
-                        style="width:20px; height:20px; border-radius:50%; background:#000; border:2px solid #ddd; pointer-events:none;">
-                    </div>
-                </div>
-
-
-                <button class="top-btn" id="btnGlobalDash" onclick="app.toggleGlobalDash()"
-                    aria-label="Style de trait (Plein/Pointillé)" data-tooltip="Style de trait (Plein/Pointillé)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="2" y1="12" x2="22" y2="12" stroke-width="2" />
-                    </svg>
-                </button>
-
-                <div class="slider-container" style="flex-direction:row; gap:8px; margin: 0 4px;">
-                    <input type="range" id="globalWidth" min="1" max="8" value="2"
-                        oninput="app.setGlobalWidth(this.value)" aria-label="Épaisseur" data-tooltip="Épaisseur">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor">
-                        <line id="headerStrokeIcon" x1="2" y1="12" x2="22" y2="12" stroke-width="2"
-                            stroke-linecap="round" />
-                    </svg>
-                </div>
-
-                <button class="top-btn" id="btnPaint" onclick="app.togglePaintMode()" aria-label="Mode Peinture"
-                    data-tooltip="Mode Peinture">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path
-                            d="M13.5 3C8.3 3 4 7.3 4 12.5C4 17.7 8.3 22 13.5 22C16.5 22 19 20 19 17.5C19 16.7 18.3 16 17.5 16H16.5C15.7 16 15 15.3 15 14.5C15 13.7 15.7 13 16.5 13H17C18.7 13 20 11.7 20 10C20 6.1 17.1 3 13.5 3Z" />
-                        <circle cx="8.5" cy="10.5" r="1.5" fill="#e74c3c" stroke="none" />
-                        <circle cx="13.5" cy="7.5" r="1.5" fill="#f1c40f" stroke="none" />
-                        <circle cx="8.5" cy="15.5" r="1.5" fill="#3498db" stroke="none" />
-                    </svg>
-                </button>
-            </div>
-
-            <div class="header-dropdown">
-                <button class="top-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <text x="12" y="18" font-family="serif" font-size="18" fill="currentColor" stroke="none"
-                            font-weight="bold" text-anchor="middle">A</text>
-                    </svg>
-                </button>
-
-                <div class="header-dropdown-content" style="width: 50px;">
-                    <button class="icon-btn" onclick="app.toggleGlobalLabels()" aria-label="Afficher/Masquer les noms"
-                        data-tooltip="Afficher/Masquer les noms">
+                <div class="toolbar-group">
+                    <button class="top-btn" id="btnGrid" onclick="app.toggleGrid()" aria-label="Changer de Grille"
+                        data-tooltip="Changer de Grille">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" color="white" />
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="3" y1="9" x2="21" y2="9" />
+                            <line x1="3" y1="15" x2="21" y2="15" />
+                            <line x1="9" y1="3" x2="9" y2="21" />
+                            <line x1="15" y1="3" x2="15" y2="21" />
                         </svg>
                     </button>
-
-                    <div class="sep-h"></div>
-
-                    <button class="icon-btn" onclick="app.offsetGlobalTextSize(2)" aria-label="Agrandir le texte"
-                        data-tooltip="Agrandir le texte">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 19V5 M5 12l7-7 7 7" />
+                    <button class="top-btn" id="btnMagnet" onclick="app.toggleMagnet()"
+                        aria-label="Aimantation (Grille)" data-tooltip="Aimantation (Grille)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 14v-9h4v9a5 5 0 0 0 10 0v-9h4v9a9 9 0 0 1-18 0Z" fill="currentColor"
+                                fill-opacity="0.2" />
+                            <line x1="3" y1="9" x2="7" y2="9" />
+                            <line x1="17" y1="9" x2="21" y2="9" />
                         </svg>
                     </button>
-
-                    <button class="icon-btn" onclick="app.offsetGlobalTextSize(-2)" aria-label="Réduire le texte"
-                        data-tooltip="Réduire le texte">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 5v14 M19 12l-7 7-7-7" />
+                    <button class="top-btn" onclick="app.autoCodeSegments()"
+                        aria-label="Codage Automatique des longueurs" data-tooltip="Codage Automatique des longueurs">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m17 6 1 3 3 0.5-2.5 2 1 3L17 13l-2.5 1.5 1-3L13 9.5l3-0.5z" />
+                            <path d="M15 12 4 22" />
                         </svg>
-                    </button>
-
-                    <div class="sep-h"></div>
-
-                    <button class="icon-btn" onclick="app.resetGlobalText()" aria-label="Réinitialiser (Standard)"
-                        data-tooltip="Réinitialiser (Standard)">=
                     </button>
                 </div>
-            </div>
 
-            <div class="toolbar-group">
-                <button class="top-btn" id="btnUndo" onclick="app.undo()" disabled aria-label="Annuler (Ctrl+Z)"
-                    data-tooltip="Annuler (Ctrl+Z)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 7v6h6" />
-                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                <div class="toolbar-group">
+                    <div class="header-dropdown">
+                        <button class="top-btn">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
+                                <circle cx="12" cy="12" r="3" fill="currentColor" />
+                                <circle cx="12" cy="12" r="8" />
+                            </svg>
+                        </button>
+
+                        <div class="header-dropdown-content">
+                            <div class="icon-btn" id="btnPtCross" onclick="app.setGlobalPointStyle('cross')"
+                                aria-label="Croix" data-tooltip="Croix">
+                                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
+                                    <path d="M6 6l12 12M18 6l-12 12" />
+                                </svg>
+                            </div>
+                            <div class="icon-btn" id="btnPtDot" onclick="app.setGlobalPointStyle('dot')"
+                                aria-label="Disque" data-tooltip="Disque">
+                                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                    <circle cx="12" cy="12" r="5" />
+                                </svg>
+                            </div>
+                            <div class="icon-btn" id="btnPtPixel" onclick="app.setGlobalPointStyle('pixel')"
+                                aria-label="Pixel" data-tooltip="Pixel">
+                                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                    <rect x="10" y="10" width="4" height="4" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="header-dropdown">
+                        <button class="top-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <text x="12" y="18" font-family="serif" font-size="18" fill="currentColor" stroke="none"
+                                    font-weight="bold" text-anchor="middle">A</text>
+                            </svg>
+                        </button>
+
+                        <div class="header-dropdown-content" style="width: 50px;">
+                            <button class="icon-btn" onclick="app.toggleGlobalLabels()"
+                                aria-label="Afficher/Masquer les noms" data-tooltip="Afficher/Masquer les noms">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" color="white" />
+                                </svg>
+                            </button>
+
+                            <div class="sep-h"></div>
+
+                            <button class="icon-btn" onclick="app.offsetGlobalTextSize(2)"
+                                aria-label="Agrandir le texte" data-tooltip="Agrandir le texte">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 19V5 M5 12l7-7 7 7" />
+                                </svg>
+                            </button>
+
+                            <button class="icon-btn" onclick="app.offsetGlobalTextSize(-2)"
+                                aria-label="Réduire le texte" data-tooltip="Réduire le texte">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14 M19 12l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div class="sep-h"></div>
+
+                            <button class="icon-btn" onclick="app.resetGlobalText()"
+                                aria-label="Réinitialiser (Standard)" data-tooltip="Réinitialiser (Standard)">=
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        style="position:relative; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+                        <input type="color" id="globalColorPicker" value="#000000"
+                            oninput="app.setGlobalColor(this.value)" onchange="app.setGlobalColor(this.value)"
+                            style="position:absolute; opacity:0; width:100%; height:100%; cursor:pointer;"
+                            aria-label="Choisir la couleur" data-tooltip="Choisir la couleur">
+
+                        <div id="colorPreview"
+                            style="width:20px; height:20px; border-radius:50%; background:#000; border:2px solid #ddd; pointer-events:none;">
+                        </div>
+                    </div>
+
+
+                    <button class="top-btn" id="btnGlobalDash" onclick="app.toggleGlobalDash()"
+                        aria-label="Style de trait (Plein/Pointillé)" data-tooltip="Style de trait (Plein/Pointillé)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="2" y1="12" x2="22" y2="12" stroke-width="2" />
+                        </svg>
+                    </button>
+
+                    <div class="slider-container" style="flex-direction:row; gap:8px; margin: 0 4px;">
+                        <input type="range" id="globalWidth" min="1" max="8" value="2"
+                            oninput="app.setGlobalWidth(this.value)" aria-label="Épaisseur" data-tooltip="Épaisseur">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor">
+                            <line id="headerStrokeIcon" x1="2" y1="12" x2="22" y2="12" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <button class="top-btn" id="btnPaint" onclick="app.togglePaintMode()" aria-label="Mode Peinture"
+                        data-tooltip="Mode Peinture">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M13.5 3C8.3 3 4 7.3 4 12.5C4 17.7 8.3 22 13.5 22C16.5 22 19 20 19 17.5C19 16.7 18.3 16 17.5 16H16.5C15.7 16 15 15.3 15 14.5C15 13.7 15.7 13 16.5 13H17C18.7 13 20 11.7 20 10C20 6.1 17.1 3 13.5 3Z" />
+                            <circle cx="8.5" cy="10.5" r="1.5" fill="#e74c3c" stroke="none" />
+                            <circle cx="13.5" cy="7.5" r="1.5" fill="#f1c40f" stroke="none" />
+                            <circle cx="8.5" cy="15.5" r="1.5" fill="#3498db" stroke="none" />
+                        </svg>
+                    </button>
+                </div>
+
+
+
+                <div class="toolbar-group">
+                    <button class="top-btn" id="btnUndo" onclick="app.undo()" disabled aria-label="Annuler (Ctrl+Z)"
+                        data-tooltip="Annuler (Ctrl+Z)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 7v6h6" />
+                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                        </svg>
+                    </button>
+                    <button class="top-btn" id="btnRedo" onclick="app.redo()" disabled aria-label="Rétablir (Ctrl+Y)"
+                        data-tooltip="Rétablir (Ctrl+Y)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 7v6h-6" />
+                            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                        </svg>
+                    </button>
+                </div>
+
+                <button class="top-btn" onclick="app.toggleInstructions()" aria-label="Afficher/Masquer les Consignes"
+                    data-tooltip="Afficher/Masquer les Consignes">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                 </button>
-                <button class="top-btn" id="btnRedo" onclick="app.redo()" disabled aria-label="Rétablir (Ctrl+Y)"
-                    data-tooltip="Rétablir (Ctrl+Y)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 7v6h-6" />
-                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-                    </svg>
-                </button>
+                <div class="header-right" style="display: flex; align-items: center;">
+
+                    <button class="top-btn" onclick="app.cycleStyle()" aria-label="Changer de Thème"
+                        data-tooltip="Changer de Thème" style="margin-left:auto; margin-right: 10px;">
+                        <span style="font-size:22px; line-height: 1;">◐</span>
+                    </button>
+                    <button class="top-btn" id="btn-fullscreen" onclick="app.toggleFullscreen()"
+                        aria-label="Plein Écran" data-tooltip="Plein Écran"
+                        style="margin-right: 10px; display:flex; align-items:center; justify-content:center;">
+
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M7 14H5V19H10V17H7V14ZM5 10H7V7H10V5H5V10ZM17 17H14V19H19V14H17V17ZM14 5V7H17V10H19V5H14Z" />
+                        </svg>
+<button class="top-btn" onclick="openDonateModal()" aria-label="Soutenir"
+        data-tooltip="Soutenir le projet" style="color: #e74c3c; margin-right: 10px;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+    </button>
+                    </button>
+                    <button class="top-btn" onclick="app.toggleHelp()" aria-label="Aide & Raccourcis"
+                        data-tooltip="Aide & Raccourcis">
+                        <span style="font-weight:bold; font-size:18px;">?</span>
+                    </button>
+
+                </div>
             </div>
-
-            <button class="top-btn" onclick="app.toggleInstructions()" aria-label="Afficher/Masquer les Consignes"
-                data-tooltip="Afficher/Masquer les Consignes">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-            </button>
-            <div class="header-right" style="display: flex; align-items: center;">
-
-                <button class="top-btn" onclick="app.cycleStyle()" aria-label="Changer de Thème"
-                    data-tooltip="Changer de Thème" style="margin-left:auto; margin-right: 10px;">
-                    <span style="font-size:22px; line-height: 1;">◐</span>
-                </button>
-                <button class="top-btn" id="btn-fullscreen" onclick="app.toggleFullscreen()" aria-label="Plein Écran"
-                    data-tooltip="Plein Écran"
-                    style="margin-right: 10px; display:flex; align-items:center; justify-content:center;">
-
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M7 14H5V19H10V17H7V14ZM5 10H7V7H10V5H5V10ZM17 17H14V19H19V14H17V17ZM14 5V7H17V10H19V5H14Z" />
-                    </svg>
-
-                </button>
-                <button class="top-btn" onclick="app.toggleHelp()" aria-label="Aide & Raccourcis"
-                    data-tooltip="Aide & Raccourcis">
-                    <span style="font-weight:bold; font-size:18px;">?</span>
-                </button>
-
-            </div>
-        </div>
     </header>
     <div class="main-container">
         <div class="toolbar">
@@ -2344,6 +2412,43 @@
                 <button class="modal-btn modal-cancel" onclick="app.closeModal()">Annuler</button>
                 <button class="modal-btn modal-confirm danger" id="btnModalConfirm">Confirmer</button>
             </div>
+        </div>
+    </div>
+
+    <div id="donateModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-text" style="margin-bottom: 15px;">
+                <h3 style="margin-top:0; color:#c0392b;">Vous aimez GéoMaster ?</h3>
+                <p style="font-size:14px; color:#555; line-height:1.5;">
+                    Cet outil est développé bénévolement pour aider professeurs et élèves.<br>
+                    Il n'y a pas de pub, pas d'inscription. Juste des maths !<br>
+                    Si vous souhaitez soutenir ma démarche et l'évolution du projet, vous pouvez faire un don libre
+                    ci-dessous.
+                </p>
+
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel" onclick="closeDonateModal()">Plus tard</button>
+
+                <a href="https://www.paypal.com/donate/?hosted_button_id=VKZXDC5BM2GHA" target="_blank"
+                    class="modal-btn modal-confirm danger"
+                    style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;"
+                    onclick="closeDonateModal()">
+                    Faire un don
+                </a>
+            </div>
+            <div style="margin-top:10px; font-size:10px; color:#999;">
+                🔒 Paiement sécurisé via PayPal
+            </div>
+            <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+
+            <p style="font-size:13px; color:#777;">
+                Un bug ? Une suggestion ?<br>
+                <a href="#" onclick="this.href='mailto:' + 'devoddere.math' + '@' + 'gmail.com'; return true;"
+                    style="color:#2980b9; text-decoration:none; font-weight:bold;">
+                    ✉️ Me contacter
+                </a>
+            </p>
         </div>
     </div>
 
@@ -8735,6 +8840,25 @@
                 this.showToast("✒️ Fichier SVG exporté !");
             }
         }
+
+        // --- GESTION DU DON ---
+        function openDonateModal() {
+            document.getElementById('donateModal').style.display = 'flex';
+            // Optionnel : Verrouiller l'interface derrière comme tu le fais pour l'aide
+            if (window.app) window.app.lockInterface(true);
+        }
+
+        function closeDonateModal() {
+            document.getElementById('donateModal').style.display = 'none';
+            if (window.app) window.app.lockInterface(false);
+        }
+
+        // Fermer si on clique sur le fond gris (l'overlay)
+        document.getElementById('donateModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeDonateModal();
+            }
+        });
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
 
