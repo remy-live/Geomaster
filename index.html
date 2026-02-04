@@ -1937,12 +1937,13 @@
                             <path
                                 d="M7 14H5V19H10V17H7V14ZM5 10H7V7H10V5H5V10ZM17 17H14V19H19V14H17V17ZM14 5V7H17V10H19V5H14Z" />
                         </svg>
-<button class="top-btn" onclick="openDonateModal()" aria-label="Soutenir"
-        data-tooltip="Soutenir le projet" style="color: #e74c3c; margin-right: 10px;">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-    </button>
+                        <button class="top-btn" onclick="openDonateModal()" aria-label="Soutenir"
+                            data-tooltip="Soutenir le projet" style="color: #e74c3c; margin-right: 10px;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <path
+                                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                        </button>
                     </button>
                     <button class="top-btn" onclick="app.toggleHelp()" aria-label="Aide & Raccourcis"
                         data-tooltip="Aide & Raccourcis">
@@ -2039,6 +2040,13 @@
                     <line x1="5" y1="19" x2="22" y2="2" />
                     <line x1="3" y1="17" x2="7" y2="21" stroke-width="2.5" />
                     <line x1="13" y1="7" x2="17" y2="11" stroke-width="2.5" />
+                </svg>
+            </button>
+            <button class="tool-btn" onclick="app.setTool('line_clean')" data-tooltip="Droite (Sans points)"
+                aria-label="Droite (Sans points)">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round">
+                    <line x1="2" y1="22" x2="22" y2="2" />
                 </svg>
             </button>
             <div class="tool-sep"></div>
@@ -7282,7 +7290,7 @@
 
                     // B. Aimantation aux Outils (Règle, Équerre, etc.)
                     // Seulement si on est en train de tracer quelque chose
-                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon'];
+                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon', 'line_clean'];
 
                     if (drawingTools.includes(this.currentTool)) {
                         const rawM = this.getMousePos(e);
@@ -7488,7 +7496,7 @@
                     }
 
                     // Sauvegarde de l'état (Undo/Redo)
-                    const toolsModifying = ['point', 'segment', 'line', 'ray', 'circle', 'midpoint', 'parallel', 'perpendicular', 'delete', 'polygon', 'angle', 'compass'];
+                    const toolsModifying = ['point', 'segment', 'line', 'ray', 'circle', 'midpoint', 'parallel', 'perpendicular', 'delete', 'polygon', 'angle', 'compass', 'line_clean'];
                     if (toolsModifying.includes(this.currentTool) || (this.currentTool === 'move' && (clickedPoint || clickedText))) {
                         this.saveState();
                     }
@@ -7511,9 +7519,21 @@
                     }
 
                     // --- C. Outils de TRACÉ (Segment, Droite...) ---
-                    else if (['segment', 'ray', 'line', 'circle'].includes(this.currentTool)) {
+                    else if (['segment', 'ray', 'line', 'circle', 'line_clean'].includes(this.currentTool)) {
                         // Premier point créé aux coordonnées snappées
+                        const countBefore = this.entities.length;
+
+                        // 3. Juste avant la création du point
                         this.creationStartPoint = this.createPointAt(x, y);
+
+                        // 4. Ensuite votre logique pour masquer le point
+                        if (this.currentTool === 'line_clean') {
+                            if (this.entities.length > countBefore) {
+                                this.creationStartPoint.visible = false;
+                                this.creationStartPoint.showLabel = false;
+                                this.creationStartPoint.label = "";
+                            }
+                        }
                         this.isDraggingCreation = true;
                     }
 
@@ -7689,7 +7709,7 @@
                     let snappedPos = { x: smartPos.x, y: smartPos.y, snapped: false };
 
                     // On active l'aimantation outil seulement si on dessine ou si on survole
-                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon'];
+                    const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon', 'line_clean'];
                     const isDrawingOrHovering = drawingTools.includes(this.currentTool) || this.currentTool === 'move';
 
                     if (isDrawingOrHovering && !this.draggedWidget) {
@@ -7761,9 +7781,22 @@
 
                             // Petit snap magnétique vers les points existants
                             const snapPoint = this.entities.find(ent => ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
+                            let ghostSnap = null;
+                            if (!snapPoint) {
+                                ghostSnap = this.findIntersectionAtMouse(targetX, targetY);
+                            }
                             if (snapPoint) {
                                 w.x = snapPoint.x;
                                 w.y = snapPoint.y;
+                            }
+                            else if (ghostSnap) {
+                                // C'est ici la nouveauté : on colle l'outil à l'intersection calculée
+                                w.x = ghostSnap.x;
+                                w.y = ghostSnap.y;
+
+                                // Optionnel : On force l'affichage de la croix grise pour confirmer visuellement
+                                this.ghostIntersection = ghostSnap;
+
                             } else {
                                 w.x = targetX;
                                 w.y = targetY;
@@ -7948,7 +7981,7 @@
                     else if (this.currentTool === 'pan') {
                         cursor = this.isPanning ? 'grabbing' : 'grab';
                     }
-                    else if (['segment', 'line', 'point'].includes(this.currentTool)) {
+                    else if (['segment', 'line', 'point', 'line_clean'].includes(this.currentTool)) {
                         cursor = 'crosshair';
                     }
                     else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
@@ -8086,14 +8119,28 @@
                     }
 
                     // 5. GESTION CRÉATION DE FORMES (Segment, Ligne, Cercle...)
-                    if (['segment', 'ray', 'line', 'circle'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint) {
+                    if (['segment', 'ray', 'line', 'circle', 'line_clean'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint) {
                         const dist = Math.sqrt((this.mousePos.x - this.creationStartPoint.x) ** 2 + (this.mousePos.y - this.creationStartPoint.y) ** 2);
 
                         if (dist > 10) {
+
+                            const countBefore = this.entities.length;
+                            // -------------------------------------
+
                             const endPoint = this.createPointAt(this.mousePos.x, this.mousePos.y);
+
+                            // Maintenant la variable existe, ce bloc fonctionnera :
+                            if (this.currentTool === 'line_clean') {
+                                if (this.entities.length > countBefore) {
+                                    endPoint.visible = false;
+                                    endPoint.showLabel = false;
+                                    endPoint.label = "";
+                                }
+                            }
                             let newObj;
+
                             if (this.currentTool === 'segment') newObj = new Segment(this.creationStartPoint, endPoint);
-                            if (this.currentTool === 'line') newObj = new Line(this.creationStartPoint, endPoint);
+                            if (this.currentTool === 'line' || this.currentTool === 'line_clean') newObj = new Line(this.creationStartPoint, endPoint);
                             if (this.currentTool === 'ray') newObj = new Ray(this.creationStartPoint, endPoint);
                             if (this.currentTool === 'circle') newObj = new Circle(this.creationStartPoint, endPoint);
 
@@ -8225,7 +8272,7 @@
                         const dy = end.y - start.y;
                         this.ctx.moveTo(start.x, start.y);
                         this.ctx.lineTo(start.x + dx * 100, start.y + dy * 100);
-                    } else if (this.currentTool === 'line') {
+                    } else if (this.currentTool === 'line' || this.currentTool === 'line_clean') {
                         const dx = end.x - start.x;
                         const dy = end.y - start.y;
                         this.ctx.moveTo(start.x - dx * 100, start.y - dy * 100);
@@ -8278,7 +8325,7 @@
                     });
                 }
 
-                if (this.showTools && ['segment', 'ray', 'line'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint) {
+                if (this.showTools && ['segment', 'ray', 'line', 'line_clean'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint) {
                     this.drawRuler(this.ctx, this.creationStartPoint, this.mousePos);
                 }
                 if (!this.activeWidgets.setsquare && this.showTools && this.currentTool === 'perpendicular' && this.referenceObject && this.isDraggingCreation) {
@@ -8311,7 +8358,7 @@
                     const startX = -20;
 
                     // Check if snapping for drawing (mouse is at 0) OR if just hovering near zero
-                    if (['segment', 'line', 'ray'].includes(this.currentTool) && Math.abs(l.x) < 10 && Math.abs(l.y) < 10) {
+                    if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool) && Math.abs(l.x) < 10 && Math.abs(l.y) < 10) {
                         const ang = this.rulerWidget.angle;
                         const zx = this.rulerWidget.x; //+ (-20) * Math.cos(ang);
                         const zy = this.rulerWidget.y; // + (-20) * Math.sin(ang);
@@ -8333,7 +8380,7 @@
                 if (this.activeWidgets.setsquare && this.setSquareWidget) {
                     this.setSquareWidget.draw(this.ctx);
                     // If drawing near snap
-                    if (['segment', 'line', 'ray'].includes(this.currentTool)) {
+                    if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool)) {
                         const l = this.setSquareWidget.toLocal(this.mousePos.x, this.mousePos.y);
                         if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
                             const ang = this.setSquareWidget.angle;
@@ -8349,7 +8396,7 @@
                 }
                 if (this.activeWidgets.protractor && this.protractorWidget) {
                     this.protractorWidget.draw(this.ctx);
-                    if (['segment', 'line', 'ray'].includes(this.currentTool)) {
+                    if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool)) {
                         const l = this.protractorWidget.toLocal(this.mousePos.x, this.mousePos.y);
                         if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
                             const zx = this.protractorWidget.x;
@@ -8365,7 +8412,7 @@
                 // Compass snap
                 if (this.activeWidgets.compass && this.compassWidget) {
                     // Check needle tip
-                    if (['segment', 'line', 'ray'].includes(this.currentTool)) {
+                    if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool)) {
                         const l = this.compassWidget.toLocal(this.mousePos.x, this.mousePos.y);
                         if (Math.abs(l.x) < 2 && Math.abs(l.y) < 2) {
                             const zx = this.compassWidget.x;
