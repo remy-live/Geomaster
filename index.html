@@ -1811,26 +1811,17 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="header-dropdown">
-                        <button class="top-btn">
+                        <button class="top-btn active" id="btnLabelToggle" onclick="app.toggleGlobalLabelState()"
+                            aria-label="Afficher/Masquer les noms" data-tooltip="Afficher/Masquer les noms">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <text x="12" y="18" font-family="serif" font-size="18" fill="currentColor" stroke="none"
+                                <text x="12" y="15" font-family="serif" font-size="16" fill="currentColor" stroke="none"
                                     font-weight="bold" text-anchor="middle">A</text>
+                                <path d="M10 19 L14 23 M14 19 L10 23" stroke-width="2" stroke-linecap="round" />
                             </svg>
                         </button>
 
                         <div class="header-dropdown-content" style="width: 50px;">
-                            <button class="icon-btn" onclick="app.toggleGlobalLabels()"
-                                aria-label="Afficher/Masquer les noms" data-tooltip="Afficher/Masquer les noms">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                    <circle cx="12" cy="12" r="3" color="white" />
-                                </svg>
-                            </button>
-
-                            <div class="sep-h"></div>
-
                             <button class="icon-btn" onclick="app.offsetGlobalTextSize(2)"
                                 aria-label="Agrandir le texte" data-tooltip="Agrandir le texte">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4167,11 +4158,12 @@
                 };
             }
             getHitZone(mx, my) {
-                const coll = 15; // Constante pour laisser l'angle droit
+                const coll = 10; // Constante pour laisser l'angle droit
                 const l = this.toLocal(mx, my);
                 if (l.x < coll && l.y < coll) return null;
                 if (l.x > 20 && l.x < 60 && l.y > 20 && l.y < 60) return 'toggleSlide';
-                if (l.x >= coll && l.y >= coll && (l.y <= -this.height / this.width * l.x + this.height)) {
+                if (l.x <= coll && l.y <= coll) return null;
+                if (l.x >= 0 && l.y >= 0 && l.y <= -this.height / this.width * l.x + this.height) {
                     if (l.y < 30) return this.slideMode ? 'slideX' : 'rotate';
                     if (l.x < 30) return this.slideMode ? 'slideY' : 'rotate';
                     return 'move';
@@ -4682,6 +4674,47 @@
         }
 
         class GeometrieApp {
+            saveToLocalStorage() {
+                try {
+                    const saveData = {
+                        title: this.projectTitle,
+                        data: this.serialize(), // On réutilise votre fonction existante !
+                        timestamp: Date.now()
+                    };
+                    // 'geoMaster_backup' est la clé unique pour retrouver les données
+                    localStorage.setItem('geoMaster_backup', JSON.stringify(saveData));
+                } catch (e) {
+                    // Cela arrive si le stockage est plein (rare pour du texte, env. 5MB dispos)
+                    console.warn("Impossible de sauvegarder en local :", e);
+                }
+            }
+            toggleGlobalLabelState() {
+                // 1. On inverse l'état global
+                this.globalLabelsEnabled = !this.globalLabelsEnabled;
+
+                // 2. Mise à jour visuelle du bouton (Enfoncé ou non)
+                const btn = document.getElementById('btnLabelToggle');
+                if (btn) {
+                    if (this.globalLabelsEnabled) {
+                        btn.classList.add('active'); // Bouton foncé = ON
+                        btn.style.opacity = "1";
+                    } else {
+                        btn.classList.remove('active'); // Bouton clair = OFF
+                        btn.style.opacity = "0.6"; // On le grise un peu pour montrer qu'il est inactif
+                    }
+                }
+
+                // 3. Application immédiate à tous les points existants
+                const points = this.entities.filter(e => e instanceof Point);
+                points.forEach(p => p.showLabel = this.globalLabelsEnabled);
+
+                // 4. Sauvegarde et redessin
+                this.saveState();
+                this.render();
+
+                // Feedback utilisateur
+                this.showToast(this.globalLabelsEnabled ? "🏷️ Noms affichés" : "🏷️ Noms masqués");
+            }
             getSnappedPos(mx, my) {
                 const snapDistPoint = 10; // Distance pour coller au point (coin)
                 const snapDistLine = 10;  // Distance pour coller à la ligne (bord)
@@ -5783,7 +5816,7 @@
                 this.initEventListeners();
                 this.initShortcuts();
                 this.render();
-
+                setTimeout(() => this.checkAutoSave(), 500);
             }
 
 
@@ -5967,6 +6000,7 @@
                     width: 2,
                     dash: []
                 };
+                this.globalLabelsEnabled = true;
                 this.ArcTracing = false;
                 this.isPaintMode = false;
                 this.defaultFontSize = 14;
@@ -6590,6 +6624,43 @@
                 });
                 return newEntities;
             }
+            checkAutoSave() {
+                const backup = localStorage.getItem('geoMaster_backup');
+                if (!backup) return;
+
+                try {
+                    const parsed = JSON.parse(backup);
+
+                    // Sécurité : si la sauvegarde est vide ou corrompue, on ignore
+                    if (!parsed.data || parsed.data === "[]") return;
+
+                    const msg = `Une sauvegarde automatique a été trouvée. Voulez-vous la restaurer ?`;
+
+                    // Utilisation de votre méthode showModal existante
+                    this.showModal(msg, () => {
+                        // Ce code s'exécute uniquement si l'utilisateur clique sur "Confirmer"
+                        this.projectTitle = parsed.title;
+
+                        // Mise à jour de l'input titre
+                        const titleInput = document.getElementById('docTitleInput');
+                        if (titleInput) titleInput.value = parsed.title;
+                        document.title = "GéoSoft - " + parsed.title;
+
+                        // Chargement des données
+                        this.entities = this.deserialize(parsed.data);
+
+                        // Reset de l'historique pour partir sur une base propre
+                        this.historyPast = [];
+                        this.saveState();
+                        this.render();
+
+                        this.showToast("📂 Projet restauré avec succès !");
+                    });
+
+                } catch (e) {
+                    console.error("Erreur lors de la lecture de la sauvegarde locale", e);
+                }
+            }
             saveState() {
                 // 1. On génère la chaîne de sauvegarde une seule fois
                 const currentState = this.serialize();
@@ -6614,6 +6685,7 @@
                 // 6. Mise à jour variables et UI
                 this.replayIndex = this.entities.length;
                 this.updateButtons();
+                this.saveToLocalStorage();
             }
 
             undo() {
@@ -6973,7 +7045,7 @@
 
                 if (newPoint) {
                     newPoint.fontSize = this.defaultFontSize;
-                    newPoint.showLabel = true;
+                    newPoint.showLabel = this.globalLabelsEnabled;
                     newPoint.color = this.globalStyle.color;
                     newPoint.pointStyle = this.defaultPointStyle;
                     this.addEntity(newPoint);
