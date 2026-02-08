@@ -1563,55 +1563,228 @@
         .donate-float svg {
             fill: white;
         }
+
+        /* --- CSS POUR L'AIDE --- */
+        .help-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            background: #f1f3f4;
+        }
+
+        .help-tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .help-tab-btn:hover {
+            background: #e8eaed;
+        }
+
+        .help-tab-btn.active {
+            color: #2980b9;
+            border-bottom: 3px solid #2980b9;
+            background: white;
+        }
+
+        .tool-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .tool-card h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            background: #f9f9f9;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .tool-legend {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+            color: #444;
+        }
+
+        .tool-legend li {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- AIDE : STYLE 2 COLONNES --- */
+        .help-tool-row {
+            display: flex;
+            align-items: flex-start;
+            /* Aligné en haut */
+            gap: 20px;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .help-tool-row:last-child {
+            border-bottom: none;
+        }
+
+        .help-tool-visual {
+            flex: 0 0 240px;
+            /* Largeur fixe pour le canvas */
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: auto;
+        }
+
+        .help-tool-text {
+            flex: 1;
+            /* Prend le reste de la place */
+        }
+
+        .help-tool-text h4 {
+            margin: 0 0 10px 0;
+            color: #2980b9;
+            font-size: 1.1em;
+        }
+
+        .help-tool-text ul {
+            padding-left: 20px;
+            margin: 0;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .help-tool-text li {
+            margin-bottom: 6px;
+        }
+
+        .help-tool-text b {
+            color: #000;
+        }
     </style>
 </head>
 
 <div id="helpModal" class="modal-overlay" onclick="if(event.target === this) app.toggleHelp()">
-    <div class="modal-box help-box">
+    <div class="modal-box help-box" style="width: 800px; max-width: 95%;">
         <div class="help-header">
-            <h2>Guide Rapide GéoSoft</h2>
+            <h2>📘 Aide & Astuces</h2>
             <button class="close-help" onclick="app.toggleHelp()">✕</button>
         </div>
+
+        <div class="help-tabs">
+            <button class="help-tab-btn active" onclick="app.switchHelpTab('general', this)">Général</button>
+            <button class="help-tab-btn" onclick="app.switchHelpTab('tools', this)">Outils & Fonctions</button>
+        </div>
+
         <div class="help-content">
-
-            <div class="help-section">
-                <h3>🖱️ Souris & Interaction</h3>
-                <p><strong>Clic Gauche :</strong> Sélectionner, Déplacer, Créer des points.</p>
-                <p><strong>Clic Droit :</strong> Menu Contextuel (Couleur, Épaisseur, Hachures, Nom).</p>
-                <p><strong>Molette :</strong> Zoomer / Dézoomer.</p>
-                <p><strong>Clic Molette (ou Espace + Glisser) :</strong> Bouger la feuille (Pan).</p>
-            </div>
-
-            <div class="help-section">
-                <h3>⌨️ Raccourcis Clavier</h3>
-                <div class="shortcut-grid">
-                    <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Z</kbd> <span>Annuler</span></div>
-                    <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Y</kbd> <span>Rétablir</span></div>
-                    <div class="sc-row"><kbd>Suppr</kbd> <span>Supprimer la sélection</span></div>
-                    <div class="sc-row"><kbd>Echap</kbd> <span>Annuler l'outil / Désélectionner</span></div>
-                    <div class="sc-row"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> <span>Déplacement précis
-                            (1px)</span></div>
+            <div id="tab-general">
+                <div class="help-section">
+                    <h3>🖱️ Souris & Interaction</h3>
+                    <p><strong>Clic Gauche :</strong> Sélectionner, Déplacer, Créer.</p>
+                    <p><strong>Clic Droit :</strong> Menu contextuel (Couleur, Style, Nommer).</p>
+                    <p><strong>Molette :</strong> Zoomer / Dézoomer.</p>
+                    <p><strong>Clic Molette (ou Espace + Glisser) :</strong> Bouger la feuille.</p>
+                </div>
+                <div class="help-section">
+                    <h3>⌨️ Raccourcis</h3>
+                    <div class="shortcut-grid">
+                        <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Z</kbd> <span>Annuler</span></div>
+                        <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Y</kbd> <span>Rétablir</span></div>
+                        <div class="sc-row"><kbd>Suppr</kbd> <span>Supprimer</span></div>
+                        <div class="sc-row"><kbd>Echap</kbd> <span>Désélectionner</span></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="help-section">
-                <h3>💡 Astuces Outils</h3>
-                <ul style="text-align: left; padding-left: 20px; margin: 5px 0;">
-                    <li><strong>Règle / Rapporteur :</strong> Cliquez au centre pour déplacer, sur les bords pour
-                        tourner.</li>
-                    <li><strong>Compas :</strong> Tirez la branche crayon pour écarter. Cliquez sur la poignée haute
-                        pour tourner.</li>
-                    <li><strong>Polygone :</strong> Cliquez sur le 1er point pour fermer la forme.</li>
-                    <li><strong>Symétrie :</strong> Cliquez d'abord sur l'objet à transformer, puis sur l'axe (ou le
-                        centre).</li>
-                </ul>
+            <div id="tab-tools" style="display:none;">
+
+                <div class="help-tool-row">
+                    <div class="help-tool-visual">
+                        <canvas id="helpCanvasCompass" width="240" height="200"></canvas>
+                    </div>
+                    <div class="help-tool-text">
+                        <h4>Le Compas</h4>
+                        <ul>
+                            <li><strong>🖌️ Tracer :</strong> Cliquer sur la <b>mine</b>.</li>
+                            <li><strong>↔️ Écarter :</strong> Utiliser la <b>molette</b> de la souris.</li>
+                            <li><strong>🔄 Tourner (sans tracer) :</strong> Glisser le <b>coude</b>.</li>
+                            <li><strong>✋ Déplacer :</strong> Glisser la <b>tête</b> (haut) ou la pointe sèche.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-tool-row">
+                    <div class="help-tool-visual">
+                        <canvas id="helpCanvasProtractor" width="240" height="160"></canvas>
+                    </div>
+                    <div class="help-tool-text">
+                        <h4>Le Rapporteur</h4>
+                        <ul>
+                            <li><strong>✋ Déplacer :</strong> Glisser sur la <b>surface</b> du rapporteur.</li>
+                            <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
+                            <li><strong>🔒 Cadenas :</strong> Bloquer le rapporteur. Utiliser ensuite une droite,
+                                demi-droite ou segment pour tracer un angle en partant du centre.</li>
+                            <li><strong>x2 / Swap :</strong> Afficher la double graduation / Inverser le sens.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-tool-row">
+                    <div class="help-tool-visual">
+                        <canvas id="helpCanvasRuler" width="240" height="100"></canvas>
+                    </div>
+                    <div class="help-tool-text">
+                        <h4>La Règle</h4>
+                        <ul>
+                            <li><strong>✋ Déplacer :</strong> Glisser le corps de la règle.</li>
+                            <li><strong>🔄 Tourner :</strong> Glisser les extrémités (0 ou fin).</li>
+                            <li><strong>📏 Agrandir :</strong> Tirer la petite poignée à droite.</li>
+                            <li><strong>🧲 Aimant :</strong> Le zéro s'accroche automatiquement aux points.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-tool-row">
+                    <div class="help-tool-visual">
+                        <canvas id="helpCanvasSetSquare" width="240" height="160"></canvas>
+                    </div>
+                    <div class="help-tool-text">
+                        <h4>L'Équerre</h4>
+                        <ul>
+                            <li><strong>✋ Déplacer :</strong> Glisser le corps (partie vide).</li>
+                            <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
+                            <li><strong>↕️ Bouton glisser :</strong> Permet de glisser l'équerre le long de ses
+                                graduations (pour faire des parallèles).</li>
+                        </ul>
+                    </div>
+                </div>
+
             </div>
-
         </div>
-
-        <div class="help-footer">
-            Géomaster v1.0 - Logiciel de Géométrie Dynamique par DEVODDERE Rémy
-        </div>
+        <div class="help-footer">GéoMaster v1.1</div>
     </div>
 </div>
 <div id="instructionBox" style="display:none;">
@@ -4337,17 +4510,17 @@
                 this.x = x;
                 this.y = y;
                 this.angle = 0;
-                this.width = 600;
+                this.width = 400;
                 this.height = 60;
-                this.widgetRotationOffset = 0;
             }
+
             toGlobal(lx, ly) {
-                // On inverse la formule de rotation/translation
                 return {
                     x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
                     y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
                 };
             }
+
             toLocal(mx, my) {
                 const dx = mx - this.x;
                 const dy = my - this.y;
@@ -4356,12 +4529,21 @@
                     y: dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle)
                 };
             }
+
             getHitZone(mx, my) {
                 const l = this.toLocal(mx, my);
-                if (l.x >= 0 && l.x <= this.width && l.y >= 5 && l.y <= this.height) {
-                    if (l.y < 20 && l.y > 5) return 'rotate';
-                    if (l.y > 20 && l.y < this.height - 5 && l.x > 20 && l.x < this.width - 20) return 'move';
-                    return null;
+
+                // On vérifie d'abord si on est dans la boite globale
+                if (l.x >= 0 && l.x <= this.width && l.y >= 0 && l.y <= this.height) {
+
+                    // 1. ZONE RESIZE (Les 25 derniers pixels à droite)
+                    if (l.x > this.width - 10) return 'resize';
+
+                    // 2. ZONE ROTATION (La bande du haut ou le tout début à gauche)
+                    if (l.y < 20 || l.x < 20) return 'rotate';
+
+                    // 3. ZONE DEPLACEMENT (Le reste du corps)
+                    return 'move';
                 }
                 return null;
             }
@@ -4371,30 +4553,42 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
 
-                const style = ToolStyle.ruler; // CONFIG
+                const style = ToolStyle.ruler;
 
                 // --- FOND ---
                 ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`;
-
                 ctx.beginPath();
                 ctx.rect(0, 0, this.width, this.height);
                 ctx.fill();
 
-                // Reflet léger (reste en blanc pur pour l'instant avec opacité faible)
+                // Reflet léger
                 ctx.fillStyle = "rgba(255,255,255,0.2)";
                 ctx.fillRect(0, 0, this.width, this.height / 2);
 
-                // Bordure (si définie)
+                // Bordure
                 if (style.border.width > 0) {
                     ctx.lineWidth = style.border.width;
                     ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`;
                     ctx.strokeRect(0, 0, this.width, this.height);
                 }
 
+                // --- POIGNEE DISCRÈTE (RESIZE) ---
+                // Juste une légère teinte sur les 20 derniers pixels
+                /*      ctx.fillStyle = "rgba(0,0,0,0.05)"; // Très subtil
+                      ctx.fillRect(this.width - 10, 0, 10, this.height);
+      
+                     
+                      ctx.fillStyle = "rgba(0,0,0,0.3)";
+                      ctx.font = "12px sans-serif";
+                      ctx.textAlign = "center";
+                      ctx.textBaseline = "middle";
+                      ctx.fillText("↔", this.width - 5, this.height / 2);*/
+
+
+                // --- GRADUATIONS ---
                 const mm = 5;
                 const cm = 50;
 
-                // --- GRADUATIONS ---
                 ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`;
                 ctx.fillStyle = style.graduations.color;
                 ctx.textAlign = "center";
@@ -4402,7 +4596,8 @@
                 ctx.font = style.graduations.font;
                 ctx.lineWidth = style.graduations.width;
 
-                for (let i = 0; i <= this.width - 20; i += mm) {
+                // On arrête les graduations un peu avant la poignée pour ne pas surcharger
+                for (let i = 0; i <= this.width - 5; i += mm) {
                     let len = 6;
                     if (i % cm === 0) len = 18;
                     else if (i % (cm / 2) === 0) len = 12;
@@ -4416,10 +4611,10 @@
                         ctx.fillText(i / cm, i, 22);
                     }
                 }
+
                 ctx.restore();
             }
         }
-
         class ProtractorWidget {
             constructor(x, y) {
                 this.x = x;
@@ -4428,14 +4623,16 @@
                 this.radius = 180;
                 this.isLocked = false;
                 this.isReversed = false;
+                this.showDouble = false; // Par défaut : simple graduation
             }
+
             toGlobal(lx, ly) {
-                // On inverse la formule de rotation/translation
                 return {
                     x: this.x + lx * Math.cos(this.angle) - ly * Math.sin(this.angle),
                     y: this.y + lx * Math.sin(this.angle) + ly * Math.cos(this.angle)
                 };
             }
+
             toLocal(mx, my) {
                 const dx = mx - this.x;
                 const dy = my - this.y;
@@ -4448,8 +4645,16 @@
             getHitZone(mx, my) {
                 const l = this.toLocal(mx, my);
                 const d = Math.sqrt(l.x * l.x + l.y * l.y);
+
+                // Zone Cadenas (Lock) : y entre -30 et -60
                 if (Math.abs(l.x) < 12 && l.y < -30 && l.y > -60) return 'toggleLock';
+
+                // Zone Inverser (Swap) : y entre -61 et -85
                 if (Math.abs(l.x) < 12 && l.y >= -85 && l.y <= -61) return 'toggleSwap';
+
+                // NOUVEAU : Zone Double Graduation (au-dessus du swap) : y entre -89 et -113
+                if (Math.abs(l.x) < 12 && l.y >= -113 && l.y <= -89) return 'toggleDouble';
+
                 if (this.isLocked) {
                     if (d < 30) return 'traceAngle';
                     return null;
@@ -4459,6 +4664,7 @@
                 if (d < this.radius && l.y < 0) return 'move';
                 return null;
             }
+
 
 
             draw(ctx) {
@@ -4472,25 +4678,18 @@
                 const r = this.radius;
                 const skirt = 15;
 
-                // --- 0. FONCTION MAGIQUE (Calcul du contraste) ---
-                // Cette fonction décide si l'icône doit être blanche ou noire
+                // --- 0. FONCTION CONTRASTE ---
                 const getContrastColor = (hex) => {
                     if (!hex) return 'white';
-                    // On enlève le # si présent
                     hex = hex.replace('#', '');
-                    // On extrait Rouge, Vert, Bleu
                     const r = parseInt(hex.substr(0, 2), 16);
                     const g = parseInt(hex.substr(2, 2), 16);
                     const b = parseInt(hex.substr(4, 2), 16);
-                    // Formule de luminosité perçue (YIQ)
                     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-                    // Si > 128 c'est clair -> texte foncé (#333), sinon texte blanc
                     return (yiq >= 128) ? '#333333' : 'white';
                 };
 
-                // ============================================================
-                // 1. FOND
-                // ============================================================
+                // --- 1. FOND ---
                 ctx.beginPath();
                 ctx.moveTo(-r, skirt);
                 ctx.lineTo(r, skirt);
@@ -4507,10 +4706,10 @@
                     ctx.stroke();
                 }
 
-                // ============================================================
-                // 2. LIGNE DE BASE & VISEUR
-                // ============================================================
-                const gap = 35;
+                // --- 2. LIGNE DE BASE & VISEUR ---
+                // MODIF : Gap augmenté à 50 pour raccourcir la ligne et laisser la place aux chiffres
+                const gap = 50;
+
                 ctx.beginPath();
                 ctx.moveTo(-(r - gap), 0);
                 ctx.lineTo((r - gap), 0);
@@ -4523,9 +4722,7 @@
                 ctx.strokeStyle = '#000000';
                 ctx.stroke();
 
-                // ============================================================
-                // 3. GRADUATIONS
-                // ============================================================
+                // --- 3. GRADUATIONS ---
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.font = style.graduations.font;
@@ -4550,115 +4747,123 @@
                     ctx.lineTo(cos * r, sin * r);
                     ctx.stroke();
 
+                    // CHIFFRES
                     if (i % 10 === 0) {
-                        const valOuter = this.isReversed ? (180 - i) : i;
-                        ctx.fillStyle = style.graduations.color;
-                        let tx = cos * (r - 25);
-                        let ty = sin * (r - 25);
-                        if (i === 0 || i === 180) ty = 0;
-                        ctx.fillText(valOuter, tx, ty);
+                        // Calcul des valeurs
+                        const valStandard = i;
+                        const valReverse = 180 - i;
+
+                        if (this.showDouble) {
+                            // === MODE DOUBLE ===
+
+                            // 1. EXTÉRIEUR (Noir Doux, Gras)
+                            ctx.fillStyle = style.graduations.color;
+                            ctx.font = style.graduations.font || "bold 12px sans-serif";
+                            // MODIF : Couleur plus douce (#444 au lieu de #000)
+                            //ctx.fillStyle = "#000000";
+
+                            // MODIF : Décalage ajusté (24) et suppression du 'if (i===0)'
+                            let txOut = cos * (r - 24);
+                            let tyOut = sin * (r - 24);
+                            ctx.fillText(valStandard, txOut, tyOut);
+
+
+                            ctx.font = "normal 9px sans-serif";
+                            ctx.fillStyle = "#222222";
+
+
+                            let txIn = cos * (r - 40);
+                            let tyIn = sin * (r - 40);
+                            ctx.fillText(valReverse, txIn, tyIn);
+
+                        } else {
+                            // === MODE SIMPLE (Classique) ===
+                            const val = this.isReversed ? valReverse : valStandard;
+                            ctx.font = style.graduations.font || "bold 12px sans-serif";
+                            ctx.fillStyle = style.graduations.color;
+
+                            let tx = cos * (r - 25);
+                            let ty = sin * (r - 25);
+                            if (i === 0 || i === 180) ty = 0; // On garde ça juste pour le mode simple si la ligne va jusqu'au bout
+
+                            ctx.fillText(val, tx, ty);
+                        }
                     }
                 }
 
-                // ============================================================
-                // 4. BOUTONS AUTOMATIQUES
-                // ============================================================
-
-                // J'ai enlevé le paramètre "iconColor" car il est calculé dedans maintenant
+                // --- 4. BOUTONS ---
                 const drawIconBtn = (y, btnColor, type) => {
                     const size = 24;
                     const radius = 6;
-
-                    // --- AUTO-CONTRASTE ICI ---
                     const autoIconColor = getContrastColor(btnColor);
 
                     ctx.save();
                     ctx.translate(0, y);
 
-                    // A. Fond
+                    // Fond
                     ctx.beginPath();
                     if (ctx.roundRect) ctx.roundRect(-size / 2, -size / 2, size, size, radius);
                     else ctx.rect(-size / 2, -size / 2, size, size);
-
                     ctx.fillStyle = btnColor;
                     ctx.fill();
-
-                    // B. Contour
+                    // Contour blanc
                     ctx.lineWidth = 2;
                     ctx.strokeStyle = "white";
                     ctx.stroke();
 
-                    // C. Icône (avec la couleur automatique)
+                    // Icône
                     ctx.fillStyle = autoIconColor;
                     ctx.strokeStyle = autoIconColor;
-
                     ctx.lineCap = "round";
                     ctx.lineJoin = "round";
                     ctx.lineWidth = 2;
 
                     if (type === 'swap') {
-                        const w = 5; // Demi-largeur (total 10px)
-                        const h = 2.5; // Demi-hauteur de la pointe (total 5px)
-
+                        const w = 5; const h = 2.5;
                         ctx.beginPath();
-
-                        // 1. La barre horizontale (fine)
-                        ctx.moveTo(-w, 0);
-                        ctx.lineTo(w, 0);
-
-                        // 2. Pointe Gauche (<)
-                        ctx.moveTo(-w + h, -h);
-                        ctx.lineTo(-w, 0);
-                        ctx.lineTo(-w + h, h);
-
-                        // 3. Pointe Droite (>)
-                        ctx.moveTo(w - h, -h);
-                        ctx.lineTo(w, 0);
-                        ctx.lineTo(w - h, h);
-
+                        ctx.moveTo(-w, 0); ctx.lineTo(w, 0);
+                        ctx.moveTo(-w + h, -h); ctx.lineTo(-w, 0); ctx.lineTo(-w + h, h);
+                        ctx.moveTo(w - h, -h); ctx.lineTo(w, 0); ctx.lineTo(w - h, h);
                         ctx.stroke();
-
                     } else if (type === 'lock' || type === 'unlock') {
-                        // Corps
                         const w = 10; const h = 8;
                         ctx.beginPath();
                         if (ctx.roundRect) ctx.roundRect(-w / 2, 0, w, h, 2);
                         else ctx.rect(-w / 2, 0, w, h);
-                        ctx.fill(); // Rempli plein
-
-                        // Anse
+                        ctx.fill();
                         ctx.beginPath();
                         const arcR = 3.5;
                         if (type === 'lock') ctx.arc(0, -1, arcR, Math.PI, 0);
                         else ctx.arc(2, -1, arcR, Math.PI, 0);
                         ctx.stroke();
-
-                        // Trou de serrure (Inverse de l'icone pour le contraste)
+                        // Trou serrure
                         ctx.fillStyle = btnColor;
-                        ctx.beginPath();
-                        ctx.arc(0, 4, 1.5, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(0, 4, 1.5, 0, Math.PI * 2); ctx.fill();
+                    } else if (type === 'double') {
+                        // Icône "x2"
+                        ctx.font = "bold 11px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText("x2", 0, 1);
                     }
-
                     ctx.restore();
                 };
 
-                // --- APPEL SIMPLIFIÉ ---
-
-                // Plus besoin de préciser la couleur de l'icône !
-
-                // 1. Swap
+                // 1. Bouton Inverser
                 drawIconBtn(-73, style.components.swap, 'swap');
 
-                // 2. Lock
+                // 2. Bouton Cadenas
                 const lockColor = this.isLocked ? style.components.lockActive : style.components.lockInactive;
                 const lockType = this.isLocked ? 'lock' : 'unlock';
                 drawIconBtn(-45, lockColor, lockType);
 
+                // 3. Bouton Double
+                const doubleColor = this.showDouble ? "#3498db" : "#bdc3c7";
+                drawIconBtn(-101, doubleColor, 'double');
+
                 ctx.restore();
             }
-        }      // ADDED: ToolAnimation class for recording movements
-
+        }
 
         class ToolAnimation {
             constructor(widgetType, startState, endState, id = null) {
@@ -4674,6 +4879,110 @@
         }
 
         class GeometrieApp {
+            // --- A AJOUTER DANS LA CLASSE GeometrieApp ---
+
+            // Gestion des onglets
+            switchHelpTab(tabName, btn) {
+                // 1. Gérer l'affichage des div
+                document.getElementById('tab-general').style.display = (tabName === 'general') ? 'block' : 'none';
+                document.getElementById('tab-tools').style.display = (tabName === 'tools') ? 'block' : 'none';
+
+                // 2. Gérer la classe active des boutons
+                document.querySelectorAll('.help-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // 3. Si on ouvre l'onglet outils, on dessine !
+                if (tabName === 'tools') {
+                    // Petit délai pour s'assurer que le display n'est plus "none" (sinon le canvas ne s'affiche pas bien)
+                    setTimeout(() => this.renderHelpTools(), 50);
+                }
+            }
+
+
+
+            renderHelpTools() {
+                // --- 1. COMPAS ---
+                const cvsC = document.getElementById('helpCanvasCompass');
+                if (cvsC) {
+                    const ctx = cvsC.getContext('2d');
+                    ctx.clearRect(0, 0, cvsC.width, cvsC.height);
+
+                    ctx.save();
+                    ctx.scale(0.6, 0.6);
+                    // Centrage : 120 (milieu X) et 150 (bas Y pour laisser place à la tête)
+                    ctx.translate(80 / 0.6, 200 / 0.6);
+                    // Note : translate affecté par le scale, donc on ajuste ou on translate AVANT le scale
+                    // Méthode plus simple : translate puis scale
+                    ctx.restore();
+
+                    // RE-ESSAI PLUS SIMPLE POUR LE CENTRAGE
+                    ctx.save();
+                    ctx.translate(120, 50); // Position de la TETE du compas
+                    ctx.scale(0.6, 0.6);
+
+                    const compass = new CompassWidget(0, 0);
+                    compass.radius = 100;
+                    // On dessine le compas un peu plus bas que la tête
+                    // Dans CompassWidget, (x,y) est la pointe sèche.
+                    // Donc on place la pointe sèche plus bas.
+                    compass.x = -50;
+                    compass.y = 220;
+                    compass.draw(ctx);
+                    ctx.restore();
+                }
+
+                // --- 2. RAPPORTEUR ---
+                const cvsP = document.getElementById('helpCanvasProtractor');
+                if (cvsP) {
+                    const ctx = cvsP.getContext('2d');
+                    ctx.clearRect(0, 0, cvsP.width, cvsP.height);
+
+                    ctx.save();
+                    ctx.translate(120, 120); // Centre du canvas (X=120, Y=110 pour laisser place à l'arc)
+                    ctx.scale(0.65, 0.65);
+
+                    const prot = new ProtractorWidget(0, 0);
+                    prot.radius = 160;
+                    prot.draw(ctx);
+                    ctx.restore();
+                }
+
+                // --- 3. RÈGLE ---
+                const cvsR = document.getElementById('helpCanvasRuler');
+                if (cvsR) {
+                    const ctx = cvsR.getContext('2d');
+                    ctx.clearRect(0, 0, cvsR.width, cvsR.height);
+
+                    ctx.save();
+                    // On centre la règle horizontalement et verticalement
+                    ctx.translate(20, 30);
+                    ctx.scale(0.55, 0.55);
+
+                    const ruler = new RulerWidget(0, 0);
+                    ruler.width = 360; // Une règle assez longue pour être jolie
+                    ruler.draw(ctx);
+                    ctx.restore();
+                }
+
+                // --- 4. ÉQUERRE ---
+                const cvsS = document.getElementById('helpCanvasSetSquare');
+                if (cvsS) {
+                    const ctx = cvsS.getContext('2d');
+                    ctx.clearRect(0, 0, cvsS.width, cvsS.height);
+
+                    ctx.save();
+                    // L'équerre se dessine depuis son coin angle droit (souvent en bas à gauche)
+                    ctx.translate(20, 20);
+                    ctx.scale(0.50, 0.50);
+
+                    const sq = new SetSquareWidget(0, 0);
+                    sq.height = 220;
+                    sq.draw(ctx);
+                    ctx.restore();
+                }
+            }
+
+
             saveToLocalStorage() {
                 try {
                     const saveData = {
@@ -4922,13 +5231,14 @@
 
             toggleHelp() {
                 const modal = document.getElementById('helpModal');
-                // On bascule l'affichage
                 if (modal.style.display === 'flex') {
                     modal.style.display = 'none';
-                    this.isLocked = false; // On déverrouille l'interface derrière
+                    this.isLocked = false;
                 } else {
                     modal.style.display = 'flex';
-                    this.isLocked = true; // On empêche de dessiner par erreur en cliquant à travers
+                    this.isLocked = true;
+                    // On remet l'onglet général par défaut
+                    this.switchHelpTab('general', document.querySelector('.help-tab-btn'));
                 }
             }
 
@@ -7475,6 +7785,7 @@
 
                     if (targetWidget) {
                         const zone = targetWidget.getHitZone(mousePos.x, mousePos.y);
+
                         if (zone) {
                             // Actions immédiates (Toggle)
                             if (zone === 'toggleSwap' && targetWidget instanceof ProtractorWidget) {
@@ -7483,9 +7794,13 @@
                             else if (zone === 'toggleLock' && targetWidget instanceof ProtractorWidget) {
                                 targetWidget.isLocked = !targetWidget.isLocked;
                             }
+                            else if (zone === 'toggleDouble' && targetWidget instanceof ProtractorWidget) {
+                                targetWidget.showDouble = !targetWidget.showDouble;
+                            }
                             else if (zone === 'toggleSlide' && targetWidget instanceof SetSquareWidget) {
                                 targetWidget.slideMode = !targetWidget.slideMode;
                             }
+
                             // Actions de Drag (Move, Rotate, Slide)
                             else {
                                 this.draggedWidget = targetWidget;
@@ -7493,6 +7808,7 @@
                                 this.widgetStartState = this.getWidgetState(targetWidget);
                                 this.draggedWidgetType = wType;
 
+                                // ...
                                 // Calcul de l'offset pour rotation
                                 if (zone === 'rotate') {
                                     this.widgetRotationOffset = Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x) - targetWidget.angle;
@@ -7746,7 +8062,9 @@
                     }
 
                     this.render();
-                }; this.canvas.onmousemove = (e) => {
+                };
+
+                this.canvas.onmousemove = (e) => {
 
                     // =========================================================================
                     // 1. GESTION DU PANNING (DÉPLACEMENT DE LA VUE)
@@ -7915,6 +8233,20 @@
                             }
                             w.angle = (snappedAngle !== null) ? snappedAngle : newAngle;
                         }
+                        else if (mode === 'resize' && w instanceof RulerWidget) {
+                            // 1. On projette la souris sur l'axe de la règle pour avoir la distance
+                            // On utilise rawMouse (coordonnées écran brutes) pour la fluidité
+                            const localPos = w.toLocal(rawMouse.x, rawMouse.y);
+
+                            // 2. La nouvelle largeur est simplement la coordonnée X locale de la souris
+                            // On met un min de 150 pour éviter les bugs
+                            let newWidth = Math.max(150, localPos.x);
+
+                            // 3. Application directe (pas de saut)
+                            w.width = newWidth;
+
+                            this.render();
+                        }
                         // D. COMPAS (RESIZE & TRACE)
                         else if (mode === 'trace' && w instanceof CompassWidget) {
                             const currentAngle = Math.atan2(y - w.y, x - w.x);
@@ -8033,7 +8365,19 @@
 
                     if (hoveredWidget) {
                         const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
-
+                        const toast = document.getElementById("toast-notification"); // On réutilise le toast ou créer une div dédiée
+                        if (hoveredWidget instanceof ProtractorWidget) {
+                            if (zone === 'toggleLock') {
+                                // Optionnel : afficher un message temporaire ou changer le curseur avec un title
+                                this.canvas.title = "Verrouiller le centre pour tracer puis cliquer sur droite/demi-droite...";
+                            } else if (zone === 'toggleDouble') {
+                                this.canvas.title = "Double graduation";
+                            } else {
+                                this.canvas.title = "";
+                            }
+                        } else {
+                            this.canvas.title = "";
+                        }
                         const cursors = {
                             'move': 'move',
                             'resize': 'ew-resize',
@@ -8068,9 +8412,13 @@
                     this.canvas.style.cursor = cursor;
                     this.render();
                 };
+
+
                 // =============================================================================
                 // GESTIONNAIRE D'ÉVÉNEMENT GLOBAL : MOUSEUP (FIN D'ACTION)
                 // =============================================================================
+
+
                 window.addEventListener('mouseup', () => {
 
                     // 1. GESTION DU PANNING (Déplacement de vue)
