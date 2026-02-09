@@ -619,6 +619,13 @@
             flex-wrap: wrap;
         }
 
+        .menu-row.justify-center {
+            flex-wrap: nowrap !important;
+            gap: 6px !important;
+            /* Un peu plus d'espace entre les ronds */
+            margin-bottom: 6px !important;
+        }
+
         .icon-btn {
             width: 32px;
             height: 32px;
@@ -633,6 +640,7 @@
             color: #444;
             transition: all 0.2s;
         }
+
 
         .icon-btn:hover {
             background: #fff;
@@ -1684,6 +1692,138 @@
         .help-tool-text b {
             color: #000;
         }
+
+        /* --- TIROIR (DRAWER) --- */
+        #timelineDrawer {
+            position: absolute;
+            bottom: 100%;
+            /* Juste au dessus de la barre */
+            left: 20px;
+            right: 20px;
+            /* Un peu de marge sur les côtés */
+            height: 0;
+            /* Fermé par défaut */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px 10px 0 0;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+            overflow: hidden;
+            opacity: 0;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom: none;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        #timelineDrawer.open {
+            height: 70px;
+            /* Hauteur ouvert */
+            opacity: 1;
+        }
+
+        .drawer-content {
+            padding: 10px 20px;
+        }
+
+        /* CONTAINER PRINCIPAL */
+        .custom-slider-area {
+            position: relative;
+            width: 100%;
+            height: 40px;
+            /* Zone tactile confortable */
+            margin-top: 10px;
+            cursor: pointer;
+            touch-action: none;
+            /* Indispensable pour le tactile */
+        }
+
+        /* LA PISTE (Rail) */
+        .cs-track {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            transform: translateY(-50%);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* LA ZONE BLEUE (Remplissage) */
+        .cs-fill {
+            position: absolute;
+            top: 50%;
+            height: 8px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            border-radius: 4px;
+            transform: translateY(-50%);
+            z-index: 1;
+            /* Sera positionné par JS (left / width) */
+        }
+
+        /* LES POIGNÉES (Ronds blancs) */
+        .cs-thumb {
+            position: absolute;
+            top: 50%;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transform: translate(-50%, -50%);
+            /* Centrage parfait */
+            z-index: 2;
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .cs-thumb:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .cs-thumb:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.2);
+            border-color: #3498db;
+        }
+
+        /* LES BULLES D'INFO (Tooltips au dessus des poignées) */
+        .cs-tooltip {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s, bottom 0.2s;
+            pointer-events: none;
+        }
+
+        .cs-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -4px;
+            border-width: 4px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        /* Afficher l'info quand on survole ou qu'on clique */
+        .cs-thumb:hover .cs-tooltip,
+        .cs-thumb:active .cs-tooltip {
+            opacity: 1;
+            bottom: 35px;
+        }
     </style>
 </head>
 
@@ -1889,24 +2029,45 @@
                                 </svg>
                             </div>
 
+                            <div class="icon-btn" onclick="document.getElementById('bgImageInput').click()"
+                                aria-label="Image de fond" data-tooltip="Importer une image de fond">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="fill:none;">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                            </div>
+                            <input type="file" id="bgImageInput" accept="image/*" style="display:none"
+                                onchange="app.handleImageUpload(event)">
+
                             <div class="sep-h"></div>
+
                             <div class="icon-btn" onclick="app.exportSVG()" aria-label="Exporter SVG"
                                 data-tooltip="Exporter en SVG">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    style="fill:none;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <g transform="translate(0, -4) scale(0.8) translate(3, 3)">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </g>
+                                    <text x="12" y="24" text-anchor="middle" font-family="sans-serif" font-size="8"
+                                        font-weight="bold" fill="currentColor" stroke="none">SVG</text>
                                 </svg>
                             </div>
 
                             <div class="icon-btn" onclick="app.exportImage('png')" aria-label="Exporter PNG"
                                 data-tooltip="Exporter l'image (PNG)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    style="fill:none;">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <g transform="translate(0, -4) scale(0.8) translate(3, 3)">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </g>
+                                    <text x="12" y="24" text-anchor="middle" font-family="sans-serif" font-size="8"
+                                        font-weight="bold" fill="currentColor" stroke="none">PNG</text>
                                 </svg>
                             </div>
 
@@ -1918,6 +2079,22 @@
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
                             </div>
+                        </div>
+
+                        <div id="imageControls"
+                            style="display:none; position:absolute; top:80px; left:50%; transform:translateX(-50%); background:white; padding:8px 15px; border-radius:30px; box-shadow:0 4px 15px rgba(0,0,0,0.15); z-index:1000; align-items:center; gap:15px; font-family:sans-serif; font-size:13px;">
+                            <span style="font-weight:bold; color:#555;">Image :</span>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <span>Opacité</span>
+                                <input type="range" id="imgOpacity" min="0.1" max="1" step="0.05" value="0.5"
+                                    style="width:80px;">
+                            </div>
+                            <div style="width:1px; height:20px; background:#ddd;"></div>
+                            <button id="btnLockImage"
+                                style="padding:5px 10px; border:none; background:#f1f2f6; color:#333; cursor:pointer; border-radius:15px; font-weight:600;">🔓
+                                Déverrouillé</button>
+                            <button onclick="app.removeBackgroundImage()"
+                                style="padding:5px 10px; border:none; background:#ff7675; color:white; cursor:pointer; border-radius:15px; font-weight:600;">✕</button>
                         </div>
                     </div>
 
@@ -1956,10 +2133,9 @@
 
                 <div class="toolbar-group">
                     <div class="header-dropdown">
-                        <button class="top-btn">
-                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                                <circle cx="12" cy="12" r="3" fill="currentColor" />
-                                <circle cx="12" cy="12" r="8" />
+                        <button class="top-btn" id="btnPointStyleMain">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
+                                <path d="M6 6l12 12M18 6l-12 12" />
                             </svg>
                         </button>
 
@@ -2326,12 +2502,36 @@
             <canvas id="geoCanvas" width=3000 height="2000"></canvas>
 
             <div id="replayBar">
+                <div id="timelineDrawer">
+                    <div class="drawer-content">
+                        <div
+                            style="font-size:11px; color:#555; margin-bottom:4px; display:flex; justify-content:space-between;">
+                            <span>Début : <b id="lblLoopStart">0</b></span>
+                            <span style="color:#2980b9; font-weight:bold;">ZONE DE BOUCLE</span>
+                            <span>Fin : <b id="lblLoopEnd">MAX</b></span>
+                        </div>
+
+                        <div class="custom-slider-area" id="customSliderArea">
+                            <div class="cs-track"></div>
+
+                            <div class="cs-fill" id="csFill"></div>
+
+                            <div class="cs-thumb" id="csThumbStart">
+                                <div class="cs-tooltip" id="csTooltipStart">0</div>
+                            </div>
+
+                            <div class="cs-thumb" id="csThumbEnd">
+                                <div class="cs-tooltip" id="csTooltipEnd">MAX</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="replay-control-group">
-                    <button class="replay-btn" id="btnPlay" onclick="app.playFromStart()"
-                        title="Lire depuis le début">▶</button>
-                    <button class="replay-btn" id="btnStop" onclick="app.stopAnimation()"
-                        title="Stop (Aller à la fin)">■</button>
+                    <button class="replay-btn" id="btnPlay" onclick="app.playFromStart()" title="Lire">▶</button>
+                    <button class="replay-btn" id="btnStop" onclick="app.stopAnimation()" title="Stop">■</button>
                     <button class="replay-btn" id="btnLoop" onclick="app.toggleLoop()" title="Boucle (OFF)">🔁</button>
+                   
                 </div>
 
                 <div class="replay-control-group slider-container">
@@ -2349,228 +2549,225 @@
             <div id="contextMenu">
                 <div class="drag-handle" id="menuDragHandle"></div>
 
-                <div class="menu-row justify-center">
-                    <div class="color-dot" style="background:#222;" onclick="app.styleObject('black')"></div>
-                    <div class="color-dot" style="background:#2980b9;" onclick="app.styleObject('blue')"></div>
-                    <div class="color-dot" style="background:#c0392b;" onclick="app.styleObject('red')"></div>
-                    <div class="color-dot" style="background:#27ae60;" onclick="app.styleObject('green')"></div>
-                    <div class="color-dot" style="background:#e67e22;" onclick="app.styleObject('orange')"></div>
-                </div>
-                <div class="menu-row justify-center">
-                    <div class="color-dot" style="background:#8e44ad;" onclick="app.styleObject('purple')"></div>
-                    <div class="color-dot" style="background:#7f8c8d;" onclick="app.styleObject('gray')"></div>
-                    <div class="color-dot" style="background:#e91e63;" onclick="app.styleObject('pink')"></div>
-                    <div class="color-dot" style="background:#f1c40f;" onclick="app.styleObject('yellow')"></div>
-                    <div class="color-dot" style="background:#1abc9c;" onclick="app.styleObject('cyan')"></div>
-                </div>
+                <div id="menu-img-controls" style="display:none; flex-direction:column; gap:5px;">
+                    <div
+                        style="font-weight:bold; font-size:12px; text-align:center; color:#2980b9; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
+                        Image</div>
 
-                <div id="sepFill" class="sep-h" style="display:none;"></div>
+                    <div class="menu-row" style="justify-content: space-between;">
+                        <span style="font-size:11px; color:#555;">Transparence</span>
+                        <input type="range" class="compact-slider" id="imgOpacityRange" min="0.1" max="1" step="0.05"
+                            oninput="app.styleObject('image-opacity', this.value)" style="width:80px;">
+                    </div>
 
-                <div id="rowFill" class="menu-row" style="display:none;">
-                    <div class="icon-btn" onclick="app.styleObject('fill-solid')" title="Plein">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="4" y="4" width="16" height="16" fill="currentColor" opacity="0.5"
-                                stroke="currentColor" stroke-width="2" />
-                        </svg>
+                    <div class="menu-row">
+                        <div id="btnImgLock" class="icon-btn" onclick="app.styleObject('image-lock')"
+                            title="Verrouiller/Déverrouiller" style="width:100%; gap:8px;">
+                            <span>🔓</span> <span id="txtImgLock" style="font-size:11px;">Déverrouillé</span>
+                        </div>
                     </div>
-                    <div class="icon-btn" onclick="app.styleObject('fill-hatch')" title="Hachures">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2" />
-                            <path d="M6 18L18 6 M10 20L20 10 M4 14L14 4" stroke="currentColor" stroke-width="1" />
-                        </svg>
-                    </div>
-                    <div class="icon-btn" onclick="app.styleObject('fill-dots')" title="Points">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2" />
-                            <circle cx="8" cy="8" r="1" fill="currentColor" />
-                            <circle cx="16" cy="8" r="1" fill="currentColor" />
-                            <circle cx="8" cy="16" r="1" fill="currentColor" />
-                            <circle cx="16" cy="16" r="1" fill="currentColor" />
-                            <circle cx="12" cy="12" r="1" fill="currentColor" />
-                        </svg>
-                    </div>
-                    <div class="icon-btn" onclick="app.styleObject('fill-none')" title="Vide">
-                        <svg viewBox="0 0 24 24">
-                            <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2" />
-                        </svg>
+
+                    <div class="menu-row">
+                        <div class="icon-btn btn-trash" onclick="app.deleteFromMenu()">Supprimer l'image</div>
                     </div>
                 </div>
 
-                <div id="sep1" class="sep-h"></div>
-                <div id="rowStyle" class="menu-row">
-                    <div class="icon-btn" onclick="app.styleObject('solid')" title="Plein">
-                        <svg viewBox="0 0 24 24">
-                            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="3" />
-                        </svg>
-                    </div>
-                    <div class="icon-btn" onclick="app.styleObject('dashed')" title="Pointillés">
-                        <svg viewBox="0 0 24 24">
-                            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="3"
-                                stroke-dasharray="4,2" />
-                        </svg>
-                    </div>
-                    <input type="range" class="compact-slider" id="widthRange" min="1" max="8" step="1"
-                        oninput="app.previewLineWidth(this.value)" onchange="app.setLineWidth(this.value)"
-                        title="Épaisseur">
-                </div>
+                <div id="menu-geo-controls" style="display:flex; flex-direction:column; gap:2px;">
 
-                <div id="rowMeasure" style="display:none;">
-                    <div class="switch-container">
-                        <div id="btnMesNone" class="switch-btn" onclick="app.styleObject('toggleLength-off')"
-                            title="Masquer la mesure">
+                    <div class="menu-row justify-center">
+                        <div class="color-dot" style="background:#222;" onclick="app.styleObject('black')"></div>
+                        <div class="color-dot" style="background:#2980b9;" onclick="app.styleObject('blue')"></div>
+                        <div class="color-dot" style="background:#c0392b;" onclick="app.styleObject('red')"></div>
+                        <div class="color-dot" style="background:#27ae60;" onclick="app.styleObject('green')"></div>
+                        <div class="color-dot" style="background:#e67e22;" onclick="app.styleObject('orange')"></div>
+                    </div>
+                    <div class="menu-row justify-center">
+                        <div class="color-dot" style="background:#8e44ad;" onclick="app.styleObject('purple')"></div>
+                        <div class="color-dot" style="background:#7f8c8d;" onclick="app.styleObject('gray')"></div>
+                        <div class="color-dot" style="background:#e91e63;" onclick="app.styleObject('pink')"></div>
+                        <div class="color-dot" style="background:#f1c40f;" onclick="app.styleObject('yellow')"></div>
+                        <div class="color-dot" style="background:#1abc9c;" onclick="app.styleObject('cyan')"></div>
+                    </div>
+
+                    <div id="sepFill" class="sep-h" style="display:none;"></div>
+
+                    <div id="rowFill" class="menu-row" style="display:none;">
+                        <div class="icon-btn" onclick="app.styleObject('fill-solid')" title="Plein"><svg
+                                viewBox="0 0 24 24">
+                                <rect x="4" y="4" width="16" height="16" fill="currentColor" opacity="0.5"
+                                    stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('fill-hatch')" title="Hachures"><svg
+                                viewBox="0 0 24 24">
+                                <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2" />
+                                <path d="M6 18L18 6 M10 20L20 10 M4 14L14 4" stroke="currentColor" stroke-width="1" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('fill-dots')" title="Points"><svg
+                                viewBox="0 0 24 24">
+                                <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2" />
+                                <circle cx="8" cy="8" r="1" fill="currentColor" />
+                                <circle cx="16" cy="8" r="1" fill="currentColor" />
+                                <circle cx="8" cy="16" r="1" fill="currentColor" />
+                                <circle cx="16" cy="16" r="1" fill="currentColor" />
+                                <circle cx="12" cy="12" r="1" fill="currentColor" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('fill-none')" title="Vide"><svg
+                                viewBox="0 0 24 24">
+                                <rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor"
+                                    stroke-width="2" />
+                            </svg></div>
+                    </div>
+
+                    <div id="sep1" class="sep-h"></div>
+
+                    <div id="rowStyle" class="menu-row">
+                        <div class="icon-btn" onclick="app.styleObject('solid')" title="Plein"><svg viewBox="0 0 24 24">
+                                <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="3" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('dashed')" title="Pointillés"><svg
+                                viewBox="0 0 24 24">
+                                <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="3"
+                                    stroke-dasharray="4,2" />
+                            </svg></div>
+                        <input type="range" class="compact-slider" id="widthRange" min="1" max="8" step="1"
+                            oninput="app.previewLineWidth(this.value)" onchange="app.setLineWidth(this.value)"
+                            title="Épaisseur">
+                    </div>
+
+                    <div id="rowMeasure" style="display:none;">
+                        <div class="switch-container">
+                            <div id="btnMesNone" class="switch-btn" onclick="app.styleObject('toggleLength-off')"
+                                title="Masquer"><svg viewBox="0 0 24 24">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                                    </path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg></div>
+                            <div id="btnMesUp" class="switch-btn" onclick="app.styleObject('measureUp')" title="Dessus">
+                                <svg viewBox="0 0 24 24">
+                                    <line x1="2" y1="19" x2="22" y2="19"></line>
+                                    <rect x="7" y="5" width="10" height="8" rx="2"></rect>
+                                    <path d="M12 13v6"></path>
+                                </svg>
+                            </div>
+                            <div id="btnMesDown" class="switch-btn" onclick="app.styleObject('measureDown')"
+                                title="Dessous"><svg viewBox="0 0 24 24">
+                                    <line x1="2" y="5" x2="22" y2="5"></line>
+                                    <rect x="7" y="11" width="10" height="8" rx="2"></rect>
+                                    <path d="M12 5v6"></path>
+                                </svg></div>
+                        </div>
+                    </div>
+
+                    <div id="rowCoding" class="coding-grid" style="display:none;">
+                        <div class="mark-btn" onclick="app.styleObject('mark-none')" title="Aucun">Ø</div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-1')"><svg viewBox="0 0 20 20">
+                                <line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-2')"><svg viewBox="0 0 20 20">
+                                <path d="M7 4 L7 16 M13 4 L13 16" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-3')"><svg viewBox="0 0 20 20">
+                                <path d="M5 4 L5 16 M10 4 L10 16 M15 4 L15 16" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-x')"><svg viewBox="0 0 20 20">
+                                <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-xx')"><svg viewBox="0 0 20 20">
+                                <path d="M2 5 L8 15 M8 5 L2 15 M12 5 L18 15 M18 5 L12 15" stroke="currentColor"
+                                    stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-o')"><svg viewBox="0 0 20 20">
+                                <circle cx="10" cy="10" r="5" fill="none" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                        <div class="mark-btn" onclick="app.styleObject('mark-oo')"><svg viewBox="0 0 20 20">
+                                <circle cx="6" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+                                <circle cx="14" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+                            </svg></div>
+                    </div>
+
+                    <div id="rowAngle" class="menu-row" style="display:none;">
+                        <div id="btnToggleAngleVal" class="icon-btn" onclick="app.styleObject('toggleAngleVal')"
+                            title="Valeur"><svg viewBox="0 0 24 24"><text x="50%" y="55%" dominant-baseline="middle"
+                                    text-anchor="middle" font-family="Arial" font-weight="bold" font-size="10"
+                                    fill="currentColor">12°</text></svg></div>
+                        <div id="btnToggleAngleFill" class="icon-btn" onclick="app.styleObject('toggleAngleFill')"
+                            title="Remplir">
+                            <div class="icon-btn" id="btnAngleFill" title="Remplir / Vider"><svg viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                                    <path d="M4 20 L4 4 A16 16 0 0 1 20 20 H4 Z" fill="none" />
+                                    <path d="M4 20 L4 4 A16 16 0 0 1 15.3 8.7 Z" fill="currentColor" stroke="none" />
+                                </svg></div>
+                        </div>
+                        <div id="btnFlipAngle" class="icon-btn" onclick="app.styleObject('flipAngle')" title="Inverser">
                             <svg viewBox="0 0 24 24">
                                 <path
-                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                                </path>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 16.03 20 14.57 20 13c0-4.42-3.58-8-8-8zm-6 8c0-1.65.67-3.15 1.76-4.24L6.3 7.3C4.89 8.7 4 10.74 4 13c0 4.42 3.58 8 8 8v-3l5 5-5 5v-3c-3.31 0-6-2.69-6-6z" />
                             </svg>
                         </div>
+                    </div>
 
-                        <div id="btnMesUp" class="switch-btn" onclick="app.styleObject('measureUp')"
-                            title="Mesure au-dessus">
+                    <div id="rowTextProps" class="menu-row justify-center"
+                        style="display:none; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
+                        <div id="btnToggleLabel" class="icon-btn" onclick="app.styleObject('toggleLabel')" title="Nom">
                             <svg viewBox="0 0 24 24">
-                                <line x1="2" y1="19" x2="22" y2="19"></line>
-                                <rect x="7" y="5" width="10" height="8" rx="2"></rect>
-                                <path d="M12 13v6"></path>
+                                <path
+                                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                                    fill="currentColor" />
                             </svg>
                         </div>
-
-                        <div id="btnMesDown" class="switch-btn" onclick="app.styleObject('measureDown')"
-                            title="Mesure en-dessous">
-                            <svg viewBox="0 0 24 24">
-                                <line x1="2" y="5" x2="22" y2="5"></line>
-                                <rect x="7" y="11" width="10" height="8" rx="2"></rect>
-                                <path d="M12 5v6"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="rowCoding" class="coding-grid" style="display:none;">
-                    <div class="mark-btn" onclick="app.styleObject('mark-none')" title="Aucun">Ø</div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-1')"><svg viewBox="0 0 20 20">
-                            <line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-2')"><svg viewBox="0 0 20 20">
-                            <path d="M7 4 L7 16 M13 4 L13 16" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-3')"><svg viewBox="0 0 20 20">
-                            <path d="M5 4 L5 16 M10 4 L10 16 M15 4 L15 16" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-x')"><svg viewBox="0 0 20 20">
-                            <path d="M5 5 L15 15 M15 5 L5 15" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-xx')"><svg viewBox="0 0 20 20">
-                            <path d="M2 5 L8 15 M8 5 L2 15 M12 5 L18 15 M18 5 L12 15" stroke="currentColor"
-                                stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-o')"><svg viewBox="0 0 20 20">
-                            <circle cx="10" cy="10" r="5" fill="none" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                    <div class="mark-btn" onclick="app.styleObject('mark-oo')"><svg viewBox="0 0 20 20">
-                            <circle cx="6" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2" />
-                            <circle cx="14" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2" />
-                        </svg></div>
-                </div>
-
-                <div id="rowAngle" class="menu-row" style="display:none;">
-
-                    <div id="btnToggleAngleVal" class="icon-btn" onclick="app.styleObject('toggleAngleVal')"
-                        title="Afficher Valeur">
-                        <svg viewBox="0 0 24 24">
-                            <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial"
-                                font-weight="bold" font-size="10" fill="currentColor">12°</text>
-                        </svg>
+                        <div class="icon-btn" onclick="app.styleObject('textSize-dec')" title="Réduire"><svg
+                                viewBox="0 0 24 24">
+                                <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            </svg></div>
+                        <div
+                            style="font-weight:bold; color:#555; width:24px; text-align:center; font-size:14px; line-height:32px;">
+                            A</div>
+                        <div class="icon-btn" onclick="app.styleObject('textSize-inc')" title="Augmenter"><svg
+                                viewBox="0 0 24 24">
+                                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg></div>
                     </div>
 
-                    <div id="btnToggleAngleFill" class="icon-btn" onclick="app.styleObject('toggleAngleFill')"
-                        title="Remplir">
-                        <div class="icon-btn" id="btnAngleFill" onclick="app.toggleAngleFill()" title="Remplir / Vider">
-                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-                                <path d="M4 20 L4 4 A16 16 0 0 1 20 20 H4 Z" fill="none" />
-
-                                <path d="M4 20 L4 4 A16 16 0 0 1 15.3 8.7 Z" fill="currentColor" stroke="none" />
-                            </svg>
+                    <div id="rowLabelPos" style="display:none; padding: 4px 0; border-bottom: 1px solid #eee;">
+                        <div class="label-positioner" id="labelPosBox">
+                            <div class="label-preview">A</div>
+                            <div class="label-cross"></div>
+                            <div class="label-knob" id="labelPosKnob"></div>
                         </div>
                     </div>
 
-                    <div id="btnFlipAngle" class="icon-btn" onclick="app.styleObject('flipAngle')"
-                        title="Inverser (360°)">
-                        <svg viewBox="0 0 24 24">
-                            <path
-                                d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 16.03 20 14.57 20 13c0-4.42-3.58-8-8-8zm-6 8c0-1.65.67-3.15 1.76-4.24L6.3 7.3C4.89 8.7 4 10.74 4 13c0 4.42 3.58 8 8 8v-3l5 5-5 5v-3c-3.31 0-6-2.69-6-6z" />
-                        </svg>
+                    <div id="rowPointStyle" class="menu-row justify-center"
+                        style="display:none; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
+                        <div class="icon-btn" onclick="app.styleObject('pointStyle-cross')" title="Croix"><svg
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
+                                <path d="M5 5l14 14M19 5l-14 14" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('pointStyle-dot')" title="Disque"><svg
+                                viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                <circle cx="12" cy="12" r="6" />
+                            </svg></div>
+                        <div class="icon-btn" onclick="app.styleObject('pointStyle-pixel')" title="Pixel"><svg
+                                viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                <rect x="9" y="9" width="6" height="6" />
+                            </svg></div>
                     </div>
 
-                </div>
-                <div id="rowTextProps" class="menu-row justify-center"
-                    style="display:none; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
-                    <div id="btnToggleLabel" class="icon-btn" onclick="app.styleObject('toggleLabel')"
-                        title="Afficher/Masquer le nom" style="margin-right:8px;">
-                        <svg viewBox="0 0 24 24">
-                            <path
-                                d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
-                                fill="currentColor" />
-                        </svg>
+                    <div id="rowRenamer" style="display:none;">
+                        <div class="renamer-container">
+                            <button class="renamer-btn" onclick="app.cyclePointName(-1)">◀</button>
+                            <div class="renamer-display" id="renamerDisplay">A</div>
+                            <button class="renamer-btn" onclick="app.cyclePointName(1)">▶</button>
+                            <button class="renamer-btn" onclick="app.addPrime()" title="Ajouter '"><b>'</b></button>
+                        </div>
                     </div>
 
-                    <div class="icon-btn" onclick="app.styleObject('textSize-dec')" title="Réduire">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
+                    <div class="menu-row">
+                        <div class="icon-btn btn-trash" onclick="app.deleteFromMenu()">🗑️</div>
                     </div>
-
-                    <div
-                        style="font-weight:bold; color:#555; width:24px; text-align:center; font-size:14px; line-height:32px;">
-                        A</div>
-
-                    <div class="icon-btn" onclick="app.styleObject('textSize-inc')" title="Augmenter">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                </div>
-                <div id="rowLabelPos" style="display:none; padding: 4px 0; border-bottom: 1px solid #eee;">
-                    <div class="label-positioner" id="labelPosBox">
-                        <div class="label-preview">A</div>
-                        <div class="label-cross"></div>
-                        <div class="label-knob" id="labelPosKnob"></div>
-                    </div>
-                </div>
-                <div id="rowPointStyle" class="menu-row justify-center"
-                    style="display:none; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
-                    <div class="icon-btn" onclick="app.styleObject('pointStyle-cross')" title="Croix">
-                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
-                            <path d="M5 5l14 14M19 5l-14 14" />
-                        </svg>
-                    </div>
-                    <div class="icon-btn" onclick="app.styleObject('pointStyle-dot')" title="Disque">
-                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                            <circle cx="12" cy="12" r="6" />
-                        </svg>
-                    </div>
-                    <div class="icon-btn" onclick="app.styleObject('pointStyle-pixel')" title="Pixel">
-                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                            <rect x="9" y="9" width="6" height="6" />
-                        </svg>
-                    </div>
-                </div>
-                <div id="rowRenamer" style="display:none;">
-                    <div class="renamer-container">
-                        <button class="renamer-btn" onclick="app.cyclePointName(-1)">◀</button>
-
-                        <div class="renamer-display" id="renamerDisplay">A</div>
-                        <button class="renamer-btn" onclick="app.cyclePointName(1)">▶</button>
-
-                        <button class="renamer-btn" onclick="app.addPrime()" title="Ajouter '"><b>'</b></button>
-                    </div>
-                </div>
-
-                <div class="menu-row">
-                    <div class="icon-btn btn-trash" onclick="app.deleteFromMenu()">🗑️</div>
                 </div>
             </div>
         </div>
@@ -2623,6 +2820,7 @@
             </p>
         </div>
     </div>
+
 
 
     <script>
@@ -2990,6 +3188,96 @@
             }
         };
 
+        class BackgroundImage {
+            constructor(imgObj, x, y, width, height) {
+                this.img = imgObj;
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.angle = 0;
+                this.opacity = 0.5;
+                this.isLocked = false;
+            }
+
+            toLocal(mx, my) {
+                const dx = mx - this.x;
+                const dy = my - this.y;
+                return {
+                    x: dx * Math.cos(-this.angle) - dy * Math.sin(-this.angle),
+                    y: dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle)
+                };
+            }
+
+            getHitZone(mx, my) {
+                if (this.isLocked) return null;
+
+                const l = this.toLocal(mx, my);
+                const w2 = this.width / 2;
+                const h2 = this.height / 2;
+                const margin = 15; // Zone de clic tolérante
+
+                // 1. ROTATION (Poignée Haut-Milieu)
+                if (MathUtils.dist(l.x, l.y, 0, -h2 - 25) < margin) return 'rotate';
+
+                // 2. REDIMENSIONNEMENT HORIZONTAL (Bord Droit)
+                if (Math.abs(l.x - w2) < margin && Math.abs(l.y) < h2 - 10) return 'resize-w';
+
+                // 3. REDIMENSIONNEMENT VERTICAL (Bord Bas)
+                if (Math.abs(l.y - h2) < margin && Math.abs(l.x) < w2 - 10) return 'resize-h';
+
+                // 4. REDIMENSIONNEMENT COIN (Bas-Droite - garde le ratio ou libre ?)
+                // On le garde pour le confort, disons qu'il est libre aussi
+                if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return 'resize-both';
+
+                // 5. DEPLACEMENT (Corps)
+                if (l.x > -w2 && l.x < w2 && l.y > -h2 && l.y < h2) return 'move';
+
+                return null;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.globalAlpha = this.opacity;
+
+                const w2 = this.width / 2;
+                const h2 = this.height / 2;
+
+                // Image
+                ctx.drawImage(this.img, -w2, -h2, this.width, this.height);
+
+                // Interface d'édition
+                if (!this.isLocked) {
+                    ctx.globalAlpha = 1.0;
+
+                    // Cadre pointillé
+                    ctx.strokeStyle = '#2980b9';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-w2, -h2, this.width, this.height);
+                    ctx.setLineDash([]);
+
+                    // Poignée Rotation (Haut)
+                    ctx.beginPath(); ctx.moveTo(0, -h2); ctx.lineTo(0, -h2 - 25); ctx.stroke();
+                    ctx.fillStyle = '#2980b9';
+                    ctx.beginPath(); ctx.arc(0, -h2 - 25, 6, 0, Math.PI * 2); ctx.fill();
+
+                    // Poignée Largeur (Milieu Droit)
+                    ctx.fillStyle = 'white'; ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.rect(w2 - 6, -6, 12, 12); ctx.fill(); ctx.stroke();
+
+                    // Poignée Hauteur (Milieu Bas)
+                    ctx.beginPath(); ctx.rect(-6, h2 - 6, 12, 12); ctx.fill(); ctx.stroke();
+
+                    // Poignée Coin (Bas Droit)
+                    ctx.fillStyle = '#2980b9';
+                    ctx.beginPath(); ctx.rect(w2 - 6, h2 - 6, 12, 12); ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
         // Class //
         class GeometryObject {
             constructor(p1, p2, id = null) {
@@ -3019,12 +3307,7 @@
                     dash: this.dash
                 };
             }
-            getCoords() {
-                return {
-                    p1: this.p1,
-                    p2: this.p2
-                };
-            }
+
         }
 
         class Point extends GeometryObject {
@@ -4331,8 +4614,18 @@
                 };
             }
             getHitZone(mx, my) {
-                const coll = 10; // Constante pour laisser l'angle droit
+                const coll = 10;
                 const l = this.toLocal(mx, my);
+
+                // 1. NOUVEAU : Zone Resize LARGEUR (Pointe droite sur l'axe X)
+                // On détecte un cercle de 20px autour du bout de la règle horizontale
+                if (Math.sqrt((l.x - this.width) ** 2 + (l.y) ** 2) < 20) return 'resizeWidth';
+
+                // 2. NOUVEAU : Zone Resize HAUTEUR (Pointe basse sur l'axe Y)
+                // On détecte un cercle de 20px autour du bout de la règle verticale
+                if (Math.sqrt((l.x) ** 2 + (l.y - this.height) ** 2) < 20) return 'resizeHeight';
+
+                // Reste de la logique existante...
                 if (l.x < coll && l.y < coll) return null;
                 if (l.x > 20 && l.x < 60 && l.y > 20 && l.y < 60) return 'toggleSlide';
                 if (l.x <= coll && l.y <= coll) return null;
@@ -4379,7 +4672,8 @@
                 // --- 2. GRADUATIONS ---
                 const mm = 5;
                 const cm = 50;
-                const padding = 30;
+                // Plus besoin d'un padding fixe énorme, le calcul dynamique s'en charge
+                const padding = 10;
 
                 ctx.fillStyle = style.graduations.color;
                 ctx.strokeStyle = style.graduations.color;
@@ -4388,8 +4682,17 @@
                 ctx.font = style.graduations.font;
                 ctx.lineWidth = style.graduations.width;
 
-                // Axe X
+                // AXE X (Horizontal)
                 for (let i = 0; i <= this.width - padding; i += mm) {
+                    // CALCUL DE SÉCURITÉ :
+                    // Quelle est la hauteur disponible sous l'hypoténuse à cette position i ?
+                    // Thales : HauteurDispo / HauteurTotale = (LargeurTotale - i) / LargeurTotale
+                    const hAvailable = this.height * ((this.width - i) / this.width);
+
+                    // Si on a moins de 35px de hauteur, on arrête de dessiner les chiffres
+                    // (35px = hauteur approx du texte + marge)
+                    if (hAvailable < 35) break;
+
                     let len = 6;
                     if (i % cm === 0) len = 14;
                     else if (i % (cm / 2) === 0) len = 9;
@@ -4401,9 +4704,16 @@
                     if (i > 0 && i % cm === 0) ctx.fillText(i / cm, i, 28);
                 }
 
-                // Axe Y
+                // AXE Y (Vertical)
                 ctx.textBaseline = "middle";
                 for (let i = 0; i <= this.height - padding; i += mm) {
+                    // CALCUL DE SÉCURITÉ :
+                    // Quelle est la largeur disponible à cette hauteur i ?
+                    const wAvailable = this.width * ((this.height - i) / this.height);
+
+                    // Si on a moins de 35px de large, on arrête (pour ne pas couper le texte tourné)
+                    if (wAvailable < 35) break;
+
                     let len = 6;
                     if (i % cm === 0) len = 14;
                     else if (i % (cm / 2) === 0) len = 9;
@@ -4879,6 +5189,288 @@
         }
 
         class GeometrieApp {
+            // À appeler chaque fois qu'un objet est ajouté (push dans entities)
+            refreshSliderBounds() {
+                const total = this.entities.length;
+
+                // Si le tiroir est fermé, on ne fait rien de coûteux, on note juste que le max a changé
+                if (!this.isDrawerOpen) {
+                    // On s'assure juste que si on rouvre, ce sera à jour
+                    if (this.loopEndIndex >= total - 1) this.loopEndIndex = total;
+                    return;
+                }
+
+                // LOGIQUE INTELLIGENTE :
+                // Est-ce que l'utilisateur avait sélectionné "Tout jusqu'à la fin" ?
+                // (On regarde si la fin actuelle est égale à l'ancien total, c'est-à-dire total - 1 car on vient d'ajouter 1)
+                const wasAtMax = (this.loopEndIndex >= total - 1);
+
+                if (wasAtMax) {
+                    // Oui, il était au bout -> On inclut le nouvel objet automatiquement
+                    this.loopEndIndex = total;
+                }
+                // Sinon, il avait une boucle partielle (ex: 0 à 5 sur 10), donc on ne touche pas à ses réglages.
+
+                // On met à jour le visuel
+                this.updateCustomSliderUI();
+            }
+            initLoopState() {
+                this.loopStartIndex = 0;
+                this.loopEndIndex = 0; // Sera mis à jour dynamiquement
+                this.isDrawerOpen = false;
+            }
+
+            // 2. Ouvrir / Fermer le tiroir
+            toggleTimelineDrawer() {
+                const drawer = document.getElementById('timelineDrawer');
+                const btn = document.getElementById('btnCut');
+                this.isDrawerOpen = !this.isDrawerOpen;
+
+                if (this.isDrawerOpen) {
+                    drawer.classList.add('open');
+                    btn.classList.add('active');
+                    // Mise à jour des bornes max au cas où on a ajouté des objets
+                    this.updateSliderBounds();
+                } else {
+                    drawer.classList.remove('open');
+                    btn.classList.remove('active');
+                }
+            }
+            /* --- NOUVELLE GESTION DU SLIDER CUSTOM --- */
+
+            initCustomSlider() {
+                this.loopStartIndex = 0;
+                this.loopEndIndex = 0; // Sera init à max plus tard
+
+                const area = document.getElementById('customSliderArea');
+                const tStart = document.getElementById('csThumbStart');
+                const tEnd = document.getElementById('csThumbEnd');
+
+                // Fonction générique pour gérer le glisser-déposer
+                const setupDrag = (thumb, isStart) => {
+                    const onMove = (e) => {
+                        // Gestion Souris ou Tactile
+                        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+
+                        const rect = area.getBoundingClientRect();
+                        let percent = (clientX - rect.left) / rect.width;
+
+                        // Bornes 0 - 1
+                        percent = Math.max(0, Math.min(1, percent));
+
+                        const total = this.entities.length;
+                        let val = Math.round(percent * total);
+
+                        // Contraintes (Start < End)
+                        if (isStart) {
+                            // Le début ne peut pas dépasser la fin
+                            if (val >= this.loopEndIndex) val = this.loopEndIndex - 1;
+                            if (val < 0) val = 0;
+                            this.loopStartIndex = val;
+                        } else {
+                            // La fin ne peut pas être avant le début
+                            if (val <= this.loopStartIndex) val = this.loopStartIndex + 1;
+                            if (val > total) val = total;
+                            this.loopEndIndex = val;
+                        }
+
+                        // Mise à jour visuelle + Mise à jour du dessin
+                        this.updateCustomSliderUI();
+
+                        // On se place à l'étape pour voir ce qu'on fait (Scrubbing)
+                        this.replayIndex = isStart ? this.loopStartIndex : this.loopEndIndex;
+                        this.fastForward(this.replayIndex);
+                        this.render();
+                    };
+
+                    const onUp = () => {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        document.removeEventListener('touchmove', onMove);
+                        document.removeEventListener('touchend', onUp);
+                    };
+
+                    const startDrag = (e) => {
+                        e.preventDefault(); // Empêche la sélection de texte
+                        document.addEventListener('mousemove', onMove);
+                        document.addEventListener('mouseup', onUp);
+                        document.addEventListener('touchmove', onMove, { passive: false });
+                        document.addEventListener('touchend', onUp);
+                    };
+
+                    thumb.addEventListener('mousedown', startDrag);
+                    thumb.addEventListener('touchstart', startDrag, { passive: false });
+                };
+
+                // On active les deux poignées
+                setupDrag(tStart, true);  // Poignée DÉBUT
+                setupDrag(tEnd, false);   // Poignée FIN
+            }
+
+            // Mise à jour graphique des positions (Pourcentage CSS)
+            updateCustomSliderUI() {
+                const total = this.entities.length || 1; // Évite division par 0
+
+                // Si c'est la première fois, on initialise la fin au max
+                if (this.loopEndIndex === 0 && total > 0) this.loopEndIndex = total;
+
+                const sVal = this.loopStartIndex;
+                const eVal = this.loopEndIndex;
+
+                const sPerc = (sVal / total) * 100;
+                const ePerc = (eVal / total) * 100;
+
+                const tStart = document.getElementById('csThumbStart');
+                const tEnd = document.getElementById('csThumbEnd');
+                const fill = document.getElementById('csFill');
+
+                // Positions
+                tStart.style.left = sPerc + '%';
+                tEnd.style.left = ePerc + '%';
+
+                // La barre bleue entre les deux
+                fill.style.left = sPerc + '%';
+                fill.style.width = (ePerc - sPerc) + '%';
+
+                // Mise à jour des textes (Tooltips et labels fixes si tu en as gardé)
+                document.getElementById('csTooltipStart').innerText = sVal;
+                document.getElementById('csTooltipEnd').innerText = eVal;
+
+                const lblS = document.getElementById('lblLoopStart');
+                const lblE = document.getElementById('lblLoopEnd');
+                if (lblS) lblS.innerText = sVal;
+                if (lblE) lblE.innerText = eVal;
+            }
+
+            // Appelé quand on ouvre le tiroir pour recalibrer
+            updateSliderBounds() {
+                // Si on a ajouté des objets depuis la dernière ouverture
+                if (this.loopEndIndex === 0 || this.loopEndIndex >= this.entities.length) {
+                    this.loopEndIndex = this.entities.length;
+                }
+                this.updateCustomSliderUI();
+            }
+            // 6. LA FONCTION CLÉ : FAST FORWARD (Avance Rapide)
+            // Cette fonction exécute "dans le vide" tout ce qui s'est passé avant targetIndex
+            fastForward(targetIndex) {
+                // A. On réinitialise les widgets (pour ne pas qu'ils traînent n'importe où)
+                this.activeWidgets = { compass: false, protractor: false, setsquare: false, ruler: false };
+
+                // B. On parcourt l'historique jusqu'à targetIndex
+                for (let i = 0; i < targetIndex; i++) {
+                    const ent = this.entities[i];
+
+                    // Si c'est une animation d'outil, on l'applique instantanément !
+                    if (ent instanceof ToolAnimation) {
+                        // Logique simplifiée de applyInterpolation avec t=1 (Fin)
+                        if (ent.widgetType.endsWith('Hide')) {
+                            const type = ent.widgetType.replace('Hide', '');
+                            this.activeWidgets[type] = false;
+                        } else if (ent.widgetType === 'pointMove' || ent.widgetType === 'textMove') {
+                            const target = this.entities.find(e => e.id === ent.targetId);
+                            if (target) { target.x = ent.endState.x; target.y = ent.endState.y; target.update?.(); }
+                        } else {
+                            // Outil (Compas, Règle...)
+                            this.activeWidgets[ent.widgetType] = true;
+                            // On crée le widget s'il n'existe pas
+                            let w = this[ent.widgetType + 'Widget'];
+                            if (!w) {
+                                // Création à la volée (copié de toggleWidget)
+                                if (ent.widgetType === 'compass') w = new CompassWidget(0, 0);
+                                else if (ent.widgetType === 'ruler') w = new RulerWidget(0, 0);
+                                // ... etc (je simplifie, ton code gérera les news)
+                                this[ent.widgetType + 'Widget'] = w;
+                            }
+
+                            if (w) {
+                                w.x = ent.endState.x;
+                                w.y = ent.endState.y;
+                                w.angle = ent.endState.angle;
+                                if (ent.endState.radius) w.radius = ent.endState.radius;
+                            }
+                        }
+                    }
+                }
+                // C. Mise à jour des dépendances géométriques
+                this.updateDependents();
+            }
+
+            handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // 1. Récupérer la taille VISIBLE de l'écran (en pixels CSS)
+                        const container = this.canvas.parentElement;
+                        const screenW = container.clientWidth;
+                        const screenH = container.clientHeight;
+
+                        // 2. Convertir le centre de l'écran en coordonnées du Monde (Géo)
+                        // Formule : (PixelEcran - DécalagePan) / Zoom
+                        const cx = (screenW / 2 - this.view.x) / this.view.zoom;
+                        const cy = (screenH / 2 - this.view.y) / this.view.zoom;
+
+                        // 3. Calculer une taille raisonnable (50% de la largeur visible convertie en unités monde)
+                        // On divise par le zoom pour que l'image ait l'air constante
+                        const visibleWorldWidth = screenW / this.view.zoom;
+                        const targetW = visibleWorldWidth * 0.5;
+
+                        const ratio = img.height / img.width;
+                        const w = targetW;
+                        const h = targetW * ratio;
+
+                        // 4. Création
+                        this.bgImage = new BackgroundImage(img, cx, cy, w, h);
+
+                        this.render();
+                        this.showToast("🖼️ Image importée au centre !");
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                event.target.value = '';
+            }
+            showImageControls() {
+                const panel = document.getElementById('imageControls');
+                const range = document.getElementById('imgOpacity');
+                const btnLock = document.getElementById('btnLockImage');
+
+                if (this.bgImage) {
+                    panel.style.display = 'flex';
+
+                    // Sync valeurs
+                    range.value = this.bgImage.opacity;
+                    btnLock.innerHTML = this.bgImage.isLocked ? "🔒 Verrouillé" : "🔓 Déverrouillé";
+                    btnLock.style.background = this.bgImage.isLocked ? "#fab1a0" : "#eee";
+
+                    // Events
+                    range.oninput = (e) => {
+                        if (this.bgImage) {
+                            this.bgImage.opacity = parseFloat(e.target.value);
+                            this.render();
+                        }
+                    };
+
+                    btnLock.onclick = () => {
+                        if (this.bgImage) {
+                            this.bgImage.isLocked = !this.bgImage.isLocked;
+                            this.showImageControls(); // Update UI
+                            this.render();
+                        }
+                    };
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+
+            removeBackgroundImage() {
+                this.bgImage = null;
+                document.getElementById('imageControls').style.display = 'none';
+                this.render();
+            }
             // --- A AJOUTER DANS LA CLASSE GeometrieApp ---
 
             // Gestion des onglets
@@ -5568,6 +6160,7 @@
             setGlobalPointStyle(style) {
                 this.defaultPointStyle = style;
 
+                // 1. Mise à jour visuelle de la liste déroulante (Ton code existant)
                 ['cross', 'dot', 'pixel'].forEach(s => {
                     const btn = document.getElementById('btnPt' + s.charAt(0).toUpperCase() + s.slice(1));
                     if (btn) {
@@ -5580,6 +6173,20 @@
                         }
                     }
                 });
+
+                // 2. NOUVEAU : Mise à jour de l'icône principale
+                const mainBtn = document.getElementById('btnPointStyleMain');
+                if (mainBtn) {
+                    let svgContent = '';
+                    if (style === 'cross') {
+                        svgContent = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none"><path d="M6 6l12 12M18 6l-12 12" /></svg>';
+                    } else if (style === 'dot') {
+                        svgContent = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="5" /></svg>';
+                    } else if (style === 'pixel') {
+                        svgContent = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="10" y="10" width="4" height="4" /></svg>';
+                    }
+                    mainBtn.innerHTML = svgContent;
+                }
             }
 
             togglePanMode() {
@@ -5645,18 +6252,7 @@
                 document.getElementById('customModal').style.display = 'none';
             }
 
-            toggleGlobalLabels() {
-                const points = this.entities.filter(e => e instanceof Point);
-                if (points.length === 0) return;
 
-                const hasHidden = points.some(p => p.showLabel === false);
-                const newState = hasHidden ? true : false;
-
-                points.forEach(p => p.showLabel = newState);
-
-                this.saveState();
-                this.render();
-            }
 
             // 2. Changer la taille globale (+2 ou -2)
             offsetGlobalTextSize(delta) {
@@ -5747,19 +6343,7 @@
                 this.render();
             }
 
-            resizeCanvas() {
-                const container = this.canvas.parentElement;
-                const rect = container.getBoundingClientRect();
-                this.dpr = window.devicePixelRatio || 1;
 
-                this.canvas.width = Math.round(rect.width * this.dpr);
-                this.canvas.height = Math.round(rect.height * this.dpr);
-
-                this.canvas.style.width = rect.width + 'px';
-                this.canvas.style.height = rect.height + 'px';
-
-                this.render();
-            }
 
             rewindState() {
                 for (let i = this.entities.length - 1; i >= 0; i--) {
@@ -6044,7 +6628,7 @@
                         document.title = "GéoSoft - " + this.projectTitle;
                     };
                 }
-
+                this.bgImage = null; // Pour stocker l'image
                 this.widgetZOrder = ['ruler', 'setsquare', 'protractor', 'compass'];
                 this.isPanning = false;
                 this.lastMouseScreen = { x: 0, y: 0 };
@@ -6125,6 +6709,8 @@
                 this.selectedObject = null;
                 this.initEventListeners();
                 this.initShortcuts();
+                this.setGlobalPointStyle('cross');
+                this.initCustomSlider();
                 this.render();
                 setTimeout(() => this.checkAutoSave(), 500);
             }
@@ -6209,11 +6795,7 @@
                     }
                 }
             }
-            toggleTools() {
-                this.showTools = !this.showTools;
-                document.getElementById('btnTools').classList.toggle('active');
-                this.render();
-            }
+
 
             clearAll() {
                 this.showModal("Voulez-vous vraiment tout effacer ?", () => {
@@ -6230,6 +6812,7 @@
             addEntity(entity) {
                 this.entities.push(entity);
                 this.replayIndex = this.entities.length;
+                this.refreshSliderBounds();
             }
 
             saveFile() {
@@ -6395,18 +6978,48 @@
                 this.saveState();
                 if (this.isPlaying) return;
 
+                // Nettoyage standard
                 this.activeWidgets = { compass: false, protractor: false, setsquare: false, ruler: false };
                 ['compass', 'protractor', 'setsquare', 'ruler'].forEach(t => {
                     const btn = document.getElementById('btn-' + t);
                     if (btn) btn.classList.remove('widget-active');
                 });
+
+                // Reset depuis l'historique
                 if (this.historyPast.length > 0) {
                     this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
                 }
 
                 this.rewindState();
 
-                this.replayIndex = 0;
+                // --- GESTION DU DÉPART INTELLIGENT ---
+                // Par défaut, on part de 0 et on va jusqu'au bout
+                let startIndex = 0;
+                let limit = this.entities.length;
+
+                // MAIS si le tiroir est OUVERT, on respecte les slider
+                if (this.isDrawerOpen) {
+                    startIndex = this.loopStartIndex || 0;
+                    limit = (this.loopEndIndex && this.loopEndIndex > 0) ? this.loopEndIndex : this.entities.length;
+
+                    // Sécurité : si on est hors zone, on se recale
+                    if (this.replayIndex < startIndex || this.replayIndex >= limit) {
+                        this.replayIndex = startIndex;
+                    }
+                } else {
+                    // Tiroir fermé : On repart de 0 (sauf si on est au milieu, on continue)
+                    // Si on est à la fin, on repart de 0
+                    if (this.replayIndex >= limit) {
+                        this.replayIndex = 0;
+                    }
+                }
+
+                // Reconstruction du passé si nécessaire (Fast Forward)
+                if (this.replayIndex > 0) {
+                    this.fastForward(this.replayIndex);
+                }
+                // -------------------------------------
+
                 this.lockInterface(true);
                 this.isPlaying = true;
                 this.isToolAnimating = false;
@@ -6419,7 +7032,6 @@
                 this.render();
                 this.animateLoop();
             }
-
             pauseAnimation() {
                 this.isPlaying = false;
                 const btn = document.getElementById('btnPlay');
@@ -6466,21 +7078,30 @@
                 }
             }
 
+
             animateLoop() {
                 if (!this.isPlaying) return;
 
                 const now = performance.now();
-                const max = this.entities.length;
 
+                // MODIF 1 : La fin n'est plus forcément la fin du tableau, mais la fin de la boucle choisie
+                // Si loopEndIndex vaut 0 (pas initialisé), on prend la longueur totale par sécurité
+
+                const useCustomLoop = this.isDrawerOpen;
+
+                const limit = (useCustomLoop && this.loopEndIndex > 0) ? this.loopEndIndex : this.entities.length;
+                const startObj = (useCustomLoop) ? this.loopStartIndex : 0;
+                // --- A. GESTION DE LA PAUSE EN FIN DE BOUCLE ---
                 if (this.waitEndTime > 0) {
                     if (now > this.waitEndTime) {
                         this.waitEndTime = 0;
-                        this.replayIndex = 0;
 
-                        if (this.historyPast.length > 0) {
-                            this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
-                        }
-                        this.rewindState();
+                        // MODIF 2 : On ne repart pas de 0, mais de loopStartIndex
+                        this.replayIndex = this.loopStartIndex || 0;
+
+                        // MODIF 3 : On utilise fastForward pour reconstruire "le passé" instantanément
+                        // (C'est ça qui permet de boucler le milieu sans perdre le début)
+                        this.fastForward(this.replayIndex);
 
                         this.lastStepTime = now;
                     }
@@ -6489,24 +7110,17 @@
                     return;
                 }
 
+                // --- B. ANIMATION FLUIDE D'UN OUTIL (INTERPOLATION) ---
                 if (this.isToolAnimating) {
                     const elapsed = now - this.toolAnimStartTime;
                     const anim = this.entities[this.replayIndex];
+
+                    // Calcul durée dynamique (inchangé)
                     let duration = this.playbackSpeed;
-
-                    if (anim && anim.startState && anim.endState &&
-                        typeof anim.startState.angle === 'number' &&
-                        typeof anim.endState.angle === 'number') {
-
-                        const startA = anim.startState.angle;
-                        const endA = anim.endState.angle;
-                        const delta = Math.abs(endA - startA);
-
-                        if (delta > 0.01) {
-                            duration = delta * (this.playbackSpeed * 0.5);
-                        }
+                    if (anim && anim.startState && anim.endState && typeof anim.startState.angle === 'number') {
+                        const delta = Math.abs(anim.endState.angle - anim.startState.angle);
+                        if (delta > 0.01) duration = delta * (this.playbackSpeed * 0.5);
                     }
-
                     if (duration < 150) duration = 150;
 
                     let t = elapsed / duration;
@@ -6514,23 +7128,21 @@
 
                     if (anim) this.applyInterpolation(anim, t);
 
+                    // Fin de l'interpolation
                     if (t === 1) {
                         this.isToolAnimating = false;
                         this.replayIndex++;
 
-                        if (this.replayIndex < this.entities.length) {
+                        // Petit saut pour afficher la géométrie qui suit immédiatement l'outil
+                        if (this.replayIndex < limit) { // <-- On respecte la limit ici aussi
                             const nextObj = this.entities[this.replayIndex];
-                            if (nextObj instanceof CompassArc ||
-                                nextObj instanceof Segment ||
-                                nextObj instanceof Circle ||
-                                nextObj instanceof Line ||
-                                nextObj instanceof Ray ||
-                                nextObj instanceof Angle ||
+                            if (nextObj instanceof CompassArc || nextObj instanceof Segment ||
+                                nextObj instanceof Circle || nextObj instanceof Line ||
+                                nextObj instanceof Ray || nextObj instanceof Angle ||
                                 nextObj instanceof Point) {
                                 this.replayIndex++;
                             }
                         }
-
                         this.lastStepTime = now;
                     }
 
@@ -6539,16 +7151,20 @@
                     return;
                 }
 
+                // --- C. BOUCLE PRINCIPALE (STEP BY STEP) ---
                 if (now - this.lastStepTime > this.playbackSpeed) {
 
-                    if (this.replayIndex >= max) {
+                    // MODIF 4 : On vérifie si on a atteint la limite personnalisée (limit)
+                    if (this.replayIndex >= limit) {
                         if (this.isLooping) {
-                            this.waitEndTime = now + this.loopDelay;
+                            // On déclenche le délai d'attente avant de reboucler
+                            this.waitEndTime = now + (this.loopDelay || 1000);
                         } else {
                             this.stopAnimation();
                             return;
                         }
                     } else {
+                        // On continue d'avancer
                         const nextEnt = this.entities[this.replayIndex];
 
                         if (nextEnt instanceof ToolAnimation) {
@@ -6560,9 +7176,12 @@
                         }
                     }
                 }
+
                 this.render();
                 requestAnimationFrame(() => this.animateLoop());
             }
+
+
             drawRuler(ctx, start, end) {
                 if (this.activeWidgets.ruler) return;
                 const dist = MathUtils.dist(start.x, start.y, end.x, end.y);
@@ -6619,9 +7238,24 @@
                 ctx.restore();
             }
 
-            styleObject(action) {
+            styleObject(action, val = null) {
                 this.saveState();
                 if (!this.selectedObject) return;
+                if (action === 'image-opacity') {
+                    if (this.selectedObject instanceof BackgroundImage) {
+                        this.selectedObject.opacity = parseFloat(val);
+                        this.render();
+                        return; // On sort tout de suite
+                    }
+                }
+                else if (action === 'image-lock') {
+                    if (this.selectedObject instanceof BackgroundImage) {
+                        this.selectedObject.isLocked = !this.selectedObject.isLocked;
+                        this.updateContextMenuUI(); // Met à jour le texte du bouton
+                        this.render();
+                        return;
+                    }
+                }
                 if (action.startsWith('fill-')) {
                     if (this.selectedObject instanceof Polygon) {
                         this.selectedObject.fillMode = action.replace('fill-', '');
@@ -6694,47 +7328,123 @@
                 this.render();
             }
 
+
             updateContextMenuUI() {
                 if (!this.selectedObject) return;
 
+                // Récupération des conteneurs
+                const boxGeo = document.getElementById('menu-geo-controls');
+                const boxImg = document.getElementById('menu-img-controls');
+
+                // === CAS IMAGE ===
+                if (this.selectedObject instanceof BackgroundImage) {
+                    if (boxGeo) boxGeo.style.display = 'none';
+                    if (boxImg) boxImg.style.display = 'flex';
+                    // Mise à jour des sliders/boutons image...
+                    const range = document.getElementById('imgOpacityRange');
+                    const txt = document.getElementById('txtImgLock');
+                    const btn = document.getElementById('btnImgLock');
+                    if (range) range.value = this.selectedObject.opacity;
+                    if (btn && txt) {
+                        if (this.selectedObject.isLocked) {
+                            txt.innerText = "Verrouillé";
+                            btn.style.background = "#fab1a0";
+                        } else {
+                            txt.innerText = "Déverrouillé";
+                            btn.style.background = "rgba(255,255,255,0.6)";
+                        }
+                    }
+                    return;
+                }
+
+                // === CAS GÉOMÉTRIE ===
+                if (boxImg) boxImg.style.display = 'none';
+                if (boxGeo) boxGeo.style.display = 'flex';
+
+                // 1. LE GRAND NETTOYAGE (Force le masquage de tout le monde)
+
+                // Reset visuel boutons
                 document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
 
+                // Gestion style de trait (affiché par défaut sauf pour Point/Texte)
+                const rowStyle = document.getElementById('rowStyle');
+                const sep1 = document.getElementById('sep1');
+                const slider = document.getElementById('widthRange');
+
+                if (!(this.selectedObject instanceof Point) && !(this.selectedObject instanceof TextLabel)) {
+                    if (rowStyle) rowStyle.style.display = 'flex';
+                    if (sep1) sep1.style.display = 'block';
+                    if (slider) slider.value = this.selectedObject.lineWidth || 2;
+                } else {
+                    if (rowStyle) rowStyle.style.display = 'none';
+                    if (sep1) sep1.style.display = 'none';
+                }
+
+                // 2. RÉAFFICHAGE SÉLECTIF
+
+                // SEGMENTS
                 if (this.selectedObject instanceof Segment) {
-                    if (!this.selectedObject.showLength) {
-                        document.getElementById('btnMesNone').classList.add('active');
-                    } else if (this.selectedObject.measureOffset < 0) {
-                        document.getElementById('btnMesUp').classList.add('active');
-                    } else {
-                        document.getElementById('btnMesDown').classList.add('active');
+                    const rM = document.getElementById('rowMeasure');
+                    const rC = document.getElementById('rowCoding');
+                    if (rM) { rM.style.cssText = ''; rM.style.display = 'block'; }
+                    if (rC) {
+                        // On rétablit le grid important pour l'alignement
+                        rC.style.cssText = 'display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee;';
+                    }
+
+                    if (!this.selectedObject.showLength) document.getElementById('btnMesNone').classList.add('active');
+                    else if (this.selectedObject.measureOffset < 0) document.getElementById('btnMesUp').classList.add('active');
+                    else document.getElementById('btnMesDown').classList.add('active');
+                }
+
+                // POLYGONES / CERCLES
+                else if (this.selectedObject instanceof Polygon || this.selectedObject instanceof Circle) {
+                    const rF = document.getElementById('rowFill');
+                    const sF = document.getElementById('sepFill');
+                    if (rF) { rF.style.cssText = ''; rF.style.display = 'flex'; }
+                    if (sF) { sF.style.cssText = ''; sF.style.display = 'block'; }
+
+                    const mode = this.selectedObject.fillMode || 'solid';
+                    const btn = document.querySelector(`#rowFill .icon-btn[onclick*="fill-${mode}"]`);
+                    if (btn) btn.classList.add('active');
+                }
+
+                // ANGLES
+                else if (this.selectedObject instanceof Angle) {
+                    const rA = document.getElementById('rowAngle');
+                    if (rA) rA.style.cssText = "display: flex !important; justify-content: center; gap: 8px;";
+
+                    if (this.selectedObject.showValue) document.getElementById('btnToggleAngleVal').classList.add('active');
+                    if (this.selectedObject.isFilled) document.getElementById('btnToggleAngleFill').classList.add('active');
+                }
+
+                // POINTS
+                else if (this.selectedObject instanceof Point) {
+                    ['rowLabelPos', , 'rowPointStyle', 'rowTextProps'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { el.style.cssText = ''; el.style.display = 'flex'; } // Reset cssText
+                    });
+                    document.getElementById('rowRenamer').style.display = 'block';
+                    document.getElementById('rowLabelPos').style.display = 'block'; // Exception block
+
+                    if (this.selectedObject.showLabel) document.getElementById('btnToggleLabel').classList.add('active');
+                    document.getElementById('renamerDisplay').innerText = this.selectedObject.label;
+
+                    // Maj position bouton label
+                    const angle = this.selectedObject.labelAngle || -Math.PI / 4;
+                    const knob = document.getElementById('labelPosKnob');
+                    if (knob) {
+                        const r = 24;
+                        knob.style.left = (30 + Math.cos(angle) * r) + 'px';
+                        knob.style.top = (30 + Math.sin(angle) * r) + 'px';
                     }
                 }
 
-                const rowFill = document.getElementById('rowFill');
-                const sepFill = document.getElementById('sepFill');
-
-
-                if (this.selectedObject instanceof Polygon) {
-                    rowFill.style.display = 'flex';
-                    sepFill.style.display = 'block';
-
-                    const mode = this.selectedObject.fillMode || 'solid';
-                    const btn = rowFill.querySelector(`.icon-btn[onclick="app.styleObject('fill-${mode}')"]`);
-                    if (btn) btn.classList.add('active');
-
-                    if (document.getElementById('rowAngle')) document.getElementById('rowAngle').style.display = 'none';
-                    if (document.getElementById('rowMeasure')) document.getElementById('rowMeasure').style.display = 'none';
-                    if (document.getElementById('rowCoding')) document.getElementById('rowCoding').style.display = 'none';
-
-                }
-                else {
-                    rowFill.style.display = 'none';
-                    sepFill.style.display = 'none';
-                }
-
-                if (this.selectedObject instanceof Angle) {
-                    if (this.selectedObject.showValue) document.getElementById('btnToggleAngleVal').classList.add('active');
-                    if (this.selectedObject.isFilled) document.getElementById('btnToggleAngleFill').classList.add('active');
+                // TEXTES
+                else if (this.selectedObject instanceof TextLabel) {
+                    const rT = document.getElementById('rowTextProps');
+                    if (rT) { rT.style.cssText = ''; rT.style.display = 'flex'; }
                 }
             }
             previewLineWidth(val) {
@@ -6752,10 +7462,25 @@
             deleteFromMenu() {
                 this.saveState();
                 if (this.selectedObject) {
-                    const list = this.getNetworkToDelete(this.selectedObject);
-                    this.entities = this.entities.filter(e => !list.includes(e));
+
+                    // CAS IMAGE
+                    if (this.selectedObject instanceof BackgroundImage) {
+                        this.bgImage = null; // Suppression directe
+                        this.showToast("Image supprimée");
+                    }
+                    // CAS OBJETS CLASSIQUES
+                    else {
+                        const list = this.getNetworkToDelete(this.selectedObject);
+                        this.entities = this.entities.filter(e => !list.includes(e));
+                    }
+
+                    this.selectedObject = null; // On oublie la sélection
                 }
-                this.contextMenu.style.display = 'none';
+
+                // Fermeture du menu
+                const menu = document.getElementById('contextMenu');
+                if (menu) menu.style.display = 'none';
+
                 this.render();
             }
 
@@ -7536,13 +8261,26 @@
 
                 this.canvas.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    const {
-                        x,
-                        y
-                    } = this.getMousePos(e);
+                    const { x, y } = this.getMousePos(e);
 
+                    // 1. On cherche les objets classiques (Points, Segments...)
                     const targets = this.entities.filter(ent => ent.isNear(x, y));
 
+                    // 2. AJOUT : On cherche manuellement dans l'Image de fond
+                    if (this.bgImage) {
+                        // On convertit la souris vers le repère de l'image
+                        const l = this.bgImage.toLocal(x, y);
+                        const w2 = this.bgImage.width / 2;
+                        const h2 = this.bgImage.height / 2;
+
+                        // Test : est-ce que la souris est dans le rectangle de l'image ?
+                        // (On le fait ici manuellement pour que ça marche même si l'image est verrouillée)
+                        if (l.x > -w2 && l.x < w2 && l.y > -h2 && l.y < h2) {
+                            targets.push(this.bgImage); // On l'ajoute à la liste des candidats
+                        }
+                    }
+
+                    // 3. Le tri (pour que les points restent prioritaires sur l'image)
                     targets.sort((a, b) => {
                         if (a instanceof Point) return 1;
                         if (b instanceof Point) return -1;
@@ -7550,13 +8288,15 @@
                         if (b instanceof Angle) return -1;
                         if (a instanceof Polygon) return 1;
                         if (b instanceof Polygon) return -1;
+                        // L'image retournera 0, donc elle sera en bas de la pile (priorité faible), ce qui est parfait
                         return 0;
                     });
 
                     if (targets.length > 0) {
-                        this.selectedObject = targets.pop();
+                        this.selectedObject = targets.pop(); // C'est ici que l'image sera enfin sélectionnée !
                         this.updateContextMenuUI();
 
+                        // --- Début de votre logique d'affichage existante ---
                         const rowMeasure = document.getElementById('rowMeasure');
                         const rowCoding = document.getElementById('rowCoding');
                         const rowAngle = document.getElementById('rowAngle');
@@ -7564,21 +8304,25 @@
                         const sep1 = document.getElementById('sep1');
                         const slider = document.getElementById('widthRange');
 
+                        // (Le reste de votre code reste identique...)
                         if (this.selectedObject instanceof Segment) {
                             rowMeasure.style.display = 'block';
                             rowCoding.style.cssText = "display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 4px;";
                             this.updateContextMenuUI();
                         } else {
-                            rowMeasure.style.display = 'none';
-                            rowCoding.style.cssText = "display: none !important;";
+                            if (rowMeasure) rowMeasure.style.display = 'none';
+                            if (rowCoding) rowCoding.style.cssText = "display: none !important;";
                         }
 
+                        // ... Vos blocs Point, Angle, etc. ...
                         const isPoint = this.selectedObject instanceof Point;
-                        const rowPointStyle = document.getElementById('rowPointStyle')
+                        const rowPointStyle = document.getElementById('rowPointStyle');
                         const rowLabelPos = document.getElementById('rowLabelPos');
                         const rowRenamer = document.getElementById('rowRenamer');
+                        const rowTextProps = document.getElementById('rowTextProps');
 
                         if (isPoint) {
+                            // ... (votre code Point)
                             rowLabelPos.style.display = 'block';
                             rowRenamer.style.display = 'block';
                             rowPointStyle.style.display = 'flex';
@@ -7597,29 +8341,62 @@
                             rowStyle.style.display = 'none';
                             sep1.style.display = 'none';
                         } else {
-                            rowLabelPos.style.display = 'none';
-                            rowTextProps.style.display = 'none';
-                            rowRenamer.style.display = 'none';
+                            // ... (votre code Non-Point)
+                            if (rowLabelPos) rowLabelPos.style.display = 'none';
+                            if (rowTextProps) rowTextProps.style.display = 'none';
+                            if (rowRenamer) rowRenamer.style.display = 'none';
 
-                            rowStyle.style.display = 'flex';
-                            sep1.style.display = 'block';
-                            slider.value = this.selectedObject.lineWidth || 2;
+                            // Attention : on ne veut pas afficher le style de trait pour l'image
+                            if (!(this.selectedObject instanceof BackgroundImage)) {
+                                rowStyle.style.display = 'flex';
+                                sep1.style.display = 'block';
+                                slider.value = this.selectedObject.lineWidth || 2;
+                            } else {
+                                rowStyle.style.display = 'none';
+                                sep1.style.display = 'none';
+                            }
                         }
 
                         if (this.selectedObject instanceof Angle) {
                             rowAngle.style.cssText = "display: flex !important; flex-direction: row; justify-content: center; gap: 8px;";
                             this.updateContextMenuUI();
                         } else {
-                            rowAngle.style.cssText = "display: none !important;";
+                            if (rowAngle) rowAngle.style.cssText = "display: none !important;";
                         }
 
                         const menu = document.getElementById('contextMenu');
-                        menu.style.left = e.clientX + 'px';
-                        menu.style.top = e.clientY + 'px';
-                        menu.style.display = 'flex';
-                    }
 
+                        // 1. On affiche d'abord en invisible pour que le navigateur calcule la taille réelle
+                        menu.style.opacity = '0';
+                        menu.style.display = 'flex';
+
+                        // 2. On récupère les dimensions
+                        const width = menu.offsetWidth;
+                        const height = menu.offsetHeight;
+                        const winW = window.innerWidth;
+                        const winH = window.innerHeight;
+
+                        let posX = e.clientX;
+                        let posY = e.clientY;
+
+                        // 3. Si ça dépasse à droite, on décale vers la gauche
+                        if (posX + width > winW) {
+                            posX -= width;
+                        }
+
+                        // 4. Si ça dépasse en bas, on remonte le menu
+                        if (posY + height > winH) {
+                            posY -= height;
+                        }
+
+                        // 5. On applique la position finale et on rend visible
+                        menu.style.left = posX + 5 + 'px';
+                        menu.style.top = posY + 'px';
+                        menu.style.opacity = '1';
+                    }
                 });
+
+
                 document.addEventListener('click', (e) => {
                     if (!e.target.closest('#contextMenu')) document.getElementById('contextMenu').style.display = 'none';
                 });
@@ -7670,8 +8447,23 @@
                     let finalX = smart.x;
                     let finalY = smart.y;
 
+                    // Si on a une image et qu'on clique dessus (et qu'elle n'est pas locked)
+                    if (this.bgImage && !this.bgImage.isLocked) {
+                        const zone = this.bgImage.getHitZone(mousePos.x, mousePos.y);
+                        if (zone) {
+                            this.draggedWidget = this.bgImage; // On traite l'image comme un widget
+                            this.draggedWidgetMode = zone;
+                            this.dragStartMouse = { x: mousePos.x, y: mousePos.y }; // Important pour le drag
+
+                            if (zone === 'rotate') {
+                                this.widgetRotationOffset = Math.atan2(mousePos.y - this.bgImage.y, mousePos.x - this.bgImage.x) - this.bgImage.angle;
+                            }
+                            this.render();
+                            return;
+                        }
+                    }
+
                     // B. Aimantation aux Outils (Règle, Équerre, etc.)
-                    // Seulement si on est en train de tracer quelque chose
                     const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon', 'line_clean'];
 
                     if (drawingTools.includes(this.currentTool)) {
@@ -7695,7 +8487,7 @@
                             const l = w.toLocal(rawM.x, rawM.y);
                             // Zéro ou Bord
                             if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
-                            else if (Math.abs(l.y) < snapDist && l.x > -50 && l.x < 500) toolSnap = w.toGlobal(l.x, 0);
+                            else if (Math.abs(l.y) < snapDist && l.x > -50) toolSnap = w.toGlobal(l.x, 0);
                         }
 
                         // 3. RAPPORTEUR
@@ -7720,7 +8512,6 @@
                     }
 
                     // C. Intersections (Ghost) - Priorité Absolue
-                    // Si on détecte une intersection entre deux objets, elle écrase tout le reste
                     const ghost = this.findIntersectionAtMouse(finalX, finalY);
                     if (ghost) {
                         finalX = ghost.x;
@@ -7753,9 +8544,6 @@
                     // =========================================================================
                     // 4. GESTION DES WIDGETS (DÉPLACEMENT / ROTATION)
                     // =========================================================================
-                    // On vérifie d'abord si on clique SUR un outil pour le bouger.
-                    // Si oui, on arrête tout, on ne dessine pas de géométrie.
-
                     let targetWidget = null;
                     let wType = '';
 
@@ -7766,13 +8554,12 @@
                         'compass': this.compassWidget
                     };
 
-                    // Parcours Z-Order inversé (du dessus vers le dessous)
+                    // Parcours Z-Order inversé
                     for (let i = this.widgetZOrder.length - 1; i >= 0; i--) {
                         const type = this.widgetZOrder[i];
                         if (!this.activeWidgets[type]) continue;
 
                         const widget = widgetMap[type];
-                        // On utilise les vraies coordonnées souris pour le hit test du widget, pas le snap
                         if (widget && widget.getHitZone(mousePos.x, mousePos.y)) {
                             targetWidget = widget;
                             wType = type;
@@ -7801,27 +8588,22 @@
                                 targetWidget.slideMode = !targetWidget.slideMode;
                             }
 
-                            // Actions de Drag (Move, Rotate, Slide)
+                            // Actions de Drag (Move, Rotate, Slide, RESIZE...)
                             else {
                                 this.draggedWidget = targetWidget;
-                                this.draggedWidgetMode = zone;
+                                this.draggedWidgetMode = zone; // capture 'resizeWidth' ou 'resizeHeight' ici
                                 this.widgetStartState = this.getWidgetState(targetWidget);
                                 this.draggedWidgetType = wType;
 
-                                // ...
-                                // Calcul de l'offset pour rotation
                                 if (zone === 'rotate') {
                                     this.widgetRotationOffset = Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x) - targetWidget.angle;
                                 }
-                                // Initialisation pour Slide X/Y
                                 if (zone === 'slideX' || zone === 'slideY') {
                                     this.dragStartMouse = { x: mousePos.x, y: mousePos.y };
                                     this.dragStartWidget = { x: targetWidget.x, y: targetWidget.y };
                                 }
-                                // Initialisation Compas Trace
                                 if (targetWidget instanceof CompassWidget && zone === 'trace') {
                                     targetWidget.isTracing = true;
-                                    // On utilise snapX/Y ici pour que le tracé commence bien sur le point aimanté si besoin
                                     const startAngle = Math.atan2(y - targetWidget.y, x - targetWidget.x);
                                     targetWidget.startAngle = startAngle;
                                     this.widgetStartState.angle = startAngle;
@@ -7830,20 +8612,19 @@
                                     targetWidget.totalRotation = 0;
                                     this.currentTracingArc = null;
                                 }
-                                // Initialisation Move
                                 if (zone === 'move') {
                                     this.widgetOffset.x = mousePos.x - targetWidget.x;
                                     this.widgetOffset.y = mousePos.y - targetWidget.y;
                                 }
                             }
                             this.render();
-                            return; // IMPORTANT : On s'arrête là, on ne crée pas de point si on bouge un outil
+                            return;
                         }
                     }
 
 
                     // =========================================================================
-                    // 5. PRÉPARATION OBJETS SOUS SOURIS (POUR ÉDITION/SUPPRESSION)
+                    // 5. PRÉPARATION OBJETS SOUS SOURIS
                     // =========================================================================
                     const entities = this.hoveredEntities || [];
                     const clickedPoint = entities.filter(ent => ent instanceof Point).pop();
@@ -7863,7 +8644,6 @@
                             this.applyTextEdit();
                             return;
                         }
-                        // On utilise les coordonnées snappées (x,y) pour placer le texte proprement
                         if (clickedPoint) this.startTextEditor(clickedPoint.x, clickedPoint.y, clickedPoint);
                         else if (clickedText) this.startTextEditor(clickedText.x, clickedText.y, clickedText);
                         else this.startTextEditor(x, y, null);
@@ -7874,22 +8654,20 @@
 
 
                     // =========================================================================
-                    // 7. OUTILS DE DESSIN GÉOMÉTRIQUE (CLIC GAUCHE)
+                    // 7. OUTILS DE DESSIN GÉOMÉTRIQUE
                     // =========================================================================
                     if (e.button !== 0) return;
 
-                    // Reset du Replay si on dessine
                     if (this.replayIndex !== null && this.replayIndex < this.entities.length) {
                         this.replayIndex = this.entities.length;
                     }
 
-                    // Sauvegarde de l'état (Undo/Redo)
                     const toolsModifying = ['point', 'segment', 'line', 'ray', 'circle', 'midpoint', 'parallel', 'perpendicular', 'delete', 'polygon', 'angle', 'compass', 'line_clean'];
                     if (toolsModifying.includes(this.currentTool) || (this.currentTool === 'move' && (clickedPoint || clickedText))) {
                         this.saveState();
                     }
 
-                    // --- A. Outil MOVE (Déplacer des points/textes) ---
+                    // --- A. Outil MOVE ---
                     if (this.currentTool === 'move') {
                         if (clickedPoint && clickedPoint.parents.length !== 2) {
                             this.draggedPoint = clickedPoint;
@@ -7900,21 +8678,14 @@
                             this.dragOffset = { x: x - clickedText.x, y: y - clickedText.y };
                         }
                     }
-
                     // --- B. Outil POINT ---
                     else if (this.currentTool === 'point') {
-                        this.createPointAt(x, y); // Utilise x,y snappés
+                        this.createPointAt(x, y);
                     }
-
-                    // --- C. Outils de TRACÉ (Segment, Droite...) ---
+                    // --- C. Outils de TRACÉ ---
                     else if (['segment', 'ray', 'line', 'circle', 'line_clean'].includes(this.currentTool)) {
-                        // Premier point créé aux coordonnées snappées
                         const countBefore = this.entities.length;
-
-                        // 3. Juste avant la création du point
                         this.creationStartPoint = this.createPointAt(x, y);
-
-                        // 4. Ensuite votre logique pour masquer le point
                         if (this.currentTool === 'line_clean') {
                             if (this.entities.length > countBefore) {
                                 this.creationStartPoint.visible = false;
@@ -7924,7 +8695,6 @@
                         }
                         this.isDraggingCreation = true;
                     }
-
                     // --- D. Outil ANGLE ---
                     else if (this.currentTool === 'angle') {
                         const pt = this.createPointAt(x, y);
@@ -7938,15 +8708,11 @@
                             this.saveState();
                         }
                     }
-
                     // --- E. Outil POLYGONE ---
                     else if (this.currentTool === 'polygon') {
-                        // Fermeture du polygone ?
                         if (clickedPoint && this.polygonPoints.length > 2 && clickedPoint === this.polygonPoints[0]) {
                             const poly = new Polygon([...this.polygonPoints]);
                             this.addEntity(poly);
-
-                            // Création des segments finaux
                             for (let i = 0; i < this.polygonPoints.length; i++) {
                                 const p1 = this.polygonPoints[i];
                                 const p2 = this.polygonPoints[(i + 1) % this.polygonPoints.length];
@@ -7962,16 +8728,13 @@
                             this.polygonPoints.push(this.createPointAt(x, y));
                         }
                     }
-
                     // --- F. Outil MILIEU ---
                     else if (this.currentTool === 'midpoint') {
                         if (clickedLinear instanceof Segment) {
-                            // Milieu d'un segment existant
                             const mid = new Point(0, 0, this.getNextLabel(), [clickedLinear.p1, clickedLinear.p2]);
                             mid.update();
                             this.addEntity(mid);
                         } else if (clickedPoint) {
-                            // Milieu entre deux points
                             if (this.creationStartPoint && this.creationStartPoint !== clickedPoint) {
                                 const mid = new Point(0, 0, this.getNextLabel(), [this.creationStartPoint, clickedPoint]);
                                 mid.update();
@@ -7982,7 +8745,6 @@
                             }
                         }
                     }
-
                     // --- G. Outils PARALLELE / PERPENDICULAIRE ---
                     else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
                         if (clickedLinear) {
@@ -7990,11 +8752,9 @@
                             this.isDraggingCreation = true;
                         }
                     }
-
                     // --- H. Outils SYMÉTRIE ---
                     else if (['sym_central', 'sym_axial'].includes(this.currentTool)) {
                         let target = clickedPoint || clickedText || clickedLinear || this.hoveredEntities.filter(e => e instanceof Polygon).pop();
-
                         if (target) {
                             if (!this.transformationSource) {
                                 this.transformationSource = target;
@@ -8003,7 +8763,6 @@
                                 let ref = target;
                                 const mode = (this.currentTool === 'sym_central') ? 'central' : 'axial';
                                 let valid = false;
-
                                 if (mode === 'central' && ref instanceof Point) valid = true;
                                 if (mode === 'axial' && (ref instanceof LinearObject || ref instanceof Segment || ref instanceof Line || ref instanceof Ray)) valid = true;
 
@@ -8015,16 +8774,13 @@
                             }
                         }
                     }
-
-                    // --- I. Outil SUPPRIMER (Gomme) ---
+                    // --- I. Outil SUPPRIMER ---
                     else if (this.currentTool === 'delete') {
                         let target = clickedPoint || clickedText;
                         if (!target) target = this.entities.slice().reverse().find(e => e.isNear && e.isNear(x, y));
 
                         if (target) {
                             let listToDelete = this.getNetworkToDelete(target);
-
-                            // Gestion spéciale pour ne pas casser les polygones
                             if (target instanceof Point) {
                                 this.entities.forEach(poly => {
                                     if (poly instanceof Polygon) {
@@ -8033,12 +8789,9 @@
                                             const len = poly.points.length;
                                             const prevPoint = poly.points[(idx - 1 + len) % len];
                                             const nextPoint = poly.points[(idx + 1) % len];
-
                                             poly.points.splice(idx, 1);
-
                                             if (poly.points.length >= 3) {
                                                 listToDelete = listToDelete.filter(item => item !== poly);
-                                                // On recrée le segment manquant
                                                 const segmentExists = this.entities.some(e =>
                                                     e instanceof Segment &&
                                                     ((e.p1 === prevPoint && e.p2 === nextPoint) || (e.p1 === nextPoint && e.p2 === prevPoint))
@@ -8052,7 +8805,6 @@
                                     }
                                 });
                             }
-
                             this.entities = this.entities.filter(e => !listToDelete.includes(e));
                             this.toDeletePreview = [];
                             this.selectedObject = null;
@@ -8067,7 +8819,7 @@
                 this.canvas.onmousemove = (e) => {
 
                     // =========================================================================
-                    // 1. GESTION DU PANNING (DÉPLACEMENT DE LA VUE)
+                    // 1. GESTION DU PANNING
                     // =========================================================================
                     if (this.isPanning) {
                         const dx = e.clientX - this.lastMouseScreen.x;
@@ -8080,10 +8832,8 @@
                     }
 
                     // =========================================================================
-                    // 2. CALCUL DES COORDONNÉES & MAGNÉTISME (SNAP INTELLIGENT)
+                    // 2. CALCUL DES COORDONNÉES & MAGNÉTISME
                     // =========================================================================
-
-                    // A. Base : Grille ou Position Libre
                     let smartPos;
                     if (this.getSmartCoords) smartPos = this.getSmartCoords(e);
                     else {
@@ -8091,21 +8841,15 @@
                         smartPos = { x: mp.x, y: mp.y };
                     }
 
-                    // On stocke la position brute pour certains calculs (déplacement widget)
                     const rawMouse = this.getMousePos(e);
 
-                    // B. Aimantation aux Outils (Le cercle rouge qui suit)
-                    // On calcule 'snappedPos' qui sera la position officielle du curseur géométrique
                     let snappedPos = { x: smartPos.x, y: smartPos.y, snapped: false };
-
-                    // On active l'aimantation outil seulement si on dessine ou si on survole
                     const drawingTools = ['segment', 'line', 'ray', 'point', 'circle', 'polygon', 'line_clean'];
                     const isDrawingOrHovering = drawingTools.includes(this.currentTool) || this.currentTool === 'move';
 
                     if (isDrawingOrHovering && !this.draggedWidget) {
                         let toolSnap = null;
                         const snapDist = 15;
-
                         // 1. ÉQUERRE
                         if (this.activeWidgets.setsquare && this.setSquareWidget) {
                             const w = this.setSquareWidget;
@@ -8119,7 +8863,7 @@
                             const w = this.rulerWidget;
                             const l = w.toLocal(rawMouse.x, rawMouse.y);
                             if (Math.abs(l.x) < snapDist && Math.abs(l.y) < snapDist) toolSnap = w.toGlobal(0, 0);
-                            else if (Math.abs(l.y) < snapDist && l.x > -50 && l.x < 500) toolSnap = w.toGlobal(l.x, 0);
+                            else if (Math.abs(l.y) < snapDist && l.x > -50) toolSnap = w.toGlobal(l.x, 0);
                         }
                         // 3. RAPPORTEUR
                         if (!toolSnap && this.activeWidgets.protractor && this.protractorWidget) {
@@ -8133,13 +8877,11 @@
                             const l = w.toLocal(rawMouse.x, rawMouse.y);
                             if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) toolSnap = w.toGlobal(0, 0);
                         }
-
                         if (toolSnap) {
                             snappedPos = { x: toolSnap.x, y: toolSnap.y, snapped: true };
                         }
                     }
 
-                    // C. Aimantation aux Intersections (Ghost) - Priorité Absolue
                     const ghost = this.findIntersectionAtMouse(snappedPos.x, snappedPos.y);
                     if (ghost) {
                         snappedPos = { x: ghost.x, y: ghost.y, snapped: true };
@@ -8148,57 +8890,42 @@
                         this.ghostIntersection = null;
                     }
 
-                    // Mise à jour finale de la position globale de la souris
                     this.mousePos = snappedPos;
-                    const { x, y } = this.mousePos; // x, y sont maintenant "aimantés" si besoin
+                    const { x, y } = this.mousePos;
 
-                    let resizeCursor = '';
                     // =========================================================================
-                    // 3. LOGIQUE DE DRAG & DROP DES WIDGETS (DÉPLACEMENT OUTILS)
+                    // 3. LOGIQUE DE DRAG & DROP DES WIDGETS
                     // =========================================================================
                     if (this.draggedWidget) {
                         const w = this.draggedWidget;
                         const mode = this.draggedWidgetMode;
-
-                        // Pour le déplacement fluide, on utilise rawMouse, pas le snap géométrique
                         const rx = rawMouse.x;
                         const ry = rawMouse.y;
 
-                        // A. DÉPLACEMENT DE L'OUTIL (MOVE)
+                        // A. DÉPLACEMENT (MOVE)
                         if (mode === 'move') {
-                            let targetX = rx - this.widgetOffset.x;
-                            let targetY = ry - this.widgetOffset.y;
-
-                            // Petit snap magnétique vers les points existants
-                            const snapPoint = this.entities.find(ent => ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
-                            let ghostSnap = null;
-                            if (!snapPoint) {
-                                ghostSnap = this.findIntersectionAtMouse(targetX, targetY);
-                            }
-                            if (snapPoint) {
-                                w.x = snapPoint.x;
-                                w.y = snapPoint.y;
-                            }
-                            else if (ghostSnap) {
-                                // C'est ici la nouveauté : on colle l'outil à l'intersection calculée
-                                w.x = ghostSnap.x;
-                                w.y = ghostSnap.y;
-
-                                // Optionnel : On force l'affichage de la croix grise pour confirmer visuellement
-                                this.ghostIntersection = ghostSnap;
-
+                            if (w instanceof BackgroundImage) {
+                                w.x += rx - this.dragStartMouse.x;
+                                w.y += ry - this.dragStartMouse.y;
+                                this.dragStartMouse = { x: rx, y: ry };
                             } else {
-                                w.x = targetX;
-                                w.y = targetY;
+                                let targetX = rx - this.widgetOffset.x;
+                                let targetY = ry - this.widgetOffset.y;
+                                const snapPoint = this.entities.find(ent => ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
+                                let ghostSnap = null;
+                                if (!snapPoint) ghostSnap = this.findIntersectionAtMouse(targetX, targetY);
+
+                                if (snapPoint) { w.x = snapPoint.x; w.y = snapPoint.y; }
+                                else if (ghostSnap) { w.x = ghostSnap.x; w.y = ghostSnap.y; this.ghostIntersection = ghostSnap; }
+                                else { w.x = targetX; w.y = targetY; }
                             }
                         }
-                        // B. GLISSEMENT SUR AXES (EQUERRE/RÈGLE)
+                        // B. GLISSEMENT SUR AXES (EQUERRE)
                         else if (mode === 'slideX' || mode === 'slideY') {
                             const dx = rx - this.dragStartMouse.x;
                             const dy = ry - this.dragStartMouse.y;
                             let axisAngle = w.angle;
                             if (mode === 'slideY') axisAngle += Math.PI / 2;
-
                             const dot = dx * Math.cos(axisAngle) + dy * Math.sin(axisAngle);
                             w.x = this.dragStartWidget.x + dot * Math.cos(axisAngle);
                             w.y = this.dragStartWidget.y + dot * Math.sin(axisAngle);
@@ -8206,83 +8933,82 @@
                         // C. ROTATION
                         else if (mode === 'rotate') {
                             const angleMouse = Math.atan2(ry - w.y, rx - w.x);
-                            let newAngle = angleMouse - this.widgetRotationOffset;
-
-                            // Snap angulaire intelligent vers les points
-                            let snappedAngle = null;
-                            let bestDist = 25;
-                            for (let ent of this.entities) {
-                                if (ent instanceof Point) {
-                                    const distMousePoint = MathUtils.dist(rx, ry, ent.x, ent.y);
-                                    if (distMousePoint < bestDist) {
-                                        const angleToPoint = Math.atan2(ent.y - w.y, ent.x - w.x);
-                                        // Normalisation et comparaison d'angles...
-                                        // (Je garde ta logique existante ici, elle est bonne)
-                                        const norm = (a) => (a + Math.PI * 4) % (Math.PI * 2);
-                                        const targetA = norm(angleToPoint);
-                                        const targetB = norm(angleToPoint + Math.PI);
-                                        const current = norm(newAngle);
-                                        const distA = Math.min(Math.abs(current - targetA), 2 * Math.PI - Math.abs(current - targetA));
-                                        const distB = Math.min(Math.abs(current - targetB), 2 * Math.PI - Math.abs(current - targetB));
-
-                                        if (distA < distB) snappedAngle = angleToPoint;
-                                        else snappedAngle = angleToPoint + Math.PI;
-                                        bestDist = distMousePoint;
+                            if (w instanceof BackgroundImage) {
+                                w.angle = angleMouse - this.widgetRotationOffset;
+                            } else {
+                                let newAngle = angleMouse - this.widgetRotationOffset;
+                                let snappedAngle = null;
+                                let bestDist = 25;
+                                for (let ent of this.entities) {
+                                    if (ent instanceof Point) {
+                                        const distMousePoint = MathUtils.dist(rx, ry, ent.x, ent.y);
+                                        if (distMousePoint < bestDist) {
+                                            const angleToPoint = Math.atan2(ent.y - w.y, ent.x - w.x);
+                                            const norm = (a) => (a + Math.PI * 4) % (Math.PI * 2);
+                                            const targetA = norm(angleToPoint);
+                                            const targetB = norm(angleToPoint + Math.PI);
+                                            const current = norm(newAngle);
+                                            const distA = Math.min(Math.abs(current - targetA), 2 * Math.PI - Math.abs(current - targetA));
+                                            const distB = Math.min(Math.abs(current - targetB), 2 * Math.PI - Math.abs(current - targetB));
+                                            if (distA < distB) snappedAngle = angleToPoint;
+                                            else snappedAngle = angleToPoint + Math.PI;
+                                            bestDist = distMousePoint;
+                                        }
                                     }
                                 }
+                                w.angle = (snappedAngle !== null) ? snappedAngle : newAngle;
                             }
-                            w.angle = (snappedAngle !== null) ? snappedAngle : newAngle;
                         }
-                        else if (mode === 'resize' && w instanceof RulerWidget) {
-                            // 1. On projette la souris sur l'axe de la règle pour avoir la distance
-                            // On utilise rawMouse (coordonnées écran brutes) pour la fluidité
-                            const localPos = w.toLocal(rawMouse.x, rawMouse.y);
-
-                            // 2. La nouvelle largeur est simplement la coordonnée X locale de la souris
-                            // On met un min de 150 pour éviter les bugs
-                            let newWidth = Math.max(150, localPos.x);
-
-                            // 3. Application directe (pas de saut)
+                        // D. RESIZE IMAGE DE FOND
+                        else if (mode === 'resize' && w instanceof BackgroundImage) {
+                            const dist = MathUtils.dist(rx, ry, w.x, w.y);
+                            const ratio = w.aspectRatio;
+                            const newDiagSq = (dist * 2) ** 2;
+                            const newWidth = Math.sqrt(newDiagSq / (1 + 1 / (ratio * ratio)));
                             w.width = newWidth;
-
-                            this.render();
+                            w.height = newWidth / ratio;
                         }
-                        // D. COMPAS (RESIZE & TRACE)
+                        // E. RESIZE RÈGLE
+                        else if (mode === 'resize' && w instanceof RulerWidget) {
+                            const localPos = w.toLocal(rx, ry);
+                            let newWidth = Math.max(150, localPos.x);
+                            w.width = newWidth;
+                        }
+                        // F. RESIZE ÉQUERRE (LARGEUR) -> AJOUTÉ
+                        else if (mode === 'resizeWidth' && w instanceof SetSquareWidget) {
+                            const local = w.toLocal(rx, ry);
+                            w.width = Math.max(100, local.x);
+                        }
+                        // G. RESIZE ÉQUERRE (HAUTEUR) -> AJOUTÉ
+                        else if (mode === 'resizeHeight' && w instanceof SetSquareWidget) {
+                            const local = w.toLocal(rx, ry);
+                            w.height = Math.max(100, local.y);
+                        }
+                        // H. COMPAS (RESIZE & TRACE)
                         else if (mode === 'trace' && w instanceof CompassWidget) {
                             const currentAngle = Math.atan2(y - w.y, x - w.x);
                             let diff = currentAngle - w.lastMouseAngle;
-
                             while (diff > Math.PI) diff -= 2 * Math.PI;
                             while (diff < -Math.PI) diff += 2 * Math.PI;
-
                             let nextTotal = w.totalRotation + diff;
                             const TWO_PI = Math.PI * 2;
-
                             if (nextTotal > TWO_PI) nextTotal = TWO_PI - 0.001;
                             if (nextTotal < -TWO_PI) nextTotal = -TWO_PI + 0.001;
-
                             w.totalRotation = nextTotal;
                             w.lastMouseAngle = currentAngle;
                             w.angle = w.startAngle + w.totalRotation;
 
                             const isCCW = (w.totalRotation < 0);
-
                             if (this.currentTracingArc) {
                                 const idx = this.entities.indexOf(this.currentTracingArc);
                                 if (idx !== -1) this.entities.splice(idx, 1);
                                 this.currentTracingArc = null;
                             }
-
                             if (Math.abs(w.totalRotation) > 0.01) {
                                 const center = { x: w.x, y: w.y };
                                 const centerPoint = this.entities.filter(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, center.x, center.y) < 5).pop();
-
                                 this.currentTracingArc = new CompassArc(
-                                    centerPoint || center,
-                                    w.radius,
-                                    w.startAngle,
-                                    w.startAngle + w.totalRotation,
-                                    isCCW
+                                    centerPoint || center, w.radius, w.startAngle, w.startAngle + w.totalRotation, isCCW
                                 );
                                 this.currentTracingArc.color = app.globalStyle.color;
                                 this.currentTracingArc.lineWidth = this.globalStyle.width;
@@ -8299,55 +9025,42 @@
                                 w.angle = Math.atan2(y - w.y, x - w.x);
                             }
                             w.radius = newRadius;
-                            this.render();
-                            return; // On s'arrête ici si on bouge un outil
                         }
+
+                        this.render();
+                        return;
                     }
 
-
                     // =========================================================================
-                    // 4. MISE À JOUR DE LA CRÉATION EN COURS (LE TRAIT QUI SUIT)
+                    // 4. MISE À JOUR DE LA CRÉATION EN COURS
                     // =========================================================================
                     if (this.isDraggingCreation && this.creationStartPoint) {
-                        // C'est ici que la magie opère : on utilise x,y (snapped) pour mettre à jour
-                        // le point final temporaire. Le trait va donc "suivre" l'aimantation.
-
-                        // Note: On ne modifie pas directement creationStartPoint, mais l'objet temporaire
-                        // que tu gères probablement dans render() ou via un objet temporaire.
-                        // Si tu n'as pas d'objet temporaire, tu stockes juste la pos souris pour le render.
                         this.currentMousePosForPreview = { x: x, y: y };
                     }
-
 
                     // =========================================================================
                     // 5. DÉPLACEMENT DE POINTS (MOVE)
                     // =========================================================================
                     if (this.currentTool === 'move') {
                         if (this.draggedPoint) {
-                            // Point contraint (sur segment/cercle)
                             if (this.draggedPoint.parents.length === 1) {
                                 const pObj = this.draggedPoint.parents[0];
                                 const p = Array.isArray(pObj) ? { constructor: { name: 'Segment' }, p1: pObj[0], p2: pObj[1] } : pObj;
-                                const proj = MathUtils.getProjectedPoint(rawMouse.x, rawMouse.y, p); // On utilise rawMouse pour la projection fluide
+                                const proj = MathUtils.getProjectedPoint(rawMouse.x, rawMouse.y, p);
                                 this.draggedPoint.x = proj.x;
                                 this.draggedPoint.y = proj.y;
-                            }
-                            // Point libre
-                            else {
-                                // Ici on utilise x,y (snapped) pour que le point suive la grille/aimantation
+                            } else {
                                 this.draggedPoint.x = x;
                                 this.draggedPoint.y = y;
                             }
                             this.updateDependents();
                             this.render();
-                        }
-                        else if (this.draggedText) {
+                        } else if (this.draggedText) {
                             this.draggedText.x = rawMouse.x - this.dragOffset.x;
                             this.draggedText.y = rawMouse.y - this.dragOffset.y;
                             this.render();
                         }
                     }
-
 
                     // =========================================================================
                     // 6. GESTION DES CURSEURS
@@ -8357,30 +9070,28 @@
                     let cursor = 'default';
                     let hoveredWidget = null;
 
-                    // On teste les zones avec rawMouse.x / rawMouse.y
                     if (this.activeWidgets.compass && this.compassWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.compassWidget;
                     else if (this.activeWidgets.ruler && this.rulerWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.rulerWidget;
                     else if (this.activeWidgets.setsquare && this.setSquareWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.setSquareWidget;
                     else if (this.activeWidgets.protractor && this.protractorWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.protractorWidget;
+                    else if (this.bgImage && !this.bgImage.isLocked && this.bgImage.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.bgImage;
 
                     if (hoveredWidget) {
                         const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
-                        const toast = document.getElementById("toast-notification"); // On réutilise le toast ou créer une div dédiée
+
                         if (hoveredWidget instanceof ProtractorWidget) {
-                            if (zone === 'toggleLock') {
-                                // Optionnel : afficher un message temporaire ou changer le curseur avec un title
-                                this.canvas.title = "Verrouiller le centre pour tracer puis cliquer sur droite/demi-droite...";
-                            } else if (zone === 'toggleDouble') {
-                                this.canvas.title = "Double graduation";
-                            } else {
-                                this.canvas.title = "";
-                            }
+                            if (zone === 'toggleLock') this.canvas.title = "Verrouiller le centre pour tracer...";
+                            else if (zone === 'toggleDouble') this.canvas.title = "Double graduation";
+                            else this.canvas.title = "";
                         } else {
                             this.canvas.title = "";
                         }
+
                         const cursors = {
                             'move': 'move',
                             'resize': 'ew-resize',
+                            'resizeWidth': 'ew-resize', // AJOUTÉ
+                            'resizeHeight': 'ns-resize', // AJOUTÉ
                             'slideY': 'col-resize',
                             'slideX': 'row-resize',
                             'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto",
@@ -8392,7 +9103,7 @@
                         };
 
                         if (cursors[zone]) cursor = cursors[zone];
-                        else cursor = 'pointer'; // Fallback
+                        else cursor = 'pointer';
                     }
                     else if (this.currentTool === 'pan') {
                         cursor = this.isPanning ? 'grabbing' : 'grab';
@@ -8401,7 +9112,6 @@
                         cursor = 'crosshair';
                     }
                     else if (['parallel', 'perpendicular'].includes(this.currentTool)) {
-                        // Pour les outils qui nécessitent de cliquer sur une ligne
                         const clickedLinear = this.hoveredEntities.filter(e => e instanceof LinearObject || e instanceof ParallelLine || e instanceof PerpendicularLine).pop();
                         if (clickedLinear) cursor = 'pointer';
                     }
@@ -8412,8 +9122,6 @@
                     this.canvas.style.cursor = cursor;
                     this.render();
                 };
-
-
                 // =============================================================================
                 // GESTIONNAIRE D'ÉVÉNEMENT GLOBAL : MOUSEUP (FIN D'ACTION)
                 // =============================================================================
@@ -8955,6 +9663,9 @@
                     this.ctx.fill();
 
                     this.ctx.restore();
+                }
+                if (this.bgImage) {
+                    this.bgImage.draw(this.ctx);
                 }
                 const limit = (this.replayIndex !== null && this.replayIndex < this.entities.length) ? this.replayIndex : this.entities.length;
 
