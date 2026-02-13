@@ -2212,14 +2212,20 @@
                         </svg>
                     </button>
 
-                    <div class="slider-container" style="flex-direction:row; gap:8px; margin: 0 4px;">
-                        <input type="range" id="globalWidth" min="1" max="8" value="2"
-                            oninput="app.setGlobalWidth(this.value)" aria-label="Épaisseur" data-tooltip="Épaisseur">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor">
-                            <line id="headerStrokeIcon" x1="2" y1="12" x2="22" y2="12" stroke-width="2"
-                                stroke-linecap="round" />
-                        </svg>
-                    </div>
+                     <div class="slider-container" style="flex-direction:row; gap:8px; margin: 0 4px; align-items: center;">
+    <input type="range" id="globalWidth" min="1" max="8" value="2"
+        oninput="app.setGlobalWidth(this.value); document.getElementById('widthValueDisplay').innerText = this.value" 
+        aria-label="Épaisseur" data-tooltip="Épaisseur"
+        style="width: 50px;">
+    
+    <div style="position: relative; display: flex; align-items: center;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor">
+            <line id="headerStrokeIcon" x1="2" y1="12" x2="22" y2="12" stroke-width="2"
+                stroke-linecap="round" />
+        </svg>
+        <span id="widthValueDisplay" style="font-size: 10px; font-weight: bold; color: #333; margin-left: 4px; min-width: 8px;">2</span>
+    </div>
+</div>
 
                     <button class="top-btn" id="btnPaint" onclick="app.togglePaintMode()" aria-label="Mode Peinture"
                         data-tooltip="Mode Peinture">
