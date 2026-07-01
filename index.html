@@ -3500,10 +3500,10 @@
             opacity: 1;
         }
     </style>
-   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.5.0/dist/svg2pdf.umd.min.js"></script>
+   
 </head>
-
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.5.0/dist/svg2pdf.umd.min.js"></script>
 <body>
     <div id="helpModal" class="modal-overlay" onclick="if(event.target === this) app.toggleHelp()">
         <div class="modal-box help-box" style="width: 850px; max-width: 95%;">
@@ -4846,8 +4846,7 @@
                 </div>
             </div>
         </div>
-    </div>
-    <button id="panelToggle" class="panel-toggle" onclick="app.toggleRightPanel()">
+            <button id="panelToggle" class="panel-toggle" onclick="app.toggleRightPanel()">
         ◀
     </button>
     <div id="rightPanel" class="right-panel">
@@ -4857,6 +4856,8 @@
         <div id="objectList" class="rp-content">
         </div>
     </div>
+    </div>
+
     <div id="virtualKeyboard" class="v-keyboard">
     </div>
     <div id="customModal" class="modal-overlay">
