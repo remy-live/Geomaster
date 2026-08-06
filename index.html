@@ -3,7 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
     <title>GéoMaster</title>
     <style>
         input[type=range]::-webkit-slider-runnable-track {
@@ -3631,6 +3636,454 @@
         }
         .toggle-switch input:checked + .toggle-slider:before {
             transform: translateX(14px);
+        }
+
+        /* ==========================================================================
+           ADAPTATION MOBILE / TABLETTE
+           Bloc volontairement placé en fin de feuille : il ne réécrit aucune règle
+           ci-dessus, il les surcharge par ordre de cascade. Supprimer ce bloc
+           (et le script « gm-mobile » en bas de page) restaure exactement
+           l'ancien comportement desktop.
+           ========================================================================== */
+
+        :root {
+            /* Hauteur du dock d'outils quand il passe en bas (0 en mode desktop).
+               Les éléments flottants en position:fixed s'en servent pour remonter. */
+            --gm-dock: 0px;
+            --gm-header-h: 50px;
+        }
+
+        /* --- 1. Hauteur réelle du viewport mobile -----------------------------
+           100vh inclut la barre d'URL sur iOS/Android : le bas de l'app est
+           coupé. --gm-vh est tenu à jour en JS (compatible partout) ; dvh sert
+           de secours si le JS ne tourne pas. */
+        body {
+            height: var(--gm-vh, 100vh);
+            overscroll-behavior: none;
+        }
+
+        @supports (height: 100dvh) {
+            body {
+                height: var(--gm-vh, 100dvh);
+            }
+        }
+
+        html {
+            overscroll-behavior: none;
+        }
+
+        /* --- 2. Hygiène tactile ---------------------------------------------- */
+        @media (pointer: coarse) {
+
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Supprime le délai + le zoom du double-tap sur les commandes, sans
+               bloquer le clic (contrairement à un preventDefault sur touchend). */
+            button,
+            .tool-btn,
+            .top-btn,
+            .magic-item,
+            .magic-grid-item,
+            .icon-btn,
+            .modal-btn,
+            .help-tab-btn,
+            label,
+            select {
+                touch-action: manipulation;
+            }
+
+            /* Sur écran tactile, :hover « colle » après un appui : les effets de
+               survol restent affichés sur le dernier bouton touché. On les neutralise. */
+            .tool-btn:hover {
+                transform: none;
+                background: #fff;
+                color: #546e7a;
+                border-color: #eee;
+            }
+
+            .tool-btn.active:hover {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                border-color: #90caf9;
+            }
+
+            .tool-btn.delete-btn:hover {
+                background: #fff;
+                border-color: #eee;
+                color: #e74c3c;
+            }
+
+            .top-btn:hover {
+                background: 0 0;
+                color: #555;
+                border-color: transparent;
+            }
+
+            .top-btn.active:hover {
+                background: #222;
+                color: #fff;
+                border-color: #222;
+            }
+
+            /* Cibles conformes aux ~44px recommandés au doigt. */
+            .top-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .tool-btn {
+                height: 48px;
+            }
+
+            .magic-item {
+                padding: 11px 14px;
+            }
+
+            .magic-grid-item {
+                width: 38px;
+                height: 38px;
+            }
+
+            .modal-btn,
+            .icon-btn {
+                min-height: 40px;
+            }
+        }
+
+        /* --- 3. Menus déroulants : ouverture à l'appui ------------------------
+           Les 3 menus de l'en-tête s'ouvraient uniquement au :hover, ce qui est
+           inutilisable au doigt (il faut un « survol » qui n'existe pas, et il
+           reste bloqué ensuite). Sur appareil sans survol, on coupe le :hover et
+           on pilote l'ouverture par la classe .gm-open posée en JS. */
+        @media (hover: none) {
+
+            .header-dropdown:hover .header-dropdown-content,
+            .header-dropdown:hover .magic-menu-content {
+                display: none;
+            }
+
+            .header-dropdown:hover .header-dropdown-content.grid-3-cols {
+                display: none !important;
+            }
+
+            .header-dropdown.gm-open .header-dropdown-content,
+            .header-dropdown.gm-open .magic-menu-content {
+                display: flex;
+                animation: fadeIn .2s;
+            }
+
+            .header-dropdown.gm-open .header-dropdown-content.grid-3-cols {
+                display: grid !important;
+            }
+        }
+
+        /* --- 4. Modales : jamais plus hautes que l'écran ----------------------
+           Utile aussi sur téléphone en paysage (hauteur ~380px). */
+        .modal-box {
+            max-height: 88vh;
+            max-height: 88dvh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* --- 5. En-tête : rangée de boutons défilante -------------------------
+           Les ~16 boutons de l'en-tête occupent 986px (1082px avec les cibles
+           tactiles agrandies) : au-delà de la largeur d'écran, ils débordaient
+           le document, y compris sur iPad portrait (820px) — un défaut déjà
+           présent avant cette adaptation.
+           Cause : .top-toolbar a flex:1 mais pas min-width:0, or un élément flex
+           ne rétrécit pas sous la taille de son contenu sans cela. */
+        @media (max-width: 1100px) {
+
+            .top-toolbar {
+                min-width: 0;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                gap: 2px;
+            }
+
+            .top-toolbar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .toolbar-group {
+                flex: 0 0 auto;
+                padding-right: 4px;
+                margin-right: 4px;
+                gap: 2px;
+            }
+
+            /* .header-right doit rester atteignable, jamais compressé. */
+            .header-right {
+                flex: 0 0 auto;
+            }
+
+            /* .top-toolbar devient un contexte de défilement, qui rognerait les
+               menus en position:absolute (aucun overflow ne peut laisser
+               échapper un descendant). On les bascule en position:fixed sous
+               l'en-tête : insensible au rognage, et plus lisible au doigt.
+               Aucun ancêtre ne porte transform/filter, donc « fixed » se réfère
+               bien au viewport. */
+            .header-dropdown-content,
+            .magic-menu-content {
+                position: fixed;
+                top: calc(var(--gm-header-h) + 2px);
+                left: 50%;
+                transform: translateX(-50%);
+                width: min(360px, calc(100vw - 16px));
+                min-width: 0;
+                max-width: none;
+                max-height: 60vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .header-dropdown-content.grid-3-cols {
+                width: min(320px, calc(100vw - 16px));
+                min-width: 0;
+                grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+            }
+
+            .magic-grid {
+                justify-content: flex-start;
+            }
+
+            .logo {
+                display: none;
+            }
+        }
+
+        /* --- 6. Téléphones : la barre d'outils passe en dock horizontal -------
+           En dessous de 700px, une colonne fixe de 90px mange un quart de
+           l'écran. On bascule .main-container en colonne et la barre devient une
+           bande défilante en bas, à portée du pouce.
+           min-height:481px exclut le paysage bas, traité en section 6 : sinon les
+           deux blocs se contredisent sur un écran étroit ET bas (ex. 690x400). */
+        @media (max-width: 700px) and (min-height: 481px) {
+
+            .main-container {
+                flex-direction: column;
+            }
+
+            .canvas-container {
+                order: 1;
+                /* .canvas-container porte width:0 (astuce flex horizontale) :
+                   en colonne cela l'annulerait complètement. */
+                width: 100%;
+                min-height: 0;
+                height: auto;
+                flex: 1 1 auto;
+            }
+
+            .toolbar {
+                order: 2;
+                width: 100%;
+                /* La feuille est en content-box : sans cela, width:100% + 8px de
+                   padding donnent 406px dans un viewport de 390px, et 16px du
+                   dock sont rognés à droite. */
+                box-sizing: border-box;
+                min-width: 0;
+                height: auto;
+                flex: 0 0 auto;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                grid-template-columns: none;
+                /* .toolbar porte overflow:visible !important (pour ne pas rogner
+                   les info-bulles) : il faut donc !important pour rendre la
+                   bande défilante. Les bulles sont un élément #global-tooltip en
+                   position:fixed sur <body>, elles ne sont pas rognées. */
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                border-right: none;
+                border-top: 1px solid #e0e0e0;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, .1);
+                padding: 8px;
+                padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                padding-left: max(8px, env(safe-area-inset-left, 0px));
+                padding-right: max(8px, env(safe-area-inset-right, 0px));
+                gap: 6px;
+                scrollbar-width: none;
+            }
+
+            .toolbar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .toolbar .tool-btn {
+                width: 48px;
+                min-width: 48px;
+                flex: 0 0 auto;
+            }
+
+            /* Séparateurs et titres conçus pour une grille verticale. */
+            .toolbar .group-label {
+                display: none;
+            }
+
+            .toolbar .tool-sep {
+                grid-column: auto;
+                width: 1px;
+                min-width: 1px;
+                height: 32px;
+                margin: 0 2px;
+                flex: 0 0 auto;
+            }
+
+            /* Les flottants en position:fixed sont ancrés au viewport : sans
+               décalage ils se retrouvent sous le dock. */
+            :root {
+                --gm-dock: 68px;
+            }
+
+            #zoomWidget,
+            .donate-float,
+            #record-action-btn,
+            #studentDock {
+                bottom: calc(20px + var(--gm-dock));
+            }
+
+            #toast-notification {
+                bottom: calc(30px + var(--gm-dock));
+            }
+
+            #toast-notification.show {
+                bottom: calc(50px + var(--gm-dock));
+            }
+
+            #webcam-pip {
+                bottom: calc(30px + var(--gm-dock));
+            }
+
+            header {
+                padding: 0 8px;
+                padding-left: max(8px, env(safe-area-inset-left, 0px));
+                padding-right: max(8px, env(safe-area-inset-right, 0px));
+            }
+
+            /* Feuille pleine largeur : sur un écran étroit, autant occuper
+               toute la place disponible. Surcharge le palier 1100px ci-dessous. */
+            .header-dropdown-content,
+            .magic-menu-content {
+                left: 8px;
+                right: 8px;
+                width: auto;
+                transform: none;
+            }
+
+            /* #replayBar mesure 476px : centré par translateX(-50%), il
+               s'étendait de -43px à 433px dans un écran de 390px et se faisait
+               rogner des deux côtés par .canvas-container (overflow:hidden) —
+               les boutons des extrémités devenaient inatteignables.
+               On l'ancre aux deux bords et on autorise le retour à la ligne. */
+            #replayBar {
+                left: 8px;
+                right: 8px;
+                transform: none;
+                width: auto;
+                max-width: none;
+                box-sizing: border-box;
+                flex-wrap: wrap;
+                justify-content: center;
+                /* Réserve à droite la place de #zoomWidget (50px, à 8px du bord,
+                   z-index supérieur) : occupant toute la largeur, la barre
+                   passait sinon sous la loupe. */
+                padding: 8px 70px 8px 10px;
+                gap: 8px;
+                row-gap: 6px;
+            }
+
+            #replayBar input[type=range] {
+                max-width: 90px;
+            }
+
+            /* Bord droit visuel superflu dès que les groupes passent à la ligne. */
+            #replayBar .replay-control-group {
+                border-right: none;
+            }
+
+            /* Panneaux et claviers à largeur fixe (310 à 420px) qui dépassaient
+               sur un écran de 375px. */
+            .v-keyboard {
+                width: auto;
+                left: 8px;
+                right: 8px;
+                max-width: none;
+            }
+
+            #stdDrawer.open,
+            .right-panel.open,
+            #scenarioPanel,
+            #instructionBox,
+            .draggable-panel {
+                width: min(94vw, 400px);
+                max-width: 94vw;
+            }
+
+            .instruction-pill {
+                width: auto;
+                max-width: 94vw;
+            }
+
+            .help-box {
+                width: auto !important;
+                max-width: 96vw;
+            }
+
+            .drawer-content-2 {
+                min-width: 0;
+            }
+
+            .phone-mockup {
+                width: auto;
+                max-width: 94vw;
+            }
+        }
+
+        /* --- 7. Téléphone en paysage -----------------------------------------
+           Largeur suffisante mais hauteur ~380px : le dock en bas mangerait le
+           peu de vertical disponible. On garde la colonne de gauche, resserrée. */
+        @media (max-height: 480px) and (orientation: landscape) {
+
+            .toolbar {
+                width: 60px;
+                min-width: 60px;
+                grid-template-columns: 1fr;
+                padding: 6px 6px 12px;
+            }
+
+            .toolbar .group-label {
+                display: none;
+            }
+
+            .toolbar .tool-sep {
+                grid-column: span 1;
+            }
+        }
+
+        /* --- 8. Écrans bas : panneaux flottants plus hauts que la fenêtre ------
+           #stylePalettePanel mesure 361px de haut avec overflow-y:hidden et
+           aucun max-height : sur un écran de 390px, son bas était hors champ et
+           donc inatteignable (rien ne pouvait défiler). On plafonne la hauteur
+           et on rend le contenu défilable.
+           On calcule sur la hauteur de viewport, pas en pourcentage : ces
+           panneaux sont positionnés par rapport au bloc conteneur initial, et
+           un max-height en % ignorerait leur décalage « top » (~60px), ce qui
+           laissait encore dépasser le bas. --gm-vh est tenu à jour en JS. */
+        @media (max-height: 620px) {
+
+            .floating-window,
+            #stylePalettePanel,
+            #scenarioPanel,
+            .draggable-panel {
+                max-height: calc(var(--gm-vh, 100vh) - 80px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
         }
     </style>
    
@@ -17689,6 +18142,134 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 tooltipEl.classList.remove('show');
             });
         });
+    </script>
+
+    <!-- ======================================================================
+         ADAPTATION MOBILE / TABLETTE — comportements
+         Bloc autonome, volontairement séparé du script principal. Il n'appelle
+         l'app que par des points d'entrée publics déjà existants
+         (app.resizeCanvas). Supprimer ce <script> et le bloc CSS
+         « ADAPTATION MOBILE » restaure exactement l'ancien comportement.
+         ====================================================================== -->
+    <script id="gm-mobile">
+        (function () {
+            'use strict';
+
+            var noHover = window.matchMedia('(hover: none)');
+
+            /* --- 1. Hauteur réelle du viewport -----------------------------
+               Sur iOS/Android, 100vh compte la barre d'URL : le bas de l'app
+               (donc le dock d'outils) tombe hors écran. On publie la hauteur
+               réellement visible dans --gm-vh. visualViewport suit aussi
+               l'ouverture du clavier logiciel. */
+            var vv = window.visualViewport;
+
+            function syncViewportHeight() {
+                var h = (vv && vv.height) ? vv.height : window.innerHeight;
+                document.documentElement.style.setProperty('--gm-vh', h + 'px');
+            }
+
+            /* --- 2. Redessin après rotation ---------------------------------
+               NE PAS appeler app.resizeCanvas() ici : cette méthode n'est
+               utilisée que par initStudentInterface() (mode aperçu élève), où le
+               canvas doit épouser le viewport. Dans l'éditeur, #geoCanvas est
+               une feuille fixe de 3000x2000 rognée par .canvas-container
+               (overflow:hidden) et déplacée via la transformation de vue :
+               la redimensionner amputerait la feuille de travail.
+               Le mode élève enregistre déjà son propre listener 'resize', qui
+               se déclenche aussi à la rotation — il est donc couvert.
+               Un simple redessin suffit ici. */
+            var resizeTimer = null;
+
+            function refreshLayout() {
+                syncViewportHeight();
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function () {
+                    if (window.app && typeof window.app.render === 'function') {
+                        window.app.render();
+                    }
+                }, 120); // laisse le navigateur stabiliser le gabarit après rotation
+            }
+
+            syncViewportHeight();
+            window.addEventListener('orientationchange', refreshLayout);
+            window.addEventListener('resize', syncViewportHeight);
+            if (vv) {
+                vv.addEventListener('resize', refreshLayout);
+            }
+
+            /* --- 3. Menus de l'en-tête ouvrables à l'appui ------------------
+               Les 3 menus ne s'ouvraient qu'au :hover — inaccessibles au doigt.
+               Les deux déclencheurs sont des <button> sans onclick, donc
+               intercepter le clic ne retire aucune fonctionnalité. La souris
+               continue d'utiliser le survol (voir CSS @media (hover: none)). */
+            var dropdowns = Array.prototype.slice.call(
+                document.querySelectorAll('.header-dropdown')
+            );
+
+            function closeAll(except) {
+                dropdowns.forEach(function (d) {
+                    if (d !== except) d.classList.remove('gm-open');
+                });
+            }
+
+            dropdowns.forEach(function (dd) {
+                var trigger = dd.querySelector('.top-btn');
+                if (!trigger) return;
+
+                trigger.addEventListener('click', function (e) {
+                    if (!noHover.matches) return; // souris : on garde le survol
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var opening = !dd.classList.contains('gm-open');
+                    closeAll(dd);
+                    if (opening) dd.classList.add('gm-open');
+                    else dd.classList.remove('gm-open');
+                });
+
+                // Refermer après avoir choisi une entrée, sinon la feuille
+                // masque le résultat de l'action qu'on vient de déclencher.
+                var menu = dd.querySelector('.header-dropdown-content, .magic-menu-content');
+                if (menu) {
+                    menu.addEventListener('click', function (e) {
+                        if (e.target.closest('button, .magic-item, .magic-grid-item, .icon-btn')) {
+                            closeAll(null);
+                        }
+                    });
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!noHover.matches) return;
+                if (!e.target.closest('.header-dropdown')) closeAll(null);
+            }, true);
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeAll(null);
+            });
+
+            /* --- 4. Info-bulles : ne pas les déclencher au doigt ------------
+               Le survol est émulé à l'appui sur mobile : la bulle apparaît puis
+               reste affichée par-dessus l'interface. On neutralise l'affichage
+               dès qu'un vrai geste tactile est détecté. */
+            window.addEventListener('touchstart', function () {
+                var tip = document.getElementById('global-tooltip');
+                if (tip) tip.style.display = 'none';
+            }, { passive: true, once: true });
+
+            /* --- 5. Pincement hors canvas ----------------------------------
+               iOS ignore user-scalable=no : un pincement sur l'interface zoome
+               la page et désaligne tout. 'gesturestart' est propre à iOS et ne
+               concerne que le multi-touch : il ne bloque aucun clic.
+               Le double-tap zoom est traité en CSS via touch-action:manipulation
+               (et non par un preventDefault sur touchend, qui annulerait le clic
+               synthétisé et casserait deux appuis rapprochés).
+               Le canvas gère ses propres gestes (touch-action: none). */
+            document.addEventListener('gesturestart', function (e) {
+                if (e.target && e.target.closest && e.target.closest('#geoCanvas')) return;
+                e.preventDefault();
+            }, { passive: false });
+        })();
     </script>
 </body>
 
