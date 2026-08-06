@@ -4103,37 +4103,6 @@
                 transform: none;
             }
 
-            /* #replayBar mesure 476px : centré par translateX(-50%), il
-               s'étendait de -43px à 433px dans un écran de 390px et se faisait
-               rogner des deux côtés par .canvas-container (overflow:hidden) —
-               les boutons des extrémités devenaient inatteignables.
-               On l'ancre aux deux bords et on autorise le retour à la ligne. */
-            #replayBar {
-                left: 8px;
-                right: 8px;
-                transform: none;
-                width: auto;
-                max-width: none;
-                box-sizing: border-box;
-                flex-wrap: wrap;
-                justify-content: center;
-                /* Réserve à droite la place de #zoomWidget (50px, à 8px du bord,
-                   z-index supérieur) : occupant toute la largeur, la barre
-                   passait sinon sous la loupe. */
-                padding: 8px 70px 8px 10px;
-                gap: 8px;
-                row-gap: 6px;
-            }
-
-            #replayBar input[type=range] {
-                max-width: 90px;
-            }
-
-            /* Bord droit visuel superflu dès que les groupes passent à la ligne. */
-            #replayBar .replay-control-group {
-                border-right: none;
-            }
-
             /* Panneaux et claviers à largeur fixe (310 à 420px) qui dépassaient
                sur un écran de 375px. */
             .v-keyboard {
@@ -4207,6 +4176,143 @@
                 max-height: calc(var(--gm-vh, 100vh) - 80px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* --- 9. Lecteur d'animation en tiroir ---------------------------------
+           Sur petit écran, la barre du lecteur occupait en permanence ~110px en
+           bas du canvas (deux rangées une fois repliée). Elle devient une feuille
+           qui monte du bas, ouverte par un bouton dédié.
+
+           #replayBar n'est PAS déplacé dans le DOM : seul son style change, donc
+           tous ses gestionnaires d'événements restent en place. position:fixed
+           lui permet d'échapper à l'overflow:hidden de .canvas-container — aucun
+           ancêtre ne porte transform/filter/will-change, la référence est donc
+           bien le viewport.
+
+           Éléments ajoutés par le script « gm-mobile » : ils n'existent
+           visuellement que dans ce palier. */
+        #gm-player-fab,
+        #gm-player-veil,
+        #gm-player-grip {
+            display: none;
+        }
+
+        @media (max-width: 700px), (max-height: 480px) and (orientation: landscape) {
+
+            #replayBar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: var(--gm-dock);
+                width: auto;
+                max-width: none;
+                box-sizing: border-box;
+                /* Le décalage doit franchir la hauteur de la feuille ET son
+                   ancrage au-dessus du dock : avec un simple 110%, une feuille
+                   de 105px posée à 68px du bas restait visible sur 58px. */
+                transform: translateY(calc(100% + var(--gm-dock) + 24px));
+                transition: transform .25s ease;
+                border-radius: 16px 16px 0 0;
+                border-bottom: none;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                row-gap: 8px;
+                padding: 4px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+                z-index: 10050;
+                max-height: calc(var(--gm-vh, 100vh) - 90px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            body.gm-player-open #replayBar {
+                transform: translateY(0);
+            }
+
+            /* Poignée : occupe toute la largeur au-dessus des contrôles, sert de
+               cible de fermeture et de zone de balayage. */
+            #gm-player-grip {
+                display: block;
+                flex: 0 0 100%;
+                padding: 10px 0 6px;
+                cursor: grab;
+                touch-action: none;
+            }
+
+            #gm-player-grip::before {
+                content: '';
+                display: block;
+                width: 48px;
+                height: 5px;
+                margin: 0 auto;
+                border-radius: 3px;
+                background: rgba(0, 0, 0, .22);
+            }
+
+            #replayBar input[type=range] {
+                max-width: 110px;
+            }
+
+            /* Les séparateurs verticaux perdent leur sens dès que les groupes
+               passent à la ligne. */
+            #replayBar .replay-control-group {
+                border-right: none;
+            }
+
+            #gm-player-veil {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, .25);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity .25s ease;
+                z-index: 10040;
+            }
+
+            body.gm-player-open #gm-player-veil {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* Bouton d'ouverture, centré : les coins bas sont déjà occupés par
+               #zoomWidget à droite, #record-action-btn et #studentDock à gauche. */
+            #gm-player-fab {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: fixed;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: calc(16px + var(--gm-dock));
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                border: 1px solid rgba(0, 0, 0, .08);
+                border-radius: 50%;
+                background: rgba(255, 255, 255, .96);
+                color: #2c3e50;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+                cursor: pointer;
+                z-index: 10030;
+                transition: opacity .2s ease;
+            }
+
+            body.gm-player-open #gm-player-fab {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* Le lecteur est masqué en mode lecture : son bouton et son voile
+               doivent suivre, sinon on ouvrirait une feuille invisible. */
+            body.mode-lecture #gm-player-fab,
+            body.mode-lecture #gm-player-veil,
+            body.mode-lecture #gm-player-grip {
+                display: none !important;
             }
         }
     </style>
@@ -18453,6 +18559,63 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (e.target && e.target.closest && e.target.closest('#geoCanvas')) return;
                 e.preventDefault();
             }, { passive: false });
+
+            /* --- 6. Lecteur d'animation en tiroir --------------------------
+               La barre du lecteur occupait ~110px en permanence en bas du
+               canvas sur petit écran. Elle devient une feuille qui monte du
+               bas, ouverte par un bouton dédié.
+               #replayBar reste à sa place dans le DOM — on ne déplace rien, on
+               ne fait que basculer une classe sur <body> et laisser le CSS
+               opérer. Tous ses gestionnaires d'événements restent donc
+               strictement intacts. Le CSS ne s'applique qu'aux petits écrans :
+               en desktop, ces éléments restent en display:none et la barre
+               conserve son comportement d'origine. */
+            var gmBar = document.getElementById('replayBar');
+            if (gmBar) {
+                var veil = document.createElement('div');
+                veil.id = 'gm-player-veil';
+
+                var grip = document.createElement('div');
+                grip.id = 'gm-player-grip';
+                grip.setAttribute('aria-hidden', 'true');
+                gmBar.insertBefore(grip, gmBar.firstChild);
+
+                var fab = document.createElement('button');
+                fab.id = 'gm-player-fab';
+                fab.type = 'button';
+                fab.setAttribute('aria-label', "Ouvrir le lecteur d'animation");
+                fab.setAttribute('aria-expanded', 'false');
+                fab.setAttribute('data-tooltip', "Lecteur d'animation");
+                fab.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+
+                document.body.appendChild(veil);
+                document.body.appendChild(fab);
+
+                var setPlayerOpen = function (open) {
+                    document.body.classList.toggle('gm-player-open', open);
+                    fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+                };
+
+                fab.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    setPlayerOpen(true);
+                });
+                veil.addEventListener('click', function () { setPlayerOpen(false); });
+
+                // Balayage vers le bas sur la poignée, ou simple appui, pour refermer.
+                var gripY = null;
+                grip.addEventListener('pointerdown', function (e) { gripY = e.clientY; });
+                grip.addEventListener('pointerup', function (e) {
+                    if (gripY !== null && e.clientY - gripY > 24) setPlayerOpen(false);
+                    else if (gripY !== null) setPlayerOpen(false);
+                    gripY = null;
+                });
+                grip.addEventListener('pointercancel', function () { gripY = null; });
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') setPlayerOpen(false);
+                });
+            }
         })();
     </script>
 </body>
