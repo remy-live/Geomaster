@@ -3750,6 +3750,74 @@
             .icon-btn {
                 min-height: 40px;
             }
+
+            /* --- Palette de style : commandes dimensionnées pour la souris ----
+               Mesuré au doigt : pastilles de couleur 22x22, bouton de fermeture
+               12x20, rail du curseur d'épaisseur haut de 4px — très en dessous
+               des ~44px recommandés. La palette elle-même reste à 212px, ce qui
+               tient sur un écran de 390px ; seul l'intérieur était inutilisable. */
+            .color-swatch {
+                width: 34px;
+                height: 34px;
+            }
+
+            .quick-color-bar {
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            .close-palette {
+                width: 34px;
+                height: 34px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+            }
+
+            .palette-drag-handle {
+                padding: 14px 12px;
+            }
+
+            .drag-pill {
+                width: 48px;
+                height: 6px;
+            }
+
+            #stylePalettePanel .btn,
+            #stylePalettePanel .thickness-preview {
+                min-width: 40px;
+                min-height: 40px;
+            }
+
+            /* Le rail seul fait 4px : impossible à saisir. On élargit la zone de
+               préhension sans changer l'apparence du rail. */
+            .compact-slider {
+                height: 30px;
+                background: transparent;
+            }
+
+            .compact-slider::-webkit-slider-runnable-track {
+                height: 4px;
+            }
+
+            .compact-slider::-webkit-slider-thumb {
+                width: 24px;
+                height: 24px;
+                margin-top: -10px;
+            }
+
+            .compact-slider::-moz-range-thumb {
+                width: 22px;
+                height: 22px;
+            }
+
+            /* Menu contextuel : mêmes cibles trop petites à l'intérieur. */
+            #contextMenu .icon-btn,
+            #contextMenu button,
+            #contextMenu .coding-grid > * {
+                min-height: 40px;
+            }
         }
 
         /* --- 3. Menus déroulants : ouverture à l'appui ------------------------
@@ -3788,26 +3856,84 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        /* --- 4b. La colonne d'outils doit pouvoir défiler ---------------------
+           .toolbar porte overflow:visible !important, si bien que les 20 outils
+           restaient inaccessibles dès que la fenêtre manque de hauteur : sur un
+           téléphone en paysage, 1082px de contenu dans 339px, soit 743px hors
+           d'atteinte — 14 outils sur 20 injoignables. Il faut !important pour
+           passer outre. « auto » n'affiche une barre que si nécessaire : rien ne
+           change quand tout tient, y compris en desktop.
+           Vérifié au préalable : aucun élément en position absolute/fixed n'est
+           imbriqué dans .toolbar, donc le contexte de défilement ne rogne rien. */
+        .toolbar {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Barre de défilement masquée au doigt seulement : en desktop elle sert
+           d'indice qu'il reste des outils plus bas. */
+        @media (pointer: coarse) {
+            .toolbar {
+                scrollbar-width: none;
+            }
+
+            .toolbar::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        /* --- 4c. Menu contextuel : contenu toujours atteignable ---------------
+           Le menu mesure 310px de haut ; le bornage de sa position est corrigé
+           en JS (voir « gm-mobile »). Ici on garantit qu'il puisse défiler s'il
+           dépasse malgré tout la hauteur de l'écran. */
+        #contextMenu {
+            max-height: calc(var(--gm-vh, 100vh) - 16px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
         /* --- 5. En-tête : rangée de boutons défilante -------------------------
            Les ~16 boutons de l'en-tête occupent 986px (1082px avec les cibles
            tactiles agrandies) : au-delà de la largeur d'écran, ils débordaient
            le document, y compris sur iPad portrait (820px) — un défaut déjà
            présent avant cette adaptation.
            Cause : .top-toolbar a flex:1 mais pas min-width:0, or un élément flex
-           ne rétrécit pas sous la taille de son contenu sans cela. */
+           ne rétrécit pas sous la taille de son contenu sans cela.
+
+           C'est TOUTE la barre qui défile, en un seul bloc. Faire défiler la
+           seule .top-toolbar en épinglant .header-right était une mauvaise idée :
+           sur un écran de 390px, le champ titre (116px) et les icônes de droite
+           (190px) ne laissaient qu'une fenêtre de 68px pour 572px de contenu —
+           un judas inutilisable. */
         @media (max-width: 1100px) {
 
-            .top-toolbar {
-                min-width: 0;
+            header {
                 overflow-x: auto;
                 overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
+                /* space-between étirerait les écarts une fois le contenu
+                   défilant : tout doit rester collé à gauche. */
+                justify-content: flex-start;
+                gap: 4px;
+            }
+
+            header::-webkit-scrollbar {
+                display: none;
+            }
+
+            /* Chaque bloc garde sa taille propre et refuse de se comprimer :
+               c'est l'en-tête qui défile, pas son contenu qui se tasse. */
+            .top-toolbar {
+                flex: 0 0 auto;
+                min-width: 0;
+                overflow: visible;
                 gap: 2px;
             }
 
-            .top-toolbar::-webkit-scrollbar {
-                display: none;
+            .header-right {
+                flex: 0 0 auto;
             }
 
             .toolbar-group {
@@ -3817,12 +3943,14 @@
                 gap: 2px;
             }
 
-            /* .header-right doit rester atteignable, jamais compressé. */
-            .header-right {
+            /* Le titre monopolisait 116px des 390 disponibles. */
+            #docTitleInput {
+                width: 92px;
+                min-width: 92px;
                 flex: 0 0 auto;
             }
 
-            /* .top-toolbar devient un contexte de défilement, qui rognerait les
+            /* L'en-tête devient un contexte de défilement, qui rognerait les
                menus en position:absolute (aucun overflow ne peut laisser
                échapper un descendant). On les bascule en position:fixed sous
                l'en-tête : insensible au rognage, et plus lisible au doigt.
@@ -4046,22 +4174,18 @@
 
         /* --- 7. Téléphone en paysage -----------------------------------------
            Largeur suffisante mais hauteur ~380px : le dock en bas mangerait le
-           peu de vertical disponible. On garde la colonne de gauche, resserrée. */
+           peu de vertical disponible, on garde donc la colonne de gauche.
+           Elle reste sur DEUX colonnes : la resserrer à une seule doublait la
+           hauteur de contenu (1082px au lieu de ~540px), donc le défilement,
+           pour gagner 30px de large là où la largeur ne manque pas. En paysage
+           c'est la hauteur qui est rare. Le défilement vertical est assuré par
+           la règle 4b ci-dessus. */
         @media (max-height: 480px) and (orientation: landscape) {
 
             .toolbar {
-                width: 60px;
-                min-width: 60px;
-                grid-template-columns: 1fr;
-                padding: 6px 6px 12px;
-            }
-
-            .toolbar .group-label {
-                display: none;
-            }
-
-            .toolbar .tool-sep {
-                grid-column: span 1;
+                padding-top: 6px;
+                padding-bottom: 12px;
+                gap: 4px;
             }
         }
 
@@ -14959,7 +15083,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         let posY = e.clientY;
                         if (posX + width > winW) posX -= width;
                         if (posY + height > winH) posY -= height;
-                        menu.style.left = posX + 5 + 'px';
+                        // Bornage dans l'écran. Le repli ci-dessus peut donner une
+                        // position négative : le menu mesure 310px de haut, si bien
+                        // qu'un appui vers le milieu d'un écran de 390px le plaçait à
+                        // y = -156, soit 156px hors champ par le haut et hors
+                        // d'atteinte. Idem à gauche en portrait (x = -12).
+                        const gmMargin = 8;
+                        posX = Math.max(gmMargin, Math.min(posX, Math.max(gmMargin, winW - width - gmMargin)));
+                        posY = Math.max(gmMargin, Math.min(posY, Math.max(gmMargin, winH - height - gmMargin)));
+                        menu.style.left = posX + 'px';
                         menu.style.top = posY + 'px';
                         menu.style.opacity = '1';
                     }
