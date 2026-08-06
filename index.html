@@ -15994,7 +15994,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                     else if (e instanceof Arc || e instanceof CompassArc) {
-                        if (e.center) {
+                        // Un tour complet doit sortir en <circle>, jamais en <path> :
+                        // un arc SVG dont les extrémités coïncident n'est pas tracé du
+                        // tout (spécification SVG). Or cos(0) === cos(2π), donc tout
+                        // cercle tracé au compas — les 3 cercles du Yin Yang, par
+                        // exemple — produisait un chemin de longueur nulle, invisible
+                        // à l'export SVG comme PDF alors qu'il s'affiche à l'écran
+                        // (le canvas passe par ctx.arc, qui gère le tour complet).
+                        // On teste l'écart brut : la normalisation plus bas ramène
+                        // parfois un tour complet à 0 selon le sens de rotation.
+                        if (e.center && Math.abs(e.endAngle - e.startAngle) >= 2 * Math.PI - 1e-6) {
+                            svgContent += `<circle cx="${e.center.x}" cy="${e.center.y}" r="${e.radius}" stroke="${color}" stroke-width="${strokeW}" ${dash} fill="none" />`;
+                        }
+                        else if (e.center) {
                             const startX = e.center.x + e.radius * Math.cos(e.startAngle);
                             const startY = e.center.y + e.radius * Math.sin(e.startAngle);
                             const endX = e.center.x + e.radius * Math.cos(e.endAngle);
