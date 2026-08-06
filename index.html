@@ -17179,8 +17179,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.render();
                     }
                 }
+                // Le point aimanté doit figurer dans hoveredEntities : createPointAt()
+                // s'en sert pour réutiliser un point existant au lieu d'en créer un
+                // doublon. Sans cela, en tactile, le curseur fantôme s'aimantait bien
+                // sur un point (tolérance 40px) mais le relâchement créait un second
+                // point aux mêmes coordonnées, car Point.isNear() ne porte que sur 12px
+                // et la création tactile a lieu dans handlePointerUp, à partir du
+                // hoveredEntities calculé ici. handlePointerDown applique déjà
+                // exactement ce motif ; on l'aligne.
                 this.hoveredEntities = this.entities.filter(ent => {
+                    if (ent === closestPoint) return true;
                     if (ent.visible === false && !this.showHidden) return false;
+                    // Les autres points sont écartés : closestPoint est déjà le plus
+                    // proche dans la tolérance, et createPointAt() fait un .pop() sur
+                    // la liste — un point plus loin mais plus tardif l'emporterait.
+                    // Uniquement quand un point est aimanté : ici la recherche de
+                    // closestPoint est conditionnée à isObjectMagnetActive, donc sans
+                    // aimantation il faut conserver le repli isNear() d'origine,
+                    // sinon plus aucun point ne serait survolable ni réutilisable.
+                    if (closestPoint && ent instanceof Point) return false;
                     return ent.isNear(rawMouse.x, rawMouse.y);
                 });
                 let cursor = 'default';
