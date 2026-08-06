@@ -4200,21 +4200,29 @@
 
         @media (max-width: 700px), (max-height: 480px) and (orientation: landscape) {
 
+            /* Carte étroite centrée, et non feuille bord à bord : elle masque
+               beaucoup moins la figure. Elle reste au-dessus du dock, coins
+               arrondis sur les quatre angles puisqu'elle ne touche aucun bord. */
             #replayBar {
                 position: fixed;
-                left: 0;
-                right: 0;
-                bottom: var(--gm-dock);
-                width: auto;
+                left: 50%;
+                right: auto;
+                bottom: calc(var(--gm-dock) + 12px);
+                /* Mesuré : la hauteur reste à 106px de 366px jusqu'à 240px de
+                   large, le contenu se reorganisant sans grandir. On peut donc
+                   resserrer franchement sans rien payer en hauteur, et laisser
+                   la figure visible de part et d'autre. */
+                width: min(320px, calc(100vw - 48px));
                 max-width: none;
                 box-sizing: border-box;
-                /* Le décalage doit franchir la hauteur de la feuille ET son
-                   ancrage au-dessus du dock : avec un simple 110%, une feuille
-                   de 105px posée à 68px du bas restait visible sur 58px. */
-                transform: translateY(calc(100% + var(--gm-dock) + 24px));
+                /* translateX(-50%) assure le centrage : il doit être répété dans
+                   les deux états, sinon l'ouverture décalerait la carte.
+                   Le décalage vertical franchit la hauteur de la carte ET son
+                   ancrage au-dessus du dock : avec un simple 110%, une carte de
+                   105px posée à 68px du bas restait visible sur 58px. */
+                transform: translateX(-50%) translateY(calc(100% + var(--gm-dock) + 36px));
                 transition: transform .25s ease;
-                border-radius: 16px 16px 0 0;
-                border-bottom: none;
+                border-radius: 16px;
                 flex-wrap: wrap;
                 justify-content: center;
                 gap: 10px;
@@ -4227,7 +4235,7 @@
             }
 
             body.gm-player-open #replayBar {
-                transform: translateY(0);
+                transform: translateX(-50%) translateY(0);
             }
 
             /* Poignée : occupe toute la largeur au-dessus des contrôles, sert de
@@ -4267,7 +4275,9 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: rgba(0, 0, 0, .25);
+                /* Volontairement discret : la carte est petite et non modale, le
+                   voile ne sert qu'à capter l'appui extérieur pour refermer. */
+                background: rgba(0, 0, 0, .10);
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity .25s ease;
@@ -4303,6 +4313,19 @@
             }
 
             body.gm-player-open #gm-player-fab {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* En portrait, la carte recouvre exactement la loupe (mesuré : 50x50
+               de chevauchement) et, semi-opaque, la laisserait deviner en dessous.
+               On l'escamote le temps de l'ouverture — la loupe et le lecteur ne
+               servent pas simultanément. */
+            #zoomWidget {
+                transition: opacity .2s ease;
+            }
+
+            body.gm-player-open #zoomWidget {
                 opacity: 0;
                 pointer-events: none;
             }
