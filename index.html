@@ -17331,6 +17331,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     if (this.currentTool === 'ray') newObj = new Ray(this.creationStartPoint, endPoint);
                                     if (this.currentTool === 'circle') newObj = new Circle(this.creationStartPoint, endPoint);
                                     newObj.color = this.globalStyle.color; newObj.lineWidth = this.globalStyle.width; newObj.dash = [...this.globalStyle.dash];
+
+                                    // Animation « tracé à la règle / à l'équerre ».
+                                    // Sans elle, le rejeu n'affiche pas le crayon : isLinearTracing
+                                    // exige une ToolAnimation d'originalType 'trace' portant
+                                    // widgetType 'ruler' ou 'setsquare', placée juste AVANT l'objet
+                                    // tracé (le rejeu inspecte l'entité suivante). Le chemin souris
+                                    // la crée déjà ; la branche tactile sort en return avant d'y
+                                    // arriver, d'où l'absence de crayon sur tablette.
+                                    if (!this.lastUsedWidgetForCreation) {
+                                        const w1 = this.getNearbyWidget(this.creationStartPoint.x, this.creationStartPoint.y);
+                                        const w2 = this.getNearbyWidget(endPoint.x, endPoint.y);
+                                        this.lastUsedWidgetForCreation = w1 || w2;
+                                    }
+                                    if (this.lastUsedWidgetForCreation) {
+                                        const w = this.lastUsedWidgetForCreation === 'ruler' ? this.rulerWidget : this.setSquareWidget;
+                                        if (w) {
+                                            const state = { x: w.x, y: w.y, angle: w.angle };
+                                            const animTrace = new ToolAnimation('trace', state, state);
+                                            animTrace.widgetType = this.lastUsedWidgetForCreation;
+                                            this.addEntity(animTrace);
+                                        }
+                                    }
+
                                     this.addEntity(newObj); this.updateDependents();
                                     if (this.isAutoLabelMode) this.autoPlaceLabels([this.creationStartPoint, endPoint]);
                                     this.saveState();
