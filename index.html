@@ -4351,6 +4351,17 @@
             display: none;
         }
 
+        /* La bulle de la loupe est purement informative : elle ne doit jamais
+           capter le doigt. Sans cela, depuis qu'elle suit le contact, elle
+           interceptait le second doigt d'un pincement — qui n'atteignait donc
+           plus le canvas, si bien que activePointers ne montait jamais à 2 et
+           que le zoom à deux doigts ne se déclenchait plus.
+           Cible restreinte à #zoomBubble : le bouton d'activation, voisin dans
+           #zoomWidget, doit rester cliquable. */
+        #zoomBubble {
+            pointer-events: none;
+        }
+
         @media (max-width: 700px), (max-height: 480px) and (orientation: landscape) {
 
             /* Carte étroite centrée, et non feuille bord à bord : elle masque
@@ -16639,7 +16650,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return;
                 }
                 const isTouch = (e.pointerType === 'touch' || e.pointerType === 'pen');
-                const hitTolerance = isTouch ? 30 : 12;
+                // Tolérance d'aimantation à l'appui. 30px accrochait trop tôt au
+                // doigt ; 22 laisse de la marge tout en restant très au-dessus des
+                // 12px de la souris. Valeur tactile uniquement : le desktop garde
+                // ses 12px.
+                const hitTolerance = isTouch ? 22 : 12;
                 if (e.button === 1 || (this.currentTool === 'pan' && e.button === 0)) {
                     this.isPanning = true;
                     this.lastMouseScreen = { x: e.clientX, y: e.clientY };
@@ -17144,7 +17159,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.isPinching) return;
                 const rawMouse = this.getMousePos(e);
                 const isTouch = (e.pointerType === 'touch' || e.pointerType === 'pen');
-                const hitTolerance = isTouch ? 40 : 12;
+                // Tolérance d'aimantation pendant le déplacement. C'est celle qui
+                // donnait l'impression que « ça se colle trop vite » : 40px, soit
+                // plus de 3 fois la souris, accrochait bien avant que le doigt soit
+                // sur la cible. 26px reste confortable au doigt sans happer.
+                // Le réticule vert signale désormais l'accroche, donc une tolérance
+                // plus fine reste lisible.
+                const hitTolerance = isTouch ? 26 : 12;
                 const currentZoom = this.view.scale || this.view.zoom || 1;
                 const panX = this.view.x;
                 const panY = this.view.y;
@@ -18888,8 +18909,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return e.pointerType === 'touch' || e.pointerType === 'pen';
                     };
 
+                    // Deux doigts = navigation, pas visée. On masque la loupe
+                    // pendant un pincement : elle n'a alors aucune utilité, et
+                    // c'est aussi le moment où son contenu a été signalé comme
+                    // aberrant (fond sombre) — non reproduit ici, mais la retirer
+                    // de l'équation supprime le cas.
+                    var doigtsPoses = 0;
+                    var pince = function () { return doigtsPoses >= 2; };
+
                     geoCv.addEventListener('pointerdown', function (e) {
-                        if (!isFinger(e) || !window.app || !window.app.isZoomActive) return;
+                        if (!isFinger(e)) return;
+                        doigtsPoses++;
+                        if (!window.app || !window.app.isZoomActive) return;
+                        if (pince()) { bubble.style.display = 'none'; return; }
                         bubble.style.display = 'block';
                         placeBubble(e.clientX, e.clientY);
                     }, { passive: true });
@@ -18911,15 +18943,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     geoCv.addEventListener('pointermove', function (e) {
                         if (!isFinger(e) || !window.app || !window.app.isZoomActive) return;
                         if (e.buttons === 0) return; // seulement doigt posé
+                        if (pince()) { bubble.style.display = 'none'; return; }
                         bubble.style.display = 'block';
                         placeBubble(e.clientX, e.clientY);
                         refreshBubble(e);
                     }, { passive: true });
 
-                    window.addEventListener('pointerup', function (e) {
-                        if (isFinger(e)) hideBubble();
-                    });
-                    window.addEventListener('pointercancel', hideBubble);
+                    var relacher = function (e) {
+                        if (e && !isFinger(e)) return;
+                        doigtsPoses = Math.max(0, doigtsPoses - 1);
+                        if (doigtsPoses === 0) hideBubble();
+                    };
+                    window.addEventListener('pointerup', relacher);
+                    window.addEventListener('pointercancel', relacher);
                 }
             }
 
