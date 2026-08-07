@@ -16219,25 +16219,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.calculate();
                 }
 
+                // Réticule de visée tactile. Ce bloc ne s'exécute qu'en tactileMode,
+                // donc jamais à la souris : il est mobile par construction.
+                // Trois états distincts, là où il n'y en avait que deux. L'accroche
+                // sur un point EXISTANT ne se signalait pas — elle restait bleue,
+                // comme un point libre. C'est pourtant le cas le plus fréquent, et
+                // celui où un doublon passait inaperçu.
                 if (this.tactileMode && this.isDraggingCreation && this.ghostCursor) {
                     const gx = this.ghostCursor.x;
                     const gy = this.ghostCursor.y;
+                    const onPoint = !!this.ghostSnapPoint;
+                    const onInter = !onPoint && !!this.ghostIntersection;
+                    // vert = accroché sur un point existant, rouge = intersection
+                    // calculée, bleu = position libre
+                    const tint = onPoint ? "#27ae60" : (onInter ? "#e74c3c" : "#2980b9");
+
                     this.ctx.beginPath();
                     this.ctx.arc(gx, gy, 12, 0, Math.PI * 2);
-                    this.ctx.fillStyle = "rgba(41, 128, 185, 0.3)";
+                    this.ctx.fillStyle = onPoint ? "rgba(39, 174, 96, 0.28)"
+                        : (onInter ? "rgba(231, 76, 60, 0.28)" : "rgba(41, 128, 185, 0.3)");
                     this.ctx.fill();
+
                     this.ctx.beginPath();
                     this.ctx.arc(gx, gy, 4, 0, Math.PI * 2);
-                    this.ctx.fillStyle = this.ghostIntersection ? "#e74c3c" : "#2980b9";
+                    this.ctx.fillStyle = tint;
                     this.ctx.fill();
+
                     this.ctx.beginPath();
-                    this.ctx.strokeStyle = this.ghostIntersection ? "#e74c3c" : "#2980b9";
+                    this.ctx.strokeStyle = tint;
                     this.ctx.lineWidth = 1.5;
                     this.ctx.moveTo(gx - 15, gy);
                     this.ctx.lineTo(gx + 15, gy);
                     this.ctx.moveTo(gx, gy - 15);
                     this.ctx.lineTo(gx, gy + 15);
                     this.ctx.stroke();
+
+                    // Anneau de verrouillage : signal fort et lisible même sous le
+                    // doigt, puisqu'il dépasse largement la zone de contact.
+                    if (onPoint) {
+                        this.ctx.beginPath();
+                        this.ctx.arc(gx, gy, 19, 0, Math.PI * 2);
+                        this.ctx.strokeStyle = "#27ae60";
+                        this.ctx.lineWidth = 2.5;
+                        this.ctx.stroke();
+                    }
                 }
 
                 if (!targetCtx) this.refreshStepInstructionUI();
@@ -16705,6 +16730,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (ent instanceof Point) return false;
                     return ent.isNear(mousePos.x, mousePos.y);
                 });
+
+                // Renseigné dès l'appui, et pas seulement au déplacement : le
+                // réticule est déjà dessiné à la première image du geste, il
+                // lirait sinon la valeur laissée par le geste précédent.
+                this.ghostSnapPoint = closestPoint || null;
                 let smart = this.getSmartCoords ? this.getSmartCoords(e) : { x: mousePos.x, y: mousePos.y };
                 let finalX = closestPoint ? closestPoint.x : smart.x;
                 let finalY = closestPoint ? closestPoint.y : smart.y;
@@ -17642,6 +17672,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (closestPoint && ent instanceof Point) return false;
                     return ent.isNear(rawMouse.x, rawMouse.y);
                 });
+
+                // Mémorise le point sur lequel le curseur est aimanté, pour que le
+                // réticule tactile puisse le signaler. Sans cela il n'existait aucun
+                // retour visuel distinguant « accroché sur un point existant » de
+                // « point libre » : c'est précisément la situation où un doublon
+                // passait inaperçu.
+                this.ghostSnapPoint = closestPoint || null;
                 let cursor = 'default';
                 let hoveredWidget = null;
                 if (this.activeWidgets.compass && this.compassWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.compassWidget;
@@ -18794,6 +18831,97 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (e.target && e.target.closest && e.target.closest('#geoCanvas')) return;
                 e.preventDefault();
             }, { passive: false });
+
+            /* --- 5b. Loupe de visée : active d'office et solidaire du doigt --
+               Le réticule est dessiné à l'endroit visé, donc sous le doigt : une
+               pulpe de doigt couvre 40 à 50px alors que le réticule en fait 30.
+               L'information utile — ça a accroché, et sur quoi — est donc masquée
+               par la main. La loupe existait pour compenser, mais elle restait
+               désactivée par défaut et ancrée en bas à droite, précisément là où
+               se trouve la main d'un droitier qui dessine dans la moitié basse.
+
+               Trois corrections, en tactile uniquement : elle s'active d'office,
+               elle suit le doigt en se plaçant au-dessus, et elle n'apparaît que
+               pendant le tracé — sinon une bulle de 150x150 occuperait l'écran en
+               permanence. À la souris, rien ne change : le curseur ne masque rien
+               et le comportement d'origine est conservé. */
+            if (window.matchMedia('(pointer: coarse)').matches) {
+                var zoomBtn = document.getElementById('zoomToggleBtn');
+                var bubble = document.getElementById('zoomBubble');
+                var geoCv = document.getElementById('geoCanvas');
+
+                // On passe par le bouton plutôt que par le drapeau, pour que son
+                // état visuel et celui de l'application restent cohérents.
+                if (zoomBtn && window.app && !window.app.isZoomActive) zoomBtn.click();
+
+                if (bubble && geoCv) {
+                    bubble.style.display = 'none'; // masquée au repos
+
+                    var GAP = 30;
+
+                    var placeBubble = function (clientX, clientY) {
+                        var r = bubble.getBoundingClientRect();
+                        var bw = r.width || 150, bh = r.height || 150;
+                        var left = clientX - bw / 2;
+                        var top = clientY - GAP - bh;
+                        // Pas de place au-dessus (visée près du haut de l'écran) :
+                        // on bascule en dessous plutôt que de rogner.
+                        if (top < 4) top = clientY + GAP;
+                        left = Math.max(4, Math.min(left, window.innerWidth - bw - 4));
+                        top = Math.max(4, Math.min(top, window.innerHeight - bh - 4));
+                        bubble.style.position = 'fixed';
+                        bubble.style.left = left + 'px';
+                        bubble.style.top = top + 'px';
+                        bubble.style.margin = '0';
+                    };
+
+                    var hideBubble = function () {
+                        bubble.style.display = 'none';
+                        // On rend la bulle à son ancrage d'origine dans #zoomWidget.
+                        bubble.style.position = '';
+                        bubble.style.left = '';
+                        bubble.style.top = '';
+                        bubble.style.margin = '';
+                    };
+
+                    var isFinger = function (e) {
+                        return e.pointerType === 'touch' || e.pointerType === 'pen';
+                    };
+
+                    geoCv.addEventListener('pointerdown', function (e) {
+                        if (!isFinger(e) || !window.app || !window.app.isZoomActive) return;
+                        bubble.style.display = 'block';
+                        placeBubble(e.clientX, e.clientY);
+                    }, { passive: true });
+
+                    // Rafraîchit la loupe sur la frame À JOUR. L'application appelle
+                    // updateZoomBubble() au tout début de handlePointerMove, donc elle
+                    // recopie la frame précédente : le réticule n'y figure pas encore,
+                    // alors que c'est précisément ce qu'on veut voir agrandi.
+                    // Notre écouteur étant enregistré après le sien, il s'exécute une
+                    // fois son render() terminé.
+                    // Les coordonnées attendues sont celles de l'espace canvas :
+                    // l'application calcule rawMouse.x * zoom + view.x, ce qui se
+                    // simplifie exactement en (clientX - rect.left).
+                    var refreshBubble = function (e) {
+                        var cr = geoCv.getBoundingClientRect();
+                        window.app.updateZoomBubble(e.clientX - cr.left, e.clientY - cr.top);
+                    };
+
+                    geoCv.addEventListener('pointermove', function (e) {
+                        if (!isFinger(e) || !window.app || !window.app.isZoomActive) return;
+                        if (e.buttons === 0) return; // seulement doigt posé
+                        bubble.style.display = 'block';
+                        placeBubble(e.clientX, e.clientY);
+                        refreshBubble(e);
+                    }, { passive: true });
+
+                    window.addEventListener('pointerup', function (e) {
+                        if (isFinger(e)) hideBubble();
+                    });
+                    window.addEventListener('pointercancel', hideBubble);
+                }
+            }
 
             /* --- 6. Lecteur d'animation en tiroir --------------------------
                La barre du lecteur occupait ~110px en permanence en bas du
