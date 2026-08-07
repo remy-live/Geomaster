@@ -4434,14 +4434,38 @@
                 z-index: 10060 !important;
             }
 
-            /* Les pastilles deviennent enfants directs d'une rangée qui se replie :
-               dans un menu de 140px elles tiennent 3 par ligne, soit 2 lignes pour
-               les six. C'est le flex-wrap qui s'en charge, aucune valeur codée. */
+            /* Les pastilles deviennent enfants directs d'une rangée UNIQUE qui
+               défile horizontalement, au lieu de se replier sur deux lignes.
+               L'autre piste — rétrécir les pastilles — a été écartée par le
+               calcul : six pastilles dans 122px utiles donneraient (122 - 5 x 2)/6
+               = 18px, sous les 23px du desktop et très loin d'une cible tactile.
+               Le défilement, lui, ne coûte rien en taille.
+
+               justify-content: flex-start est indispensable : avec « center », un
+               contenu plus large que son conteneur déborde des DEUX côtés et le
+               début devient inatteignable au défilement.
+               La barre de défilement est masquée — sur un si petit ruban elle
+               mangerait de la hauteur. L'indice visuel est la pastille coupée au
+               bord droit, qui montre d'elle-même qu'il y en a d'autres. */
             #contextMenu .ctx-colors {
                 display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
                 gap: 4px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                /* La pastille sélectionnée porte transform: scale(1.15) et un
+                   anneau de 3px, qui sortent de sa boîte. Sans cette marge
+                   intérieure, le ruban les rognait — de haut et de bas à cause de
+                   overflow-y: hidden, et à gauche pour la première pastille, qui
+                   n'était donc jamais entièrement visible. */
+                padding: 4px;
+            }
+
+            #contextMenu .ctx-colors::-webkit-scrollbar {
+                display: none;
             }
 
             #contextMenu .ctx-colors > .menu-row {
@@ -4510,6 +4534,29 @@
 
             .p-thickness .compact-slider {
                 min-width: 0 !important;
+            }
+
+            /* Le nuancier de la palette défile lui aussi, au lieu de se replier :
+               six pastilles de 39px de boîte font 234px pour 144px utiles.
+               Rétrécir aurait donné ~20px par pastille, inutilisable au doigt.
+               flex-wrap: nowrap annule le wrap posé par le palier « pointer:
+               coarse », et flex-start évite le débordement des deux côtés que
+               provoquerait un centrage. */
+            .quick-color-bar {
+                flex-wrap: nowrap !important;
+                justify-content: flex-start;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                /* Même raison que pour le ruban du menu : la pastille active est
+                   agrandie et cerclée, il lui faut de la marge sous peine d'être
+                   rognée par le conteneur défilant. */
+                padding: 4px;
+            }
+
+            .quick-color-bar::-webkit-scrollbar {
+                display: none;
             }
 
             #contextMenu #rowCoding .mark-btn {
