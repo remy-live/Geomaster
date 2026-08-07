@@ -17849,6 +17849,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             handlePointerUp(e) {
                 if (this.isLocked) return;
                 this.activePointers.delete(e.pointerId);
+
+                // Marqueur d'aimantation à la grille : il n'est posé et effacé que
+                // par getSmartCoords(), appelée uniquement à l'appui et au
+                // déplacement. À la souris il s'efface tout seul, le simple survol
+                // qui suit le clic rappelant la fonction. Au doigt, plus aucun
+                // événement n'arrive après le lever : l'anneau orange restait donc
+                // affiché indéfiniment sur le dernier point aimanté, qu'on prenait
+                // pour une sélection.
+                // Placé avant tous les retours anticipés du gestionnaire (pincement,
+                // déplacement de vue, instruments) pour qu'aucun chemin ne l'oublie.
+                // Réservé au tactile : à la souris, effacer ici ferait clignoter le
+                // repère à chaque clic jusqu'au prochain mouvement.
+                if ((e.pointerType === 'touch' || e.pointerType === 'pen') && this.activeSnapPoint) {
+                    this.activeSnapPoint = null;
+                    this.render();
+                }
                 if (this.isPinching) {
                     if (this.activePointers.size === 0) {
                         this.isPinching = false;
