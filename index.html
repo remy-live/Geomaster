@@ -630,9 +630,19 @@
             animation: popIn .15s ease-out
         }
 
-        /* Force la grille à prendre toute la largeur disponible */
+        /* Force la grille à prendre toute la largeur disponible.
+           Le « display: grid !important » qui figurait ici a été retiré : un
+           !important de feuille de style bat une déclaration inline sans
+           priorité, donc le style="display:none" du balisage et le
+           el.style.display = 'none' de updateContextMenuUI() étaient tous deux
+           sans effet. La grille de codage des longueurs restait donc affichée
+           pour n'importe quel objet sélectionné — un point, par exemple.
+           La visibilité revient donc entièrement à l'inline, ce qui suffit : le
+           balisage naît à display:none et le seul endroit qui affiche la grille
+           est la branche isSegment de updateContextMenuUI(), dont le cssText
+           pose « display: grid !important ». Les colonnes et l'espacement
+           restent ici, ils n'ont pas à dépendre de ce chemin. */
         .coding-grid {
-            display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
             gap: 4px !important;
             width: 100% !important;
@@ -795,8 +805,10 @@
             transform: scale(1.15);
         }
 
+        /* Second bloc .coding-grid du fichier (l'autre est plus haut). Même
+           retrait du « display: grid !important » et pour la même raison : il
+           rendait la grille de codage impossible à masquer. */
         .coding-grid {
-            display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
             gap: 6px !important;
             width: 100%;
@@ -4305,19 +4317,9 @@
         }
 
         /* --- 8c. Menu contextuel : cibles tactiles -----------------------------
-           Le menu mesure 328px de haut, soit 39% de la hauteur en portrait
-           (acceptable) mais 84% en paysage. J'ai tenté de le réorganiser en deux
-           colonnes sur écran bas : la hauteur tombait bien à 218px, mais la
-           disposition en colonne de #menu-geo-controls repose sur des blocs en
-           width:100%, et les libérer faisait s'effondrer les colonnes 1fr de la
-           grille des codages — mark-btn à 18px de large, switch-btn à 16px, soit
-           11 contrôles inutilisables. Tentative abandonnée plutôt que livrée à
-           moitié : le menu garde sa géométrie d'origine, et la règle 4c lui
-           assure un max-height avec défilement pour rester atteignable.
-
-           Reste corrigé ici un défaut d'origine : les pastilles de couleur du
-           menu font 23x23. Ce sont des div à onclick, donc la règle sur
-           #contextMenu button ne les atteignait pas. */
+           Défaut d'origine : les pastilles de couleur du menu font 23x23. Ce sont
+           des div à onclick, donc la règle sur #contextMenu button ne les
+           atteignait pas. */
         @media (pointer: coarse) {
 
             #contextMenu .color-dot {
@@ -4328,6 +4330,75 @@
             #contextMenu .mark-btn,
             #contextMenu .switch-btn {
                 min-width: 34px;
+                min-height: 34px;
+            }
+        }
+
+        /* --- 8d. Menu contextuel compact sur téléphone -------------------------
+           Le menu naît à 200px de large, en colonne, avec les dix couleurs sur
+           deux rangées et les huit codages sur quatre colonnes. Mesuré pour un
+           point : 457px de contenu, soit 54% de l'écran en portrait et 117% en
+           paysage — il fallait le faire défiler pour atteindre la corbeille.
+
+           Ma première tentative gardait les 200px et cherchait à empiler en deux
+           colonnes ; elle échouait parce que les colonnes 1fr s'effondraient. La
+           bonne manœuvre est l'inverse : élargir le menu, puisque l'écran est
+           plus large que 200px, et dépenser cette largeur pour supprimer des
+           rangées. Les couleurs passent de 2 rangées à 1, les codages de 2 à 1.
+
+           .ctx-colors est en display:contents partout ailleurs, donc ce palier
+           est le seul à changer quoi que ce soit : hors téléphone la mise en page
+           reste au pixel celle d'avant. */
+        @media (max-width: 700px), (max-height: 480px) and (orientation: landscape) {
+
+            #contextMenu {
+                /* border-box indispensable : le menu est en content-box et porte
+                   8px de padding plus 1px de bordure, donc un width de 366px
+                   donnait une boîte de 384px. Le bornage JS le posait alors à
+                   x=8 et il dépassait de 2px à droite d'un écran de 390px.
+                   En border-box, width EST la boîte : 366 + 2 x 8 de marge = 382,
+                   qui tient dans 390. */
+                box-sizing: border-box;
+                /* 24px de marge totale, plafonné : au-delà, les rangées d'icônes
+                   s'étirent sans rien gagner en lisibilité. */
+                width: min(370px, calc(100vw - 24px)) !important;
+            }
+
+            /* Les dix pastilles deviennent enfants directs de la rangée unique. */
+            #contextMenu .ctx-colors {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 2px;
+            }
+
+            #contextMenu .ctx-colors > .menu-row {
+                display: contents;
+            }
+
+            /* box-sizing explicite : .color-dot est en content-box et porte une
+               bordure de 2px, donc un width:34px donnait 38px de boîte et les dix
+               pastilles débordaient, ce qui les renvoyait sur deux lignes.
+               32px est la taille qui tient : la largeur utile du menu est de
+               366 - 16 de padding - 2 de bordure = 348px, et 10 x 32 + 9 x 2 = 338.
+               C'est 2px sous les 34px des autres cibles tactiles du menu — le prix
+               de la rangée unique sur un écran de 390px, et toujours bien au-dessus
+               des 23px d'origine. */
+            #contextMenu .ctx-colors .color-dot {
+                box-sizing: border-box;
+                width: 32px !important;
+                height: 32px !important;
+                flex: 0 0 auto;
+            }
+
+            /* Les huit codages sur une seule ligne. */
+            #contextMenu #rowCoding {
+                grid-template-columns: repeat(8, 1fr) !important;
+                gap: 4px !important;
+            }
+
+            #contextMenu #rowCoding .mark-btn {
+                min-width: 0;
                 min-height: 34px;
             }
         }
@@ -6299,6 +6370,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                 </div>
                 <div id="menu-geo-controls" style="display:flex; flex-direction:column; gap:2px;">
+                    <!-- Enveloppe des deux rangées de couleurs. En display:contents
+                         par défaut : la mise en page reste exactement celle d'avant
+                         (les deux .menu-row demeurent les enfants de flux de
+                         #menu-geo-controls). Sur téléphone seulement, la règle 8d en
+                         fait une rangée unique et passe les deux .menu-row en
+                         display:contents à leur tour, si bien que les dix pastilles
+                         s'alignent sur une seule ligne. -->
+                    <div class="ctx-colors">
                     <div class="menu-row justify-center">
                         <div class="color-dot" style="background:#222;" onclick="app.styleObject('black')"></div>
                         <div class="color-dot" style="background:#2980b9;" onclick="app.styleObject('blue')"></div>
@@ -6313,6 +6392,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <div class="color-dot" style="background:#f1c40f;" onclick="app.styleObject('yellow')"></div>
                         <div class="color-dot" style="background:#1abc9c;" onclick="app.styleObject('cyan')"></div>
                     </div>
+                    </div><!-- /.ctx-colors -->
                     <div id="sepFill" class="sep-h" style="display:none;"></div>
                     <div id="rowFill" class="menu-row" style="display:none;">
                         <div class="icon-btn" onclick="app.styleObject('fill-solid')" data-tooltip="Plein"><svg
@@ -14386,8 +14466,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (isSegment) {
                     const rC = document.getElementById('rowCoding');
                     if (rC) {
-                        // Maintien du style inline original pour la grille
-                        rC.style.cssText = 'display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee;';
+                        // On ne fixe plus ici que l'affichage. Le nombre de
+                        // colonnes vient de la classe .coding-grid, afin que le
+                        // palier téléphone puisse le porter à 8 : une déclaration
+                        // inline !important battait toute feuille de style, et la
+                        // grille restait à 4 colonnes sur deux rangées.
+                        rC.style.cssText = 'display: grid !important; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee;';
 
                         const currentCode = this.selectedObject.coding || 'mark-none';
                         const btnCode = document.querySelector(`#rowCoding .mark-btn[onclick*="${currentCode}"]`);
@@ -16985,6 +17069,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 if (this.replayIndex !== null && this.replayIndex < this.entities.length) this.replayIndex = this.entities.length;
                 if (this.currentTool === 'move') {
+                    // handlePointerMove ne déplace le point saisi que si tactileMode
+                    // est faux. Or ce drapeau passait à true au premier tracé au
+                    // doigt (branche de création ci-dessous) et n'était jamais
+                    // remis à false : au doigt, l'outil curseur cessait donc
+                    // définitivement de déplacer quoi que ce soit dès qu'on avait
+                    // dessiné une fois. Il décrit un geste de création en cours,
+                    // pas un état de l'appareil : on le remet à zéro ici, puisque
+                    // l'outil curseur ne crée jamais rien.
+                    this.tactileMode = false;
                     if (closestPoint || clickedText) this.saveState();
                     if (closestPoint && closestPoint.parents.length !== 2) {
                         this.draggedPoint = closestPoint;
