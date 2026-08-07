@@ -4398,12 +4398,25 @@
                    boîte. Le bornage JS le posait alors à x=8 et il dépassait à
                    droite d'un écran de 390px. En border-box, width EST la boîte. */
                 box-sizing: border-box;
-                /* Ramené de 370 à 300px. À 370 le menu prenait 94% de la largeur
-                   d'un écran de 390 ; il en prend 77%. Ce sont les six couleurs
-                   restantes (224px) et la grille de codage à 8 colonnes qui
-                   fixent le plancher : 282px utiles laissent 32px par bouton de
-                   codage, encore au-dessus du minimum tactile. */
-                width: min(300px, calc(100vw - 24px)) !important;
+                /* Ramené de 370 à 300 puis à 270px : 69% de la largeur d'un écran
+                   de 390, contre 94% au départ. 270 est le plancher si l'on veut
+                   garder une seule ligne partout : 252px utiles doivent contenir
+                   les six couleurs (6 x 34 + 5 x 4 = 224) et les huit codages
+                   (8 x 28,9 + 7 x 3 = 252). Descendre plus bas ferait passer les
+                   boutons de codage sous les 28px, ou renverrait une rangée à la
+                   ligne — ce serait échanger de la largeur contre de la hauteur. */
+                width: min(270px, calc(100vw - 24px)) !important;
+
+                /* Le menu passait SOUS le bouton de lecture et sous la loupe, qui
+                   le recouvraient en bas à droite : il était à 3000 quand
+                   #zoomWidget est à 10000, #gm-player-fab à 10030 et le tiroir du
+                   lecteur à 10050. On le place juste au-dessus de cette famille.
+                   Les fenêtres modales, à 99999 et plus, restent devant lui, ce
+                   qui est bien l'ordre voulu.
+                   Noter que le même recouvrement existe hors téléphone, où
+                   #zoomWidget domine aussi le menu ; ce palier ne corrige que le
+                   cas signalé. */
+                z-index: 10060 !important;
             }
 
             /* Les pastilles deviennent enfants directs de la rangée unique. */
@@ -4446,10 +4459,11 @@
                 flex: 0 0 auto;
             }
 
-            /* Les huit codages sur une seule ligne. */
+            /* Les huit codages sur une seule ligne. Écart ramené à 3px : à 4px, les
+               boutons tombaient à 27,5px dans les 252px utiles du menu resserré. */
             #contextMenu #rowCoding {
                 grid-template-columns: repeat(8, 1fr) !important;
-                gap: 4px !important;
+                gap: 3px !important;
             }
 
             #contextMenu #rowCoding .mark-btn {
