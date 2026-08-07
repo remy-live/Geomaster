@@ -4380,48 +4380,69 @@
            plus large que 200px, et dépenser cette largeur pour supprimer des
            rangées. Les couleurs passent de 2 rangées à 1, les codages de 2 à 1.
 
+           Deuxième correction : à 370px le menu prenait 94% de la largeur, et
+           sur l'appareil réel la dixième pastille repassait malgré tout à la
+           ligne — mon émulation les faisait tenir, pas Safari. Plutôt que de
+           rogner encore les pastilles, on réduit le nuancier à six couleurs sur
+           téléphone. Le menu revient à 300px, soit 77% de la largeur, et les
+           pastilles remontent de 32 à 34px.
+
            .ctx-colors est en display:contents partout ailleurs, donc ce palier
            est le seul à changer quoi que ce soit : hors téléphone la mise en page
-           reste au pixel celle d'avant. */
+           reste au pixel celle d'avant, nuancier complet compris. */
         @media (max-width: 700px), (max-height: 480px) and (orientation: landscape) {
 
             #contextMenu {
                 /* border-box indispensable : le menu est en content-box et porte
-                   8px de padding plus 1px de bordure, donc un width de 366px
-                   donnait une boîte de 384px. Le bornage JS le posait alors à
-                   x=8 et il dépassait de 2px à droite d'un écran de 390px.
-                   En border-box, width EST la boîte : 366 + 2 x 8 de marge = 382,
-                   qui tient dans 390. */
+                   8px de padding plus 1px de bordure, donc width n'est pas la
+                   boîte. Le bornage JS le posait alors à x=8 et il dépassait à
+                   droite d'un écran de 390px. En border-box, width EST la boîte. */
                 box-sizing: border-box;
-                /* 24px de marge totale, plafonné : au-delà, les rangées d'icônes
-                   s'étirent sans rien gagner en lisibilité. */
-                width: min(370px, calc(100vw - 24px)) !important;
+                /* Ramené de 370 à 300px. À 370 le menu prenait 94% de la largeur
+                   d'un écran de 390 ; il en prend 77%. Ce sont les six couleurs
+                   restantes (224px) et la grille de codage à 8 colonnes qui
+                   fixent le plancher : 282px utiles laissent 32px par bouton de
+                   codage, encore au-dessus du minimum tactile. */
+                width: min(300px, calc(100vw - 24px)) !important;
             }
 
-            /* Les dix pastilles deviennent enfants directs de la rangée unique. */
+            /* Les pastilles deviennent enfants directs de la rangée unique. */
             #contextMenu .ctx-colors {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 2px;
+                gap: 4px;
             }
 
             #contextMenu .ctx-colors > .menu-row {
                 display: contents;
             }
 
+            /* Six couleurs au lieu de dix, sur téléphone uniquement. Dix pastilles
+               imposaient un menu très large pour tenir sur une ligne, et elles
+               finissaient malgré tout par déborder d'une unité sur l'appareil.
+               On garde les six plus lisibles sur fond blanc — noir, bleu, rouge,
+               vert, orange, violet — et l'on masque gris, rose, jaune et cyan.
+               C'est une perte réelle : ces quatre teintes ne sont plus
+               atteignables depuis le menu contextuel au téléphone. Elles restent
+               disponibles par la palette de style, qui porte son propre nuancier
+               et un sélecteur de couleur libre.
+               Le choix tient à ces deux sélecteurs : pour garder une autre teinte,
+               il suffit de changer le rang visé. */
+            #contextMenu .ctx-colors > .menu-row:nth-child(2) > .color-dot:nth-child(n+2) {
+                display: none;
+            }
+
             /* box-sizing explicite : .color-dot est en content-box et porte une
-               bordure de 2px, donc un width:34px donnait 38px de boîte et les dix
-               pastilles débordaient, ce qui les renvoyait sur deux lignes.
-               32px est la taille qui tient : la largeur utile du menu est de
-               366 - 16 de padding - 2 de bordure = 348px, et 10 x 32 + 9 x 2 = 338.
-               C'est 2px sous les 34px des autres cibles tactiles du menu — le prix
-               de la rangée unique sur un écran de 390px, et toujours bien au-dessus
-               des 23px d'origine. */
+               bordure de 2px, donc un width de 34px donnait 38px de boîte.
+               En border-box, six pastilles font 6 x 34 + 5 x 4 = 224px, ce qui
+               tient dans les 282px utiles — et permet de revenir aux 34px des
+               autres cibles tactiles du menu, au lieu des 32px auxquels il avait
+               fallu descendre pour en faire tenir dix. */
             #contextMenu .ctx-colors .color-dot {
                 box-sizing: border-box;
-                width: 32px !important;
-                height: 32px !important;
+                width: 34px !important;
+                height: 34px !important;
                 flex: 0 0 auto;
             }
 
