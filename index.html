@@ -4319,6 +4319,10 @@
         @media (max-width: 820px), (max-height: 620px) {
 
             .style-palette {
+                /* Ce palier va jusqu'à 820px et couvre donc aussi les petites
+                   tablettes, qui doivent garder le nuancier sur une seule ligne.
+                   Le resserrement à 172px est réservé au téléphone, dans le
+                   palier 8d. */
                 width: min(344px, calc(100vw - 24px));
             }
 
@@ -4348,6 +4352,7 @@
                 flex: 0 1 auto;
                 width: auto;
             }
+
         }
 
         /* --- 8c. Menu contextuel : cibles tactiles -----------------------------
@@ -4387,6 +4392,14 @@
            téléphone. Le menu revient à 300px, soit 77% de la largeur, et les
            pastilles remontent de 32 à 34px.
 
+           Troisième correction, et demi-tour assumé : le menu était encore jugé
+           trop large et passe à 140px, soit 36% de la largeur. La règle de
+           l'élargissement ne tient plus — les six couleurs se rangent 3 par
+           ligne et les codages reviennent à 4 colonnes sur deux rangées. On
+           retrouve donc de la hauteur là où on en avait gagné. C'est un arbitrage
+           de l'utilisateur, qui a vu les deux, et non une régression : le
+           défilement de la règle 4c reste là pour les écrans bas.
+
            .ctx-colors est en display:contents partout ailleurs, donc ce palier
            est le seul à changer quoi que ce soit : hors téléphone la mise en page
            reste au pixel celle d'avant, nuancier complet compris. */
@@ -4398,14 +4411,16 @@
                    boîte. Le bornage JS le posait alors à x=8 et il dépassait à
                    droite d'un écran de 390px. En border-box, width EST la boîte. */
                 box-sizing: border-box;
-                /* Ramené de 370 à 300 puis à 270px : 69% de la largeur d'un écran
-                   de 390, contre 94% au départ. 270 est le plancher si l'on veut
-                   garder une seule ligne partout : 252px utiles doivent contenir
-                   les six couleurs (6 x 34 + 5 x 4 = 224) et les huit codages
-                   (8 x 28,9 + 7 x 3 = 252). Descendre plus bas ferait passer les
-                   boutons de codage sous les 28px, ou renverrait une rangée à la
-                   ligne — ce serait échanger de la largeur contre de la hauteur. */
-                width: min(270px, calc(100vw - 24px)) !important;
+                /* 370 -> 300 -> 270 -> 140px, soit la moitié du précédent et 36%
+                   de la largeur d'un écran de 390.
+                   270 était le plancher pour garder une seule ligne partout ; en
+                   descendant à 140 on échange sciemment de la largeur contre de
+                   la hauteur, ce que la note sur les couleurs plus bas détaille.
+                   140 n'est pas arbitraire : 122px utiles laissent 3 pastilles de
+                   34px par ligne (110px) et 4 colonnes de codage à 28,2px, juste
+                   au-dessus du minimum tactile. Descendre à 130 ferait tomber les
+                   codages à 25px. */
+                width: min(140px, calc(100vw - 24px)) !important;
 
                 /* Le menu passait SOUS le bouton de lecture et sous la loupe, qui
                    le recouvraient en bas à droite : il était à 3000 quand
@@ -4419,7 +4434,9 @@
                 z-index: 10060 !important;
             }
 
-            /* Les pastilles deviennent enfants directs de la rangée unique. */
+            /* Les pastilles deviennent enfants directs d'une rangée qui se replie :
+               dans un menu de 140px elles tiennent 3 par ligne, soit 2 lignes pour
+               les six. C'est le flex-wrap qui s'en charge, aucune valeur codée. */
             #contextMenu .ctx-colors {
                 display: flex;
                 flex-wrap: wrap;
@@ -4448,10 +4465,9 @@
 
             /* box-sizing explicite : .color-dot est en content-box et porte une
                bordure de 2px, donc un width de 34px donnait 38px de boîte.
-               En border-box, six pastilles font 6 x 34 + 5 x 4 = 224px, ce qui
-               tient dans les 282px utiles — et permet de revenir aux 34px des
-               autres cibles tactiles du menu, au lieu des 32px auxquels il avait
-               fallu descendre pour en faire tenir dix. */
+               En border-box, trois pastilles font 3 x 34 + 2 x 4 = 110px, ce qui
+               tient dans les 122px utiles du menu resserré, à la taille de 34px
+               des autres cibles tactiles. */
             #contextMenu .ctx-colors .color-dot {
                 box-sizing: border-box;
                 width: 34px !important;
@@ -4459,11 +4475,41 @@
                 flex: 0 0 auto;
             }
 
-            /* Les huit codages sur une seule ligne. Écart ramené à 3px : à 4px, les
-               boutons tombaient à 27,5px dans les 252px utiles du menu resserré. */
+            /* Les codages reviennent à 4 colonnes, donc deux rangées : les huit sur
+               une ligne demandaient 252px utiles, impossible dans un menu de
+               140px. À 4 colonnes dans 122px utiles, chaque bouton fait 28,2px. */
             #contextMenu #rowCoding {
-                grid-template-columns: repeat(8, 1fr) !important;
+                grid-template-columns: repeat(4, 1fr) !important;
                 gap: 3px !important;
+            }
+
+            /* --- Palette de style resserrée, téléphone uniquement --------------
+               De 344 à 172px, soit la moitié : elle occupait 89% de la largeur
+               d'un écran de 390. Le prix est réel et assumé : à 144px utiles plus
+               une seule rangée ne tient d'un trait, les nuanciers passent à 3
+               pastilles par ligne, les grilles d'icônes se replient, et la
+               palette repasse de 336 à 514px de haut. En paysage elle dépasse
+               alors la fenêtre, mais la règle 8 la plafonne et la rend défilable.
+               Volontairement absent du palier 8b, qui va jusqu'à 820px : une
+               tablette de 768px garde le nuancier sur une seule ligne. */
+            .style-palette {
+                width: min(172px, calc(100vw - 24px));
+            }
+
+            /* Seule rangée de la palette qui ne se replie pas : elle exigeait
+               208px pour les 144px utiles du panneau resserré, et se faisait
+               rogner de 49px sans le moindre signe, l'overflow du panneau étant à
+               hidden. Les autres rangées, elles, se replient déjà.
+               Le curseur d'épaisseur porte un min-width:50px en style inline, que
+               seul un !important peut desserrer ; sans cela la rangée ne pouvait
+               pas se comprimer assez pour tenir. */
+            .p-thickness {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .p-thickness .compact-slider {
+                min-width: 0 !important;
             }
 
             #contextMenu #rowCoding .mark-btn {
@@ -6982,7 +7028,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </div>
             </div>
             <div class="p-divider"></div>
-            <div style="display:flex; justify-content:space-between; align-items: center; gap: 8px; width: 100%; margin: 2px 0;">
+            <!-- La classe p-thickness ne sert qu'à pouvoir viser cette rangée en
+                 CSS : c'est la seule de la palette qui ne se replie pas, et à
+                 partir d'une certaine étroitesse elle était rognée en silence par
+                 l'overflow:hidden du panneau. Voir le palier 8b. -->
+            <div class="p-thickness" style="display:flex; justify-content:space-between; align-items: center; gap: 8px; width: 100%; margin: 2px 0;">
                 <div style="display:flex; gap: 4px;">
                     <button class="btn active" id="btnStyleSolid" onclick="app.setGlobalDash(false)"
                         data-tooltip="Trait Plein"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
