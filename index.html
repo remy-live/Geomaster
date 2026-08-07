@@ -4523,17 +4523,22 @@
             /* Seule rangée de la palette qui ne se replie pas : elle exigeait
                208px pour les 144px utiles du panneau resserré, et se faisait
                rogner de 49px sans le moindre signe, l'overflow du panneau étant à
-               hidden. Les autres rangées, elles, se replient déjà.
-               Le curseur d'épaisseur porte un min-width:50px en style inline, que
-               seul un !important peut desserrer ; sans cela la rangée ne pouvait
-               pas se comprimer assez pour tenir. */
+               hidden. Les autres rangées, elles, se replient déjà. */
             .p-thickness {
                 flex-wrap: wrap;
                 justify-content: center;
             }
 
+            /* Le curseur porte flex:1 et min-width:50px en style inline. J'avais
+               d'abord mis min-width: 0 pour laisser la rangée se comprimer : la
+               rangée tenait bien sur une ligne, mais le curseur était réduit à
+               4px de large, donc inutilisable. Mesuré, pas supposé.
+               Un plancher de 90px le force à passer à la ligne — les trois
+               boutons font 106px et ne lui laissent pas la place — où il s'étire
+               ensuite sur 144 - 8 - 14 = 122px à côté de la valeur. Deux lignes,
+               et un curseur saisissable. */
             .p-thickness .compact-slider {
-                min-width: 0 !important;
+                min-width: 90px !important;
             }
 
             /* Le nuancier de la palette défile lui aussi, au lieu de se replier :
@@ -4557,6 +4562,30 @@
 
             .quick-color-bar::-webkit-scrollbar {
                 display: none;
+            }
+
+            /* Les grilles d'icônes de la palette repassaient à la ligne dès la
+               réduction du panneau : le palier « pointer: coarse » leur impose
+               min-width: 40px, or quatre boutons de 40 avec 6px d'écart exigent
+               178px pour les 144px utiles d'un panneau à 172px. Résultat, 3
+               boutons par ligne au lieu de 4, et la grille de cinq éclatée en
+               3 + 2.
+               On lève ce plancher et on revient aux 32px que les boutons ont sur
+               desktop, avec 4px d'écart : 4 x 32 + 3 x 4 = 140, qui tient.
+               La grille de cinq reste sur 4 + 1 : la faire tenir d'un trait
+               demanderait (144 - 16) / 5 = 25px par bouton, trop petit au doigt.
+               Le pictogramme reste à 18px, inchangé. */
+            #stylePalettePanel .btn,
+            #stylePalettePanel .thickness-preview {
+                min-width: 0;
+                min-height: 0;
+                width: 32px;
+                height: 32px;
+            }
+
+            .p-grid-4,
+            .p-grid-5 {
+                gap: 4px !important;
             }
 
             #contextMenu #rowCoding .mark-btn {
