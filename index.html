@@ -3772,15 +3772,49 @@
             /* --- Palette de style : commandes dimensionnées pour la souris ----
                Mesuré au doigt : pastilles de couleur 22x22, bouton de fermeture
                12x20, rail du curseur d'épaisseur haut de 4px — très en dessous
-               des ~44px recommandés. La palette elle-même reste à 212px, ce qui
-               tient sur un écran de 390px ; seul l'intérieur était inutilisable. */
+               des ~44px recommandés.
+
+               J'avais écrit ici que la coque pouvait rester à 212px et que seul
+               son intérieur était en cause. C'était faux : agrandir les cibles
+               sans élargir la coque a fait déborder son contenu, et
+               .style-palette est en overflow:hidden, donc le débordement était
+               rogné sans un pixel d'avertissement. Sur tablette — où le palier
+               8b, borné à 820px, ne s'applique pas — la barre de couleurs
+               exigeait 239px pour 184px utiles et repliait 2 des 6 pastilles sur
+               une seconde ligne, la rangée d'épaisseur perdait 9px et la
+               p-grid-5 voyait sa cinquième icône coupée de 5px.
+
+               280px de coque donnent 252px utiles, ce qui couvre les trois
+               besoins : 239px pour les couleurs (39px pour la pastille active,
+               plus grande, plus 5 x 34 plus 5 écarts de 6), 224px pour la
+               p-grid-5 et ~210px pour la rangée d'épaisseur. Le palier 8b, plus
+               bas dans la feuille, continue de porter les téléphones à 344px. */
+            .style-palette {
+                width: 280px;
+            }
+
             .color-swatch {
                 width: 34px;
                 height: 34px;
+                /* Les pastilles doivent rester rondes : flex-shrink les
+                   aplatirait en ovales dès que la rangée serre, et un
+                   border-radius de 50% sur une boîte non carrée donne une
+                   ellipse. aspect-ratio verrouille le carré même si une
+                   hauteur venait à manquer. */
+                flex: 0 0 auto;
+                aspect-ratio: 1 / 1;
             }
 
             .quick-color-bar {
                 gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            /* Filet de sécurité : si la coque venait à être plus étroite que
+               ces rangées, mieux vaut qu'elles se replient que d'être rognées
+               en silence par l'overflow:hidden. */
+            .p-grid-4,
+            .p-grid-5 {
                 flex-wrap: wrap;
             }
 
