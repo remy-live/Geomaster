@@ -3,8 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- viewport-fit=cover retiré volontairement : il faisait s'étendre la page
+         sous l'encoche, et les zones de sécurité laissaient apparaître le fond de
+         page en bandes grises sur les côtés en paysage. Sans cover, iOS restreint
+         lui-même le viewport à la zone sûre : l'application la remplit exactement,
+         sans bande. Les marges env(safe-area-inset-*) posées plus bas deviennent
+         alors nulles, ce qui est sans effet. -->
     <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4119,6 +4125,24 @@
                 height: 32px;
                 margin: 0 2px;
                 flex: 0 0 auto;
+            }
+
+            /* #rightPanel n'a pas d'order explicite, donc 0 : en disposition
+               colonne il passait AVANT .canvas-container (order:1) et occupait
+               une bande de 390x41 juste sous l'en-tête — la « zone grise »
+               signalée. Replié il ne fait qu'1px de large (width:0 + border-left
+               d'1px), mais align-items:stretch l'étirait sur toute la largeur et
+               sa hauteur suivait son en-tête interne de 40px.
+               On le sort du flux : c'est de toute façon le comportement attendu
+               d'un panneau qui glisse depuis le bord droit. .main-container est
+               en position:relative, il sert donc de référence. */
+            .right-panel {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                height: auto;
+                z-index: 20;
             }
 
             /* Les flottants en position:fixed sont ancrés au viewport : sans
