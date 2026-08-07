@@ -16744,6 +16744,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 });
                 const defsContent = Array.from(definitions.values()).join('\n');
+                // jsPDF ne connaît que les 14 polices PostScript standard : toute
+                // famille qu'il ne reconnaît pas retombe sur Times-Roman, à
+                // empattements, alors que le canevas dessine en sans-serif. C'est ce
+                // qui donnait un PDF dont les cotes et les valeurs d'angles
+                // n'avaient pas la police du canevas.
+                // Mesuré sur le PDF produit, en résolvant les alias /Fn vers leur
+                // /BaseFont : « Segoe UI » donnait Times-Roman, et — contre
+                // l'intuition — « Helvetica » aussi. Seuls « Arial » et
+                // « sans-serif » donnent Helvetica.
+                // La liste de familles, en revanche, EST parcourue. On garde donc
+                // celle du canevas en tête, ce qui préserve le rendu dans une
+                // visionneuse SVG, et l'on ajoute le repli qui décide du PDF.
+                // Une famille déjà terminée par une famille générique est laissée
+                // telle quelle : si l'utilisateur a choisi un serif, Times est le
+                // bon équivalent.
+                const policePDF = (famille) => {
+                    const f = String(famille || 'Segoe UI').replace(/'/g, '').trim();
+                    return /(sans-serif|serif|monospace|cursive|fantasy)$/i.test(f)
+                        ? f : f + ', Arial, sans-serif';
+                };
                 const bounds = this.getSceneBounds(includeTools);
                 if (!bounds) {
                     alert("La feuille est vide !");
@@ -16796,7 +16816,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     else if (e instanceof TextLabel) {
                         const fs = e.fontSize || 16;
-                        const ff = (e.fontFamily || 'Segoe UI').replace(/'/g, "");
+                        const ff = policePDF(e.fontFamily);
 
                         const lines = e.text.split('\n');
                         const lineHeight = fs * 1.2;
@@ -16844,7 +16864,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     if (Math.abs(angleRad) > Math.PI / 2) { angleRad += Math.PI; off = -off; }
                                     const txtAngle = angleRad * 180 / Math.PI;
                                     svgContent += `<rect x="-15" y="${off - 10}" width="30" height="16" fill="white" fill-opacity="0.8" transform="translate(${mx},${my}) rotate(${txtAngle})" />`;
-                                    svgContent += `<text x="0" y="${off}" font-family="Segoe UI" font-size="14" fill="${color}" text-anchor="middle" dominant-baseline="middle" transform="translate(${mx},${my}) rotate(${txtAngle})">${val}</text>`;
+                                    svgContent += `<text x="0" y="${off}" font-family="${policePDF('Segoe UI')}" font-size="14" fill="${color}" text-anchor="middle" dominant-baseline="middle" transform="translate(${mx},${my}) rotate(${txtAngle})">${val}</text>`;
                                 }
                             }
                         }
@@ -16929,7 +16949,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const txtY = e.p2.y + (radius + 20) * Math.sin(midA);
                             const txtVal = Math.round(val) + "°";
                             svgContent += `<rect x="${txtX - 15}" y="${txtY - 8}" width="30" height="16" fill="white" fill-opacity="0.7" rx="2" />`;
-                            svgContent += `<text x="${txtX}" y="${txtY}" font-family="Segoe UI" font-size="12" font-weight="bold" fill="${color}" text-anchor="middle" dominant-baseline="middle">${txtVal}</text>`;
+                            svgContent += `<text x="${txtX}" y="${txtY}" font-family="${policePDF('Segoe UI')}" font-size="12" font-weight="bold" fill="${color}" text-anchor="middle" dominant-baseline="middle">${txtVal}</text>`;
                         }
                     }
                 });
