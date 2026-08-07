@@ -3790,12 +3790,24 @@
                p-grid-5 et ~210px pour la rangée d'épaisseur. Le palier 8b, plus
                bas dans la feuille, continue de porter les téléphones à 344px. */
             .style-palette {
-                width: 280px;
+                /* 282 -> 250px de boîte. Ce n'est PAS le curseur qui fixait la
+                   largeur : mesuré, il s'étire pour remplir la place et n'exige
+                   rien. Le plancher venait du nuancier, 239px pour six pastilles
+                   de 39px de boîte. En les ramenant à 31px en border-box il ne
+                   demande plus que 216px, et les 220px utiles suffisent aussi à la
+                   grille de cinq icônes (5 x 40 + 4 x 4 = 216). Les six couleurs
+                   restent visibles d'un coup, sans défilement. */
+                width: 250px;
             }
 
             .color-swatch {
-                width: 34px;
-                height: 34px;
+                /* border-box : .color-swatch est en content-box avec 2px de bordure,
+                   donc un width de 34 donnait 38 de boîte et six pastilles
+                   exigeaient 239px. À 31px de boîte elles n'en demandent plus 216,
+                   ce qui permet de resserrer la palette de 282 à 250px. */
+                box-sizing: border-box;
+                width: 31px;
+                height: 31px;
                 /* Les pastilles doivent rester rondes : flex-shrink les
                    aplatirait en ovales dès que la rangée serre, et un
                    border-radius de 50% sur une boîte non carrée donne une
@@ -3805,17 +3817,37 @@
                 aspect-ratio: 1 / 1;
             }
 
+            /* La poignée du tiroir fait 44px de large en tactile et vit au bord droit
+               — ou au bord du panneau quand il est ouvert. La palette, ancrée à
+               right:20px, recouvrait son centre : mesuré sur tablette 1440, palette
+               jusqu'à 1380 contre une poignée à 1396..1440 tiroir FERMÉ, si bien
+               qu'on ne pouvait même plus l'ouvrir.
+               60px la font passer derrière la poignée avec 16px de jeu, dans tous les
+               cas de figure : tiroir ouvert ou fermé, portrait ou paysage. C'est
+               préférable à faire monter la poignée au-dessus des flottants, ce qui la
+               faisait peindre sur la palette. */
+            .style-palette {
+                right: 60px;
+            }
+
             .quick-color-bar {
-                gap: 6px;
+                /* 4px et non 6 : avec la pastille active agrandie par son scale(1.15),
+                   le nuancier exigeait 221px pour 222 utiles — un seul pixel de marge,
+                   trop peu pour survivre aux arrondis d'un autre appareil. À 4px il
+                   n'en demande plus que 211. */
+                gap: 4px;
                 flex-wrap: wrap;
             }
 
             /* Filet de sécurité : si la coque venait à être plus étroite que
                ces rangées, mieux vaut qu'elles se replient que d'être rognées
-               en silence par l'overflow:hidden. */
+               en silence par l'overflow:hidden.
+               L'écart passe de 6 à 4px : la grille de cinq exigeait 224px, soit
+               plus que les 220px utiles d'une palette à 250px. */
             .p-grid-4,
             .p-grid-5 {
                 flex-wrap: wrap;
+                gap: 4px !important;
             }
 
             .close-palette {
@@ -3852,18 +3884,6 @@
             .panel-toggle {
                 width: 44px;
                 font-size: 18px;
-                /* La palette de style est ouverte par défaut, ancrée à right:20px,
-                   et mordait déjà sur la poignée avant tout changement : mesuré en
-                   paysage, palette 478..824 contre poignée 820..844. À 24px de
-                   large le centre de la poignée (832) échappait au recouvrement
-                   par chance ; élargie à 44px il tombe dedans, et l'appui ne
-                   l'atteint plus.
-                   La poignée est un onglet collé au bord de l'écran : elle doit
-                   rester atteignable quoi qu'il y ait devant. On la place au-dessus
-                   des panneaux flottants (palette 5500, menu contextuel 10060 sur
-                   téléphone) sans monter jusqu'aux fenêtres modales (99999+), qui
-                   doivent bien la masquer. */
-                z-index: 10070;
             }
 
             /* Le rail seul fait 4px : impossible à saisir. On élargit la zone de
@@ -3893,6 +3913,77 @@
             #contextMenu button,
             #contextMenu .coding-grid > * {
                 min-height: 40px;
+            }
+
+            /* --- Menu contextuel en tactile : géométrie des commandes ----------
+               Trois défauts mesurés sur tablette, menu de 218px pour 200px utiles.
+
+               1. Les pastilles étaient des ovales : 33,6 x 38,0. Elles gardent le
+                  flex-shrink par défaut, donc la rangée trop serrée les écrasait
+                  en largeur sans toucher à leur hauteur — et un border-radius de
+                  50% sur une boîte non carrée donne une ellipse. border-box rend
+                  le calcul direct (5 x 34 + 4 x 4 = 186 dans 200) et flex: 0 0 auto
+                  interdit tout écrasement.
+               2. Le curseur d'épaisseur débordait : #rowStyle exigeait 213px pour
+                  200, soit 6px hors du menu, rognés par l'overflow. Son
+                  min-width inline l'empêchait de se comprimer.
+               3. Les boutons de codage faisaient 48 x 36, donc ni carrés ni
+                  réguliers : leur largeur vient de la colonne 1fr, leur hauteur
+                  d'un min-height. aspect-ratio les rend carrés à toute largeur, et
+                  le plafond de 44px les empêche de devenir énormes sur tablette
+                  tout en les laissant se réduire dans le menu resserré du
+                  téléphone. */
+            #contextMenu .color-dot {
+                box-sizing: border-box;
+                width: 34px !important;
+                height: 34px !important;
+                flex: 0 0 auto;
+                aspect-ratio: 1 / 1;
+            }
+
+            /* La rangée de couleurs exigeait 202px pour 200 utiles : cinq pastilles
+               de 34px et quatre écarts de 8. À 6px d'écart il ne lui faut plus que
+               194px. Deux pixels suffisaient à faire rogner la dernière pastille. */
+            #contextMenu .ctx-colors .menu-row {
+                gap: 6px;
+            }
+
+            #contextMenu #rowStyle .compact-slider {
+                min-width: 0 !important;
+            }
+
+            #contextMenu #rowStyle .icon-btn {
+                width: 40px;
+                height: 40px;
+                min-width: 0;
+                flex: 0 0 auto;
+            }
+
+            #contextMenu .mark-btn {
+                width: 100%;
+                max-width: 44px;
+                height: auto;
+                aspect-ratio: 1 / 1;
+                min-width: 0;
+                min-height: 0;
+                justify-self: center;
+            }
+
+            /* --- Panneaux flottants : contenu toujours atteignable -------------
+               La calculatrice mesure 546px de haut pour environ 554px disponibles
+               sous l'en-tête : huit pixels de marge. Un texte un peu plus grand
+               sur l'appareil, et son pavé numérique passait sous le bord sans
+               qu'aucun défilement ne permette d'y accéder — les dernières rangées
+               étaient simplement perdues.
+               On plafonne la hauteur et on rend le contenu défilable. Le calcul se
+               fait sur la hauteur de fenêtre et non en pourcentage : ces panneaux
+               se positionnent par rapport au bloc conteneur initial, un % ignorerait
+               donc leur décalage « top ». --gm-vh est tenu à jour en JS. */
+            .draggable-panel,
+            .floating-window {
+                max-height: calc(var(--gm-vh, 100vh) - 100px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             /* --- Supprimer les flous d'arrière-plan ---------------------------
@@ -4584,6 +4675,7 @@
                 min-width: 90px !important;
             }
 
+
             /* Le nuancier de la palette défile lui aussi, au lieu de se replier :
                six pastilles de 39px de boîte font 234px pour 144px utiles.
                Rétrécir aurait donné ~20px par pastille, inutilisable au doigt.
@@ -4631,10 +4723,10 @@
                 gap: 4px !important;
             }
 
-            #contextMenu #rowCoding .mark-btn {
-                min-width: 0;
-                min-height: 34px;
-            }
+            /* La géométrie des boutons de codage est désormais posée une fois pour
+               tout le tactile (aspect-ratio + plafond de 44px) dans le palier
+               « pointer: coarse » : ils sont carrés à toute largeur de colonne, y
+               compris les ~28px de ce menu resserré. Plus rien à surcharger ici. */
         }
 
         /* --- 9. Lecteur d'animation en tiroir ---------------------------------
@@ -7119,7 +7211,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </svg>
         </button>
     </div>
-    <div class="style-palette floating-window" id="stylePalettePanel" style="top: 60px; right: 20px; left: auto;">
+    <!-- « right » n'est plus figé en inline : c'est le CSS qui le pilote, pour
+         pouvoir dégager la poignée du tiroir en tactile (palier pointer: coarse).
+         Le déplacement à la main pose left + right:auto en inline et continue
+         donc de primer sur la feuille de style. -->
+    <div class="style-palette floating-window" id="stylePalettePanel" style="top: 60px; left: auto;">
         <div class="palette-drag-handle" id="paletteHandle">
             <div class="drag-pill"></div>
             <button class="close-palette" onclick="app.toggleStylePalette()">&times;</button>
