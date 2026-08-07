@@ -3960,6 +3960,13 @@
             }
 
             #contextMenu .mark-btn {
+                /* border-box indispensable : .mark-btn est en content-box avec 1px de
+                   bordure, si bien qu'un width:100% donnait une boîte plus large que
+                   sa colonne. Mesuré sur téléphone : 4 colonnes de 36px pour une
+                   rangée de 122, soit 161px demandés et 23px de boutons sortis hors
+                   du menu. En border-box, 100% EST la colonne, et le plafond de 44px
+                   redevient une vraie limite. */
+                box-sizing: border-box;
                 width: 100%;
                 max-width: 44px;
                 height: auto;
@@ -4500,7 +4507,12 @@
                 height: 34px !important;
             }
 
-            #contextMenu .mark-btn,
+            /* .mark-btn a été retiré d'ici : son min-width de 34px écrasait le
+               max-width posé plus haut — en CSS, min-width l'emporte toujours sur
+               max-width — et forçait les colonnes de la grille de codage à 34px,
+               d'où un débordement hors du menu sur téléphone. Sa géométrie est
+               désormais gouvernée par la seule règle #contextMenu .mark-btn
+               (border-box, aspect-ratio, plafond de largeur). */
             #contextMenu .switch-btn {
                 min-width: 34px;
                 min-height: 34px;
@@ -4633,12 +4645,20 @@
                 flex: 0 0 auto;
             }
 
-            /* Les codages reviennent à 4 colonnes, donc deux rangées : les huit sur
-               une ligne demandaient 252px utiles, impossible dans un menu de
-               140px. À 4 colonnes dans 122px utiles, chaque bouton fait 28,2px. */
+            /* Les codages restent sur 4 colonnes, donc deux rangées. Les huit sur une
+               seule ligne demanderaient (122 - 14) / 8 = 13,5px par bouton, pour des
+               pictogrammes de 16px : inutilisable. Ce n'est pas un renoncement mais
+               une contrainte arithmétique du menu à 140px.
+               Les boutons sont plafonnés à 26px, sous les 28,2px de la colonne : plus
+               petits qu'avant, avec un peu d'air autour, et la rangée passe de 86 à
+               61px de haut. */
             #contextMenu #rowCoding {
                 grid-template-columns: repeat(4, 1fr) !important;
                 gap: 3px !important;
+            }
+
+            #contextMenu #rowCoding .mark-btn {
+                max-width: 26px;
             }
 
             /* --- Palette de style resserrée, téléphone uniquement --------------
