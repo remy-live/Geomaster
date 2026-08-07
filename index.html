@@ -3842,6 +3842,30 @@
                 min-height: 40px;
             }
 
+            /* Poignée du tiroir des objets : 24px de large, soit la moitié d'une
+               cible tactile. Accrochée au bord de l'écran quand le tiroir est
+               fermé, on ne peut pas la manquer ; une fois le tiroir ouvert elle
+               est isolée en pleine surface, et c'est là qu'on rate l'appui — ce
+               qui donne l'impression d'un tiroir qui ne se referme plus.
+               Placé dans ce palier, et non dans celui du portrait, pour valoir
+               aussi en paysage et sur tablette. */
+            .panel-toggle {
+                width: 44px;
+                font-size: 18px;
+                /* La palette de style est ouverte par défaut, ancrée à right:20px,
+                   et mordait déjà sur la poignée avant tout changement : mesuré en
+                   paysage, palette 478..824 contre poignée 820..844. À 24px de
+                   large le centre de la poignée (832) échappait au recouvrement
+                   par chance ; élargie à 44px il tombe dedans, et l'appui ne
+                   l'atteint plus.
+                   La poignée est un onglet collé au bord de l'écran : elle doit
+                   rester atteignable quoi qu'il y ait devant. On la place au-dessus
+                   des panneaux flottants (palette 5500, menu contextuel 10060 sur
+                   téléphone) sans monter jusqu'aux fenêtres modales (99999+), qui
+                   doivent bien la masquer. */
+                z-index: 10070;
+            }
+
             /* Le rail seul fait 4px : impossible à saisir. On élargit la zone de
                préhension sans changer l'apparence du rail. */
             .compact-slider {
@@ -4248,6 +4272,25 @@
             .draggable-panel {
                 width: min(94vw, 400px);
                 max-width: 94vw;
+            }
+
+            /* Le tiroir des objets, lui, doit laisser la place à sa poignée.
+               La règle ci-dessus lui donnait min(94vw, 400px) = 367px sur un
+               écran de 390 : il ne restait que 22px à sa gauche, où une poignée
+               de 44px ne tient pas. Et la poignée, calée en dur sur « right:
+               300px » (la largeur du panneau sur desktop), se retrouvait posée
+               67px À L'INTÉRIEUR du panneau au lieu de border son arête. Elle
+               restait cliquable, mais devenait un ruban isolé au milieu de
+               l'écran au lieu d'un onglet accroché à un bord : on croit appuyer
+               dessus et l'on tombe à côté.
+               52px réservés = 44 de poignée + 8 de marge. Le panneau garde 338px,
+               bien au-delà des 250px de min-width de son en-tête. */
+            .right-panel.open {
+                width: calc(100vw - 52px);
+            }
+
+            .panel-toggle.open {
+                right: calc(100vw - 52px);
             }
 
             .instruction-pill {
