@@ -3763,6 +3763,17 @@
                 height: 40px;
             }
 
+            /* La flèche des deux menus mesure 10px et se lit comme la seule poignée
+               d'ouverture — d'où l'impression qu'il faut viser juste. C'est toute
+               l'icône qui ouvre (vérifié au centre comme dans les coins) : on
+               grossit donc le repère, sans en faire une cible distincte. */
+            .header-dropdown .top-btn::after {
+                font-size: 14px;
+                color: #666;
+                bottom: 0;
+                right: 1px;
+            }
+
             .tool-btn {
                 height: 48px;
             }
@@ -19817,19 +19828,58 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 return noHover.matches || dernierPointeur === 'touch' || dernierPointeur === 'pen';
             }
 
+            function basculer(dd) {
+                var ouvre = !dd.classList.contains('gm-open');
+                closeAll(dd);
+                if (ouvre) dd.classList.add('gm-open');
+                else dd.classList.remove('gm-open');
+                majZEnTete();
+            }
+
+            /* Reconnaissance d'appui, en plus du clic.
+               L'en-tête est une bande à défilement horizontal. Dès que le doigt
+               glisse de quelques pixels sur un bouton, le navigateur considère que
+               le geste appartient au conteneur défilant et N'ÉMET AUCUN CLIC —
+               mesuré : 6px suffisent. Comme on n'écoutait que 'click', l'appui
+               n'ouvrait alors rien, et c'est le geste le plus naturel au doigt sur
+               une bande qui défile. Sur tablette l'en-tête ne défile pas (au-delà
+               de 1100px), d'où une panne cantonnée au téléphone.
+               On juge donc soi-même : peu de déplacement et pas trop long = appui.
+               Un horodatage évite d'agir deux fois si le clic finit par arriver. */
+            var SEUIL_APPUI = 12;    // px de tolérance au tremblement
+            var DUREE_APPUI = 700;   // au-delà, ce n'est plus un appui franc
+
             dropdowns.forEach(function (dd) {
                 var trigger = dd.querySelector('.top-btn');
                 if (!trigger) return;
+
+                var departX = 0, departY = 0, departT = 0, traiteA = 0;
+
+                trigger.addEventListener('pointerdown', function (e) {
+                    if (e.pointerType === 'mouse') return;
+                    departX = e.clientX;
+                    departY = e.clientY;
+                    departT = e.timeStamp;
+                    departT = departT || 0;
+                }, { passive: true });
+
+                trigger.addEventListener('pointerup', function (e) {
+                    if (e.pointerType === 'mouse') return;
+                    var dx = e.clientX - departX, dy = e.clientY - departY;
+                    if (Math.sqrt(dx * dx + dy * dy) > SEUIL_APPUI) return; // défilement
+                    if (departT && e.timeStamp - departT > DUREE_APPUI) return; // appui long
+                    traiteA = e.timeStamp;
+                    basculer(dd);
+                });
 
                 trigger.addEventListener('click', function (e) {
                     if (!appuiTactile()) return; // vraie souris : on garde le survol
                     e.preventDefault();
                     e.stopPropagation();
-                    var opening = !dd.classList.contains('gm-open');
-                    closeAll(dd);
-                    if (opening) dd.classList.add('gm-open');
-                    else dd.classList.remove('gm-open');
-                    majZEnTete();
+                    // Déjà basculé par le pointerup du même geste : on ne rebascule
+                    // pas, sinon le menu se refermerait aussitôt.
+                    if (traiteA && e.timeStamp - traiteA < 600) return;
+                    basculer(dd);
                 });
 
                 // Refermer après avoir choisi une entrée, sinon la feuille
