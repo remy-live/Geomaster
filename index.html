@@ -15421,6 +15421,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // « étape 2 » sans point de départ, et l'appui suivant plantait
                 // (lecture de .x sur null) en avalant tout le geste.
                 this.actionStep = 0;
+                this.departAccroche = false;
                 this.isDraggingCreation = false;
                 this.referenceObject = null;
                 this.polygonPoints = [];
@@ -17701,7 +17702,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // vers la position du geste précédent. On le cale ici.
                         this.mousePos = { x: x, y: y };
                         this.isDraggingCreation = true;
+                        this.departAccroche = false;
                         if (this.actionStep === 1 && this.creationStartPoint) {
+                            this.currentMousePosForPreview = { x: x, y: y };
+                        }
+                        // Tomber PILE sur un point existant, c'est avoir déjà la
+                        // première extrémité : inutile de dépenser tout le geste à
+                        // la poser. On la fixe dès l'appui, si bien que CE geste
+                        // sert déjà à chercher la seconde — l'aperçu et le point
+                        // fantôme suivent le doigt, et le relâchement trace.
+                        // Depuis le vide, au contraire, le glissement sert à viser
+                        // la première extrémité : on n'y touche pas.
+                        else if (closestPoint && ['segment', 'ray', 'line', 'line_clean', 'circle'].includes(this.currentTool)) {
+                            this.creationStartPoint = closestPoint;
+                            this.actionStep = 1;
+                            this.departAccroche = true;
                             this.currentMousePosForPreview = { x: x, y: y };
                         }
                     }
@@ -18575,6 +18590,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     if (this.isAutoLabelMode) this.autoPlaceLabels([this.creationStartPoint, endPoint]);
                                     this.saveState();
                                 }
+                                // Un appui sur un point existant SANS glisser vient
+                                // de fixer la première extrémité (voir
+                                // departAccroche) : on la garde et l'on attend le
+                                // second appui. Sans cette exception, le
+                                // relâchement l'effacerait aussitôt et le tracé en
+                                // deux temps depuis un point deviendrait impossible.
+                                if (dist <= 10 && this.departAccroche) {
+                                    this.departAccroche = false;
+                                    break;
+                                }
+                                this.departAccroche = false;
                                 this.actionStep = 0;
                                 this.creationStartPoint = null;
                                 this.isDraggingCreation = false;
