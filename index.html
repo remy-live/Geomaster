@@ -15828,6 +15828,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 this.canvas.addEventListener('pointerdown', (e) => {
                     if (e.pointerType !== 'touch' || !e.isPrimary) return;
+                    // Au doigt, le menu contextuel n'appartient qu'à l'outil
+                    // curseur. Avec un outil de tracé, maintenir le doigt SERT À
+                    // VISER — c'est même ce qui fait venir la loupe à 220 ms — et
+                    // le menu s'ouvrait alors à 400 ms par-dessus le geste en
+                    // cours, le faisant échouer. Le clic droit de la souris n'est
+                    // pas concerné : il passe par l'événement contextmenu.
+                    if (this.currentTool !== 'move') return;
                     pointerStartCoords = { x: e.clientX, y: e.clientY };
 
                     longPressTimer = setTimeout(() => {
