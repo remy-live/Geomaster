@@ -3733,6 +3733,18 @@
                 color: #e74c3c;
             }
 
+            /* La règle ci-dessus annulait aussi l'état ACTIF de la poubelle : à
+               spécificité égale (3 classes, :hover comptant pour une classe) elle
+               vient après .tool-btn.delete-btn.active et l'emporte. Or au doigt le
+               :hover reste « collé » sur le dernier bouton touché — précisément
+               celui qu'on vient d'activer. L'outil Supprimer était donc le seul à
+               ne pas s'allumer. Le pendant existait déjà pour .tool-btn.active. */
+            .tool-btn.delete-btn.active:hover {
+                background: #ffebee;
+                border-color: #ffcdd2;
+                color: #d32f2f;
+            }
+
             .top-btn:hover {
                 background: 0 0;
                 color: #555;
@@ -3753,6 +3765,20 @@
 
             .tool-btn {
                 height: 48px;
+            }
+
+            /* Le double trait au bas de la colonne d'outils n'est pas un
+               séparateur : c'est le bouton « détacher la trousse d'instruments »
+               (onclick sur le .group-label). Son style en ligne lui donne
+               height:0 — la cible réelle se réduit au filet de 2px de son enfant,
+               qu'aucun doigt n'atteint : sur tablette la trousse ne se détachait
+               donc plus. On lui rend une hauteur tactile ; le filet reste centré
+               (display:flex + align-items:center en ligne) et son aspect ne
+               change pas. Il faut !important pour passer devant le style en
+               ligne. */
+            .toolbar .group-label[onclick] {
+                height: 30px !important;
+                margin: 2px 0 !important;
             }
 
             .magic-item {
@@ -4201,6 +4227,14 @@
                 max-height: 60vh;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                /* Mesuré : les deux menus s'ouvraient bel et bien (gm-open posé,
+                   display:grid/flex, entièrement dans l'écran) mais leur z-index
+                   de 5000 les plaçait SOUS la palette de style — ouverte d'office
+                   et large de 250px juste en dessous de l'en-tête — et sous sa
+                   poignée (10070). Le menu s'affichait derrière : vu de
+                   l'utilisateur, il ne s'ouvrait pas. Une feuille déclenchée à
+                   l'appui doit passer devant tous les flottants. */
+                z-index: 10100;
             }
 
             .header-dropdown-content.grid-3-cols {
@@ -4284,6 +4318,15 @@
             /* Séparateurs et titres conçus pour une grille verticale. */
             .toolbar .group-label {
                 display: none;
+            }
+
+            /* Celui qui porte un onclick (« détacher la trousse ») a un
+               display:flex en ligne que la règle ci-dessus ne peut pas défaire :
+               il subsistait dans le dock horizontal en élément de largeur nulle.
+               Une trousse flottante n'a de toute façon pas sa place sur un écran
+               de 390px — les instruments restent accessibles dans le dock. */
+            .toolbar .group-label[onclick] {
+                display: none !important;
             }
 
             .toolbar .tool-sep {
@@ -4516,6 +4559,16 @@
             #contextMenu .switch-btn {
                 min-width: 34px;
                 min-height: 34px;
+            }
+
+            /* La rangée de mesure compte désormais QUATRE cellules (masquer,
+               dessus, dessous, unité). Quatre fois 34px de largeur plancher, plus
+               les écarts et le rembourrage, dépassent de 16px un menu de 140px.
+               Ces cellules sont en flex:1 : sans plancher, elles se partagent la
+               largeur disponible (≈31px chacune) au lieu de déborder. La hauteur
+               tactile, elle, reste garantie par min-height. */
+            #contextMenu #rowMeasure .switch-btn {
+                min-width: 0;
             }
         }
 
@@ -6513,6 +6566,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <line x1="8" y1="14" x2="16" y2="14"></line>
                     </svg>
                 </button>
+
+                <!-- Valider la saisie. Au doigt, il n'existait aucun moyen franc de
+                     terminer un texte : il fallait taper ailleurs (donc au risque
+                     d'en créer un autre) ou trouver la touche Échap d'un clavier
+                     logiciel. On agit sur pointerdown avec preventDefault pour ne
+                     pas faire perdre le focus au champ avant de l'avoir lu. -->
+                <button id="btnValiderTexte"
+                    onpointerdown="event.preventDefault(); app.validerTexteFantome();"
+                    style="padding:4px 8px; height: 26px; cursor:pointer; border:1px solid #a5d6a7; background:#e8f5e9; color:#2e7d32; border-radius:4px; display:flex; align-items:center; justify-content:center; font-weight:600;"
+                    data-tooltip="Valider le texte" aria-label="Valider le texte">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
             </div>
             <div id="ghostTextInput" contenteditable="true" spellcheck="false" style="
                 display: none;
@@ -6817,6 +6885,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         stroke="none">cm</text>
                                 </svg>
                             </div>
+                            <!-- Unité affichée. Bouton cyclique, sur la même rangée
+                                 que le réglage de position : appuis successifs pour
+                                 mm → cm → dm → m → aucune (le nombre seul, en
+                                 centimètres, comme avant). Le libellé montre
+                                 l'unité en cours ; il est tenu à jour par
+                                 updateContextMenuUI. -->
+                            <div id="btnMesUnite" class="switch-btn" onclick="app.styleObject('cycleUnit')"
+                                data-tooltip="Unité affichée (mm, cm, dm, m, aucune)"
+                                style="font-size: 12px; font-weight: 600; letter-spacing: .3px;">–</div>
                         </div>
                     </div>
                     <div id="rowCoding" class="coding-grid" style="display:none;">
@@ -8277,12 +8354,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.stroke();
             }
         }
+        /* Unités proposées par le bouton cyclique du menu contextuel. null =
+           aucune unité : on n'affiche que le nombre, en centimètres, ce qui était
+           le seul comportement possible auparavant — c'est donc la valeur par
+           défaut, et les figures existantes ne changent pas d'aspect. */
+        const GM_UNITES = [null, 'mm', 'cm', 'dm', 'm'];
+        // Facteur depuis le centimètre, et nombre de décimales lisible pour chacune.
+        const GM_UNITES_INFO = {
+            mm: { facteur: 10, dec: 0 },
+            cm: { facteur: 1, dec: 1 },
+            dm: { facteur: 0.1, dec: 2 },
+            m: { facteur: 0.01, dec: 3 }
+        };
+
         class Segment extends LinearObject {
             constructor(p1, p2, id) {
                 super(p1, p2, id);
                 this.showLength = false;
                 this.measureOffset = -15;
                 this.coding = null;
+                this.lengthUnit = null;
+            }
+            /* Texte de la longueur, unité comprise. Un seul endroit pour le
+               canevas ET l'export SVG/PDF : les deux affichaient sinon des valeurs
+               différentes (l'export ignorait cmScale). */
+            texteLongueur() {
+                if (!this.p1 || !this.p2) return "";
+                const px = MathUtils.dist(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
+                const scale = (window.app && window.app.cmScale) ? window.app.cmScale : 1;
+                const cm = (px / UNIT) * scale;
+                const info = GM_UNITES_INFO[this.lengthUnit];
+                if (!info) return cm.toFixed(1);
+                let v = (cm * info.facteur).toFixed(info.dec);
+                if (v.indexOf('.') !== -1) v = v.replace(/0+$/, '').replace(/\.$/, '');
+                return v + ' ' + this.lengthUnit;
             }
             draw(ctx, {
                 isHovered,
@@ -8331,9 +8436,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.restore();
                 }
                 if (this.showLength) {
-                    const px = MathUtils.dist(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
-                    const scale = (window.app && window.app.cmScale) ? window.app.cmScale : 1;
-                    const val = ((px / UNIT) * scale).toFixed(1);
+                    const val = this.texteLongueur();
                     const mx = (this.p1.x + this.p2.x) / 2;
                     const my = (this.p1.y + this.p2.y) / 2;
                     let angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
@@ -12298,7 +12401,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const width = e.lineWidth || 2;
                         const dash = (e.dash && e.dash.length > 0) ? 1 : 0;
                         arr.push(width, dash);
-                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0);
+                        // L'unité s'ajoute EN FIN de groupe : les enregistrements
+                        // antérieurs n'ont pas ce champ et se relisent inchangés.
+                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0);
                     }
                     else if (e instanceof TextLabel) {
                         arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.getClosestColorIndex(e.color));
@@ -12428,6 +12533,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj = new Segment(null, null); obj.color = idx2col(parseInt(d[3] || 0));
                             obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : [];
                             obj.showLength = (d[6] == "1"); obj.measureOffset = d[7] ? parseFloat(d[7]) : -15; obj.coding = (d[8] && d[8] !== "0") ? d[8] : null;
+                            obj.lengthUnit = (d[9] && d[9] !== "0" && GM_UNITES.indexOf(d[9]) !== -1) ? d[9] : null;
                         }
                         else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(parseInt(d[3] || 0)); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
                         else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(parseInt(d[3] || 0)); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
@@ -14702,6 +14808,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (action === 'measureDown') {
                         this.selectedObject.showLength = true;
                         this.selectedObject.measureOffset = 20;
+                    } else if (action === 'cycleUnit') {
+                        // Cycle mm → cm → dm → m → aucune, et l'on repart.
+                        const i = GM_UNITES.indexOf(this.selectedObject.lengthUnit || null);
+                        this.selectedObject.lengthUnit = GM_UNITES[(i + 1) % GM_UNITES.length];
+                        // Choisir une unité, c'est vouloir la voir : si la mesure
+                        // était masquée, on l'affiche.
+                        if (this.selectedObject.lengthUnit) this.selectedObject.showLength = true;
                     }
                 }
 
@@ -14853,6 +14966,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (!this.selectedObject.showLength) document.getElementById('btnMesNone').classList.add('active');
                     else if (this.selectedObject.measureOffset < 0) document.getElementById('btnMesUp').classList.add('active');
                     else document.getElementById('btnMesDown').classList.add('active');
+
+                    const btnU = document.getElementById('btnMesUnite');
+                    if (btnU) {
+                        const u = this.selectedObject.lengthUnit;
+                        btnU.textContent = u || '–';
+                        btnU.classList.toggle('active', !!u);
+                    }
                 }
 
                 // --- Spécifique ANGLE ---
@@ -14970,7 +15090,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         dash: e.dash,
                         lineWidth: e.lineWidth,
                         showLength: e.showLength,
-                        measureOffset: e.measureOffset
+                        measureOffset: e.measureOffset,
+                        lengthUnit: e.lengthUnit
                     };
                     if (e instanceof Point) {
                         data.x = e.x;
@@ -15105,6 +15226,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 obj.showLength = data.showLength || false;
                                 obj.measureOffset = data.measureOffset || -15;
                                 obj.coding = data.coding || null;
+                                obj.lengthUnit = (data.lengthUnit && GM_UNITES.indexOf(data.lengthUnit) !== -1) ? data.lengthUnit : null;
                             }
                             if (obj instanceof Angle) {
                                 obj.isCounterClockwise = data.isCCW;
@@ -15293,6 +15415,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.hoveredEntities = [];
                 this.toDeletePreview = [];
                 this.creationStartPoint = null;
+                // actionStep décrit l'étape du tracé en deux appuis (tactile) et
+                // allait de pair avec creationStartPoint, mais n'était pas remis à
+                // zéro ici : changer d'outil après le premier appui laissait
+                // « étape 2 » sans point de départ, et l'appui suivant plantait
+                // (lecture de .x sur null) en avalant tout le geste.
+                this.actionStep = 0;
                 this.isDraggingCreation = false;
                 this.referenceObject = null;
                 this.polygonPoints = [];
@@ -15723,6 +15851,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.canvas.addEventListener('pointermove', cancelLongPress);
                 this.canvas.addEventListener('pointerup', cancelLongPress);
                 this.canvas.addEventListener('pointercancel', cancelLongPress);
+                // Le relâchement était guetté sur le CANVAS seul, alors que
+                // l'application écoute le sien sur window (un doigt qui sort du
+                // canvas avant de se lever ne produit pas de pointerup sur le
+                // canvas). Le minuteur survivait alors au geste et déclenchait un
+                // menu contextuel 400 ms plus tard, sans que rien ne soit
+                // maintenu ; l'appui suivant ne servait plus qu'à refermer ce
+                // menu et paraissait ignoré.
+                window.addEventListener('pointerup', cancelLongPress);
+                window.addEventListener('pointercancel', cancelLongPress);
 
                 // =========================================================
                 // 3. LE RESTE DES ÉVÉNEMENTS (Molette, Menus, etc.)
@@ -15915,6 +16052,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const tFont = document.getElementById('ghostTextFont');
 
                 if (ghost) {
+                    // Le blur ne doit valider QUE la saisie à laquelle il
+                    // appartient. On étiquette donc chaque session au moment où le
+                    // champ prend le focus (voir validerTexteFantome).
+                    ghost.addEventListener('focus', () => {
+                        ghost.dataset.session = String(this.jetonTexte || 0);
+                    });
                     ghost.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
                             e.preventDefault();
@@ -15932,30 +16075,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // ASTUCE PRO : Si on a cliqué DANS la toolbar, on ne valide pas le texte !
                         if (toolbar.contains(e.relatedTarget)) return;
 
-                        // CORRECTION DISPARITION : On récupère le texte PENDANT que le champ est encore visible !
-                        const txt = ghost.innerText;
-
-                        // Maintenant on peut le cacher en toute sécurité
-                        ghost.style.display = 'none';
-                        toolbar.style.display = 'none';
-
-                        if (txt.trim().length > 0 && this.pendingTextCoords) {
-                            const label = new TextLabel(
-                                this.pendingTextCoords.x,
-                                this.pendingTextCoords.y,
-                                txt
-                            );
-                            // On applique les styles choisis dans la toolbar
-                            label.color = tColor.value;
-                            label.fontSize = parseInt(tSize.value, 10);
-                            label.fontFamily = tFont.value;
-
-                            this.addEntity(label);
-                            this.saveState();
-                            this.render();
-                            this.updateObjectList();
-                        }
-                        this.pendingTextCoords = null;
+                        // Poser le doigt sur le canevas fait perdre le focus au
+                        // champ — mais ce blur arrive APRÈS le pointerdown, donc
+                        // après que ce même appui a déjà ouvert la saisie
+                        // suivante : il refermait cette nouvelle saisie, et
+                        // l'outil texte ne servait qu'une fois par session.
+                        // On ne traite donc que le blur de la session en cours.
+                        if (String(this.jetonTexte || 0) !== (ghost.dataset.session || '')) return;
+                        this.validerTexteFantome();
                     });
                 }
 
@@ -15978,6 +16105,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (ghost.style.display === 'block') ghost.focus();
                     });
                 });
+            }
+            /* Valide la saisie de texte en cours, s'il y en a une. Appelée par le
+               blur du champ, par le bouton « Valider » de sa barre d'outils, et
+               avant l'ouverture d'une nouvelle saisie. Idempotente : sans texte ni
+               coordonnées en attente, elle ne fait que refermer. */
+            validerTexteFantome() {
+                const ghost = document.getElementById('ghostTextInput');
+                const toolbar = document.getElementById('textFormatToolbar');
+                if (!ghost) return;
+                // On clôt la session AVANT tout : le ghost.blur() ci-dessous
+                // déclencherait sinon un second passage ici.
+                this.jetonTexte = (this.jetonTexte || 0) + 1;
+                const txt = ghost.innerText;
+                // Referme le clavier logiciel : sur mobile il resterait ouvert
+                // au-dessus d'un champ devenu invisible.
+                if (document.activeElement === ghost) ghost.blur();
+                ghost.style.display = 'none';
+                if (toolbar) toolbar.style.display = 'none';
+                ghost.innerText = '';
+                if (txt.trim().length > 0 && this.pendingTextCoords) {
+                    const tColor = document.getElementById('ghostTextColor');
+                    const tSize = document.getElementById('ghostTextSize');
+                    const tFont = document.getElementById('ghostTextFont');
+                    const label = new TextLabel(this.pendingTextCoords.x, this.pendingTextCoords.y, txt);
+                    label.color = tColor.value;
+                    label.fontSize = parseInt(tSize.value, 10);
+                    label.fontFamily = tFont.value;
+                    this.addEntity(label);
+                    this.saveState();
+                    this.render();
+                    this.updateObjectList();
+                }
+                this.pendingTextCoords = null;
             }
             getNearbyWidget(x, y) {
                 let best = null;
@@ -16089,8 +16249,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.stroke();
             }
 
+            /* Un aperçu « élastique » (le trait pointillé qui suit le curseur)
+               n'a de sens que si un curseur suit réellement quelque chose.
+               À la souris, toujours. Au doigt, seulement pendant que le doigt est
+               posé : entre deux appuis il n'y a plus de curseur, et this.mousePos
+               n'est mis à jour QUE dans handlePointerMove. Un simple appui sans
+               le moindre glissement ne le met donc pas à jour du tout : l'aperçu
+               partait du point qu'on venait de poser vers la position du geste
+               PRÉCÉDENT, à l'autre bout de la figure. C'est le trait pointillé
+               parasite constaté après le premier point d'un angle (téléphone) ou
+               d'un polygone (tablette).
+               activePointers est vidé en tête de handlePointerUp : au redessin
+               qui suit un relâchement, la taille est déjà nulle — donc l'aperçu
+               disparaît bien dès que le doigt se lève. */
+            elastiqueVisible() {
+                if (!this.tactileMode) return true;
+                return !!(this.activePointers && this.activePointers.size > 0);
+            }
+
             drawCreationGhost() {
-                if (this.creationStartPoint && this.isDraggingCreation && !['compass', 'protractor', 'setsquare', 'ruler'].includes(this.currentTool)) {
+                if (this.creationStartPoint && this.isDraggingCreation && this.elastiqueVisible() && !['compass', 'protractor', 'setsquare', 'ruler'].includes(this.currentTool)) {
                     const start = this.creationStartPoint;
                     const end = this.mousePos;
                     const dx = end.x - start.x;
@@ -16213,12 +16391,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 if (['angle', 'magic_mediatrice', 'magic_rosette'].includes(this.currentTool) && this.anglePoints && this.anglePoints.length > 0) {
+                    const elastique = this.elastiqueVisible();
                     this.ctx.beginPath();
                     this.ctx.strokeStyle = "#999";
                     this.ctx.setLineDash([5, 5]);
                     this.ctx.moveTo(this.anglePoints[0].x, this.anglePoints[0].y);
                     if (this.anglePoints.length === 2) this.ctx.lineTo(this.anglePoints[1].x, this.anglePoints[1].y);
-                    this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
+                    // Doigt levé : on relie les points déjà posés, sans prolonger
+                    // vers un curseur qui n'existe plus.
+                    if (elastique) this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
                     this.ctx.stroke();
                     this.ctx.setLineDash([]);
                     this.anglePoints.forEach(pt => {
@@ -16228,16 +16409,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.ctx.fill();
                     });
                 }
-                if (this.showTools && ['segment', 'ray', 'line', 'line_clean'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint) {
+                if (this.showTools && ['segment', 'ray', 'line', 'line_clean'].includes(this.currentTool) && this.isDraggingCreation && this.creationStartPoint && this.elastiqueVisible()) {
                     let wType = this.lastUsedWidgetForCreation || this.getNearbyWidget(this.creationStartPoint.x, this.creationStartPoint.y) || this.getNearbyWidget(this.mousePos.x, this.mousePos.y);
                     if (wType !== 'setsquare') {
                         this.drawRuler(this.ctx, this.creationStartPoint, this.mousePos);
                     }
                 }
-                if (!this.activeWidgets.setsquare && this.showTools && this.currentTool === 'perpendicular' && this.referenceObject && this.isDraggingCreation) {
+                if (!this.activeWidgets.setsquare && this.showTools && this.currentTool === 'perpendicular' && this.referenceObject && this.isDraggingCreation && this.elastiqueVisible()) {
                     this.drawPerpendicularHint(this.ctx, this.referenceObject, this.mousePos);
                 }
-                if (this.referenceObject && this.isDraggingCreation) {
+                if (this.referenceObject && this.isDraggingCreation && this.elastiqueVisible()) {
                     const mouse = this.mousePos;
                     const ref = this.referenceObject;
                     const c = MathUtils.getLineCoords(ref);
@@ -16605,7 +16786,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.ctx.beginPath();
                     this.ctx.moveTo(this.polygonPoints[0].x, this.polygonPoints[0].y);
                     for (let i = 1; i < this.polygonPoints.length; i++) this.ctx.lineTo(this.polygonPoints[i].x, this.polygonPoints[i].y);
-                    this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
+                    // Même précaution que pour l'angle : pas d'élastique sans doigt.
+                    if (this.elastiqueVisible()) this.ctx.lineTo(this.mousePos.x, this.mousePos.y);
                     this.ctx.strokeStyle = "#00bcd4";
                     this.ctx.setLineDash([5, 5]);
                     this.ctx.stroke();
@@ -16897,13 +17079,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     else if (e.coding === 'mark-oo') svgContent += `<g transform="translate(${mx},${my}) rotate(${angleDeg})"><circle cx="-5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/><circle cx="5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/></g>`;
                                 }
                                 if (e.showLength) {
-                                    const dist = MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y);
-                                    const val = (dist / UNIT).toFixed(1);
+                                    // Même texte que le canevas, unité comprise.
+                                    const val = e.texteLongueur ? e.texteLongueur() : (MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y) / UNIT).toFixed(1);
                                     let angleRad = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x);
                                     let off = e.measureOffset;
                                     if (Math.abs(angleRad) > Math.PI / 2) { angleRad += Math.PI; off = -off; }
                                     const txtAngle = angleRad * 180 / Math.PI;
-                                    svgContent += `<rect x="-15" y="${off - 10}" width="30" height="16" fill="white" fill-opacity="0.8" transform="translate(${mx},${my}) rotate(${txtAngle})" />`;
+                                    // Le cache blanc était figé à 30px de large : avec
+                                    // une unité (« 0.075 m »), le texte en sortait.
+                                    const larg = Math.max(30, val.length * 8 + 6);
+                                    svgContent += `<rect x="${-larg / 2}" y="${off - 10}" width="${larg}" height="16" fill="white" fill-opacity="0.8" transform="translate(${mx},${my}) rotate(${txtAngle})" />`;
                                     svgContent += `<text x="0" y="${off}" font-family="${policePDF('Segoe UI')}" font-size="14" fill="${color}" text-anchor="middle" dominant-baseline="middle" transform="translate(${mx},${my}) rotate(${txtAngle})">${val}</text>`;
                                 }
                             }
@@ -17096,9 +17281,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // Si on clique dans la petite barre d'outils, on laisse faire
                     if (activeToolbar && activeToolbar.contains(e.target)) return;
 
-                    // Si on clique sur le canvas, on valide le texte ET on annule l'action du clic
-                    activeGhost.blur();
-                    return; // Le code s'arrête ici : pas de création de nouveau texte !
+                    // On valide explicitement, au lieu de compter sur blur() :
+                    // blur() ne déclenche RIEN si le champ n'a pas (ou n'a plus) le
+                    // focus. Sur mobile c'est fréquent — le focus est demandé dans
+                    // un setTimeout, hors du geste utilisateur — et le champ restait
+                    // alors affiché indéfiniment. Or tout appui suivant était
+                    // consommé ici : l'outil texte ne fonctionnait qu'une fois,
+                    // puis plus du tout.
+                    this.validerTexteFantome();
+
+                    // Avec l'outil texte, l'appui vaut « je valide et j'écris là » :
+                    // on enchaîne sur une nouvelle saisie plus bas. Avec un autre
+                    // outil, l'appui n'a servi qu'à valider et s'arrête ici.
+                    if (this.currentTool !== 'text') {
+                        this.render();
+                        return;
+                    }
                 }
 
                 // Même chose pour l'éditeur de nom de point (double-clic sur une étiquette) :
@@ -17314,6 +17512,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.saveState();
                     } else {
                         // 2. Clic dans le vide : Création d'un NOUVEAU texte
+                        // On valide d'abord la saisie précédente, au lieu de
+                        // compter sur son blur : c'est ce qu'attend l'utilisateur
+                        // (taper ailleurs = je valide et j'enchaîne), et cela
+                        // ouvre une session propre pour celle qui commence.
+                        this.validerTexteFantome();
                         const ghost = document.getElementById('ghostTextInput');
                         const toolbar = document.getElementById('textFormatToolbar');
 
@@ -17492,6 +17695,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (isTouch) {
                         this.tactileMode = true;
                         this.ghostCursor = { x: x, y: y };
+                        // handlePointerMove est le seul endroit qui tient mousePos
+                        // à jour : un appui franc, sans glissement, n'en produit
+                        // aucun. Le premier redessin dessinerait alors l'aperçu
+                        // vers la position du geste précédent. On le cale ici.
+                        this.mousePos = { x: x, y: y };
                         this.isDraggingCreation = true;
                         if (this.actionStep === 1 && this.creationStartPoint) {
                             this.currentMousePosForPreview = { x: x, y: y };
@@ -19454,10 +19662,28 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 document.querySelectorAll('.header-dropdown')
             );
 
+            /* Les deux feuilles vivent DANS l'en-tête, qui porte z-index:2000 et
+               forme donc un contexte d'empilement : leur propre z-index, aussi
+               haut soit-il, ne les compare qu'entre elles à l'intérieur de
+               l'en-tête. Face à la palette de style (fille de <body>, ouverte
+               d'office et posée juste sous l'en-tête), c'est 2000 contre ~10060 :
+               les menus s'ouvraient bel et bien, mais DERRIÈRE la palette — ce
+               qui, vu de l'utilisateur, ne s'ouvre pas.
+               On élève l'en-tête le temps qu'un menu soit ouvert, et lui seul :
+               hors de ce cas, l'empilement d'origine est intact. */
+            var enTete = document.querySelector('header');
+
+            function majZEnTete() {
+                if (!enTete) return;
+                var ouvert = dropdowns.some(function (d) { return d.classList.contains('gm-open'); });
+                enTete.style.zIndex = ouvert ? '10200' : '';
+            }
+
             function closeAll(except) {
                 dropdowns.forEach(function (d) {
                     if (d !== except) d.classList.remove('gm-open');
                 });
+                majZEnTete();
             }
 
             dropdowns.forEach(function (dd) {
@@ -19472,6 +19698,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     closeAll(dd);
                     if (opening) dd.classList.add('gm-open');
                     else dd.classList.remove('gm-open');
+                    majZEnTete();
                 });
 
                 // Refermer après avoir choisi une entrée, sinon la feuille
@@ -19543,15 +19770,29 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     bubble.style.display = 'none'; // masquée au repos
 
                     var GAP = 30;
+                    // Maintien exigé avant que la loupe n'apparaisse. En dessous,
+                    // c'est un appui franc : on pose, on ne cherche pas.
+                    var ATTENTE = 220;
+                    // Au-delà, le doigt glisse : c'est une visée, la loupe sort
+                    // sans attendre. Un simple appui tremble de quelques pixels,
+                    // d'où un seuil et non une comparaison stricte.
+                    var SEUIL_GLISSE = 10;
 
                     var placeBubble = function (clientX, clientY) {
                         var r = bubble.getBoundingClientRect();
                         var bw = r.width || 150, bh = r.height || 150;
                         var left = clientX - bw / 2;
                         var top = clientY - GAP - bh;
-                        // Pas de place au-dessus (visée près du haut de l'écran) :
-                        // on bascule en dessous plutôt que de rogner.
-                        if (top < 4) top = clientY + GAP;
+                        // Jamais sous le doigt : c'est là que se trouve la main, et
+                        // la loupe y serait masquée par ce qu'elle doit montrer.
+                        // Quand il n'y a pas la place au-dessus (visée près du haut
+                        // de l'écran), on la décale sur le côté le plus dégagé.
+                        if (top < 4) {
+                            top = 4;
+                            left = ((window.innerWidth - clientX) > clientX)
+                                ? clientX + GAP
+                                : clientX - GAP - bw;
+                        }
                         left = Math.max(4, Math.min(left, window.innerWidth - bw - 4));
                         top = Math.max(4, Math.min(top, window.innerHeight - bh - 4));
                         bubble.style.position = 'fixed';
@@ -19581,13 +19822,41 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     var doigtsPoses = 0;
                     var pince = function () { return doigtsPoses >= 2; };
 
+                    // L'outil main ne vise rien : il fait glisser la vue. Une loupe
+                    // par-dessus masquerait justement la figure qu'on déplace.
+                    var outilSansLoupe = function () {
+                        var a = window.app;
+                        return !!a && (a.currentTool === 'pan' || a.isPanning);
+                    };
+
+                    var minuterie = null;
+                    var depart = null;
+                    var annulerAttente = function () {
+                        if (minuterie) { clearTimeout(minuterie); minuterie = null; }
+                    };
+                    var montrer = function (x, y) {
+                        annulerAttente();
+                        bubble.style.display = 'block';
+                        placeBubble(x, y);
+                    };
+
                     geoCv.addEventListener('pointerdown', function (e) {
                         if (!isFinger(e)) return;
                         doigtsPoses++;
+                        annulerAttente();
+                        depart = { x: e.clientX, y: e.clientY };
                         if (!window.app || !window.app.isZoomActive) return;
-                        if (pince()) { bubble.style.display = 'none'; return; }
-                        bubble.style.display = 'block';
-                        placeBubble(e.clientX, e.clientY);
+                        if (pince() || outilSansLoupe()) { bubble.style.display = 'none'; return; }
+                        // Tomber pile sur un point existant, c'est avoir déjà trouvé
+                        // son extrémité : on est de fait en train de viser la
+                        // suivante (le second bout d'un segment, par exemple). La
+                        // loupe sort alors immédiatement, sans maintien.
+                        if (window.app.ghostSnapPoint) { montrer(e.clientX, e.clientY); return; }
+                        var cx = e.clientX, cy = e.clientY;
+                        minuterie = setTimeout(function () {
+                            minuterie = null;
+                            if (doigtsPoses > 0 && !pince() && !outilSansLoupe()) montrer(cx, cy);
+                        }, ATTENTE);
                     }, { passive: true });
 
                     // Rafraîchit la loupe sur la frame À JOUR. L'application appelle
@@ -19607,16 +19876,28 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     geoCv.addEventListener('pointermove', function (e) {
                         if (!isFinger(e) || !window.app || !window.app.isZoomActive) return;
                         if (e.buttons === 0) return; // seulement doigt posé
-                        if (pince()) { bubble.style.display = 'none'; return; }
-                        bubble.style.display = 'block';
-                        placeBubble(e.clientX, e.clientY);
+                        if (pince() || outilSansLoupe()) {
+                            annulerAttente();
+                            bubble.style.display = 'none';
+                            return;
+                        }
+                        var affichee = bubble.style.display === 'block';
+                        var glisse = depart && Math.sqrt(
+                            (e.clientX - depart.x) * (e.clientX - depart.x) +
+                            (e.clientY - depart.y) * (e.clientY - depart.y)) > SEUIL_GLISSE;
+                        // Ni affichée ni franchement déplacée : on laisse le
+                        // maintien décider, sinon le moindre tremblement de doigt
+                        // ferait surgir la loupe sur un simple appui.
+                        if (!affichee && !glisse) return;
+                        montrer(e.clientX, e.clientY);
                         refreshBubble(e);
                     }, { passive: true });
 
                     var relacher = function (e) {
                         if (e && !isFinger(e)) return;
                         doigtsPoses = Math.max(0, doigtsPoses - 1);
-                        if (doigtsPoses === 0) hideBubble();
+                        annulerAttente();
+                        if (doigtsPoses === 0) { depart = null; hideBubble(); }
                     };
                     window.addEventListener('pointerup', relacher);
                     window.addEventListener('pointercancel', relacher);
