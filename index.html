@@ -19853,32 +19853,65 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 var trigger = dd.querySelector('.top-btn');
                 if (!trigger) return;
 
-                var departX = 0, departY = 0, departT = 0, traiteA = 0;
+                var departX = 0, departY = 0, departT = 0;
+                var gesteEnCours = false, traite = false;
+
+                // Trois familles d'événements peuvent décrire le même appui, et
+                // iOS n'en délivre pas toujours les mêmes : quand il décide de
+                // faire défiler, il envoie un 'pointercancel' et AUCUN
+                // 'pointerup' — alors que 'touchend', lui, arrive toujours. On
+                // écoute donc les trois et l'on garde le premier qui conclut.
+                // Le drapeau « traite » est remis à zéro au geste suivant, ce qui
+                // interdit deux bascules pour un seul appui sans jamais bloquer un
+                // second appui rapide.
+                var noterDepart = function (x, y, t) {
+                    if (gesteEnCours) return; // déjà noté par une autre famille
+                    gesteEnCours = true;
+                    traite = false;
+                    departX = x; departY = y; departT = t || 0;
+                };
+                var conclure = function (x, y, t) {
+                    gesteEnCours = false;
+                    if (traite) return;
+                    var dx = x - departX, dy = y - departY;
+                    if (Math.sqrt(dx * dx + dy * dy) > SEUIL_APPUI) return; // défilement
+                    if (departT && t - departT > DUREE_APPUI) return; // appui long
+                    traite = true;
+                    basculer(dd);
+                };
 
                 trigger.addEventListener('pointerdown', function (e) {
                     if (e.pointerType === 'mouse') return;
-                    departX = e.clientX;
-                    departY = e.clientY;
-                    departT = e.timeStamp;
-                    departT = departT || 0;
+                    noterDepart(e.clientX, e.clientY, e.timeStamp);
+                }, { passive: true });
+
+                trigger.addEventListener('touchstart', function (e) {
+                    var t = e.changedTouches && e.changedTouches[0];
+                    if (t) noterDepart(t.clientX, t.clientY, e.timeStamp);
                 }, { passive: true });
 
                 trigger.addEventListener('pointerup', function (e) {
                     if (e.pointerType === 'mouse') return;
-                    var dx = e.clientX - departX, dy = e.clientY - departY;
-                    if (Math.sqrt(dx * dx + dy * dy) > SEUIL_APPUI) return; // défilement
-                    if (departT && e.timeStamp - departT > DUREE_APPUI) return; // appui long
-                    traiteA = e.timeStamp;
-                    basculer(dd);
+                    conclure(e.clientX, e.clientY, e.timeStamp);
+                });
+
+                // Le geste a été confisqué par le conteneur défilant. On ne clôt
+                // pas ici : 'touchend' suivra et dira où le doigt s'est levé.
+                trigger.addEventListener('pointercancel', function () {
+                    gesteEnCours = false;
+                });
+
+                trigger.addEventListener('touchend', function (e) {
+                    var t = e.changedTouches && e.changedTouches[0];
+                    if (t) conclure(t.clientX, t.clientY, e.timeStamp);
                 });
 
                 trigger.addEventListener('click', function (e) {
                     if (!appuiTactile()) return; // vraie souris : on garde le survol
                     e.preventDefault();
                     e.stopPropagation();
-                    // Déjà basculé par le pointerup du même geste : on ne rebascule
-                    // pas, sinon le menu se refermerait aussitôt.
-                    if (traiteA && e.timeStamp - traiteA < 600) return;
+                    if (traite) return; // ce geste a déjà basculé le menu
+                    traite = true;
                     basculer(dd);
                 });
 
