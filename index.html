@@ -4068,8 +4068,17 @@
                 background-color: #e6ebf0;
             }
 
+            /* Pas d'info-bulle au doigt, du tout. Elle est déclenchée sur
+               'mouseover', que les navigateurs tactiles émulent à l'appui, et se
+               place à targetRect.bottom + 8 — c'est-à-dire précisément là où
+               s'ouvre le menu déroulant du bouton qu'on vient de toucher. Rien ne
+               la retire ensuite (il n'y a pas de 'mouseout' sans survol) : elle
+               masquait donc le haut du menu et donnait à croire qu'il ne s'était
+               pas ouvert. Un survol n'existant pas ici, elle n'a de toute façon
+               aucun rôle à jouer. */
             #global-tooltip {
                 background-color: #1e1e1e;
+                display: none !important;
             }
 
             /* Le voile des modales tirait sa lisibilité du flou : on compense
@@ -4094,16 +4103,39 @@
             .header-dropdown:hover .header-dropdown-content.grid-3-cols {
                 display: none !important;
             }
+        }
 
-            .header-dropdown.gm-open .header-dropdown-content,
-            .header-dropdown.gm-open .magic-menu-content {
-                display: flex;
-                animation: fadeIn .2s;
-            }
+        /* La classe .gm-open, elle, doit fonctionner PARTOUT — elle était enfermée
+           dans le palier « hover: none » ci-dessus. Un appareil tactile qui déclare
+           aussi le survol (tablette avec trackpad, navigateur en « site pour
+           ordinateur ») n'y entrait pas : l'appui ne pouvait alors rien ouvrir, et
+           il ne restait que le :hover émulé, aussi fugace qu'inutilisable. */
+        .header-dropdown.gm-open .header-dropdown-content,
+        .header-dropdown.gm-open .magic-menu-content {
+            display: flex;
+            animation: fadeIn .2s;
+        }
 
-            .header-dropdown.gm-open .header-dropdown-content.grid-3-cols {
-                display: grid !important;
-            }
+        .header-dropdown.gm-open .header-dropdown-content.grid-3-cols {
+            display: grid !important;
+        }
+
+        /* L'en-tête forme un contexte d'empilement (z-index: 2000) : le z-index
+           des feuilles qu'il contient ne pèse rien face à la palette de style,
+           fille de <body>. On l'élève le temps qu'un menu soit ouvert — y compris
+           quand il l'est par survol, cas que le JS ne voit pas. */
+        header:has(.header-dropdown.gm-open),
+        header:has(.header-dropdown:hover) {
+            z-index: 10200;
+        }
+
+        /* Le déclencheur d'un menu OUVERT n'a que faire d'une info-bulle : celle-ci
+           se place sous le bouton, c'est-à-dire par-dessus le menu qu'on vient
+           d'ouvrir. Mesuré en desktop : recouvrement effectif. #global-tooltip est
+           ajouté à <body> après <header>, il en est donc bien un frère suivant. */
+        header:has(.header-dropdown:hover) ~ #global-tooltip,
+        header:has(.header-dropdown.gm-open) ~ #global-tooltip {
+            display: none;
         }
 
         /* --- 4. Modales : jamais plus hautes que l'écran ----------------------
@@ -4113,6 +4145,57 @@
             max-height: 88dvh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+        }
+
+        /* Le min-width de 300px, plus 50px de rembourrage, fait 350px : au-delà
+           d'un écran de 320px (les plus petits téléphones encore en service), la
+           modale débordait. Un max-width ne peut rien y faire — min-width l'emporte
+           toujours. On lève donc le plancher sur écran étroit et l'on borne la
+           largeur au viewport. */
+        @media (max-width: 700px) {
+            .modal-box {
+                min-width: 0;
+                max-width: calc(100vw - 24px);
+                padding: 16px 18px;
+            }
+        }
+
+        /* Le cadre d'aperçu du PDF est figé à 350px de haut. Sur un téléphone en
+           paysage (390px), il mangeait tout l'écran : la pagination et les boutons
+           « Annuler / Insérer » tombaient sous la ligne de flottaison, atteignables
+           seulement en faisant défiler la modale — mesuré 568px de contenu pour
+           383px visibles. On l'assouplit là où la hauteur manque. */
+        @media (max-height: 620px) {
+            #pdfPreviewFrame {
+                height: 34vh !important;
+                min-height: 110px;
+            }
+        }
+
+        /* Cases à cocher des modales : 13 à 16px, soit un repère visuel minuscule.
+           La cible tactile, elle, était déjà correcte — chacune est enveloppée dans
+           un <label> qui couvre toute la ligne — mais l'état coché doit se voir.
+           Les tailles sont posées en style en ligne, d'où le !important. */
+        @media (pointer: coarse) {
+
+            .modal-box input[type="checkbox"],
+            .modal-box input[type="radio"] {
+                width: 22px !important;
+                height: 22px !important;
+                flex: 0 0 auto;
+            }
+
+            /* Ces <label> sont la cible réelle du choix — ils couvrent toute la
+               ligne — mais ne faisaient que 25px de haut. Ils portent déjà
+               display:flex en ligne, un min-height suffit donc à les épaissir. */
+            .modal-box label {
+                min-height: 34px;
+            }
+
+            .close-help {
+                width: 36px;
+                height: 36px;
+            }
         }
 
         /* --- 4b. La colonne d'outils doit pouvoir défiler ---------------------
@@ -7125,7 +7208,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="modal-box" style="width: 500px; max-width: 95%;">
             <h3 style="margin-top:0; color:#2980b9;">📄 Importer une page du PDF</h3>
 
-            <div
+            <div id="pdfPreviewFrame"
                 style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 15px; height: 350px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
                 <canvas id="pdfPreviewCanvas"
                     style="max-height: 100%; max-width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></canvas>
@@ -19719,12 +19802,27 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 majZEnTete();
             }
 
+            // Type du dernier pointeur ayant appuyé : 'click' ne le porte pas de
+            // façon fiable (dans Safari c'est un MouseEvent, sans pointerType).
+            var dernierPointeur = '';
+            document.addEventListener('pointerdown', function (e) {
+                dernierPointeur = e.pointerType || '';
+            }, true);
+
+            // Un appui au doigt doit ouvrir le menu, que l'appareil déclare ou non
+            // savoir survoler. Se fier à la seule requête média excluait les
+            // appareils hybrides — tablette avec trackpad, mode « site pour
+            // ordinateur » — où plus rien n'ouvrait les deux menus.
+            function appuiTactile() {
+                return noHover.matches || dernierPointeur === 'touch' || dernierPointeur === 'pen';
+            }
+
             dropdowns.forEach(function (dd) {
                 var trigger = dd.querySelector('.top-btn');
                 if (!trigger) return;
 
                 trigger.addEventListener('click', function (e) {
-                    if (!noHover.matches) return; // souris : on garde le survol
+                    if (!appuiTactile()) return; // vraie souris : on garde le survol
                     e.preventDefault();
                     e.stopPropagation();
                     var opening = !dd.classList.contains('gm-open');
@@ -19747,7 +19845,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             });
 
             document.addEventListener('click', function (e) {
-                if (!noHover.matches) return;
+                // Refermer sur un clic extérieur ne doit pas non plus dépendre de la
+                // requête média : sinon un menu ouvert au doigt sur un appareil
+                // hybride ne se refermerait jamais.
                 if (!e.target.closest('.header-dropdown')) closeAll(null);
             }, true);
 
