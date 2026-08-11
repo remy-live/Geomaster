@@ -4131,6 +4131,22 @@
             display: grid !important;
         }
 
+        /* Les mêmes règles, mais portées par la feuille ELLE-MÊME : quand l'en-tête
+           est une bande défilante, le JS sort le menu de cet en-tête et le rattache
+           à <body> pour échapper au rognage décrit plus bas. Il n'a alors plus
+           d'ancêtre .header-dropdown, et les sélecteurs ci-dessus ne le voient plus.
+           Sa géométrie ne change pas : il est en position:fixed, donc calé sur la
+           fenêtre quel que soit son parent. */
+        .header-dropdown-content.gm-ouvert,
+        .magic-menu-content.gm-ouvert {
+            display: flex;
+            animation: fadeIn .2s;
+        }
+
+        .header-dropdown-content.grid-3-cols.gm-ouvert {
+            display: grid !important;
+        }
+
         /* L'en-tête forme un contexte d'empilement (z-index: 2000) : le z-index
            des feuilles qu'il contient ne pèse rien face à la palette de style,
            fille de <body>. On l'élève le temps qu'un menu soit ouvert — y compris
@@ -4264,7 +4280,15 @@
             header {
                 overflow-x: auto;
                 overflow-y: hidden;
-                -webkit-overflow-scrolling: touch;
+                /* PAS de -webkit-overflow-scrolling: touch ici. Sur iOS il force
+                   une couche de composition à part, et tout descendant en
+                   position:fixed est alors PEINT ROGNÉ aux limites de cette
+                   couche — l'en-tête ne fait que 50px de haut, les feuilles
+                   s'ouvrent à 52px : elles n'étaient donc peintes nulle part,
+                   tout en restant cliquables à leur emplacement de mise en page.
+                   C'est ce que montrait le journal sur iPhone : ouvert=true,
+                   display=grid, boîte 332x164 correcte, et rien à l'écran.
+                   Depuis iOS 13 le défilement est fluide sans cette propriété. */
                 scrollbar-width: none;
                 /* space-between étirerait les écarts une fois le contenu
                    défilant : tout doit rester collé à gauche. */
@@ -19800,17 +19824,53 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                hors de ce cas, l'empilement d'origine est intact. */
             var enTete = document.querySelector('header');
 
+            /* L'en-tête devient une bande à défilement horizontal sous 1100px. Or
+               sur iOS, un conteneur qui défile est composité à part et ROGNE au
+               peintre tout descendant en position:fixed — y compris hors de sa
+               boîte. Ces feuilles s'ouvrent à 52px sous un en-tête de 50px : elles
+               tombaient donc entièrement dans la zone rognée. Diagnostiqué sur
+               iPhone : ouvert=true, display=grid, boîte 332x164 juste, l'élément du
+               dessus est bien le menu... et rien de visible à l'écran.
+               La seule parade fiable est de sortir la feuille de ce sous-arbre. En
+               position:fixed, sa géométrie ne dépend pas de son parent : la
+               déplacer sous <body> ne change donc rien à son placement. */
+            var sortirDeLEnTete = window.matchMedia('(max-width: 1100px)');
+
+            dropdowns.forEach(function (d) {
+                d.gmMenu = d.querySelector('.header-dropdown-content, .magic-menu-content');
+                if (d.gmMenu) d.gmParent = d.gmMenu.parentNode;
+            });
+
             function majZEnTete() {
                 if (!enTete) return;
                 var ouvert = dropdowns.some(function (d) { return d.classList.contains('gm-open'); });
                 enTete.style.zIndex = ouvert ? '10200' : '';
             }
 
+            function majMenus() {
+                dropdowns.forEach(function (d) {
+                    var m = d.gmMenu;
+                    if (!m) return;
+                    var ouvert = d.classList.contains('gm-open');
+                    if (ouvert && sortirDeLEnTete.matches && m.parentNode !== document.body) {
+                        document.body.appendChild(m);
+                    }
+                    // Écran large : l'en-tête ne défile plus, rien ne rogne, et le
+                    // survol de la souris a besoin du menu à sa place d'origine.
+                    if (!ouvert && !sortirDeLEnTete.matches && m.parentNode === document.body && d.gmParent) {
+                        d.gmParent.appendChild(m);
+                    }
+                    if (ouvert) m.classList.add('gm-ouvert');
+                    else m.classList.remove('gm-ouvert');
+                });
+                majZEnTete();
+            }
+
             function closeAll(except) {
                 dropdowns.forEach(function (d) {
                     if (d !== except) d.classList.remove('gm-open');
                 });
-                majZEnTete();
+                majMenus();
             }
 
             // Type du dernier pointeur ayant appuyé : 'click' ne le porte pas de
@@ -19833,7 +19893,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 closeAll(dd);
                 if (ouvre) dd.classList.add('gm-open');
                 else dd.classList.remove('gm-open');
-                majZEnTete();
+                majMenus();
             }
 
             /* Reconnaissance d'appui, en plus du clic.
@@ -19881,7 +19941,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     // C'était un défilement : on annule l'ouverture.
                     ouvertIci = false;
                     dd.classList.remove('gm-open');
-                    majZEnTete();
+                    majMenus();
                 };
                 var finir = function () { gesteEnCours = false; ouvertIci = false; };
 
@@ -19937,7 +19997,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 // Refermer sur un clic extérieur ne doit pas non plus dépendre de la
                 // requête média : sinon un menu ouvert au doigt sur un appareil
                 // hybride ne se refermerait jamais.
-                if (!e.target.closest('.header-dropdown')) closeAll(null);
+                // La feuille détachée de l'en-tête n'a plus d'ancêtre
+                // .header-dropdown : sans le second test, choisir une entrée
+                // refermerait le menu avant que l'action ne se déclenche.
+                if (e.target.closest('.header-dropdown')) return;
+                if (e.target.closest('.header-dropdown-content, .magic-menu-content')) return;
+                closeAll(null);
             }, true);
 
             document.addEventListener('keydown', function (e) {
@@ -20174,11 +20239,17 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                                 var dessus = document.elementFromPoint(
                                     Math.min(window.innerWidth - 2, Math.max(2, r.left + r.width / 2)),
                                     Math.min(window.innerHeight - 2, Math.max(2, r.top + 12)));
+                                // Un menu peut être ouvert, bien placé, cliquable et
+                                // pourtant PAS PEINT (rognage d'un fixed dans un
+                                // conteneur défilant, sur iOS). D'où le parent et
+                                // l'opacité : de quoi distinguer les deux cas.
                                 ecrire(nom + ' ' + type + ' Δ' + d + 'px' +
                                     ' | ouvert=' + dd.classList.contains('gm-open') +
                                     ' display=' + cs.display + ' position=' + cs.position +
+                                    ' opacité=' + cs.opacity +
                                     ' | boîte ' + Math.round(r.width) + 'x' + Math.round(r.height) +
                                     ' à ' + Math.round(r.left) + ',' + Math.round(r.top) +
+                                    ' | parent=' + (menu.parentNode === document.body ? 'body' : (menu.parentNode.className || menu.parentNode.tagName)) +
                                     ' | dessus=' + (dessus ? (dessus.id || dessus.className || dessus.tagName) : 'rien'));
                             }, true);
                         });
