@@ -4587,6 +4587,17 @@
                 padding-bottom: 12px;
                 gap: 4px;
             }
+
+            /* En paysage, la palette descend jusqu'à 372px sur une fenêtre de 390 :
+               son coin bas-droit passait sous la pastille de la loupe (z-index
+               10000 contre 5000), soit une bande de 16 x 52px où l'on activait la
+               loupe au lieu du bouton visé — mesuré. Plutôt que de disputer
+               l'empilement, on décale la palette de 20px : les deux restent
+               entièrement utilisables. La poignée du tiroir des objets, à l'extrême
+               droite, reste dégagée. */
+            .style-palette {
+                right: 80px;
+            }
         }
 
         /* --- 8. Écrans bas : panneaux flottants plus hauts que la fenêtre ------
@@ -4983,7 +4994,29 @@
                 z-index: 10050;
                 max-height: calc(var(--gm-vh, 100vh) - 90px);
                 overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
+                /* Pas de -webkit-overflow-scrolling: touch : même piège que pour
+                   l'en-tête, il force une couche de composition à part sur iOS et
+                   fait peindre de travers ce qui en sort. Le défilement reste
+                   fluide sans lui depuis iOS 13. */
+            }
+
+            /* Le tiroir des ciseaux (zone de boucle) est en position:absolute,
+               bottom:100% : il se place ENTIÈREMENT au-dessus de la boîte de la
+               carte. Or celle-ci reçoit ici overflow-y:auto pour pouvoir défiler,
+               et un overflow rogne les descendants absolus dont l'élément est le
+               bloc conteneur. Le tiroir n'était donc ni visible ni cliquable —
+               mesuré : au centre du tiroir, on touchait le voile du lecteur.
+               Dans une feuille qui monte du bas, sa place est de toute façon À
+               L'INTÉRIEUR : on en fait un élément de flux pleine largeur, juste
+               sous la poignée (l'ordre du document s'en charge). L'animation de
+               hauteur, elle, fonctionne à l'identique. */
+            #timelineDrawer {
+                position: static;
+                flex: 0 0 100%;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                border-radius: 10px;
             }
 
             body.gm-player-open #replayBar {
@@ -19983,7 +20016,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
                 // Refermer après avoir choisi une entrée, sinon la feuille
                 // masque le résultat de l'action qu'on vient de déclencher.
-                var menu = dd.querySelector('.header-dropdown-content, .magic-menu-content');
+                // On passe par dd.gmMenu : la feuille peut être déplacée sous
+                // <body>, un querySelector sur le déroulant ne la trouverait plus.
+                var menu = dd.gmMenu;
                 if (menu) {
                     menu.addEventListener('click', function (e) {
                         if (e.target.closest('button, .magic-item, .magic-grid-item, .icon-btn')) {
@@ -20223,7 +20258,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
                 dropdowns.forEach(function (dd, i) {
                     var trigger = dd.querySelector('.top-btn');
-                    var menu = dd.querySelector('.header-dropdown-content, .magic-menu-content');
+                    var menu = dd.gmMenu; // et non un querySelector : voir plus haut
                     if (!trigger || !menu) return;
                     var nom = (i === 0 ? 'fichier' : 'magie');
                     var x0 = 0, y0 = 0;
