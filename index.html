@@ -19853,65 +19853,71 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                 var trigger = dd.querySelector('.top-btn');
                 if (!trigger) return;
 
-                var departX = 0, departY = 0, departT = 0;
-                var gesteEnCours = false, traite = false;
+                var departX = 0, departY = 0;
+                var gesteEnCours = false, traite = false, ouvertIci = false;
 
-                // Trois familles d'événements peuvent décrire le même appui, et
-                // iOS n'en délivre pas toujours les mêmes : quand il décide de
-                // faire défiler, il envoie un 'pointercancel' et AUCUN
-                // 'pointerup' — alors que 'touchend', lui, arrive toujours. On
-                // écoute donc les trois et l'on garde le premier qui conclut.
-                // Le drapeau « traite » est remis à zéro au geste suivant, ce qui
-                // interdit deux bascules pour un seul appui sans jamais bloquer un
-                // second appui rapide.
-                var noterDepart = function (x, y, t) {
-                    if (gesteEnCours) return; // déjà noté par une autre famille
+                /* On ouvre à la PRESSION, pas au relâchement.
+                   Tout ce qui attend la fin du geste est perdu d'avance sur une
+                   bande défilante : iOS décide en cours de route que le geste lui
+                   appartient (« la flèche bouge puis se remet » — c'est le rebond
+                   élastique de la bande), supprime le clic, et parfois même le
+                   pointerup au profit d'un pointercancel. À la pression, en
+                   revanche, rien n'a encore été confisqué.
+                   Le geste reste rattrapable : si le doigt glisse franchement,
+                   c'était un défilement, et l'on referme ce qu'on venait d'ouvrir. */
+                var presser = function (x, y) {
+                    if (gesteEnCours) return; // déjà vu par une autre famille d'événements
                     gesteEnCours = true;
-                    traite = false;
-                    departX = x; departY = y; departT = t || 0;
-                };
-                var conclure = function (x, y, t) {
-                    gesteEnCours = false;
-                    if (traite) return;
-                    var dx = x - departX, dy = y - departY;
-                    if (Math.sqrt(dx * dx + dy * dy) > SEUIL_APPUI) return; // défilement
-                    if (departT && t - departT > DUREE_APPUI) return; // appui long
-                    traite = true;
+                    traite = true; // le clic éventuel ne doit pas rebasculer
+                    departX = x; departY = y;
+                    var etaitOuvert = dd.classList.contains('gm-open');
                     basculer(dd);
+                    ouvertIci = !etaitOuvert;
                 };
+                var glisse = function (x, y) {
+                    if (!gesteEnCours || !ouvertIci) return;
+                    var dx = x - departX, dy = y - departY;
+                    if (Math.sqrt(dx * dx + dy * dy) <= SEUIL_APPUI) return;
+                    // C'était un défilement : on annule l'ouverture.
+                    ouvertIci = false;
+                    dd.classList.remove('gm-open');
+                    majZEnTete();
+                };
+                var finir = function () { gesteEnCours = false; ouvertIci = false; };
 
                 trigger.addEventListener('pointerdown', function (e) {
                     if (e.pointerType === 'mouse') return;
-                    noterDepart(e.clientX, e.clientY, e.timeStamp);
+                    presser(e.clientX, e.clientY);
                 }, { passive: true });
 
                 trigger.addEventListener('touchstart', function (e) {
                     var t = e.changedTouches && e.changedTouches[0];
-                    if (t) noterDepart(t.clientX, t.clientY, e.timeStamp);
+                    if (t) presser(t.clientX, t.clientY);
                 }, { passive: true });
 
-                trigger.addEventListener('pointerup', function (e) {
+                trigger.addEventListener('pointermove', function (e) {
                     if (e.pointerType === 'mouse') return;
-                    conclure(e.clientX, e.clientY, e.timeStamp);
-                });
+                    glisse(e.clientX, e.clientY);
+                }, { passive: true });
 
-                // Le geste a été confisqué par le conteneur défilant. On ne clôt
-                // pas ici : 'touchend' suivra et dira où le doigt s'est levé.
-                trigger.addEventListener('pointercancel', function () {
-                    gesteEnCours = false;
-                });
-
-                trigger.addEventListener('touchend', function (e) {
+                trigger.addEventListener('touchmove', function (e) {
                     var t = e.changedTouches && e.changedTouches[0];
-                    if (t) conclure(t.clientX, t.clientY, e.timeStamp);
-                });
+                    if (t) glisse(t.clientX, t.clientY);
+                }, { passive: true });
+
+                trigger.addEventListener('pointerup', finir);
+                trigger.addEventListener('pointercancel', finir);
+                trigger.addEventListener('touchend', finir);
+                trigger.addEventListener('touchcancel', finir);
 
                 trigger.addEventListener('click', function (e) {
                     if (!appuiTactile()) return; // vraie souris : on garde le survol
                     e.preventDefault();
                     e.stopPropagation();
-                    if (traite) return; // ce geste a déjà basculé le menu
-                    traite = true;
+                    // La pression de CE geste a déjà basculé le menu. On ne
+                    // conditionne qu'aux gestes tactiles : sinon, un clic de souris
+                    // survenant après un appui resterait bloqué par le drapeau.
+                    if (traite && (dernierPointeur === 'touch' || dernierPointeur === 'pen')) return;
                     basculer(dd);
                 });
 
@@ -20118,6 +20124,65 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     window.addEventListener('pointerup', relacher);
                     window.addEventListener('pointercancel', relacher);
                 }
+            }
+
+            /* --- 5c. Diagnostic sur appareil réel --------------------------
+               Ajouter « ?diag=1 » à l'adresse affiche un journal des événements
+               que le navigateur délivre RÉELLEMENT sur les boutons de l'en-tête,
+               ainsi que l'état du menu après le geste. Sans ce paramètre, ce bloc
+               ne coûte rien : il sort immédiatement.
+               La date du fichier servie par le serveur y figure : c'est le seul
+               moyen fiable de savoir si l'on regarde bien la dernière version ou
+               une copie gardée en cache. */
+            if (/[?&]diag=1/.test(location.search)) {
+                var journal = document.createElement('div');
+                journal.id = 'gm-diag';
+                journal.style.cssText = 'position:fixed; left:4px; right:4px; bottom:4px; max-height:44vh;' +
+                    'overflow:auto; z-index:2000000; background:rgba(0,0,0,.88); color:#0f0;' +
+                    'font:11px/1.35 ui-monospace, monospace; padding:6px; border-radius:8px;' +
+                    'white-space:pre-wrap; -webkit-overflow-scrolling:touch;';
+                var ecrire = function (t) {
+                    journal.textContent = t + '\n' + journal.textContent;
+                    if (journal.textContent.length > 6000) journal.textContent = journal.textContent.slice(0, 6000);
+                };
+                document.body.appendChild(journal);
+
+                ecrire('fichier servi le : ' + document.lastModified);
+                ecrire('écran ' + window.innerWidth + 'x' + window.innerHeight +
+                    ' | dpr ' + (window.devicePixelRatio || 1));
+                ecrire('hover:none=' + window.matchMedia('(hover: none)').matches +
+                    ' pointer:coarse=' + window.matchMedia('(pointer: coarse)').matches +
+                    ' doigts=' + navigator.maxTouchPoints);
+                ecrire(navigator.userAgent);
+                ecrire('— appuyez sur l\'icône répertoire ou la baguette —');
+
+                dropdowns.forEach(function (dd, i) {
+                    var trigger = dd.querySelector('.top-btn');
+                    var menu = dd.querySelector('.header-dropdown-content, .magic-menu-content');
+                    if (!trigger || !menu) return;
+                    var nom = (i === 0 ? 'fichier' : 'magie');
+                    var x0 = 0, y0 = 0;
+                    ['pointerdown', 'pointermove', 'pointerup', 'pointercancel',
+                        'touchstart', 'touchmove', 'touchend', 'touchcancel', 'click'].forEach(function (type) {
+                            trigger.addEventListener(type, function (e) {
+                                var t = e.changedTouches ? e.changedTouches[0] : e;
+                                var x = t ? t.clientX : 0, y = t ? t.clientY : 0;
+                                if (type === 'pointerdown' || type === 'touchstart') { x0 = x; y0 = y; }
+                                var d = Math.round(Math.sqrt((x - x0) * (x - x0) + (y - y0) * (y - y0)));
+                                var cs = window.getComputedStyle(menu);
+                                var r = menu.getBoundingClientRect();
+                                var dessus = document.elementFromPoint(
+                                    Math.min(window.innerWidth - 2, Math.max(2, r.left + r.width / 2)),
+                                    Math.min(window.innerHeight - 2, Math.max(2, r.top + 12)));
+                                ecrire(nom + ' ' + type + ' Δ' + d + 'px' +
+                                    ' | ouvert=' + dd.classList.contains('gm-open') +
+                                    ' display=' + cs.display + ' position=' + cs.position +
+                                    ' | boîte ' + Math.round(r.width) + 'x' + Math.round(r.height) +
+                                    ' à ' + Math.round(r.left) + ',' + Math.round(r.top) +
+                                    ' | dessus=' + (dessus ? (dessus.id || dessus.className || dessus.tagName) : 'rien'));
+                            }, true);
+                        });
+                });
             }
 
             /* --- 6. Lecteur d'animation en tiroir --------------------------
