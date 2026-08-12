@@ -6761,6 +6761,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </svg>
                 </button>
 
+                <!-- Aide à la saisie des formules. Bien plus qu'un aide-mémoire :
+                     chaque exemple s'insère au curseur, ce qui évite de taper des
+                     accolades et des antislashs au pouce. -->
+                <button id="btnAideFormule" onpointerdown="event.preventDefault(); app.basculerAideFormule();"
+                    style="padding:4px 8px; height: 26px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#555; border-radius:4px; display:flex; align-items:center; justify-content:center; font-weight:700;"
+                    data-tooltip="Aide : fractions, puissances, racines…" aria-label="Aide aux formules">?</button>
+
                 <!-- Valider la saisie. Au doigt, il n'existait aucun moyen franc de
                      terminer un texte : il fallait taper ailleurs (donc au risque
                      d'en créer un autre) ou trouver la touche Échap d'un clavier
@@ -6791,6 +6798,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 transform-origin: top left;
                 cursor: text;
             "></div>
+            <!-- Panneau d'aide aux formules. Il s'ancre sous la barre de saisie et
+                 reste dans l'écran ; chaque vignette insère sa syntaxe au curseur. -->
+            <div id="aideFormule" style="
+                display: none;
+                position: absolute;
+                z-index: 4002;
+                background: #fff;
+                border: 1px solid #d9dee3;
+                border-radius: 10px;
+                box-shadow: 0 8px 26px rgba(0,0,0,.16);
+                padding: 8px;
+                width: min(268px, calc(100vw - 28px));
+                box-sizing: border-box;
+                max-height: 46vh;
+                overflow-y: auto;
+                font-family: 'Segoe UI', sans-serif;
+            ">
+                <div
+                    style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <b style="font-size:12px; color:#2980b9;">Formules — appuyez pour insérer</b>
+                    <span onpointerdown="event.preventDefault(); app.basculerAideFormule(false);"
+                        style="cursor:pointer; color:#888; font-size:16px; line-height:1; padding:0 4px;">✕</span>
+                </div>
+                <div id="aideFormuleGrille"
+                    style="display:grid; grid-template-columns:repeat(2, 1fr); gap:5px;"></div>
+                <div style="font-size:10.5px; color:#777; margin-top:7px; line-height:1.35;">
+                    Une ligne contenant <code>\</code>, <code>^</code> ou <code>_</code> est composée
+                    comme une formule. Les autres restent du texte ordinaire.
+                </div>
+            </div>
             <canvas id="geoCanvas" width=3000 height="2000"></canvas>
 
             <!-- 1. BANDEAU PROMPTEUR (Édition rapide à la volée) -->
@@ -8527,6 +8564,323 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
             }
         }
+        /* ==================================================================
+           FORMULES MATHÉMATIQUES — composition maison, sans dépendance
+           ==================================================================
+           Sous-ensemble de LaTeX suffisant pour une figure de géométrie :
+           fractions, puissances, indices, racines, accents (vecteur, barre,
+           chapeau d'angle) et symboles. Volontairement PAS un moteur LaTeX :
+           ni matrices, ni intégrales, ni grands opérateurs.
+
+           Pourquoi pas MathJax ou KaTeX : KaTeX produit du HTML+CSS, indessinable
+           sur un canevas et absent de l'export. MathJax en sortie SVG conviendrait
+           (il émet des tracés, donc exportables), mais pèse ~1 Mo — téléchargé même
+           en type="text/plain" — sur un fichier qui en fait déjà 3, pour une
+           fonction occasionnelle.
+
+           Le principe qui compte ici : une SEULE mise en page produit une liste
+           plate de primitives (runs de texte, filets, tracés), que deux rendus
+           consomment — le canevas et le SVG. L'export ne peut donc pas diverger
+           de l'écran, contrairement à ce qu'on avait constaté pour les longueurs,
+           où deux calculs séparés donnaient deux résultats.
+           ================================================================== */
+        const GmFormule = (function () {
+
+            // Commandes rendues par un simple caractère.
+            const SYMBOLES = {
+                alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', theta: 'θ',
+                lambda: 'λ', mu: 'µ', pi: 'π', rho: 'ρ', sigma: 'σ', phi: 'φ', omega: 'ω',
+                Delta: 'Δ', Omega: 'Ω', Sigma: 'Σ', Pi: 'Π',
+                times: '×', div: '÷', cdot: '·', pm: '±', mp: '∓', ast: '∗',
+                le: '≤', leq: '≤', ge: '≥', geq: '≥', ne: '≠', neq: '≠',
+                approx: '≈', equiv: '≡', sim: '∼', propto: '∝',
+                infty: '∞', degree: '°', deg: '°', angle: '∠', perp: '⊥',
+                parallel: '∥', par: '∥',
+                in: '∈', notin: '∉', cup: '∪', cap: '∩', subset: '⊂', emptyset: '∅',
+                rightarrow: '→', to: '→', leftarrow: '←', Rightarrow: '⇒', iff: '⇔',
+                dots: '…', ldots: '…', prime: '′',
+            };
+
+            const ACCENTS = { vec: 'fleche', overline: 'barre', bar: 'barre', widehat: 'chapeau', hat: 'chapeau' };
+
+            /* Une chaîne mérite-t-elle d'être composée ? On ne veut pas soumettre
+               tous les textes au moteur : une commande, un exposant ou un indice
+               sont les seuls signes d'une intention mathématique. */
+            function contientFormule(txt) {
+                return !!txt && /\\[a-zA-Z]+|[\^_]/.test(txt);
+            }
+
+            // ---------------- analyse ----------------
+            /* Descente récursive. Un atome est un caractère, un groupe entre
+               accolades ou une commande ; les ^ et _ se rattachent à l'atome qui
+               précède, comme en LaTeX. */
+            function analyser(src) {
+                let i = 0;
+
+                function groupe(finAccolade) {
+                    const suite = [];
+                    while (i < src.length) {
+                        const c = src[i];
+                        if (c === '}' && finAccolade) { i++; return { k: 'suite', enfants: suite }; }
+                        if (c === '^' || c === '_') {
+                            i++;
+                            const sc = atome();
+                            let cible = suite[suite.length - 1];
+                            if (!cible || (cible.k !== 'script')) {
+                                cible = { k: 'script', base: cible || { k: 'suite', enfants: [] }, sup: null, sub: null };
+                                if (suite.length) suite[suite.length - 1] = cible; else suite.push(cible);
+                            }
+                            if (c === '^') cible.sup = sc; else cible.sub = sc;
+                            continue;
+                        }
+                        const a = atome();
+                        if (a) suite.push(a);
+                    }
+                    return { k: 'suite', enfants: suite };
+                }
+
+                function atome() {
+                    const c = src[i];
+                    if (c === undefined) return null;
+                    if (c === '{') { i++; return groupe(true); }
+                    if (c === '}') { i++; return null; } // accolade orpheline : ignorée
+                    if (c === '\\') {
+                        i++;
+                        const m = /^[a-zA-Z]+/.exec(src.slice(i));
+                        if (!m) { const ch = src[i]; i++; return { k: 'texte', v: ch || '' }; }
+                        const nom = m[0];
+                        i += nom.length;
+                        if (nom === 'frac' || nom === 'dfrac' || nom === 'tfrac') {
+                            const num = argument(), den = argument();
+                            return { k: 'frac', num: num, den: den };
+                        }
+                        if (nom === 'sqrt') return { k: 'racine', arg: argument() };
+                        if (ACCENTS[nom]) return { k: 'accent', type: ACCENTS[nom], arg: argument() };
+                        if (nom === 'text' || nom === 'mathrm') return argument();
+                        if (SYMBOLES[nom] !== undefined) return { k: 'texte', v: SYMBOLES[nom] };
+                        // Commande inconnue : on l'affiche telle quelle plutôt que de
+                        // l'escamoter en silence — l'auteur voit son erreur.
+                        return { k: 'texte', v: '\\' + nom };
+                    }
+                    i++;
+                    return { k: 'texte', v: c };
+                }
+
+                function argument() {
+                    while (src[i] === ' ') i++;
+                    if (src[i] === '{') { i++; return groupe(true); }
+                    const a = atome();
+                    return a || { k: 'suite', enfants: [] };
+                }
+
+                return groupe(false);
+            }
+
+            // ---------------- mesure ----------------
+            const FACTEUR_SCRIPT = 0.68;   // taille des exposants et indices
+            const TAILLE_MIN = 7;
+
+            function metriques(ctx, txt, taille, fam) {
+                ctx.font = taille + 'px ' + fam;
+                const m = ctx.measureText(txt);
+                // Les métriques précises existent dans les navigateurs visés ; le
+                // repli garde des proportions correctes pour une police latine.
+                const a = (m.actualBoundingBoxAscent !== undefined && isFinite(m.actualBoundingBoxAscent))
+                    ? Math.max(m.actualBoundingBoxAscent, taille * 0.5) : taille * 0.72;
+                const d = (m.actualBoundingBoxDescent !== undefined && isFinite(m.actualBoundingBoxDescent))
+                    ? m.actualBoundingBoxDescent : taille * 0.22;
+                return { w: m.width, a: a, d: d };
+            }
+
+            /* Mesure un nœud et NOTE le résultat dessus (n._m) : la pose s'en sert
+               ensuite sans recalculer, ce qui garantit que les deux passes voient
+               les mêmes dimensions. */
+            function mesurer(ctx, n, taille, fam) {
+                let r;
+                if (!n) return { w: 0, a: taille * 0.7, d: taille * 0.2 };
+                if (n.k === 'texte') {
+                    r = metriques(ctx, n.v, taille, fam);
+                } else if (n.k === 'suite') {
+                    r = { w: 0, a: taille * 0.55, d: taille * 0.12 };
+                    n.enfants.forEach((e) => {
+                        const m = mesurer(ctx, e, taille, fam);
+                        r.w += m.w; r.a = Math.max(r.a, m.a); r.d = Math.max(r.d, m.d);
+                    });
+                } else if (n.k === 'script') {
+                    const tS = Math.max(TAILLE_MIN, taille * FACTEUR_SCRIPT);
+                    const mb = mesurer(ctx, n.base, taille, fam);
+                    const ms = n.sup ? mesurer(ctx, n.sup, tS, fam) : null;
+                    const mi = n.sub ? mesurer(ctx, n.sub, tS, fam) : null;
+                    const decalHaut = taille * 0.42;   // remontée de l'exposant
+                    const decalBas = taille * 0.22;    // descente de l'indice
+                    r = {
+                        w: mb.w + Math.max(ms ? ms.w : 0, mi ? mi.w : 0) + taille * 0.04,
+                        a: Math.max(mb.a, ms ? decalHaut + ms.a : 0),
+                        d: Math.max(mb.d, mi ? decalBas + mi.d : 0),
+                    };
+                } else if (n.k === 'frac') {
+                    const tF = Math.max(TAILLE_MIN, taille * 0.94);
+                    const mn = mesurer(ctx, n.num, tF, fam);
+                    const md = mesurer(ctx, n.den, tF, fam);
+                    const marge = taille * 0.18;
+                    const axe = taille * 0.28;          // hauteur du filet au-dessus de la ligne de base
+                    const ecart = taille * 0.14;
+                    r = {
+                        w: Math.max(mn.w, md.w) + marge * 2,
+                        a: axe + ecart + mn.a + mn.d,
+                        d: -axe + ecart + md.a + md.d,
+                    };
+                    n._tF = tF; n._mn = mn; n._md = md; n._axe = axe; n._ecart = ecart; n._marge = marge;
+                } else if (n.k === 'racine') {
+                    const ma = mesurer(ctx, n.arg, taille, fam);
+                    const signe = taille * 0.55;
+                    const jeu = Math.max(2, taille * 0.12);
+                    r = { w: signe + ma.w + taille * 0.12, a: ma.a + jeu + Math.max(1, taille / 14), d: ma.d };
+                    n._ma = ma; n._signe = signe; n._jeu = jeu;
+                } else if (n.k === 'accent') {
+                    const ma = mesurer(ctx, n.arg, taille, fam);
+                    const haut = taille * (n.type === 'barre' ? 0.16 : 0.26);
+                    r = { w: ma.w, a: ma.a + haut, d: ma.d };
+                    n._ma = ma; n._haut = haut;
+                } else {
+                    r = { w: 0, a: 0, d: 0 };
+                }
+                n._m = r; n._t = taille;
+                return r;
+            }
+
+            // ---------------- pose ----------------
+            /* Émet les primitives. x est le bord gauche, base la ligne de base.
+               Trois primitives seulement, que les deux rendus savent tracer :
+               texte, filet (rectangle plein) et tracé (polyligne). */
+            function poser(out, n, x, base, taille, fam) {
+                if (!n) return x;
+                if (n.k === 'texte') {
+                    out.push({ t: 'texte', v: n.v, x: x, y: base, s: taille });
+                    return x + n._m.w;
+                }
+                if (n.k === 'suite') {
+                    let cx = x;
+                    n.enfants.forEach((e) => { cx = poser(out, e, cx, base, e._t || taille, fam); });
+                    return cx;
+                }
+                if (n.k === 'script') {
+                    const tS = Math.max(TAILLE_MIN, taille * FACTEUR_SCRIPT);
+                    let cx = poser(out, n.base, x, base, taille, fam);
+                    cx += taille * 0.04;
+                    if (n.sup) poser(out, n.sup, cx, base - taille * 0.42, tS, fam);
+                    if (n.sub) poser(out, n.sub, cx, base + taille * 0.22, tS, fam);
+                    return x + n._m.w;
+                }
+                if (n.k === 'frac') {
+                    const l = n._m.w, marge = n._marge, axe = n._axe, ecart = n._ecart;
+                    const yFilet = base - axe;
+                    const ep = Math.max(1, taille / 15);
+                    const xNum = x + (l - n._mn.w) / 2;
+                    const xDen = x + (l - n._md.w) / 2;
+                    poser(out, n.num, xNum, yFilet - ecart - n._mn.d, n._tF, fam);
+                    poser(out, n.den, xDen, yFilet + ecart + n._md.a, n._tF, fam);
+                    out.push({ t: 'filet', x: x + marge * 0.3, y: yFilet - ep / 2, w: l - marge * 0.6, h: ep });
+                    return x + l;
+                }
+                if (n.k === 'racine') {
+                    const ma = n._ma, signe = n._signe, jeu = n._jeu;
+                    const haut = base - ma.a - jeu;
+                    const bas = base + ma.d;
+                    const ep = Math.max(1, taille / 14);
+                    // crochet, diagonale, puis barre au-dessus de l'argument
+                    out.push({
+                        t: 'trace', ep: ep, pts: [
+                            [x, base - ma.a * 0.35],
+                            [x + signe * 0.34, bas],
+                            [x + signe * 0.72, haut],
+                            [x + signe + ma.w + taille * 0.1, haut],
+                        ]
+                    });
+                    poser(out, n.arg, x + signe, base, taille, fam);
+                    return x + n._m.w;
+                }
+                if (n.k === 'accent') {
+                    const ma = n._ma;
+                    const y = base - ma.a - n._haut * 0.55;
+                    const ep = Math.max(1, taille / 14);
+                    if (n.type === 'barre') {
+                        out.push({ t: 'filet', x: x, y: y, w: ma.w, h: ep });
+                    } else if (n.type === 'fleche') {
+                        const p = Math.min(taille * 0.22, ma.w * 0.5);
+                        out.push({ t: 'trace', ep: ep, pts: [[x, y], [x + ma.w, y]] });
+                        out.push({ t: 'trace', ep: ep, pts: [[x + ma.w - p, y - p * 0.6], [x + ma.w, y], [x + ma.w - p, y + p * 0.6]] });
+                    } else { // chapeau d'angle
+                        out.push({ t: 'trace', ep: ep, pts: [[x, y + taille * 0.06], [x + ma.w / 2, y - taille * 0.06], [x + ma.w, y + taille * 0.06]] });
+                    }
+                    poser(out, n.arg, x, base, taille, fam);
+                    return x + ma.w;
+                }
+                return x;
+            }
+
+            /* Compose une chaîne : rend les dimensions et les primitives, placées
+               par rapport au coin HAUT-GAUCHE (0,0), comme le fait déjà le texte
+               ordinaire de l'application. */
+            function composer(ctx, src, taille, fam) {
+                const arbre = analyser(String(src == null ? '' : src));
+                const m = mesurer(ctx, arbre, taille, fam);
+                const prim = [];
+                poser(prim, arbre, 0, m.a, taille, fam);
+                return { largeur: m.w, hauteur: m.a + m.d, monter: m.a, primitives: prim };
+            }
+
+            function dessiner(ctx, mise, x, y, couleur, fam) {
+                ctx.save();
+                ctx.fillStyle = couleur;
+                ctx.strokeStyle = couleur;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+                mise.primitives.forEach((p) => {
+                    if (p.t === 'texte') {
+                        ctx.font = p.s + 'px ' + fam;
+                        ctx.fillText(p.v, x + p.x, y + p.y);
+                    } else if (p.t === 'filet') {
+                        ctx.fillRect(x + p.x, y + p.y, p.w, p.h);
+                    } else if (p.t === 'trace') {
+                        ctx.beginPath();
+                        ctx.lineWidth = p.ep;
+                        ctx.lineJoin = 'miter';
+                        ctx.lineCap = 'butt';
+                        p.pts.forEach((pt, i) => { if (i) ctx.lineTo(x + pt[0], y + pt[1]); else ctx.moveTo(x + pt[0], y + pt[1]); });
+                        ctx.stroke();
+                    }
+                });
+                ctx.restore();
+            }
+
+            function versSVG(mise, x, y, couleur, fam) {
+                const e = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const n = (v) => Math.round(v * 100) / 100;
+                let out = '';
+                mise.primitives.forEach((p) => {
+                    if (p.t === 'texte') {
+                        out += `<text x="${n(x + p.x)}" y="${n(y + p.y)}" font-family="${fam}" font-size="${n(p.s)}"` +
+                            ` fill="${couleur}" text-anchor="start">${e(p.v)}</text>`;
+                    } else if (p.t === 'filet') {
+                        out += `<rect x="${n(x + p.x)}" y="${n(y + p.y)}" width="${n(p.w)}" height="${n(p.h)}" fill="${couleur}" stroke="none"/>`;
+                    } else if (p.t === 'trace') {
+                        const d = p.pts.map((pt, i) => (i ? 'L' : 'M') + n(x + pt[0]) + ',' + n(y + pt[1])).join(' ');
+                        out += `<path d="${d}" fill="none" stroke="${couleur}" stroke-width="${n(p.ep)}" stroke-linejoin="miter"/>`;
+                    }
+                });
+                return out;
+            }
+
+            return {
+                contientFormule: contientFormule,
+                composer: composer,
+                dessiner: dessiner,
+                versSVG: versSVG,
+                SYMBOLES: SYMBOLES,
+            };
+        })();
+
         class TextLabel extends GeometryObject {
             constructor(x, y, text, id = null) {
                 super(null, null, id);
@@ -8537,32 +8891,72 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.fontSize = 16;
                 this.fontFamily = "'Segoe UI', sans-serif";
             }
+            /* Emprise réelle du texte. L'ancienne estimation « nombre de
+               caractères x 0,6 em » suffisait pour du texte ordinaire ; une formule
+               composée n'a plus rien à voir avec sa source (\\frac{1}{2} occupe six
+               fois moins de large que ses onze caractères, mais deux fois plus haut).
+               On mesure donc pour de vrai, avec le contexte du canevas. */
+            emprise(ctx) {
+                const lignes = String(this.text || '').split('\n');
+                const inter = this.fontSize * 1.2;
+                let large = 0, haut = 0;
+                lignes.forEach((l) => {
+                    if (GmFormule.contientFormule(l)) {
+                        const m = GmFormule.composer(ctx, l, this.fontSize, this.fontFamily);
+                        large = Math.max(large, m.largeur);
+                        haut += Math.max(inter, m.hauteur);
+                    } else {
+                        ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+                        large = Math.max(large, ctx.measureText(l).width);
+                        haut += inter;
+                    }
+                });
+                return { largeur: large, hauteur: haut, interligne: inter, lignes: lignes };
+            }
             isNear(mx, my) {
                 if (!this.text) return false;
-                const lines = this.text.split('\n');
-                const maxChars = Math.max(...lines.map(l => l.length));
-                const estWidth = maxChars * (this.fontSize * 0.6);
-                const estHeight = lines.length * (this.fontSize * 1.2);
-                return (mx >= this.x - 5 && mx <= this.x + estWidth + 10) &&
-                    (my >= this.y - 5 && my <= this.y + estHeight + 10);
+                const ctx = (window.app && window.app.ctx) ? window.app.ctx : null;
+                let large, haut;
+                if (ctx) {
+                    const e = this.emprise(ctx);
+                    large = e.largeur; haut = e.hauteur;
+                } else {
+                    const lignes = this.text.split('\n');
+                    large = Math.max(...lignes.map(l => l.length)) * (this.fontSize * 0.6);
+                    haut = lignes.length * (this.fontSize * 1.2);
+                }
+                return (mx >= this.x - 5 && mx <= this.x + large + 10) &&
+                    (my >= this.y - 5 && my <= this.y + haut + 10);
             }
             draw(ctx, opts) {
                 if (!this.text) return;
 
-                // GESTION DU MULTI-LIGNES
-                const lines = this.text.split('\n');
-                const lineHeight = this.fontSize * 1.2; // Espacement de ligne proportionnel
-
-                ctx.font = `${this.fontSize}px ${this.fontFamily}`;
-                ctx.fillStyle = opts.isHovered ? "#2980b9" : (opts.isSelected ? "#e67e22" : (this.color || "black"));
+                const couleur = opts.isHovered ? "#2980b9" : (opts.isSelected ? "#e67e22" : (this.color || "black"));
+                const lignes = this.text.split('\n');
+                const inter = this.fontSize * 1.2;
 
                 // ALIGNEMENT FIXE (Haut-Gauche) pour coller exactement au clic HTML
                 ctx.textAlign = "left";
                 ctx.textBaseline = "top";
+                ctx.fillStyle = couleur;
 
-                // On dessine chaque ligne
-                lines.forEach((line, index) => {
-                    ctx.fillText(line, this.x, this.y + (index * lineHeight));
+                let y = this.y;
+                lignes.forEach((ligne) => {
+                    // Une ligne qui porte une commande, un exposant ou un indice est
+                    // composée ; les autres suivent le chemin d'origine, au caractère
+                    // près, pour ne rien changer aux figures existantes.
+                    if (GmFormule.contientFormule(ligne)) {
+                        const m = GmFormule.composer(ctx, ligne, this.fontSize, this.fontFamily);
+                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily);
+                        y += Math.max(inter, m.hauteur);
+                        ctx.textAlign = "left";
+                        ctx.textBaseline = "top";
+                        ctx.fillStyle = couleur;
+                    } else {
+                        ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+                        ctx.fillText(ligne, this.x, y);
+                        y += inter;
+                    }
                 });
             }
         }
@@ -13688,19 +14082,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // --- CORRECTION : Extension de la zone pour le Texte ---
                         extend(e.x, e.y); // Point d'origine
                         if (e.text) {
-                            const lines = e.text.split('\n');
-                            const fontSize = e.fontSize || 16;
-                            const lineHeight = fontSize * 1.2;
-
-                            // Calcul largeur max (estimation large)
-                            let maxChars = 0;
-                            lines.forEach(l => { if (l.length > maxChars) maxChars = l.length; });
-                            const estWidth = maxChars * (fontSize * 0.6);
-
-                            // Calcul hauteur totale
-                            const estHeight = lines.length * lineHeight;
-
-                            extend(e.x + estWidth, e.y + estHeight);
+                            // Mesure réelle quand elle est possible : une formule ne fait
+                            // pas la taille de sa source (une fraction est deux fois plus
+                            // haute et bien moins large que ses caractères).
+                            if (typeof e.emprise === 'function' && this.ctx) {
+                                const em = e.emprise(this.ctx);
+                                extend(e.x + em.largeur, e.y + em.hauteur);
+                            } else {
+                                const lines = e.text.split('\n');
+                                const fontSize = e.fontSize || 16;
+                                const maxChars = Math.max(...lines.map(l => l.length));
+                                extend(e.x + maxChars * (fontSize * 0.6), e.y + lines.length * fontSize * 1.2);
+                            }
                         }
                     }
                     else if (e instanceof Segment) {
@@ -16458,6 +16851,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (document.activeElement === ghost) ghost.blur();
                 ghost.style.display = 'none';
                 if (toolbar) toolbar.style.display = 'none';
+                // L'aide aux formules accompagne la saisie : elle se referme avec elle.
+                const aide = document.getElementById('aideFormule');
+                if (aide) aide.style.display = 'none';
                 ghost.innerText = '';
                 if (txt.trim().length > 0 && this.pendingTextCoords) {
                     const tColor = document.getElementById('ghostTextColor');
@@ -17378,11 +17774,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const lines = e.text.split('\n');
                         const lineHeight = fs * 1.2;
 
-                        lines.forEach((line, index) => {
-                            const safeText = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                            const lineY = e.y + (index * lineHeight);
-                            // La variable 'color' est déjà calculée un peu plus haut dans ta fonction
-                            svgContent += `<text x="${e.x}" y="${lineY}" font-family="${ff}" font-size="${fs}" fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                        /* Les formules sont composées par GmFormule, exactement comme à
+                           l'écran : une seule mise en page, deux rendus. C'est ce qui
+                           interdit à l'export de diverger du canevas — l'erreur qu'on
+                           avait faite pour les longueurs, calculées deux fois. */
+                        let yLigne = e.y;
+                        lines.forEach((line) => {
+                            if (GmFormule.contientFormule(line)) {
+                                const m = GmFormule.composer(this.ctx, line, fs, e.fontFamily || 'sans-serif');
+                                svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff);
+                                yLigne += Math.max(lineHeight, m.hauteur);
+                            } else {
+                                const safeText = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                svgContent += `<text x="${e.x}" y="${yLigne}" font-family="${ff}" font-size="${fs}" fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                                yLigne += lineHeight;
+                            }
                         });
                     }
                     else if (e instanceof LinearObject || e instanceof ParallelLine || e instanceof PerpendicularLine) {
@@ -19289,6 +19695,91 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 info.innerHTML = `${url.length} caractères · version ${(n - 17) / 4} ` +
                     `(${n}×${n} modules) · correction ${niveau}` +
                     (parModule < 3 ? ' · <b>code dense</b> : approchez l\'appareil' : '');
+            }
+
+            /* Vignettes de l'aide aux formules : libellé rendu par le moteur
+               lui-même (ce que l'on voit est ce que l'on obtient), syntaxe insérée
+               au curseur, et curseur replacé dans la première accolade. */
+            basculerAideFormule(forcer) {
+                const boite = document.getElementById('aideFormule');
+                const barre = document.getElementById('textFormatToolbar');
+                if (!boite) return;
+                const ouvrir = (forcer === undefined) ? (boite.style.display === 'none' || !boite.style.display) : !!forcer;
+                if (!ouvrir) { boite.style.display = 'none'; return; }
+
+                const grille = document.getElementById('aideFormuleGrille');
+                if (grille && !grille.childElementCount) {
+                    const MODELES = [
+                        ['Fraction', '\\frac{a}{b}', 5],
+                        ['Puissance', 'x^{2}', 1],
+                        ['Indice', 'A_{1}', 1],
+                        ['Racine', '\\sqrt{2}', 1],
+                        ['Vecteur', '\\vec{AB}', 1],
+                        ['Segment', '\\overline{AB}', 1],
+                        ['Angle', '\\widehat{ABC}', 1],
+                        ['Degré', '30\\degree', 0],
+                        ['pi', '\\pi', 0],
+                        ['Multiplié', '\\times', 0],
+                        ['Inférieur ou égal', '\\le', 0],
+                        ['Différent', '\\ne', 0],
+                        ['Parallèle', '\\parallel', 0],
+                        ['Perpendiculaire', '\\perp', 0],
+                        ['Appartient', '\\in', 0],
+                        ['Aire du triangle', '\\frac{b \\times h}{2}', 0],
+                    ];
+                    MODELES.forEach(([nom, syntaxe, recul]) => {
+                        const b = document.createElement('div');
+                        b.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:2px;' +
+                            'border:1px solid #e3e6e8; border-radius:7px; padding:5px 3px; cursor:pointer;' +
+                            'background:#fbfcfd; min-height:44px; justify-content:center;';
+                        const cv = document.createElement('canvas');
+                        const c2 = cv.getContext('2d');
+                        const m = GmFormule.composer(c2, syntaxe, 17, "'Segoe UI', sans-serif");
+                        cv.width = Math.ceil(m.largeur) + 6;
+                        cv.height = Math.ceil(m.hauteur) + 6;
+                        GmFormule.dessiner(cv.getContext('2d'), m, 3, 3, '#222', "'Segoe UI', sans-serif");
+                        const t = document.createElement('span');
+                        t.textContent = nom;
+                        t.style.cssText = 'font-size:9px; color:#7a828a; text-align:center; line-height:1.1;';
+                        b.appendChild(cv); b.appendChild(t);
+                        b.title = syntaxe;
+                        b.addEventListener('pointerdown', (e) => {
+                            e.preventDefault(); // ne pas faire perdre le focus au champ
+                            this.insererFormule(syntaxe, recul);
+                        });
+                        grille.appendChild(b);
+                    });
+                }
+
+                /* Ancrage sous la barre de saisie, borné à l'écran. On affiche AVANT
+                   de calculer : sans cela offsetWidth vaut zéro, et le bornage se
+                   fait sur une largeur devinée — mesuré, le panneau dépassait de
+                   12px à droite sur un écran de 375. */
+                boite.style.display = 'block';
+                if (barre) {
+                    const r = barre.getBoundingClientRect();
+                    const cont = this.canvas.parentElement.getBoundingClientRect();
+                    const large = boite.offsetWidth || 286;
+                    const l = Math.max(6, Math.min(r.left - cont.left, cont.width - large - 6));
+                    boite.style.left = l + 'px';
+                    boite.style.top = Math.max(6, (r.bottom - cont.top) + 6) + 'px';
+                }
+            }
+
+            /* Insère la syntaxe dans le champ en cours, puis recule le curseur de
+               « recul » caractères pour le poser dans la première accolade. */
+            insererFormule(syntaxe, recul) {
+                const ghost = document.getElementById('ghostTextInput');
+                if (!ghost || ghost.style.display !== 'block') {
+                    this.showToast("Placez d'abord un texte, puis rouvrez l'aide");
+                    return;
+                }
+                ghost.focus();
+                document.execCommand('insertText', false, syntaxe);
+                const sel = window.getSelection();
+                if (recul && sel && sel.modify) {
+                    for (let i = 0; i < recul; i++) sel.modify('move', 'backward', 'character');
+                }
             }
 
             copierLienQR() {
