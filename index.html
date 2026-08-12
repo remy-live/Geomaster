@@ -8586,7 +8586,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            ================================================================== */
         const GmFormule = (function () {
 
-            // Commandes rendues par un simple caractère.
+            /* Paramètres de composition, en fraction de la taille de police.
+               Repris de TeX (TeXbook, appendice G) et de la table OpenType MATH,
+               et non choisis à l'œil : la première version l'était, et cela se
+               voyait — opérateurs collés, radical en pointe de flèche, filets de
+               fraction deux fois trop longs.
+
+               Ces valeurs supposent une police de TEXTE, sans table MATH : on ne
+               peut donc pas lire axisHeight dans la police, on la prend à 0,25 em
+               comme TeX, ce qui correspond bien à la hauteur du signe moins des
+               polices latines courantes. */
+            const P = {
+                filet: 0.045,       // defaultRuleThickness (TeX : 0,04 em)
+                axe: 0.25,          // axisHeight : hauteur du filet de fraction
+                fracEcart: 0.095,   // fractionNumerator/DenominatorGapMin, style texte
+                fracMarge: 0.10,    // dépassement latéral du filet de part et d'autre
+                fracTaille: 0.95,   // réduction du numérateur et du dénominateur
+                supDecal: 0.42,     // superscriptShiftUp
+                subDecal: 0.25,     // subscriptShiftDown
+                supBasMin: 0.12,    // superscriptBottomMin
+                scriptsEcart: 0.20, // subSuperscriptGapMin
+                scriptKern: 0.02,   // kern entre la base et son script
+                script: 0.70,       // scriptPercentScaleDown
+                radEcart: 0.11,     // radicalVerticalGap
+                radSurplus: 0.05,   // radicalExtraAscender
+                radLargeur: 0.62,   // largeur du signe avant l'argument
+                radDebord: 0.10,    // dépassement du filet après l'argument
+                accEcart: 0.13,     // overbarVerticalGap (3 x filet)
+                accSurplus: 0.05,   // overbarExtraAscender
+                flechePointe: 0.22, // longueur de la pointe de flèche
+                chapeau: 0.10,      // amplitude du chapeau
+                // Espaces inter-atomes de TeX : 3/18, 4/18 et 5/18 d'em.
+                mince: 3 / 18,
+                moyen: 4 / 18,
+                epais: 5 / 18,
+                tailleMin: 7,
+            };
+
             const SYMBOLES = {
                 alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', theta: 'θ',
                 lambda: 'λ', mu: 'µ', pi: 'π', rho: 'ρ', sigma: 'σ', phi: 'φ', omega: 'ω',
@@ -8603,17 +8639,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             const ACCENTS = { vec: 'fleche', overline: 'barre', bar: 'barre', widehat: 'chapeau', hat: 'chapeau' };
 
-            /* Une chaîne mérite-t-elle d'être composée ? On ne veut pas soumettre
-               tous les textes au moteur : une commande, un exposant ou un indice
-               sont les seuls signes d'une intention mathématique. */
+            // Classes de TeX, pour l'espacement. Tout ce qui n'est pas listé est Ord.
+            const BINAIRES = '+−-×÷±∓·∗∪∩';
+            const RELATIONS = '=≠≤≥≈≡∼∝→←⇒⇔∈∉⊂⊥∥<>';
+            const PONCTUATION = ',;';
+            const OUVRANTS = '([{';
+            const FERMANTS = ')]}';
+
+            function classe(n) {
+                if (!n) return 'ord';
+                if (n.k === 'texte' && n.v && n.v.length === 1) {
+                    const c = n.v;
+                    if (BINAIRES.indexOf(c) !== -1) return 'bin';
+                    if (RELATIONS.indexOf(c) !== -1) return 'rel';
+                    if (PONCTUATION.indexOf(c) !== -1) return 'punct';
+                    if (OUVRANTS.indexOf(c) !== -1) return 'open';
+                    if (FERMANTS.indexOf(c) !== -1) return 'close';
+                }
+                return 'ord';
+            }
+
             function contientFormule(txt) {
                 return !!txt && /\\[a-zA-Z]+|[\^_]/.test(txt);
             }
 
             // ---------------- analyse ----------------
-            /* Descente récursive. Un atome est un caractère, un groupe entre
-               accolades ou une commande ; les ^ et _ se rattachent à l'atome qui
-               précède, comme en LaTeX. */
             function analyser(src) {
                 let i = 0;
 
@@ -8621,12 +8671,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const suite = [];
                     while (i < src.length) {
                         const c = src[i];
-                        if (c === '}' && finAccolade) { i++; return { k: 'suite', enfants: suite }; }
+                        if (c === '}' && finAccolade) { i++; return espacer({ k: 'suite', enfants: suite }); }
                         if (c === '^' || c === '_') {
                             i++;
                             const sc = atome();
                             let cible = suite[suite.length - 1];
-                            if (!cible || (cible.k !== 'script')) {
+                            if (!cible || cible.k !== 'script') {
                                 cible = { k: 'script', base: cible || { k: 'suite', enfants: [] }, sup: null, sub: null };
                                 if (suite.length) suite[suite.length - 1] = cible; else suite.push(cible);
                             }
@@ -8636,18 +8686,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const a = atome();
                         if (a) suite.push(a);
                     }
-                    return { k: 'suite', enfants: suite };
+                    return espacer({ k: 'suite', enfants: suite });
                 }
 
                 function atome() {
                     const c = src[i];
                     if (c === undefined) return null;
+                    if (c === ' ') { i++; return { k: 'espaceLitteral' }; }
                     if (c === '{') { i++; return groupe(true); }
-                    if (c === '}') { i++; return null; } // accolade orpheline : ignorée
+                    if (c === '}') { i++; return null; }
                     if (c === '\\') {
                         i++;
                         const m = /^[a-zA-Z]+/.exec(src.slice(i));
-                        if (!m) { const ch = src[i]; i++; return { k: 'texte', v: ch || '' }; }
+                        if (!m) {
+                            const ch = src[i]; i++;
+                            // « \  » (antislash espace) est l'espace explicite de LaTeX
+                            if (ch === ' ') return { k: 'espaceLitteral' };
+                            return { k: 'texte', v: ch || '' };
+                        }
                         const nom = m[0];
                         i += nom.length;
                         if (nom === 'frac' || nom === 'dfrac' || nom === 'tfrac') {
@@ -8658,8 +8714,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (ACCENTS[nom]) return { k: 'accent', type: ACCENTS[nom], arg: argument() };
                         if (nom === 'text' || nom === 'mathrm') return argument();
                         if (SYMBOLES[nom] !== undefined) return { k: 'texte', v: SYMBOLES[nom] };
-                        // Commande inconnue : on l'affiche telle quelle plutôt que de
-                        // l'escamoter en silence — l'auteur voit son erreur.
                         return { k: 'texte', v: '\\' + nom };
                     }
                     i++;
@@ -8670,78 +8724,160 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     while (src[i] === ' ') i++;
                     if (src[i] === '{') { i++; return groupe(true); }
                     const a = atome();
-                    return a || { k: 'suite', enfants: [] };
+                    return (a && a.k !== 'espaceLitteral') ? a : { k: 'suite', enfants: [] };
                 }
 
                 return groupe(false);
             }
 
-            // ---------------- mesure ----------------
-            const FACTEUR_SCRIPT = 0.68;   // taille des exposants et indices
-            const TAILLE_MIN = 7;
+            /* Espacement inter-atomes, d'après la table de TeX : espace moyen autour
+               d'un opérateur binaire, épais autour d'une relation, mince après une
+               ponctuation. Sans cela « b\times h » s'écrivait « b×h », collé.
 
+               Deux subtilités reprises de TeX :
+               - un opérateur binaire en tête de groupe, ou qui suit un autre
+                 opérateur, une relation ou une parenthèse ouvrante, est UNAIRE : pas
+                 d'espace à sa gauche (le « - » de « -5 »).
+               - une espace tapée à la main ne s'ajoute pas à l'espace de classe, elle
+                 est fondue avec lui (on garde la plus grande). En LaTeX elle serait
+                 purement ignorée, mais un enseignant qui écrit « 5 cm » attend de
+                 voir cette espace : on la rend, au format mince. */
+            function espacer(suite) {
+                const src = suite.enfants;
+                const sortie = [];
+                const classes = [];   // classe EFFECTIVE de chaque atome posé
+                let litteralEnAttente = false;
+                for (let j = 0; j < src.length; j++) {
+                    const n = src[j];
+                    if (n.k === 'espaceLitteral') { litteralEnAttente = true; continue; }
+                    let cd = classe(n);
+                    if (!sortie.length) {
+                        // un opérateur binaire en tête de liste est unaire : « -5 » ne
+                        // prend d'espace ni à gauche ni à droite. Il faut donc retenir
+                        // cette reclassification, sans quoi la paire suivante le
+                        // retrouverait « binaire » et rétablirait l'espace.
+                        if (cd === 'bin') cd = 'ord';
+                    } else {
+                        const cg = classes[classes.length - 1];
+                        if (cd === 'bin' && (cg === 'bin' || cg === 'rel' || cg === 'open' || cg === 'punct')) cd = 'ord';
+                        let em = 0;
+                        if (cg === 'bin' || cd === 'bin') em = P.moyen;
+                        else if (cg === 'rel' || cd === 'rel') em = P.epais;
+                        else if (cg === 'punct') em = P.mince;
+                        if (litteralEnAttente) em = Math.max(em, P.mince);
+                        if (em > 0) sortie.push({ k: 'espace', em: em });
+                    }
+                    litteralEnAttente = false;
+                    sortie.push(n);
+                    classes.push(cd);
+                }
+                suite.enfants = sortie;
+                return suite;
+            }
+
+            // ---------------- mesure ----------------
             function metriques(ctx, txt, taille, fam) {
                 ctx.font = taille + 'px ' + fam;
                 const m = ctx.measureText(txt);
-                // Les métriques précises existent dans les navigateurs visés ; le
-                // repli garde des proportions correctes pour une police latine.
                 const a = (m.actualBoundingBoxAscent !== undefined && isFinite(m.actualBoundingBoxAscent))
                     ? Math.max(m.actualBoundingBoxAscent, taille * 0.5) : taille * 0.72;
                 const d = (m.actualBoundingBoxDescent !== undefined && isFinite(m.actualBoundingBoxDescent))
-                    ? m.actualBoundingBoxDescent : taille * 0.22;
+                    ? Math.max(m.actualBoundingBoxDescent, 0) : taille * 0.22;
                 return { w: m.width, a: a, d: d };
             }
 
-            /* Mesure un nœud et NOTE le résultat dessus (n._m) : la pose s'en sert
-               ensuite sans recalculer, ce qui garantit que les deux passes voient
-               les mêmes dimensions. */
             function mesurer(ctx, n, taille, fam) {
                 let r;
                 if (!n) return { w: 0, a: taille * 0.7, d: taille * 0.2 };
+                const t = taille;
                 if (n.k === 'texte') {
-                    r = metriques(ctx, n.v, taille, fam);
+                    r = metriques(ctx, n.v, t, fam);
+                } else if (n.k === 'espace') {
+                    r = { w: n.em * t, a: 0, d: 0 };
                 } else if (n.k === 'suite') {
-                    r = { w: 0, a: taille * 0.55, d: taille * 0.12 };
+                    r = { w: 0, a: t * 0.5, d: t * 0.1 };
                     n.enfants.forEach((e) => {
-                        const m = mesurer(ctx, e, taille, fam);
+                        const m = mesurer(ctx, e, t, fam);
                         r.w += m.w; r.a = Math.max(r.a, m.a); r.d = Math.max(r.d, m.d);
                     });
                 } else if (n.k === 'script') {
-                    const tS = Math.max(TAILLE_MIN, taille * FACTEUR_SCRIPT);
-                    const mb = mesurer(ctx, n.base, taille, fam);
+                    const tS = Math.max(P.tailleMin, t * P.script);
+                    const mb = mesurer(ctx, n.base, t, fam);
                     const ms = n.sup ? mesurer(ctx, n.sup, tS, fam) : null;
                     const mi = n.sub ? mesurer(ctx, n.sub, tS, fam) : null;
-                    const decalHaut = taille * 0.42;   // remontée de l'exposant
-                    const decalBas = taille * 0.22;    // descente de l'indice
+                    let dHaut = t * P.supDecal, dBas = t * P.subDecal;
+                    if (ms) {
+                        // le bas de l'exposant ne doit pas descendre trop près de la
+                        // ligne de base (superscriptBottomMin)
+                        dHaut = Math.max(dHaut, ms.d + t * P.supBasMin);
+                    }
+                    if (ms && mi) {
+                        // et l'exposant et l'indice doivent garder un écart entre eux
+                        const ecart = (dHaut - ms.d) + (dBas - mi.a);
+                        const manque = t * P.scriptsEcart - ecart;
+                        if (manque > 0) { dHaut += manque / 2; dBas += manque / 2; }
+                    }
+                    n._tS = tS; n._dHaut = dHaut; n._dBas = dBas; n._mb = mb;
                     r = {
-                        w: mb.w + Math.max(ms ? ms.w : 0, mi ? mi.w : 0) + taille * 0.04,
-                        a: Math.max(mb.a, ms ? decalHaut + ms.a : 0),
-                        d: Math.max(mb.d, mi ? decalBas + mi.d : 0),
+                        w: mb.w + t * P.scriptKern + Math.max(ms ? ms.w : 0, mi ? mi.w : 0),
+                        a: Math.max(mb.a, ms ? dHaut + ms.a : 0),
+                        d: Math.max(mb.d, mi ? dBas + mi.d : 0),
                     };
                 } else if (n.k === 'frac') {
-                    const tF = Math.max(TAILLE_MIN, taille * 0.94);
+                    const tF = Math.max(P.tailleMin, t * P.fracTaille);
                     const mn = mesurer(ctx, n.num, tF, fam);
                     const md = mesurer(ctx, n.den, tF, fam);
-                    const marge = taille * 0.18;
-                    const axe = taille * 0.28;          // hauteur du filet au-dessus de la ligne de base
-                    const ecart = taille * 0.14;
+                    const filet = Math.max(1, t * P.filet);
+                    const axe = t * P.axe;
+                    const ecart = Math.max(t * P.fracEcart, filet * 1.5);
+                    const marge = t * P.fracMarge;
                     r = {
                         w: Math.max(mn.w, md.w) + marge * 2,
-                        a: axe + ecart + mn.a + mn.d,
-                        d: -axe + ecart + md.a + md.d,
+                        a: axe + filet / 2 + ecart + mn.a + mn.d,
+                        d: -axe + filet / 2 + ecart + md.a + md.d,
                     };
-                    n._tF = tF; n._mn = mn; n._md = md; n._axe = axe; n._ecart = ecart; n._marge = marge;
+                    n._tF = tF; n._mn = mn; n._md = md; n._axe = axe;
+                    n._ecart = ecart; n._marge = marge; n._filet = filet;
                 } else if (n.k === 'racine') {
-                    const ma = mesurer(ctx, n.arg, taille, fam);
-                    const signe = taille * 0.55;
-                    const jeu = Math.max(2, taille * 0.12);
-                    r = { w: signe + ma.w + taille * 0.12, a: ma.a + jeu + Math.max(1, taille / 14), d: ma.d };
-                    n._ma = ma; n._signe = signe; n._jeu = jeu;
+                    const ma = mesurer(ctx, n.arg, t, fam);
+                    const filet = Math.max(1, t * P.filet);
+                    const ecart = Math.max(t * P.radEcart, filet * 2);
+                    const signe = t * P.radLargeur;
+                    /* La pointe du crochet descend jusqu'à la ligne de base + la
+                       descendante de l'argument, et son trait est épais (2,1 filet) :
+                       avec des bouts arrondis, il dépasse encore d'une demi-épaisseur.
+                       L'emprise doit l'englober, sinon la sélection au clic et le
+                       cadrage de l'export coupent le bas du radical. */
+                    const debord = filet * 2.1 / 2;
+                    r = {
+                        w: signe + ma.w + t * P.radDebord,
+                        a: ma.a + ecart + filet + t * P.radSurplus,
+                        d: ma.d + debord,
+                    };
+                    n._ma = ma; n._signe = signe; n._ecart = ecart; n._filet = filet;
                 } else if (n.k === 'accent') {
-                    const ma = mesurer(ctx, n.arg, taille, fam);
-                    const haut = taille * (n.type === 'barre' ? 0.16 : 0.26);
-                    r = { w: ma.w, a: ma.a + haut, d: ma.d };
-                    n._ma = ma; n._haut = haut;
+                    const ma = mesurer(ctx, n.arg, t, fam);
+                    const filet = Math.max(1, t * P.filet);
+                    const ecart = Math.max(t * P.accEcart, filet * 2.5);
+                    const epaisseur = (n.type === 'barre') ? filet
+                        : (n.type === 'fleche' ? filet * 1.1 : filet * 1.2);
+                    const ampl = (n.type === 'chapeau') ? t * P.chapeau : 0;
+                    /* Une seule grandeur décrit le signe : hSigne, la hauteur totale de
+                       son encre. La version précédente ajoutait la correction de pointe
+                       À LA FOIS à l'ascendante et à la position du signe, si bien que les
+                       deux s'annulaient et que la flèche débordait quand même par le haut.
+                       - barre   : un filet plein, donc exactement son épaisseur.
+                       - flèche  : les ailes montent et descendent de 0,45 p autour de la
+                         hampe, et les bouts arrondis ajoutent une demi-épaisseur de
+                         chaque côté, soit 0,9 p + ep.
+                       - chapeau : l'amplitude, plus les demi-épaisseurs des bouts. */
+                    const p = (n.type === 'fleche')
+                        ? Math.min(t * P.flechePointe, Math.max(ma.w * 0.6, epaisseur * 2)) : 0;
+                    const hSigne = (n.type === 'barre') ? epaisseur
+                        : (n.type === 'fleche' ? p * 0.9 + epaisseur : ampl + epaisseur);
+                    r = { w: ma.w, a: ma.a + ecart + hSigne + t * P.accSurplus, d: ma.d };
+                    n._ma = ma; n._ecart = ecart; n._ep = epaisseur; n._ampl = ampl;
+                    n._hSigne = hSigne; n._p = p;
                 } else {
                     r = { w: 0, a: 0, d: 0 };
                 }
@@ -8750,81 +8886,94 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             // ---------------- pose ----------------
-            /* Émet les primitives. x est le bord gauche, base la ligne de base.
-               Trois primitives seulement, que les deux rendus savent tracer :
-               texte, filet (rectangle plein) et tracé (polyligne). */
             function poser(out, n, x, base, taille, fam) {
                 if (!n) return x;
+                const t = taille;
                 if (n.k === 'texte') {
-                    out.push({ t: 'texte', v: n.v, x: x, y: base, s: taille });
+                    out.push({ t: 'texte', v: n.v, x: x, y: base, s: t });
                     return x + n._m.w;
                 }
+                if (n.k === 'espace') return x + n._m.w;
                 if (n.k === 'suite') {
                     let cx = x;
-                    n.enfants.forEach((e) => { cx = poser(out, e, cx, base, e._t || taille, fam); });
+                    n.enfants.forEach((e) => { cx = poser(out, e, cx, base, e._t || t, fam); });
                     return cx;
                 }
                 if (n.k === 'script') {
-                    const tS = Math.max(TAILLE_MIN, taille * FACTEUR_SCRIPT);
-                    let cx = poser(out, n.base, x, base, taille, fam);
-                    cx += taille * 0.04;
-                    if (n.sup) poser(out, n.sup, cx, base - taille * 0.42, tS, fam);
-                    if (n.sub) poser(out, n.sub, cx, base + taille * 0.22, tS, fam);
+                    let cx = poser(out, n.base, x, base, t, fam);
+                    cx += t * P.scriptKern;
+                    if (n.sup) poser(out, n.sup, cx, base - n._dHaut, n._tS, fam);
+                    if (n.sub) poser(out, n.sub, cx, base + n._dBas, n._tS, fam);
                     return x + n._m.w;
                 }
                 if (n.k === 'frac') {
-                    const l = n._m.w, marge = n._marge, axe = n._axe, ecart = n._ecart;
-                    const yFilet = base - axe;
-                    const ep = Math.max(1, taille / 15);
-                    const xNum = x + (l - n._mn.w) / 2;
-                    const xDen = x + (l - n._md.w) / 2;
-                    poser(out, n.num, xNum, yFilet - ecart - n._mn.d, n._tF, fam);
-                    poser(out, n.den, xDen, yFilet + ecart + n._md.a, n._tF, fam);
-                    out.push({ t: 'filet', x: x + marge * 0.3, y: yFilet - ep / 2, w: l - marge * 0.6, h: ep });
+                    const l = n._m.w, marge = n._marge, filet = n._filet;
+                    const yFilet = base - n._axe;   // centre du filet, sur l'axe
+                    // Le filet couvre TOUTE la largeur annoncée, marges comprises :
+                    // la version précédente le rognait de 0,6 marge, si bien qu'il
+                    // paraissait flotter par rapport au contenu.
+                    out.push({ t: 'filet', x: x, y: yFilet - filet / 2, w: l, h: filet });
+                    poser(out, n.num, x + (l - n._mn.w) / 2, yFilet - filet / 2 - n._ecart - n._mn.d, n._tF, fam);
+                    poser(out, n.den, x + (l - n._md.w) / 2, yFilet + filet / 2 + n._ecart + n._md.a, n._tF, fam);
                     return x + l;
                 }
                 if (n.k === 'racine') {
-                    const ma = n._ma, signe = n._signe, jeu = n._jeu;
-                    const haut = base - ma.a - jeu;
-                    const bas = base + ma.d;
-                    const ep = Math.max(1, taille / 14);
-                    // crochet, diagonale, puis barre au-dessus de l'argument
-                    out.push({
-                        t: 'trace', ep: ep, pts: [
-                            [x, base - ma.a * 0.35],
-                            [x + signe * 0.34, bas],
-                            [x + signe * 0.72, haut],
-                            [x + signe + ma.w + taille * 0.1, haut],
-                        ]
-                    });
-                    poser(out, n.arg, x + signe, base, taille, fam);
+                    const ma = n._ma, signe = n._signe, filet = n._filet;
+                    const haut = base - ma.a - n._ecart - filet;  // dessus du filet
+                    const bas = base + ma.d;                      // pointe du crochet
+                    /* Silhouette d'un vrai radical, en trois traits d'épaisseurs
+                       différentes : une courte amorce, la diagonale montante (le trait
+                       épais), puis le filet horizontal. La version précédente n'avait
+                       qu'un « V » étroit et profond, dont la pointe descendait sous la
+                       ligne de base : c'est ce qui lui donnait l'allure d'une flèche. */
+                    // décalée d'une demi-épaisseur : un bout arrondi posé en x=0
+                    // dépasserait à gauche de l'emprise
+                    out.push({ t: 'trace', ep: filet, pts: [[x + filet / 2, base - ma.a * 0.30], [x + signe * 0.26, base - ma.a * 0.18]] });
+                    out.push({ t: 'trace', ep: filet * 2.1, pts: [[x + signe * 0.26, base - ma.a * 0.18], [x + signe * 0.42, bas], [x + signe * 0.82, haut + filet / 2]] });
+                    out.push({ t: 'filet', x: x + signe * 0.82 - filet / 2, y: haut, w: ma.w + signe * 0.18 + t * P.radDebord + filet / 2, h: filet });
+                    poser(out, n.arg, x + signe, base, t, fam);
                     return x + n._m.w;
                 }
                 if (n.k === 'accent') {
-                    const ma = n._ma;
-                    const y = base - ma.a - n._haut * 0.55;
-                    const ep = Math.max(1, taille / 14);
+                    const ma = n._ma, ep = n._ep, hSigne = n._hSigne;
+                    /* yHaut = bord supérieur de l'ENCRE du signe, bouts arrondis compris.
+                       Chaque tracé est ensuite exprimé par rapport à lui, et rentré d'une
+                       demi-épaisseur aux deux extrémités pour que les bouts arrondis ne
+                       sortent pas de l'emprise à gauche ni à droite. */
+                    const yHaut = base - ma.a - n._ecart - hSigne;
+                    const g = x + ep / 2, dr = x + Math.max(ma.w - ep / 2, ep / 2);
                     if (n.type === 'barre') {
-                        out.push({ t: 'filet', x: x, y: y, w: ma.w, h: ep });
+                        out.push({ t: 'filet', x: x, y: yHaut, w: ma.w, h: ep });
                     } else if (n.type === 'fleche') {
-                        const p = Math.min(taille * 0.22, ma.w * 0.5);
-                        out.push({ t: 'trace', ep: ep, pts: [[x, y], [x + ma.w, y]] });
-                        out.push({ t: 'trace', ep: ep, pts: [[x + ma.w - p, y - p * 0.6], [x + ma.w, y], [x + ma.w - p, y + p * 0.6]] });
-                    } else { // chapeau d'angle
-                        out.push({ t: 'trace', ep: ep, pts: [[x, y + taille * 0.06], [x + ma.w / 2, y - taille * 0.06], [x + ma.w, y + taille * 0.06]] });
+                        const p = n._p;
+                        const yc = yHaut + hSigne / 2;
+                        out.push({ t: 'trace', ep: ep, pts: [[g, yc], [dr, yc]] });
+                        out.push({ t: 'trace', ep: ep, pts: [[dr - p, yc - p * 0.45], [dr, yc], [dr - p, yc + p * 0.45]] });
+                    } else {
+                        const a = n._ampl, yt = yHaut + ep / 2;
+                        out.push({ t: 'trace', ep: ep, pts: [[g, yt + a], [x + ma.w / 2, yt], [dr, yt + a]] });
                     }
-                    poser(out, n.arg, x, base, taille, fam);
+                    poser(out, n.arg, x, base, t, fam);
                     return x + ma.w;
                 }
                 return x;
             }
 
-            /* Compose une chaîne : rend les dimensions et les primitives, placées
-               par rapport au coin HAUT-GAUCHE (0,0), comme le fait déjà le texte
-               ordinaire de l'application. */
             function composer(ctx, src, taille, fam) {
                 const arbre = analyser(String(src == null ? '' : src));
+                /* actualBoundingBoxAscent est mesurée PAR RAPPORT AU textBaseline
+                   courant du contexte. TextLabel.draw pose « top » avant d'appeler le
+                   moteur : la mesure rendait alors 12px au lieu de 17 pour un A de
+                   24px, et toute la composition était bâtie sur cette ascendante
+                   fausse — la ligne de base tombait 5px trop haut, si bien que les
+                   lettres dépassaient par le dessus et la pointe du radical par le
+                   dessous. On fixe donc l'état du contexte le temps de la mesure.
+                   Le même piège vaut pour textAlign, dont dépend actualBoundingBoxLeft. */
+                ctx.save();
+                ctx.textBaseline = 'alphabetic';
+                ctx.textAlign = 'left';
                 const m = mesurer(ctx, arbre, taille, fam);
+                ctx.restore();
                 const prim = [];
                 poser(prim, arbre, 0, m.a, taille, fam);
                 return { largeur: m.w, hauteur: m.a + m.d, monter: m.a, primitives: prim };
@@ -8845,8 +8994,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (p.t === 'trace') {
                         ctx.beginPath();
                         ctx.lineWidth = p.ep;
-                        ctx.lineJoin = 'miter';
-                        ctx.lineCap = 'butt';
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
                         p.pts.forEach((pt, i) => { if (i) ctx.lineTo(x + pt[0], y + pt[1]); else ctx.moveTo(x + pt[0], y + pt[1]); });
                         ctx.stroke();
                     }
@@ -8866,7 +9015,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         out += `<rect x="${n(x + p.x)}" y="${n(y + p.y)}" width="${n(p.w)}" height="${n(p.h)}" fill="${couleur}" stroke="none"/>`;
                     } else if (p.t === 'trace') {
                         const d = p.pts.map((pt, i) => (i ? 'L' : 'M') + n(x + pt[0]) + ',' + n(y + pt[1])).join(' ');
-                        out += `<path d="${d}" fill="none" stroke="${couleur}" stroke-width="${n(p.ep)}" stroke-linejoin="miter"/>`;
+                        out += `<path d="${d}" fill="none" stroke="${couleur}" stroke-width="${n(p.ep)}"` +
+                            ` stroke-linejoin="round" stroke-linecap="round"/>`;
                     }
                 });
                 return out;
@@ -8878,6 +9028,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 dessiner: dessiner,
                 versSVG: versSVG,
                 SYMBOLES: SYMBOLES,
+                PARAMS: P,
             };
         })();
 
@@ -14962,8 +15113,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         // On affiche la Toolbar avec les propriétés du texte
                         toolbar.style.display = 'flex';
-                        toolbar.style.left = `${screenX}px`;
-                        toolbar.style.top = `${screenY - 45}px`;
+                        this.placerBarreTexte(screenX, screenY);
                         tColor.value = targetText.color || '#000000';
                         tSize.value = targetText.fontSize || 16;
                         tFont.value = targetText.fontFamily || "'Segoe UI', sans-serif";
@@ -16852,8 +17002,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ghost.style.display = 'none';
                 if (toolbar) toolbar.style.display = 'none';
                 // L'aide aux formules accompagne la saisie : elle se referme avec elle.
-                const aide = document.getElementById('aideFormule');
-                if (aide) aide.style.display = 'none';
+                this.fermerAideFormule();
                 ghost.innerText = '';
                 if (txt.trim().length > 0 && this.pendingTextCoords) {
                     const tColor = document.getElementById('ghostTextColor');
@@ -18279,8 +18428,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ghost.innerText = '';
 
                         toolbar.style.display = 'flex';
-                        toolbar.style.left = `${screenX}px`;
-                        toolbar.style.top = `${screenY - 45}px`;
+                        this.placerBarreTexte(screenX, screenY);
 
                         document.getElementById('ghostTextColor').value = this.globalStyle.color || '#000000';
                         document.getElementById('ghostTextSize').value = fs;
@@ -19705,7 +19853,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const barre = document.getElementById('textFormatToolbar');
                 if (!boite) return;
                 const ouvrir = (forcer === undefined) ? (boite.style.display === 'none' || !boite.style.display) : !!forcer;
-                if (!ouvrir) { boite.style.display = 'none'; return; }
+                if (!ouvrir) { this.fermerAideFormule(); return; }
+
+                /* Sur un écran étroit, l'aide et la palette de style ne tiennent
+                   pas ensemble : mesuré sur 390x844, la palette lui volait jusqu'à
+                   7920px² et il ne restait aucune place libre de 268x388. On
+                   escamote donc la palette le temps de la saisie — elle ne sert pas
+                   à écrire, les réglages du texte étant dans sa propre barre — et
+                   fermerAideFormule la remet exactement comme elle était. */
+                const pal = document.getElementById('stylePalettePanel');
+                if (pal && pal.offsetParent !== null && !this._palEscamotee
+                    && window.matchMedia('(max-width: 820px)').matches) {
+                    this._palAvant = pal.style.display;
+                    pal.style.display = 'none';
+                    this._palEscamotee = true;
+                }
 
                 const grille = document.getElementById('aideFormuleGrille');
                 if (grille && !grille.childElementCount) {
@@ -19751,19 +19913,146 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     });
                 }
 
-                /* Ancrage sous la barre de saisie, borné à l'écran. On affiche AVANT
-                   de calculer : sans cela offsetWidth vaut zéro, et le bornage se
-                   fait sur une largeur devinée — mesuré, le panneau dépassait de
-                   12px à droite sur un écran de 375. */
                 boite.style.display = 'block';
-                if (barre) {
-                    const r = barre.getBoundingClientRect();
-                    const cont = this.canvas.parentElement.getBoundingClientRect();
-                    const large = boite.offsetWidth || 286;
-                    const l = Math.max(6, Math.min(r.left - cont.left, cont.width - large - 6));
-                    boite.style.left = l + 'px';
-                    boite.style.top = Math.max(6, (r.bottom - cont.top) + 6) + 'px';
+                this.placerAideFormule();
+            }
+
+            /* Referme l'aide aux formules et rend à la palette de style l'état
+               qu'elle avait avant d'être escamotée. Point de passage unique :
+               le bouton « ? », la croix du panneau et la validation du texte
+               l'appellent tous, pour qu'aucun chemin ne laisse la palette cachée. */
+            fermerAideFormule() {
+                const boite = document.getElementById('aideFormule');
+                if (boite) boite.style.display = 'none';
+                if (this._palEscamotee) {
+                    const pal = document.getElementById('stylePalettePanel');
+                    if (pal) pal.style.display = this._palAvant || '';
+                    this._palEscamotee = false;
                 }
+            }
+
+            /* Place le panneau d'aide SANS recouvrir ce qu'on est en train de faire.
+               Le premier essai l'ancrait sous la barre de saisie : il se posait alors
+               systématiquement sur le champ de texte lui-même — mesuré à trois
+               hauteurs et sur deux appareils, il couvrait le champ dans 100 % des cas,
+               sortait de l'écran par le bas au-delà de y=560, et atterrissait à
+               top=-4 sur téléphone.
+               On essaie donc plusieurs positions autour de la zone à préserver (barre
+               + champ), et l'on garde celle qui empiète le moins : d'abord à droite,
+               puis à gauche, puis dessous, puis au-dessus. Le champ compte davantage
+               que la barre, d'où sa pénalité triplée. */
+            placerAideFormule() {
+                const boite = document.getElementById('aideFormule');
+                const barre = document.getElementById('textFormatToolbar');
+                const champ = document.getElementById('ghostTextInput');
+                if (!boite || !barre) return;
+                const cont = this.canvas.parentElement;
+                const rCont = cont.getBoundingClientRect();
+                const M = 8;
+
+                /* TOUT est ramené en coordonnées de CONTENU du conteneur, celles que
+                   comprend « style.top ». Le conteneur est défilable et l'est presque
+                   toujours (la feuille de travail fait 3000x2000) : mélanger des
+                   rectangles de fenêtre avec des décalages CSS décale le panneau de la
+                   valeur du défilement — mesuré, un scrollTop de 310 le projetait à
+                   top=-54, hors de l'écran. */
+                const versContenu = (r) => ({
+                    l: r.left - rCont.left + cont.scrollLeft,
+                    t: r.top - rCont.top + cont.scrollTop,
+                    r: r.right - rCont.left + cont.scrollLeft,
+                    b: r.bottom - rCont.top + cont.scrollTop,
+                });
+                const rb = versContenu(barre.getBoundingClientRect());
+                const rc = (champ && champ.style.display === 'block')
+                    ? versContenu(champ.getBoundingClientRect()) : rb;
+
+                // bande réellement visible, en coordonnées de contenu
+                const vue = {
+                    l: cont.scrollLeft + M, t: cont.scrollTop + M,
+                    r: cont.scrollLeft + cont.clientWidth - M,
+                    b: cont.scrollTop + cont.clientHeight - M,
+                };
+                const zone = {
+                    l: Math.min(rb.l, rc.l), t: Math.min(rb.t, rc.t),
+                    r: Math.max(rb.r, rc.r), b: Math.max(rb.b, rc.b),
+                };
+
+                /* La palette de style reste ouverte pendant la saisie : sur un
+                   téléphone elle occupe la moitié de l'écran, et mesuré, elle
+                   recouvrait les deux tiers de l'aide. Elle compte donc, elle
+                   aussi, parmi les rectangles à ne pas couvrir. */
+                const gene = [rc];
+                const pal = document.getElementById('stylePalettePanel');
+                if (pal && pal.offsetParent !== null) gene.push(versContenu(pal.getBoundingClientRect()));
+
+                /* Sur un petit écran, la barre et le champ laissent parfois moins de
+                   place que la hauteur du panneau : on le plafonne à la plus grande
+                   bande libre — au-dessus ou en dessous de la zone — plutôt que de le
+                   laisser recouvrir la saisie. Il défile déjà de lui-même. */
+                const w = boite.offsetWidth || 268;
+                const libreHaut = zone.t - M - vue.t;
+                const libreBas = vue.b - (zone.b + M);
+                const bande = Math.max(libreHaut, libreBas, 120);
+                boite.style.maxHeight = Math.min(Math.round(bande), Math.round(window.innerHeight * 0.46)) + 'px';
+                const h = boite.offsetHeight;
+
+                const candidats = [
+                    [zone.r + M, zone.t],        // à droite
+                    [zone.l - w - M, zone.t],    // à gauche
+                    [zone.l, zone.b + M],        // dessous
+                    [zone.l, zone.t - h - M],    // au-dessus
+                    [zone.r + M, zone.b + M],    // en biais
+                    [vue.l, vue.b - h],          // coin bas-gauche de la bande visible
+                    [vue.l, vue.t],              // coin haut-gauche
+                ];
+                const aire = (a, b) => {
+                    const dx = Math.min(a.r, b.r) - Math.max(a.l, b.l);
+                    const dy = Math.min(a.b, b.b) - Math.max(a.t, b.t);
+                    return (dx > 0 && dy > 0) ? dx * dy : 0;
+                };
+
+                let meilleur = null;
+                candidats.forEach(([x0, y0]) => {
+                    // bornage dans la bande visible : une position hors écran ne vaut rien
+                    const x = Math.max(vue.l, Math.min(x0, vue.r - w));
+                    const y = Math.max(vue.t, Math.min(y0, vue.b - h));
+                    const r = { l: x, t: y, r: x + w, b: y + h };
+                    let cout = aire(r, zone) + (Math.abs(x - x0) + Math.abs(y - y0)) * 0.5;
+                    // le champ pèse triple : c'est ce qu'on est en train d'écrire ;
+                    // la palette pèse double : la recouvrir rend l'aide illisible
+                    gene.forEach((z, i) => { cout += aire(r, z) * (i === 0 ? 3 : 2); });
+                    if (!meilleur || cout < meilleur.cout) meilleur = { x: x, y: y, cout: cout };
+                });
+
+                boite.style.left = Math.round(meilleur.x) + 'px';
+                boite.style.top = Math.round(meilleur.y) + 'px';
+            }
+
+            /* Place la barre de style du texte en la bornant dans la partie VISIBLE
+               du conteneur. Elle était posée telle quelle en (screenX, screenY-45) :
+               mesuré sur un écran de 390px, une barre de 340px partait à left=194,
+               donc 144px hors de l'écran, dès qu'on écrivait passé le premier tiers ;
+               et une saisie près du haut lui donnait un top négatif. Mêmes
+               coordonnées de contenu que placerAideFormule, pour la même raison. */
+            placerBarreTexte(screenX, screenY) {
+                const barre = document.getElementById('textFormatToolbar');
+                const champ = document.getElementById('ghostTextInput');
+                if (!barre) return;
+                const cont = this.canvas.parentElement;
+                const M = 8;
+                const vue = {
+                    l: cont.scrollLeft + M, t: cont.scrollTop + M,
+                    r: cont.scrollLeft + cont.clientWidth - M,
+                    b: cont.scrollTop + cont.clientHeight - M,
+                };
+                const w = barre.offsetWidth || 340;
+                const h = barre.offsetHeight || 44;
+                let y = screenY - h - 6;
+                // rien au-dessus : on passe sous la ligne de saisie plutôt que
+                // de recouvrir le texte qu'on est en train d'écrire
+                if (y < vue.t) y = screenY + ((champ && champ.offsetHeight) || 20) + 6;
+                barre.style.left = Math.round(Math.max(vue.l, Math.min(screenX, vue.r - w))) + 'px';
+                barre.style.top = Math.round(Math.max(vue.t, Math.min(y, vue.b - h))) + 'px';
             }
 
             /* Insère la syntaxe dans le champ en cours, puis recule le curseur de
