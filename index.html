@@ -3774,6 +3774,37 @@
                 right: 1px;
             }
 
+            /* Libellés visibles sous les icônes du menu fichier. Ces entrées n'ont
+               pour tout indice qu'une info-bulle — inaccessible au doigt, faute de
+               survol, et de toute façon supprimée ici (voir #global-tooltip). Trois
+               d'entre elles portent déjà leur nom dessiné dans l'icône (PNG, SVG,
+               PDF) ; les autres n'avaient rien. On lit le texte dans data-libelle,
+               qui reste ainsi à côté du data-tooltip équivalent du desktop. */
+            .header-dropdown-content .icon-btn[data-libelle] {
+                flex-direction: column;
+                gap: 1px;
+                height: auto;
+                min-height: 44px;
+                padding: 5px 2px;
+                line-height: 1.05;
+            }
+
+            .header-dropdown-content .icon-btn[data-libelle]::after {
+                content: attr(data-libelle);
+                font-size: 9px;
+                font-weight: 600;
+                color: #667;
+                white-space: nowrap;
+            }
+
+            /* Les trois exports portent leur nom dans le dessin : le répéter en
+               dessous ferait « PNG PNG ». */
+            .header-dropdown-content .icon-btn[data-libelle="PNG"]::after,
+            .header-dropdown-content .icon-btn[data-libelle="SVG"]::after,
+            .header-dropdown-content .icon-btn[data-libelle="PDF"]::after {
+                content: none;
+            }
+
             .tool-btn {
                 height: 48px;
             }
@@ -4160,8 +4191,12 @@
            se place sous le bouton, c'est-à-dire par-dessus le menu qu'on vient
            d'ouvrir. Mesuré en desktop : recouvrement effectif. #global-tooltip est
            ajouté à <body> après <header>, il en est donc bien un frère suivant. */
-        header:has(.header-dropdown:hover) ~ #global-tooltip,
-        header:has(.header-dropdown.gm-open) ~ #global-tooltip {
+        /* On ne visait que l'info-bulle du DÉCLENCHEUR, qui se pose par-dessus le
+           menu qu'elle vient d'ouvrir. Écrite « .header-dropdown:hover », la règle
+           couvrait aussi le survol des ENTRÉES du menu — dont elle supprimait donc
+           les info-bulles, alors que ce sont de simples icônes sans libellé. On cible
+           le bouton lui-même. */
+        header:has(.header-dropdown > .top-btn:hover) ~ #global-tooltip {
             display: none;
         }
 
@@ -6076,14 +6111,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </button>
                     <div class="header-dropdown-content grid-3-cols">
 
-                        <div class="icon-btn" onclick="document.getElementById('fileInput').click()" aria-label="Ouvrir"
+                        <div class="icon-btn" onclick="document.getElementById('fileInput').click()" aria-label="Ouvrir" data-libelle="Ouvrir"
                             data-tooltip="Ouvrir un fichier">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 style="fill:none;">
                                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                             </svg>
                         </div>
-                        <div class="icon-btn" onclick="app.saveFile()" aria-label="Sauvegarder"
+                        <div class="icon-btn" onclick="app.saveFile()" aria-label="Sauvegarder" data-libelle="Enregistrer"
                             data-tooltip="Sauvegarder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 style="fill:none;">
@@ -6093,7 +6128,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
                         <div class="icon-btn" onclick="document.getElementById('bgImageInput').click()"
-                            aria-label="Image de fond" data-tooltip="Importer une image de fond">
+                            aria-label="Image de fond" data-libelle="Image" data-tooltip="Importer une image de fond">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 style="fill:none;">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -6104,7 +6139,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         <div class="sep-h" style="grid-column: 1 / -1; margin: 2px 0;"></div>
 
-                        <div class="icon-btn" onclick="app.requestExport('png')" aria-label="Exporter PNG"
+                        <div class="icon-btn" onclick="app.requestExport('png')" aria-label="Exporter PNG" data-libelle="PNG"
                             data-tooltip="Exporter l'image (PNG)">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -6117,7 +6152,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     font-weight="bold" fill="currentColor" stroke="none">PNG</text>
                             </svg>
                         </div>
-                        <div class="icon-btn" onclick="app.requestExport('svg')" aria-label="Exporter SVG"
+                        <div class="icon-btn" onclick="app.requestExport('svg')" aria-label="Exporter SVG" data-libelle="SVG"
                             data-tooltip="Exporter en SVG">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -6131,7 +6166,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
 
-                        <div class="icon-btn" onclick="app.requestExport('pdf')" aria-label="Exporter PDF"
+                        <div class="icon-btn" onclick="app.requestExport('pdf')" aria-label="Exporter PDF" data-libelle="PDF"
                             data-tooltip="Exporter en PDF vectoriel">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -6147,7 +6182,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         <div class="sep-h" style="grid-column: 1 / -1; margin: 2px 0;"></div>
 
-                        <div class="icon-btn" onclick="app.shareCurrentView()" style="flex-direction:column; gap:2px;"
+                        <div class="icon-btn" onclick="app.shareCurrentView()" data-libelle="Lien" style="flex-direction:column; gap:2px;"
                             data-tooltip="Créer un lien partageable">
                             <svg viewBox="0 0 122.88 122.88" fill="currentColor" style="width:20px; height:20px;">
                                 <path
@@ -6156,13 +6191,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         </div>
                         <!-- QR code du même lien : à projeter pour que la classe le
                              flashe, ou à coller sur une feuille d'exercices. -->
-                        <div class="icon-btn" onclick="app.afficherQRCode()" aria-label="QR code du lien"
+                        <div class="icon-btn" onclick="app.afficherQRCode()" aria-label="QR code du lien" data-libelle="QR code"
                             data-tooltip="QR code du lien">
                             <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px; height:20px;">
                                 <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8 0h2v-2h-2v2zm4-2h2v2h2v2h-2v2h-2v2h-2v-2h-2v-2h2v-2h2v-2zm4 6h-2v2h2v-2z" />
                             </svg>
                         </div>
-                        <div class="icon-btn" onclick="openPreview()" aria-label="Exporter pour élève"
+                        <div class="icon-btn" onclick="openPreview()" aria-label="Exporter pour élève" data-libelle="Élève"
                             data-tooltip="Exporter pour élève">
                             <svg viewBox="0 0 122.88 114.318" fill="currentColor">
                                 <path fill-rule="evenodd" clip-rule="evenodd"
@@ -6171,7 +6206,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     d="M6.908,23.746h35.626c-4.587,3.96-8.71,8.563-12.264,13.815H13.815v62.943h80.603V85.831l13.814-13.579v35.159 c0,3.814-3.093,6.907-6.907,6.907H6.908c-3.815,0-6.908-3.093-6.908-6.907V30.653C0,26.838,3.093,23.746,6.908,23.746L6.908,23.746 z" />
                             </svg>
                         </div>
-                        <div class="icon-btn" onclick="app.exportVideo()" aria-label="Exporter Vidéo"
+                        <div class="icon-btn" onclick="app.exportVideo()" aria-label="Exporter Vidéo" data-libelle="Vidéo"
                             data-tooltip="Enregistrer l'animation">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -6179,7 +6214,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
                         </div>
-                        <div class="icon-btn" onclick="app.openRecordSetup()" style="flex-direction:column; gap:2px;"
+                        <div class="icon-btn" onclick="app.openRecordSetup()" style="flex-direction:column; gap:2px;" data-libelle="Écran"
                             data-tooltip="Enregistrer l'écran">
                             <svg viewBox="0 0 24 24" fill="none" stroke="none">
                                 <circle cx="12" cy="9" r="5" fill="#e74c3c" />
@@ -7290,6 +7325,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div id="qrHote"
                 style="background:#fff; padding:10px; border-radius:10px; display:flex; justify-content:center; align-items:center; min-height:120px;">
                 <canvas id="qrCanvas" style="max-width:100%; height:auto; image-rendering: pixelated;"></canvas>
+            </div>
+            <!-- Deux façons de partager la même figure : telle quelle, modifiable,
+                 ou en mode lecture (interface d'élève, figure non modifiable). Le
+                 second n'ajoute que « mode=lecture » à l'adresse. -->
+            <div class="switch-container" style="margin-top:10px;">
+                <div id="qrModeComplet" class="switch-btn active" onclick="app.choisirModeQR('complet')"
+                    data-tooltip="La figure s'ouvre dans l'éditeur, modifiable"
+                    style="font-size:12px; font-weight:600;">Figure complète</div>
+                <div id="qrModeLecture" class="switch-btn" onclick="app.choisirModeQR('lecture')"
+                    data-tooltip="La figure s'ouvre en interface élève, non modifiable"
+                    style="font-size:12px; font-weight:600;">Mode lecture</div>
             </div>
             <div id="qrInfo" style="font-size:12px; color:#666; margin-top:8px;"></div>
             <div id="qrLien"
@@ -19138,10 +19184,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             /* Lien de partage de la vue courante. Un seul endroit qui le fabrique,
-               pour que le QR code et le presse-papiers ne puissent pas diverger. */
-            lienDePartage() {
+               pour que le QR code et le presse-papiers ne puissent pas diverger.
+               En mode lecture, la figure s'ouvre dans l'interface élève, non
+               modifiable : c'est le seul « mode=lecture » qui change tout. */
+            lienDePartage(mode) {
+                const prefixe = (mode === 'lecture') ? "?mode=lecture&fig=" : "?fig=";
                 return window.location.origin + window.location.pathname +
-                    "?fig=" + this.getCompressedString();
+                    prefixe + this.getCompressedString();
+            }
+
+            choisirModeQR(mode) {
+                this.modeQR = (mode === 'lecture') ? 'lecture' : 'complet';
+                const bc = document.getElementById('qrModeComplet');
+                const bl = document.getElementById('qrModeLecture');
+                if (bc) bc.classList.toggle('active', this.modeQR === 'complet');
+                if (bl) bl.classList.toggle('active', this.modeQR === 'lecture');
+                this.afficherQRCode();
             }
 
             /* QR code du lien, à faire flasher par un téléphone.
@@ -19151,8 +19209,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                n'existe : la version 40 plafonne à 2 953 octets, on le dit plutôt que
                d'afficher un carré illisible. */
             afficherQRCode() {
-                const url = this.lienDePartage();
+                const url = this.lienDePartage(this.modeQR);
                 this.dernierLienQR = url;
+                // L'interrupteur peut avoir été laissé sur « lecture » d'une fois sur
+                // l'autre : on remet son aspect en accord avec l'état réel.
+                const bc = document.getElementById('qrModeComplet');
+                const bl = document.getElementById('qrModeLecture');
+                if (bc) bc.classList.toggle('active', this.modeQR !== 'lecture');
+                if (bl) bl.classList.toggle('active', this.modeQR === 'lecture');
                 const modale = document.getElementById('qrModal');
                 const info = document.getElementById('qrInfo');
                 const lien = document.getElementById('qrLien');
