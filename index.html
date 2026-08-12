@@ -15078,7 +15078,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 setTimeout(() => this.checkAutoSave(), 500);
                 this.draggedLabelPoint = null;
                 this.initInstrumentsDrag();
-                this.canvas.ondblclick = (e) => {
+                this.canvas.ondblclick = (e) => this.traiterDoubleClic(e);
+                /* iOS ne synthétise pas de dblclick derrière un double-appui dès qu'un
+                   gestionnaire tactile a appelé preventDefault — ce que fait le canevas
+                   pour empêcher le défilement pendant un tracé. Résultat : renommer un
+                   point ou rééditer un texte, tous deux accrochés au double-clic,
+                   devenaient impossibles au doigt. On reconnaît donc le double-appui
+                   nous-mêmes et on appelle le même traitement. */
+                this.canvas.addEventListener('pointerup', (e) => {
+                    if (e.pointerType === 'mouse') return;
+                    /* Comme pour le menu contextuel : au doigt, on ne reconnaît le
+                       geste que sous l'outil souris (ou texte). Sinon, poser deux
+                       points voisins coup sur coup ouvrirait la boîte de renommage. */
+                    if (this.currentTool !== 'move' && this.currentTool !== 'text') return;
+                    const t = (typeof performance !== 'undefined' ? performance.now() : 0);
+                    const p = this._dernierAppui;
+                    this._dernierAppui = { t: t, x: e.clientX, y: e.clientY };
+                    if (p && t - p.t < 340 &&
+                        Math.abs(e.clientX - p.x) < 26 && Math.abs(e.clientY - p.y) < 26) {
+                        this._dernierAppui = null;   // pas de triple-appui en cascade
+                        this.traiterDoubleClic(e);
+                    }
+                });
+            }
+
+            /* Double-clic (ou double-appui) sur le canevas : renommer un point,
+               rééditer un texte. */
+            traiterDoubleClic(e) {
+                {
                     const rawMouse = this.getMousePos(e);
 
                     // 1. Double-clic sur un Point (Renommer)
@@ -15113,7 +15140,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         // On affiche la Toolbar avec les propriétés du texte
                         toolbar.style.display = 'flex';
-                        this.placerBarreTexte(screenX, screenY);
+                        this.assurerSaisieVisible();
+                        this.placerBarreTexte();
                         tColor.value = targetText.color || '#000000';
                         tSize.value = targetText.fontSize || 16;
                         tFont.value = targetText.fontFamily || "'Segoe UI', sans-serif";
@@ -15125,7 +15153,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.render();
                         return;
                     }
-                };
+                }
             }
             getWidgetState(widget) {
                 if (!widget) return null;
@@ -16949,6 +16977,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.setTool('move');
                         }
                     });
+                    /* Le clavier logiciel s'ouvre APRÈS le focus, et n'émet aucun
+                       événement de fenêtre classique : seul visualViewport le
+                       signale. On rejoue alors le placement, sinon la barre et le
+                       champ restent sous le clavier — l'utilisateur tape sans rien
+                       voir. Même chose quand le clavier se referme. */
+                    if (window.visualViewport) {
+                        const suivre = () => {
+                            if (ghost.style.display !== 'block') return;
+                            this.assurerSaisieVisible();
+                            this.placerBarreTexte();
+                            const aide = document.getElementById('aideFormule');
+                            if (aide && aide.style.display === 'block') this.placerAideFormule();
+                        };
+                        window.visualViewport.addEventListener('resize', suivre);
+                        window.visualViewport.addEventListener('scroll', suivre);
+                    }
                     ghost.addEventListener('blur', (e) => {
                         // ASTUCE PRO : Si on a cliqué DANS la toolbar, on ne valide pas le texte !
                         if (toolbar.contains(e.relatedTarget)) return;
@@ -18428,7 +18472,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ghost.innerText = '';
 
                         toolbar.style.display = 'flex';
-                        this.placerBarreTexte(screenX, screenY);
+                        this.assurerSaisieVisible();
+                        this.placerBarreTexte();
 
                         document.getElementById('ghostTextColor').value = this.globalStyle.color || '#000000';
                         document.getElementById('ghostTextSize').value = fs;
@@ -19966,12 +20011,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const rc = (champ && champ.style.display === 'block')
                     ? versContenu(champ.getBoundingClientRect()) : rb;
 
-                // bande réellement visible, en coordonnées de contenu
-                const vue = {
-                    l: cont.scrollLeft + M, t: cont.scrollTop + M,
-                    r: cont.scrollLeft + cont.clientWidth - M,
-                    b: cont.scrollTop + cont.clientHeight - M,
-                };
+                // bande réellement visible, clavier logiciel compris
+                const vue = this.bandeVisible(M);
                 const zone = {
                     l: Math.min(rb.l, rc.l), t: Math.min(rb.t, rc.t),
                     r: Math.max(rb.r, rc.r), b: Math.max(rb.b, rc.b),
@@ -20034,25 +20075,66 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                donc 144px hors de l'écran, dès qu'on écrivait passé le premier tiers ;
                et une saisie près du haut lui donnait un top négatif. Mêmes
                coordonnées de contenu que placerAideFormule, pour la même raison. */
-            placerBarreTexte(screenX, screenY) {
+            placerBarreTexte() {
                 const barre = document.getElementById('textFormatToolbar');
                 const champ = document.getElementById('ghostTextInput');
-                if (!barre) return;
-                const cont = this.canvas.parentElement;
-                const M = 8;
-                const vue = {
-                    l: cont.scrollLeft + M, t: cont.scrollTop + M,
-                    r: cont.scrollLeft + cont.clientWidth - M,
-                    b: cont.scrollTop + cont.clientHeight - M,
-                };
+                if (!barre || !champ) return;
+                const x = parseFloat(champ.style.left) || 0;
+                const y = parseFloat(champ.style.top) || 0;
+                const vue = this.bandeVisible(8);
                 const w = barre.offsetWidth || 340;
                 const h = barre.offsetHeight || 44;
-                let y = screenY - h - 6;
+                let ty = y - h - 6;
                 // rien au-dessus : on passe sous la ligne de saisie plutôt que
                 // de recouvrir le texte qu'on est en train d'écrire
-                if (y < vue.t) y = screenY + ((champ && champ.offsetHeight) || 20) + 6;
-                barre.style.left = Math.round(Math.max(vue.l, Math.min(screenX, vue.r - w))) + 'px';
-                barre.style.top = Math.round(Math.max(vue.t, Math.min(y, vue.b - h))) + 'px';
+                if (ty < vue.t) ty = y + (champ.offsetHeight || 20) + 6;
+                barre.style.left = Math.round(Math.max(vue.l, Math.min(x, vue.r - w))) + 'px';
+                barre.style.top = Math.round(Math.max(vue.t, Math.min(ty, vue.b - h))) + 'px';
+            }
+
+            /* Partie RÉELLEMENT visible du conteneur, en coordonnées de contenu —
+               celles que comprennent style.left / style.top des panneaux absolus.
+               clientHeight ne suffit pas : quand le clavier logiciel d'iOS s'ouvre,
+               la fenêtre de mise en page ne bouge pas, seul visualViewport rétrécit.
+               On croyait donc disposer de toute la hauteur et l'on posait la barre
+               de style — voire le champ lui-même — sous le clavier, invisible. */
+            bandeVisible(marge) {
+                const cont = this.canvas.parentElement;
+                const rc = cont.getBoundingClientRect();
+                const vv = window.visualViewport;
+                const fen = vv
+                    ? { l: vv.offsetLeft, t: vv.offsetTop, r: vv.offsetLeft + vv.width, b: vv.offsetTop + vv.height }
+                    : { l: 0, t: 0, r: window.innerWidth, b: window.innerHeight };
+                const m = (marge === undefined) ? 8 : marge;
+                return {
+                    l: Math.max(rc.left, fen.l) - rc.left + cont.scrollLeft + m,
+                    t: Math.max(rc.top, fen.t) - rc.top + cont.scrollTop + m,
+                    r: Math.min(rc.right, fen.r) - rc.left + cont.scrollLeft - m,
+                    b: Math.min(rc.bottom, fen.b) - rc.top + cont.scrollTop - m,
+                };
+            }
+
+            /* Amène la saisie en cours dans la bande visible, en défilant le
+               conteneur du minimum nécessaire. Sur un téléphone, le clavier laisse
+               parfois moins de 150px de canevas : on garantit d'abord le champ, et
+               la barre qui le surplombe seulement si elle tient aussi. */
+            assurerSaisieVisible() {
+                const champ = document.getElementById('ghostTextInput');
+                const barre = document.getElementById('textFormatToolbar');
+                if (!champ || champ.style.display !== 'block') return;
+                const cont = this.canvas.parentElement;
+                const vue = this.bandeVisible(10);
+                const x = parseFloat(champ.style.left) || 0;
+                const y = parseFloat(champ.style.top) || 0;
+                const hc = champ.offsetHeight || 20, wc = Math.max(champ.offsetWidth || 0, 40);
+                const hb = (barre && barre.offsetHeight) || 44;
+                const place = (vue.b - vue.t) >= (hb + 6 + hc) ? hb + 6 : 0;
+                let dy = Math.max(0, (y + hc) - vue.b);
+                dy = Math.min(dy, (y - place) - vue.t);
+                let dx = Math.max(0, (x + wc) - vue.r);
+                dx = Math.min(dx, x - vue.l);
+                if (dx) cont.scrollLeft += dx;
+                if (dy) cont.scrollTop += dy;
             }
 
             /* Insère la syntaxe dans le champ en cours, puis recule le curseur de
