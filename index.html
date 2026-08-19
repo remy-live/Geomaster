@@ -16724,6 +16724,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const LONG_PRESS_DELAY = 400; // 400ms = Standard Apple/Android
                 let pointerStartCoords = { x: 0, y: 0 };
 
+                /* Mémorise avec quoi l'on vient d'appuyer. Le minuteur ci-dessous
+                   n'est qu'une des deux sources de menu contextuel : le navigateur
+                   en émet un tout seul sur un appui long, et celui-là échappait au
+                   garde-fou — sur tablette, chercher un point à l'appui maintenu
+                   avec l'outil angle ou polygone ouvrait le menu par-dessus le
+                   tracé en cours. Le gestionnaire contextmenu s'en sert pour faire
+                   la différence avec un vrai clic droit de souris. */
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    this._typePointeur = e.pointerType || 'mouse';
+                    this._instantPointeur = (typeof performance !== 'undefined' ? performance.now() : 0);
+                }, true);
+
                 this.canvas.addEventListener('pointerdown', (e) => {
                     if (e.pointerType !== 'touch' || !e.isPrimary) return;
                     // Au doigt, le menu contextuel n'appartient qu'à l'outil
@@ -16823,6 +16835,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 this.canvas.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
+                    /* Appui long au doigt : le menu n'appartient qu'à l'outil
+                       curseur. Avec un outil de tracé, maintenir SERT À VISER —
+                       c'est ce qui fait venir la loupe — et le menu s'ouvrait
+                       par-dessus le geste, le faisant échouer. Le clic droit de la
+                       souris n'est pas concerné : le dernier appui est alors de
+                       type « mouse ». La fenêtre de 3s évite qu'un type mémorisé
+                       depuis longtemps ne bloque un menu appelé autrement. */
+                    const t = (typeof performance !== 'undefined' ? performance.now() : 0);
+                    if (this._typePointeur && this._typePointeur !== 'mouse'
+                        && t - (this._instantPointeur || 0) < 3000
+                        && this.currentTool !== 'move') return;
                     const { x, y } = this.getMousePos(e);
                     const targets = this.entities.filter(ent => ent.isNear(x, y));
                     if (this.bgImage) {
