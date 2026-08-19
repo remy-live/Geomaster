@@ -659,6 +659,11 @@
             margin-bottom: 2px;
             opacity: 0.5;
             transition: opacity 0.2s;
+            /* Même raison que pour le cadran de position : sans cela le tactile
+               prend le glissement pour un défilement et annule le pointeur. */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .drag-handle#menuDragHandle:hover {
@@ -916,7 +921,14 @@
             background: #f8f9fa;
             border: 1px solid #ddd;
             box-shadow: inset 0 1px 4px rgba(0, 0, 0, .05);
-            cursor: crosshair
+            cursor: crosshair;
+            /* Sans cela, au doigt le navigateur interprète le glissement comme un
+               défilement, s'approprie le pointeur et émet pointercancel : le
+               cadran restait « collé » au doigt bien après le relâchement. */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .label-cross {
@@ -16810,28 +16822,46 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let isDraggingMenu = false;
                 let startX, startY, initialLeft, initialTop;
 
+                let doigtMenu = null;
+                /* Même correctif que pour le cadran de position : le tactile émet
+                   souvent pointercancel au lieu de pointerup, et le menu restait
+                   accroché au doigt. */
+                const finMenu = () => {
+                    if (!isDraggingMenu) return;
+                    isDraggingMenu = false;
+                    if (doigtMenu !== null && handle.hasPointerCapture &&
+                        handle.hasPointerCapture(doigtMenu)) handle.releasePointerCapture(doigtMenu);
+                    doigtMenu = null;
+                };
+
                 handle.addEventListener('pointerdown', (e) => {
+                    if (isDraggingMenu) return;
                     isDraggingMenu = true;
+                    doigtMenu = e.pointerId;
                     startX = e.clientX;
                     startY = e.clientY;
                     const rect = menu.getBoundingClientRect();
                     initialLeft = rect.left;
                     initialTop = rect.top;
                     e.preventDefault();
-                    handle.setPointerCapture(e.pointerId);
+                    try { handle.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà parti */ }
                 });
+                handle.addEventListener('pointercancel', finMenu);
+                handle.addEventListener('lostpointercapture', finMenu);
 
                 window.addEventListener('pointermove', (e) => {
                     if (!isDraggingMenu) return;
+                    if (doigtMenu !== null && e.pointerId !== doigtMenu) return;
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
                     menu.style.left = `${initialLeft + dx}px`;
                     menu.style.top = `${initialTop + dy}px`;
                 });
 
-                window.addEventListener('pointerup', () => {
-                    isDraggingMenu = false;
-                });
+                window.addEventListener('pointerup', finMenu);
+                window.addEventListener('pointercancel', finMenu);
+                window.addEventListener('touchend', finMenu);
+                window.addEventListener('touchcancel', finMenu);
 
                 this.canvas.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
@@ -16924,25 +16954,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
 
                 let isDraggingLabel = false;
+                let doigtLabel = null;
+                /* Fin du glissement. Le relâchement n'était guetté que sur
+                   pointerup : au doigt, le navigateur émet souvent pointercancel
+                   À LA PLACE (il croit à un défilement), et l'état de glissement
+                   survivait au geste — le cadran continuait de suivre le doigt,
+                   puis se laissait bouger par n'importe quel contact suivant, sans
+                   plus jamais s'arrêter. On sort donc par tous les chemins que le
+                   tactile peut prendre. */
+                const finLabel = () => {
+                    if (!isDraggingLabel) return;
+                    isDraggingLabel = false;
+                    if (box && doigtLabel !== null && box.hasPointerCapture &&
+                        box.hasPointerCapture(doigtLabel)) box.releasePointerCapture(doigtLabel);
+                    doigtLabel = null;
+                    this.saveState();
+                };
+
                 if (box) {
                     box.addEventListener('pointerdown', (e) => {
+                        if (isDraggingLabel) return;      // un seul doigt commande le cadran
                         isDraggingLabel = true;
+                        doigtLabel = e.pointerId;
                         updateLabelAngle(e);
                         e.preventDefault();
-                        box.setPointerCapture(e.pointerId);
+                        try { box.setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà parti */ }
                     });
+                    box.addEventListener('pointercancel', finLabel);
+                    box.addEventListener('lostpointercapture', finLabel);
                 }
 
                 window.addEventListener('pointermove', (e) => {
-                    if (isDraggingLabel) updateLabelAngle(e);
+                    // un second doigt ne doit pas détourner le cadran
+                    if (isDraggingLabel && (doigtLabel === null || e.pointerId === doigtLabel)) updateLabelAngle(e);
                 });
 
-                window.addEventListener('pointerup', () => {
-                    if (isDraggingLabel) {
-                        isDraggingLabel = false;
-                        this.saveState();
-                    }
-                });
+                window.addEventListener('pointerup', finLabel);
+                window.addEventListener('pointercancel', finLabel);
+                window.addEventListener('touchend', finLabel);
+                window.addEventListener('touchcancel', finLabel);
 
                 const renamerDisplay = document.getElementById('renamerDisplay');
                 if (renamerDisplay) {
