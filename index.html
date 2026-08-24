@@ -3137,6 +3137,23 @@
         /* ==========================================
            PALETTE DE STYLE (DROITE FLOTTANTE)
            ========================================== */
+        #barreDocument .doc-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            border: 1px solid #e2e8f0; background: #f8fafc; color: #334155;
+            border-radius: 7px; padding: 5px 8px; cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1;
+        }
+        #barreDocument .doc-btn:hover { background: #eef2f7; }
+        #barreDocument .doc-btn.actif { background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+        #barreDocument .doc-fermer { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+        #barreDocument .doc-sep { width: 1px; height: 20px; background: #e2e8f0; display: inline-block; }
+        /* Au doigt, les cibles passent à 40px et les libellés disparaissent : la
+           barre doit tenir sous le cadre même sur un téléphone. */
+        @media (pointer: coarse) {
+            #barreDocument .doc-btn { padding: 9px 10px; font-size: 13px; }
+            #barreDocument .doc-mode span { display: none; }
+            #barreDocument #docOpacite { width: 56px; }
+        }
         .style-palette {
             position: absolute;
             top: 60px;
@@ -6010,6 +6027,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         </div>
                     </div>
                     <div class="help-tool-row">
+                        <div class="help-tool-text" style="flex:1;">
+                            <h4>Le document de fond (PDF ou image)</h4>
+                            <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 8px;">Le document est une
+                                <b>fenêtre</b> posée sur la feuille : la page coulisse derrière. Une barre apparaît
+                                sous le cadre.</p>
+                            <ul>
+                                <li><strong>◀ 2/12 ▶ :</strong> Changer de page sans rien réimporter. Le cadre, le
+                                    zoom et l'opacité sont conservés.</li>
+                                <li><strong>Cadre :</strong> Déplacer la fenêtre, tirer un bord pour en découvrir plus,
+                                    tirer le coin pour tout agrandir, la poignée du haut pour redresser un scan.</li>
+                                <li><strong>Page :</strong> Faire coulisser la page dans le cadre, et la zoomer — au
+                                    doigt en pinçant, à la souris avec la molette. Le cadre, lui, ne bouge pas.</li>
+                                <li><strong>🔒 Verrouiller :</strong> Dernière étape : le document se fige et l'on
+                                    dessine par-dessus sans le déranger.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="help-tool-row">
                         <div class="help-tool-visual"><canvas id="helpCanvasSetSquare" width="240"
                                 height="160"></canvas></div>
                         <div class="help-tool-text">
@@ -6736,6 +6771,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
                 <h2 style="margin:0; font-family:'Segoe UI', sans-serif; font-size:24px;">Relâchez pour importer</h2>
+            </div>
+<!-- Barre du document : elle se pose SOUS le cadre et le suit.
+                 Elle sépare les deux gestes qui se marchaient dessus : régler la
+                 fenêtre, ou faire coulisser la page derrière. -->
+            <div id="barreDocument"
+                style="display:none; position:absolute; z-index:4002; background:rgba(255,255,255,0.97); backdrop-filter:blur(8px); border:1px solid rgba(0,0,0,0.12); border-radius:10px; padding:5px 8px; box-shadow:0 4px 16px rgba(0,0,0,0.14); gap:6px; align-items:center; font-family:'Segoe UI', sans-serif; font-size:13px; white-space:nowrap;">
+                <span id="docPages" style="display:none; align-items:center; gap:2px;">
+                    <button class="doc-btn" onclick="app.changerPageDocument(-1)" data-tooltip="Page précédente">◀</button>
+                    <span id="docPageInfo" style="min-width:44px; text-align:center; font-weight:600; color:#334155;">1/1</span>
+                    <button class="doc-btn" onclick="app.changerPageDocument(1)" data-tooltip="Page suivante">▶</button>
+                    <i class="doc-sep"></i>
+                </span>
+                <button class="doc-btn doc-mode" id="docModeCadre" onclick="app.choisirModeDocument('cadre')"
+                    data-tooltip="Régler le cadre : déplacer, ouvrir les bords, tourner">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="5" width="16" height="14" rx="2" />
+                        <path d="M20 9h2M20 15h2M2 9h2M2 15h2" stroke-linecap="round" />
+                    </svg><span>Cadre</span></button>
+                <button class="doc-btn doc-mode" id="docModePage" onclick="app.choisirModeDocument('page')"
+                    data-tooltip="Mode libre : faire coulisser et zoomer la page dans le cadre">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M12 8.5v7M8.5 12h7M12 8.5l-1.6 1.6M12 8.5l1.6 1.6M12 15.5l-1.6-1.6M12 15.5l1.6-1.6M8.5 12l1.6-1.6M8.5 12l1.6 1.6M15.5 12l-1.6-1.6M15.5 12l1.6 1.6" />
+                    </svg><span>Page</span></button>
+                <i class="doc-sep"></i>
+                <input type="range" id="docOpacite" min="0.1" max="1" step="0.05" value="0.5"
+                    data-tooltip="Opacité" style="width:70px; accent-color:#0284c7;">
+                <button class="doc-btn" id="docGrille" onclick="app.basculerGrilleDocument()"
+                    data-tooltip="Passer sous / au-dessus de la grille">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+                    </svg></button>
+                <i class="doc-sep"></i>
+                <button class="doc-btn" id="docVerrou" onclick="app.basculerVerrouDocument()"
+                    data-tooltip="Verrouiller : le document ne bouge plus, on dessine par-dessus">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="11" width="14" height="10" rx="2" />
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke-linecap="round" />
+                    </svg></button>
+                <button class="doc-btn doc-fermer" onclick="app.removeBackgroundImage()" data-tooltip="Retirer le document">✕</button>
             </div>
             <div id="textFormatToolbar" style="
                 display: none;
@@ -7790,6 +7866,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             report(err, line) {
                 try {
                     const msg = (err && err.message) ? err.message : String(err);
+                    /* pdf.js démarre son worker depuis un Blob. Sur une origine
+                       opaque — page ouverte en file://, certains navigateurs stricts —
+                       importScripts est refusé : pdf.js le voit, bascule tout seul sur
+                       le fil principal, et l'import se déroule normalement. Ce n'était
+                       donc pas un plantage, mais l'utilisateur voyait une fenêtre
+                       « Une erreur est survenue » à chaque import de PDF. On la
+                       consigne dans la console et on n'alarme personne. */
+                    if (/importScripts/.test(msg) && /WorkerGlobalScope/.test(msg)) {
+                        console.warn('[GéoMaster] worker pdf.js indisponible, repli sur le fil principal :', msg);
+                        return;
+                    }
                     // La boucle de rendu peut lever la même erreur 60 fois par seconde
                     const signature = msg + '@' + (line || '');
                     if (this.seen.has(signature)) return;
@@ -8243,10 +8330,86 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 // Mode recadrage
                 this.isCropping = false;
+                /* Rectangle SOURCE affiché dans le cadre, en fractions de l'image.
+                   C'est la moitié « document » du modèle : le cadre est une fenêtre
+                   posée sur la feuille, ce rectangle dit quelle partie de la page on
+                   voit à travers. Les deux se déplacent et se dimensionnent
+                   séparément — c'est ce qui permet de faire coulisser la page sans
+                   toucher au cadre. Les anciens fichiers valent 0..1 : plein cadre,
+                   comportement inchangé. */
                 this.cropL = 0; // Bord gauche (0 à 1)
                 this.cropR = 1; // Bord droit (0 à 1)
                 this.cropT = 0; // Bord haut (0 à 1)
                 this.cropB = 1; // Bord bas (0 à 1)
+                /* 'cadre' : on manipule la fenêtre. 'page' : on manipule le document
+                   derrière. Jamais sauvegardé — c'est un état de travail. */
+                this.docMode = 'cadre';
+                this.pdfDoc = null; this.pdfPage = 1; this.pdfPages = 0;
+            }
+
+            // pixels de l'image source
+            get srcW() { return this.img.width || this.img.naturalWidth || 1; }
+            get srcH() { return this.img.height || this.img.naturalHeight || 1; }
+            /* Échelle d'affichage : unités de feuille par pixel d'image. Les deux
+               axes la partagent — le document garde ses proportions, quoi qu'on
+               fasse au cadre. */
+            echelle() {
+                const fw = Math.max(1e-6, this.cropR - this.cropL);
+                return this.width / (fw * this.srcW);
+            }
+            /* Fait coulisser le document derrière la fenêtre. dx, dy en unités de
+               feuille, dans le repère du cadre. Le rectangle source reste dans la
+               page : on ne peut pas faire glisser au-delà du bord. */
+            glisserContenu(dx, dy) {
+                const e = this.echelle();
+                let fx = -dx / (e * this.srcW), fy = -dy / (e * this.srcH);
+                const lw = this.cropR - this.cropL, lh = this.cropB - this.cropT;
+                fx = Math.max(-this.cropL, Math.min(fx, 1 - this.cropR));
+                fy = Math.max(-this.cropT, Math.min(fy, 1 - this.cropB));
+                this.cropL += fx; this.cropR += fx;
+                this.cropT += fy; this.cropB += fy;
+                // garde-fou : la largeur du rectangle ne doit jamais dériver
+                if (Math.abs((this.cropR - this.cropL) - lw) > 1e-9) { this.cropR = this.cropL + lw; }
+                if (Math.abs((this.cropB - this.cropT) - lh) > 1e-9) { this.cropB = this.cropT + lh; }
+            }
+            /* Zoome le document dans une fenêtre qui, elle, ne bouge pas.
+               f > 1 grossit. L'ancre (locale, centrée sur le cadre) reste sous le
+               doigt : sans elle, un pincement dans un coin ramènerait la page au
+               centre. */
+            zoomContenu(f, ancreX, ancreY) {
+                const lw = this.cropR - this.cropL, lh = this.cropB - this.cropT;
+                // facteur réellement applicable : on ne montre jamais plus que la page
+                let nf = f;
+                if (lw / nf > 1) nf = lw;
+                if (lh / nf > 1) nf = lh;
+                const nw = Math.max(0.02, Math.min(1, lw / nf));
+                const nh = Math.max(0.02, Math.min(1, lh / nf));
+                // position de l'ancre dans le rectangle source, en fraction [0,1]
+                const ax = (ancreX + this.width / 2) / Math.max(1e-6, this.width);
+                const ay = (ancreY + this.height / 2) / Math.max(1e-6, this.height);
+                let nl = this.cropL + lw * ax - nw * ax;
+                let nt = this.cropT + lh * ay - nh * ay;
+                nl = Math.max(0, Math.min(nl, 1 - nw));
+                nt = Math.max(0, Math.min(nt, 1 - nh));
+                this.cropL = nl; this.cropR = nl + nw;
+                this.cropT = nt; this.cropB = nt + nh;
+            }
+            /* Ouvre ou ferme un volet du cadre : la fenêtre s'agrandit et découvre
+               d'autant plus de page, sans rien étirer. C'est le recadrage, mais pris
+               par le bon bout. Renvoie le déplacement réellement appliqué, borné par
+               le bord de la page. */
+            ouvrirVolet(bord, delta) {
+                const e = this.echelle();
+                if (bord === 'e') {
+                    const dispo = (1 - this.cropR) * this.srcW * e;
+                    const d = Math.max(-(this.width - 40), Math.min(delta, dispo));
+                    this.width += d; this.cropR += d / (e * this.srcW);
+                    return d;
+                }
+                const dispo = (1 - this.cropB) * this.srcH * e;
+                const d = Math.max(-(this.height - 40), Math.min(delta, dispo));
+                this.height += d; this.cropB += d / (e * this.srcH);
+                return d;
             }
 
             toLocal(mx, my) {
@@ -8293,11 +8456,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return null; // On bloque tout le reste pendant le crop
                 }
 
+                const dedans = (l.x > -w2 && l.x < w2 && l.y > -h2 && l.y < h2);
+                if (this.docMode === 'page') {
+                    /* Mode page : la fenêtre est figée, seul le document coulisse.
+                       Aucune poignée, sinon on retomberait dans la confusion que ce
+                       mode est censé lever. */
+                    return dedans ? 'pageGlisser' : null;
+                }
                 if (MathUtils.dist(l.x, l.y, 0, -h2 - 25) < margin) return 'rotate';
-                if (Math.abs(l.x - w2) < margin && Math.abs(l.y) < h2 - 10) return 'resize-w';
-                if (Math.abs(l.y - h2) < margin && Math.abs(l.x) < w2 - 10) return 'resize-h';
                 if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return 'resize-both';
-                if (l.x > -w2 && l.x < w2 && l.y > -h2 && l.y < h2) return 'move';
+                if (Math.abs(l.x - w2) < margin && Math.abs(l.y) < h2 - 10) return 'volet-e';
+                if (Math.abs(l.y - h2) < margin && Math.abs(l.x) < w2 - 10) return 'volet-s';
+                if (dedans) return 'move';
                 return null;
             }
 
@@ -8347,27 +8517,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     drawHandle(cxL, (cyT + cyB) / 2); drawHandle(cxR, (cyT + cyB) / 2);
 
                 } else {
-                    // Mode Normal
+                    // Mode Normal : on ne peint que la partie de la page cadrée
                     ctx.globalAlpha = this.opacity;
-                    ctx.drawImage(this.img, -w2, -h2, this.width, this.height);
+                    const iw = this.srcW, ih = this.srcH;
+                    ctx.drawImage(this.img,
+                        this.cropL * iw, this.cropT * ih,
+                        Math.max(1, (this.cropR - this.cropL) * iw), Math.max(1, (this.cropB - this.cropT) * ih),
+                        -w2, -h2, this.width, this.height);
 
-                    if (!this.isLocked) {
+                    if (!this.isLocked && (!window.app || !window.app.isExporting)) {
                         ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#2980b9';
-                        ctx.lineWidth = 1;
+                        const enPage = (this.docMode === 'page');
+                        ctx.strokeStyle = enPage ? '#e67e22' : '#2980b9';
+                        ctx.lineWidth = enPage ? 2 : 1;
                         ctx.setLineDash([5, 5]);
                         ctx.strokeRect(-w2, -h2, this.width, this.height);
                         ctx.setLineDash([]);
+                        /* En mode page, pas de poignées : le cadre est figé et le
+                           liseré orange suffit à dire que c'est le document qui bouge. */
+                        if (!enPage) {
+                            ctx.beginPath(); ctx.moveTo(0, -h2); ctx.lineTo(0, -h2 - 25); ctx.stroke();
+                            ctx.fillStyle = '#2980b9';
+                            ctx.beginPath(); ctx.arc(0, -h2 - 25, 6, 0, Math.PI * 2); ctx.fill();
 
-                        ctx.beginPath(); ctx.moveTo(0, -h2); ctx.lineTo(0, -h2 - 25); ctx.stroke();
-                        ctx.fillStyle = '#2980b9';
-                        ctx.beginPath(); ctx.arc(0, -h2 - 25, 6, 0, Math.PI * 2); ctx.fill();
-
-                        ctx.fillStyle = 'white'; ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.rect(w2 - 6, -6, 12, 12); ctx.fill(); ctx.stroke();
-                        ctx.beginPath(); ctx.rect(-6, h2 - 6, 12, 12); ctx.fill(); ctx.stroke();
-                        ctx.fillStyle = '#2980b9';
-                        ctx.beginPath(); ctx.rect(w2 - 6, h2 - 6, 12, 12); ctx.fill();
+                            ctx.fillStyle = 'white'; ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2;
+                            ctx.beginPath(); ctx.rect(w2 - 6, -6, 12, 12); ctx.fill(); ctx.stroke();
+                            ctx.beginPath(); ctx.rect(-6, h2 - 6, 12, 12); ctx.fill(); ctx.stroke();
+                            ctx.fillStyle = '#2980b9';
+                            ctx.beginPath(); ctx.rect(w2 - 6, h2 - 6, 12, 12); ctx.fill();
+                        }
                     }
                 }
                 ctx.restore();
@@ -14052,7 +14230,100 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             removeBackgroundImage() {
                 this.bgImage = null;
                 document.getElementById('imageControls').style.display = 'none';
+                this.majBarreDocument();
                 this.render();
+            }
+
+            choisirModeDocument(mode) {
+                const bg = this.bgImage;
+                if (!bg) return;
+                bg.isLocked = false;
+                bg.docMode = mode;
+                this.majBarreDocument();
+                this.render();
+            }
+            basculerGrilleDocument() {
+                if (!this.bgImage) return;
+                this.bgImage.isBehindGrid = !this.bgImage.isBehindGrid;
+                this.majBarreDocument();
+                this.render();
+            }
+            basculerVerrouDocument() {
+                const bg = this.bgImage;
+                if (!bg) return;
+                bg.isLocked = !bg.isLocked;
+                // Verrouillé, le document ne réclame plus aucun geste : les appuis
+                // traversent vers la figure. C'est la troisième étape du travail.
+                if (bg.isLocked) this.selectedObject = null;
+                this.majBarreDocument();
+                this.render();
+            }
+
+            /* Reconstruit l'état de la barre : présence, modes, pagination, verrou.
+               Le placement, lui, est refait à chaque rendu (le cadre bouge). */
+            majBarreDocument() {
+                const barre = document.getElementById('barreDocument');
+                if (!barre) return;
+                const bg = this.bgImage;
+                if (!bg || bg.isCropping) { barre.style.display = 'none'; return; }
+                barre.style.display = 'flex';
+                const verrou = !!bg.isLocked;
+                /* Verrouillé, la barre se réduit au cadenas : elle ne doit pas
+                   encombrer la figure, mais il faut toujours un chemin de retour. */
+                barre.querySelectorAll('.doc-mode, #docOpacite, #docGrille, .doc-fermer, #docPages')
+                    .forEach(el => { el.style.display = verrou ? 'none' : (el.id === 'docPages' ? '' : ''); });
+                const pages = document.getElementById('docPages');
+                pages.style.display = (!verrou && bg.pdfDoc) ? 'inline-flex' : 'none';
+                if (bg.pdfDoc) document.getElementById('docPageInfo').textContent = bg.pdfPage + '/' + bg.pdfPages;
+                if (!verrou) {
+                    barre.querySelectorAll('.doc-mode').forEach(el => { el.style.display = 'inline-flex'; });
+                    document.getElementById('docOpacite').style.display = '';
+                    document.getElementById('docGrille').style.display = 'inline-flex';
+                    barre.querySelector('.doc-fermer').style.display = 'inline-flex';
+                }
+                barre.querySelectorAll('.doc-sep').forEach(el => { el.style.display = verrou ? 'none' : 'inline-block'; });
+                document.getElementById('docModeCadre').classList.toggle('actif', !verrou && bg.docMode === 'cadre');
+                document.getElementById('docModePage').classList.toggle('actif', !verrou && bg.docMode === 'page');
+                document.getElementById('docGrille').classList.toggle('actif', !!bg.isBehindGrid);
+                const bv = document.getElementById('docVerrou');
+                bv.classList.toggle('actif', verrou);
+                bv.setAttribute('data-tooltip', verrou
+                    ? 'Déverrouiller le document'
+                    : 'Verrouiller : le document ne bouge plus, on dessine par-dessus');
+                const op = document.getElementById('docOpacite');
+                if (document.activeElement !== op) op.value = bg.opacity;
+                op.oninput = (e) => { if (this.bgImage) { this.bgImage.opacity = parseFloat(e.target.value); this.render(); } };
+                this.placerBarreDocument();
+            }
+
+            /* Pose la barre sous le cadre, centrée, et la ramène dans la bande
+               visible si le cadre sort de l'écran — même bande que la saisie de
+               texte, clavier logiciel compris. */
+            placerBarreDocument() {
+                const barre = document.getElementById('barreDocument');
+                const bg = this.bgImage;
+                if (!barre) return;
+                // sûreté : tous les chemins qui retirent le document (nouveau projet,
+                // ouverture d'un fichier, corbeille) passent forcément par un rendu
+                if (!bg || bg.isCropping) { barre.style.display = 'none'; return; }
+                if (barre.style.display === 'none') return;
+                const z = this.view.zoom || 1;
+                // enveloppe écran du cadre, coins tournés compris
+                let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+                const w2 = bg.width / 2, h2 = bg.height / 2;
+                [[-w2, -h2], [w2, -h2], [w2, h2], [-w2, h2]].forEach(([lx, ly]) => {
+                    const g = bg.toGlobal(lx, ly);
+                    const sx = g.x * z + this.view.x, sy = g.y * z + this.view.y;
+                    minX = Math.min(minX, sx); maxX = Math.max(maxX, sx); maxY = Math.max(maxY, sy);
+                });
+                const lb = barre.offsetWidth || 320, hb = barre.offsetHeight || 42;
+                const vue = this.bandeVisible(8);
+                let x = (minX + maxX) / 2 - lb / 2;
+                let y = maxY + 12;
+                // pas de place dessous : on repasse au-dessus du cadre
+                if (y + hb > vue.b) y = Math.min(maxY, vue.b) - hb - 12;
+                barre.style.left = Math.round(Math.max(vue.l, Math.min(x, vue.r - lb))) + 'px';
+                barre.style.top = Math.round(Math.max(vue.t, Math.min(y, vue.b - hb))) + 'px';
             }
             switchHelpTab(tabName, btn) {
                 document.getElementById('tab-general').style.display = 'none';
@@ -15665,30 +15936,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 else if (action === 'image-crop') {
+                    /* Le recadrage à huit poignées faisait double emploi avec la barre
+                       du document, et pire : il rouvrait l'image ENTIÈRE, perdant le
+                       cadrage déjà réglé au mode Page. Le bouton mène désormais à la
+                       barre, où l'on règle la fenêtre sans jamais découper la page.
+                       Le code de découpe reste en place, simplement plus appelé. */
                     if (this.selectedObject instanceof BackgroundImage) {
-                        this.selectedObject.isCropping = true;
                         document.getElementById('contextMenu').style.display = 'none';
-
-                        // Créer le gros bouton flottant "Valider" s'il n'existe pas
-                        let cropBtn = document.getElementById('btnValidateCrop');
-                        if (!cropBtn) {
-                            cropBtn = document.createElement('button');
-                            cropBtn.id = 'btnValidateCrop';
-                            cropBtn.innerHTML = '✅ Valider le recadrage';
-                            cropBtn.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); padding:12px 24px; font-size:16px; font-weight:bold; background:#2ecc71; color:white; border:none; border-radius:30px; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.2); z-index:10000;';
-                            document.body.appendChild(cropBtn);
-                        }
-                        cropBtn.style.display = 'block';
-
-                        // Comportement au clic : découper et sauvegarder
-                        cropBtn.onclick = () => {
-                            this.selectedObject.applyCrop();
-                            cropBtn.style.display = 'none';
-                            this.render();
-                            this.saveState();
-                        };
-
-                        this.render();
+                        this.choisirModeDocument('cadre');
+                        this.showToast("Réglez le cadre avec la barre sous le document");
                         return;
                     }
                 }
@@ -16262,6 +16518,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     bg.cropT = num(saved.cropT, 0);
                     bg.cropB = num(saved.cropB, 1);
                     this.bgImage = bg;
+                    this.majBarreDocument();
                     this.render();
                 };
                 img.onerror = () => this.showToast("⚠️ L'image de fond n'a pas pu être rechargée.");
@@ -16842,6 +17099,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // =========================================================
                 this.canvas.addEventListener('wheel', (e) => {
                     e.preventDefault();
+                    /* Mode page : la molette zoome le DOCUMENT dans sa fenêtre, qui
+                       ne bouge pas. C'est tout l'intérêt du mode ; hors de lui, la
+                       molette continue de piloter la feuille comme avant. */
+                    const bg = this.bgImage;
+                    if (bg && !bg.isLocked && !bg.isCropping && bg.docMode === 'page') {
+                        const m = this.getMousePos(e);
+                        const l = bg.toLocal(m.x, m.y);
+                        if (Math.abs(l.x) < bg.width / 2 && Math.abs(l.y) < bg.height / 2) {
+                            let d = e.deltaY; if (e.deltaMode === 1) d *= 33;
+                            d = Math.sign(d) * Math.min(Math.abs(d), 5);
+                            bg.zoomContenu(Math.exp(-d * 0.012), l.x, l.y);
+                            this.rafraichirDocument();
+                            this.render();
+                            return;
+                        }
+                    }
                     if (e.ctrlKey) {
                         let rawDelta = e.deltaY;
                         if (e.deltaMode === 1) rawDelta *= 33;
@@ -17616,6 +17889,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.bgImage && this.bgImage.isBehindGrid) {
                     this.bgImage.draw(this.ctx);
                 }
+                // la barre du document suit le cadre : elle se replace à chaque rendu
+                if (!targetCtx && !this.isExporting) this.placerBarreDocument();
 
                 this.drawGrid();
 
@@ -18373,6 +18648,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.initialViewZoom = this.view.zoom || 1;
                     this.initialViewX = this.view.x;
                     this.initialViewY = this.view.y;
+                    /* Pincement amorcé DANS la fenêtre du document, en mode page :
+                       c'est le document qu'on veut grossir, pas la feuille. On le
+                       décide ici, à la pose des deux doigts, et on s'y tient pour
+                       tout le geste — changer d'avis en cours de pincement donnerait
+                       une secousse. */
+                    this.pinceDocument = null;
+                    const bgp = this.bgImage;
+                    if (bgp && !bgp.isLocked && !bgp.isCropping && bgp.docMode === 'page') {
+                        const r0 = this.canvas.getBoundingClientRect();
+                        const sx = (this.initialPinchCenter.x - r0.left - this.view.x) / this.view.zoom;
+                        const sy = (this.initialPinchCenter.y - r0.top - this.view.y) / this.view.zoom;
+                        const l = bgp.toLocal(sx, sy);
+                        if (Math.abs(l.x) < bgp.width / 2 && Math.abs(l.y) < bgp.height / 2) {
+                            this.pinceDocument = { ancre: l, dernier: 1 };
+                        }
+                    }
                     this.render();
                     return;
                 } else if (this.activePointers.size > 2) {
@@ -18507,6 +18798,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.draggedWidgetMode = zone;
                         this.dragStartMouse = { x: mousePos.x, y: mousePos.y };
                         if (zone === 'rotate') this.widgetRotationOffset = Math.atan2(mousePos.y - this.bgImage.y, mousePos.x - this.bgImage.x) - this.bgImage.angle;
+                        if (zone === 'pageGlisser') this.dragStartMouse = { x: mousePos.x, y: mousePos.y };
 
                         // NOUVEAU : On déclare officiellement l'image comme "Sélectionnée" au clic gauche !
                         this.selectedObject = this.bgImage;
@@ -18925,6 +19217,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
                     const currentCenter = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
                     const scale = currentDist / this.initialPinchDist;
+                    if (this.pinceDocument && this.bgImage) {
+                        // on applique l'incrément depuis la dernière image, pas le
+                        // rapport absolu : le zoom du document est cumulatif
+                        const inc = scale / (this.pinceDocument.dernier || 1);
+                        this.pinceDocument.dernier = scale;
+                        const a = this.pinceDocument.ancre;
+                        this.bgImage.zoomContenu(inc, a.x, a.y);
+                        this.render();
+                        return;
+                    }
                     let newZoom = this.initialViewZoom * scale;
                     newZoom = Math.max(0.2, Math.min(newZoom, 5));
                     const rect = this.canvas.getBoundingClientRect();
@@ -19396,8 +19698,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const dist = MathUtils.dist(rx, ry, w.x, w.y); const ratio = (w.width / w.height) || 1; const newDiagSq = (dist * 2) ** 2;
                         if (newDiagSq > 0 && ratio > 0) { const newWidth = Math.sqrt(newDiagSq / (1 + 1 / (ratio * ratio))); if (newWidth > 20) { w.width = newWidth; w.height = newWidth / ratio; } }
                     }
-                    else if (mode === 'resize-w' && w instanceof BackgroundImage) { const local = w.toLocal(rx, ry); const newW = Math.abs(local.x) * 2; if (newW > 20) w.width = newW; }
-                    else if (mode === 'resize-h' && w instanceof BackgroundImage) { const local = w.toLocal(rx, ry); const newH = Math.abs(local.y) * 2; if (newH > 20) w.height = newH; }
+                    /* Volets : le bord tiré agrandit la fenêtre ET découvre d'autant
+                       plus de page. L'ancien resize-w/h étirait le document, ce qui
+                       n'a jamais de sens pour une page. Le cadre grandit d'un seul
+                       côté : son centre suit de la moitié, dans le repère tourné. */
+                    else if (mode === 'volet-e' && w instanceof BackgroundImage) {
+                        const local = w.toLocal(rx, ry);
+                        const d = w.ouvrirVolet('e', local.x - w.width / 2);
+                        w.x += (d / 2) * Math.cos(w.angle); w.y += (d / 2) * Math.sin(w.angle);
+                    }
+                    else if (mode === 'volet-s' && w instanceof BackgroundImage) {
+                        const local = w.toLocal(rx, ry);
+                        const d = w.ouvrirVolet('s', local.y - w.height / 2);
+                        w.x -= (d / 2) * Math.sin(w.angle); w.y += (d / 2) * Math.cos(w.angle);
+                    }
+                    else if (mode === 'pageGlisser' && w instanceof BackgroundImage) {
+                        const av = w.toLocal(this.dragStartMouse.x, this.dragStartMouse.y);
+                        const ap = w.toLocal(rx, ry);
+                        w.glisserContenu(ap.x - av.x, ap.y - av.y);
+                        this.dragStartMouse = { x: rx, y: ry };
+                    }
                     else if (mode && mode.startsWith('crop-')) {
                         const l = w.toLocal(rx, ry);
                         const w2 = w.width / 2;
@@ -19534,7 +19854,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (hoveredWidget) {
                     const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
                     if (hoveredWidget instanceof ProtractorWidget) { if (zone === 'toggleLock') this.canvas.title = "Verrouiller le centre pour tracer..."; else if (zone === 'toggleDouble') this.canvas.title = "Double graduation"; else this.canvas.title = ""; } else { this.canvas.title = ""; }
-                    const cursors = { 'move': 'move', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
+                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-s': 'ns-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
                     if (cursors[zone]) cursor = cursors[zone]; else cursor = 'pointer';
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
@@ -19565,6 +19885,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.isPinching) {
                     if (this.activePointers.size === 0) {
                         this.isPinching = false;
+                        if (this.pinceDocument) { this.pinceDocument = null; this.rafraichirDocument(); }
                     }
                     return;
                 }
@@ -20447,14 +20768,75 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 // On transforme le canvas HD en image finale
                 const img = new Image();
+                const doc = this.currentPdfDoc, numero = this.currentPdfPageNum;
                 img.onload = () => {
                     this.addBackgroundImage(img);
+                    /* On GARDE le document ouvert. Il était jeté juste après l'import :
+                       tout zoom devenait alors un agrandissement de bitmap — d'où le
+                       flou — et changer de page obligeait à tout refaire. Conservé, il
+                       permet de re-rendre net à la demande et de tourner les pages sur
+                       place. */
+                    if (this.bgImage) {
+                        this.bgImage.pdfDoc = doc;
+                        this.bgImage.pdfPage = numero;
+                        this.bgImage.pdfPages = doc.numPages;
+                    }
+                    this.majBarreDocument();
                     this.showToast("✅ Page importée !");
                 };
                 img.src = tempCanvas.toDataURL('image/png');
-
-                // On nettoie la mémoire
                 this.currentPdfDoc = null;
+            }
+
+            /* Rend à nouveau la page PDF à la finesse réellement utile : ce qui est
+               visible à l'écran, à la densité de l'écran. Appelé au relâchement d'un
+               geste, jamais pendant — pendant, on étire le bitmap existant, c'est
+               instantané. */
+            rafraichirDocument() {
+                const bg = this.bgImage;
+                if (!bg || !bg.pdfDoc) return;
+                clearTimeout(this._minuteurDoc);
+                this._minuteurDoc = setTimeout(async () => {
+                    const b = this.bgImage;
+                    if (!b || !b.pdfDoc) return;
+                    try {
+                        const page = await b.pdfDoc.getPage(b.pdfPage);
+                        const v1 = page.getViewport({ scale: 1 });
+                        const fraction = Math.max(0.02, b.cropR - b.cropL);
+                        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        /* 1,3 de marge : rendre au strict nécessaire donnerait du 1:1
+                           pile, et le moindre zoom de la feuille ramollirait l'image
+                           avant que le re-rendu ne se déclenche (seuil de 25 %). */
+                        const besoin = (b.width * (this.view.zoom || 1) * dpr * 1.3) / fraction;
+                        let echelle = besoin / v1.width;
+                        echelle = Math.max(1, Math.min(echelle, 6));
+                        if (b._echelleRendue && Math.abs(echelle - b._echelleRendue) / b._echelleRendue < 0.25) return;
+                        const vp = page.getViewport({ scale: echelle });
+                        const cv = document.createElement('canvas');
+                        cv.width = vp.width; cv.height = vp.height;
+                        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+                        const im = new Image();
+                        im.onload = () => {
+                            if (this.bgImage !== b) return;
+                            b.img = im; b._echelleRendue = echelle;
+                            this.render();
+                        };
+                        im.src = cv.toDataURL('image/png');
+                    } catch (err) { /* page illisible : on garde le rendu courant */ }
+                }, 260);
+            }
+
+            /* Tourne la page sans rien perdre : le cadre, le zoom du document et
+               l'opacité sont conservés. Avant, il fallait réimporter le fichier. */
+            async changerPageDocument(delta) {
+                const bg = this.bgImage;
+                if (!bg || !bg.pdfDoc) return;
+                const n = bg.pdfPage + delta;
+                if (n < 1 || n > bg.pdfPages) return;
+                bg.pdfPage = n;
+                bg._echelleRendue = 0;
+                this.majBarreDocument();
+                this.rafraichirDocument();
             }
 
             // Fonction utilitaire pour placer l'image au centre de l'écran
@@ -20473,6 +20855,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.bgImage.isCropping = false; // Réinitialise si besoin
 
                 this.saveState();
+                this.majBarreDocument();
                 this.render();
             }
             saveFile() {
