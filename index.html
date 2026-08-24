@@ -5972,10 +5972,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <div class="help-tool-text">
                             <h4>Le Compas</h4>
                             <ul>
-                                <li><strong>🖌️ Tracer :</strong> Cliquer sur la <b>mine</b>.</li>
-                                <li><strong>↔️ Écarter :</strong> Utiliser la <b>molette</b> de la souris.</li>
-                                <li><strong>🔄 Tourner (sans tracer) :</strong> Glisser le <b>coude</b>.</li>
-                                <li><strong>✋ Déplacer :</strong> Glisser la <b>tête</b> (haut) ou la pointe sèche.</li>
+                                <li><strong>🖌️ Tracer :</strong> Glisser le <b>crayon</b> — toute sa hauteur, mine
+                                    comprise — ou la <b>molette</b>.</li>
+                                <li><strong>↔️ Écarter :</strong> Tirer la <b>pastille ronde à flèches</b>, à droite
+                                    de la molette. L'écartement s'affiche en centimètres.</li>
+                                <li><strong>🔄 Tourner (sans tracer) :</strong> Glisser le <b>bras</b>, entre la tête
+                                    et le coude.</li>
+                                <li><strong>✋ Déplacer :</strong> Glisser la <b>branche de la pointe sèche</b>. Elle
+                                    se pose d'elle-même sur un point, ou sur le <b>zéro de la règle</b>.</li>
                             </ul>
                         </div>
                     </div>
@@ -6013,6 +6017,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <ul>
                                 <li><strong>✋ Déplacer :</strong> Glisser le corps (partie vide).</li>
                                 <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
+                                <li><strong>🧲 Sur la règle :</strong> Coin posé sur les graduations de la règle,
+                                    l'équerre se colle en tournant, parallèle ou perpendiculaire.</li>
                                 <li><strong>↕️ Bouton glisser :</strong> Permet de glisser l'équerre le long de ses
                                     graduations.</li>
                             </ul>
@@ -7722,9 +7728,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <circle cx="18" cy="12" r="4" />
                         <line x1="10" y1="12" x2="14" y2="12" />
                     </svg></button>
-                <button class="btn" onclick="app.cycleStyle()" data-tooltip="Thème"><svg viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                <!-- Un croissant de lune annonce un mode sombre ; ce bouton change
+                     l'habillage des instruments. Trois pastilles de couleur qui se
+                     chevauchent le disent, et se distinguent de la palette du mode
+                     peinture juste en dessous. -->
+                <button class="btn" onclick="app.cycleStyle()" data-tooltip="Habillage des instruments"><svg
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                        <circle cx="9" cy="9" r="5" fill="currentColor" fill-opacity="0.9" stroke="none" />
+                        <circle cx="15" cy="9" r="5" fill="currentColor" fill-opacity="0.45" stroke="none" />
+                        <circle cx="12" cy="15" r="5" fill="currentColor" fill-opacity="0.2" stroke="none" />
+                        <circle cx="9" cy="9" r="5" />
+                        <circle cx="15" cy="9" r="5" />
+                        <circle cx="12" cy="15" r="5" />
                     </svg></button>
             </div>
             <button class="btn-paint-mode" id="btnPaint" onclick="app.togglePaintMode()" data-tooltip="Mode Peinture">
@@ -10020,29 +10035,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const currentLegLength = Math.max(baseLeg, (this.radius / 2) + 20);
                 const h = Math.sqrt(currentLegLength ** 2 - (this.radius / 2) ** 2);
                 const headX = this.radius / 2; const headY = -h;
-                
-                // Priorité haute pour les petites icônes
+                const p = CompassWidget.pastilleOuverture(this.radius);
+
+                /* L'ouverture avait pour seule prise une écharde de 20px coincée
+                   entre la mine et la branche, et la zone « tracer » l'emportait
+                   dessus : au doigt, on visait l'un et l'on obtenait l'autre. Elle a
+                   maintenant sa propre pastille, à droite de la molette, testée en
+                   premier ; en échange, TOUT le crayon et la molette tracent. */
+                if (Math.hypot(local.x - p.x, local.y - p.y) < p.r + 9) return 'resize';
                 if (Math.hypot(local.x - headX, local.y - (headY - 25)) < 20) return 'rotate';
-                
-                if (MathUtils.dist(local.x, local.y, this.radius, 0) < 20) return 'trace';
-                if (MathUtils.distanceToSegment(local.x, local.y, headX, headY - 30, 0, 0) < 15) return 'move';
-                const legStartX = this.radius; const legStartY = 0;
-                const resizeEndPos = { x: legStartX + (headX - legStartX) * 0.15, y: legStartY + (headY - legStartY) * 0.15 };
-                if (MathUtils.distanceToSegment(local.x, local.y, legStartX, legStartY - 20, resizeEndPos.x, resizeEndPos.y) < 20) return 'resize';
+
                 const elbowX = this.radius; const elbowY = -25;
+                // colonne du crayon, de la mine au sommet de la gomme
+                if (MathUtils.distanceToSegment(local.x, local.y, this.radius, 4, this.radius, -73) < 20) return 'trace';
+                if (Math.hypot(local.x - elbowX, local.y - (elbowY - 10)) < 18) return 'trace';
+                if (MathUtils.distanceToSegment(local.x, local.y, headX, headY - 30, 0, 0) < 15) return 'move';
                 if (MathUtils.distanceToSegment(local.x, local.y, headX, headY, elbowX, elbowY) < 25) return 'rotate';
                 return null;
             }
+            /* Centre et rayon de la pastille d'ouverture, en coordonnées locales.
+               Une seule définition pour la détection, le dessin et l'aperçu des
+               zones : elles ne peuvent plus se désaccorder. */
+            static pastilleOuverture(radius) { return { x: radius + 32, y: -35, r: 13 }; }
             drawHitZones(ctx, alpha) {
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
                 const baseLeg = this.legLength || 320;
                 const currentLegLength = Math.max(baseLeg, (this.radius / 2) + 20);
                 const h = Math.sqrt(currentLegLength ** 2 - (this.radius / 2) ** 2);
                 const headX = this.radius / 2; const headY = -h;
-                ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`; ctx.beginPath(); ctx.arc(this.radius, 0, 20, 0, Math.PI * 2); ctx.fill();
-                const legStartX = this.radius; const legStartY = 0; const resizeEndPos = { x: legStartX + (headX - legStartX) * 0.15, y: legStartY + (headY - legStartY) * 0.15 };
-                ctx.beginPath(); ctx.moveTo(legStartX, legStartY - 20); ctx.lineTo(resizeEndPos.x, resizeEndPos.y); ctx.strokeStyle = `rgba(46, 204, 113, ${alpha})`; ctx.lineWidth = 40; ctx.lineCap = 'round'; ctx.stroke();
                 const elbowX = this.radius; const elbowY = -25;
+                // tracer : toute la colonne du crayon, plus la molette
+                ctx.beginPath(); ctx.moveTo(this.radius, 4); ctx.lineTo(this.radius, -73);
+                ctx.strokeStyle = `rgba(46, 204, 113, ${alpha})`; ctx.lineWidth = 40; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.beginPath(); ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`; ctx.arc(elbowX, elbowY - 10, 18, 0, Math.PI * 2); ctx.fill();
+                // ouvrir : la pastille dédiée
+                const po = CompassWidget.pastilleOuverture(this.radius);
+                ctx.beginPath(); ctx.fillStyle = `rgba(241, 196, 15, ${alpha})`; ctx.arc(po.x, po.y, po.r + 9, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(headX, headY); ctx.lineTo(elbowX, elbowY); ctx.strokeStyle = `rgba(155, 89, 182, ${alpha})`; ctx.lineWidth = 50; ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(headX, headY - 30); ctx.lineTo(0, 0); ctx.strokeStyle = `rgba(52, 152, 219, ${alpha})`; ctx.lineWidth = 30; ctx.stroke();
                 ctx.restore();
@@ -10086,6 +10114,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.beginPath(); ctx.fillStyle = style.colors.joint; ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
                 if (!window.app || !window.app.isExporting) {
                     drawRotateHandle(ctx, headX, headY - 25);
+                    /* Pastille d'ouverture. Le trait qui la relie à la molette dit
+                       à quoi elle se rapporte ; les deux flèches disent qu'elle
+                       écarte et resserre. Comme la poignée de rotation, elle ne
+                       part pas à l'export. */
+                    const po = CompassWidget.pastilleOuverture(this.radius);
+                    ctx.save();
+                    ctx.beginPath(); ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 2;
+                    ctx.moveTo(this.radius + 12, -35); ctx.lineTo(po.x - po.r, po.y); ctx.stroke();
+                    ctx.beginPath(); ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#34495e"; ctx.lineWidth = 2;
+                    ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+                    ctx.arc(po.x, po.y, po.r, 0, Math.PI * 2); ctx.fill();
+                    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; ctx.stroke();
+                    ctx.save(); ctx.translate(po.x, po.y); ctx.rotate(-this.angle);
+                    ctx.strokeStyle = "#34495e"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round";
+                    ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(-3.5, -3.5); ctx.lineTo(-7, 0); ctx.lineTo(-3.5, 3.5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(3.5, -3.5); ctx.lineTo(7, 0); ctx.lineTo(3.5, 3.5); ctx.stroke();
+                    ctx.restore(); ctx.restore();
                     if (typeof app !== 'undefined' && app.draggedWidgetMode === 'resize' && app.draggedWidget === this) {
                         ctx.save(); ctx.beginPath(); ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.moveTo(0, 0); ctx.lineTo(this.radius, 0); ctx.stroke();
                         ctx.translate(this.radius / 2, -40); ctx.rotate(-this.angle); const val = Math.round(this.radius / 5) / 10; const text = val + " cm"; ctx.font = "bold 13px Segoe UI, sans-serif";
@@ -14125,7 +14171,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 localStorage.setItem('geoToolStyle', nextKey);
                 this.render();
                 const nomStyle = ToolStyle.name || "Style Inconnu";
-                this.showToast(`🎨 Thème : ${nomStyle}`)
+                this.showToast(`Habillage des instruments : ${nomStyle}`)
             }
             showToast(message) {
                 const toast = document.getElementById("toast-notification");
@@ -18391,6 +18437,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 this.widgetStartState.angle = targetWidget.angle;
                                 targetWidget.totalRotation = 0; targetWidget.drawDir = 0; this.currentTracingArc = null;
                             }
+                            if (targetWidget instanceof CompassWidget && zone === 'resize') {
+                                /* On ne saisit plus la mine mais une pastille décalée :
+                                   sans cette correction, l'écartement sauterait d'un coup
+                                   à la distance pastille-pointe. On mémorise l'écart et
+                                   l'on raisonne ensuite sur une mine VIRTUELLE, celle que
+                                   l'utilisateur croit tenir. */
+                                const dm = MathUtils.dist(mousePos.x, mousePos.y, targetWidget.x, targetWidget.y);
+                                this.compassResizeOffset = {
+                                    dr: dm - targetWidget.radius,
+                                    da: Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x) - targetWidget.angle,
+                                };
+                            }
                             if (zone === 'move') { this.widgetOffset.x = mousePos.x - targetWidget.x; this.widgetOffset.y = mousePos.y - targetWidget.y; }
                         }
                         this.render();
@@ -19033,6 +19091,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         }
                                     });
                                 }
+                                /* La pointe du compas se pose sur l'origine de la règle :
+                                   c'est le geste de base pour reporter une longueur lue
+                                   sur les graduations. Prioritaire sur l'aimantation aux
+                                   objets, sinon un point voisin la volerait. */
+                                if (w instanceof CompassWidget && this.activeWidgets.ruler && this.rulerWidget) {
+                                    const org = this.rulerWidget.toGlobal(0, 0);
+                                    if (MathUtils.dist(targetX, targetY, org.x, org.y) < 15) {
+                                        w.x = org.x; w.y = org.y; toolToToolSnap = true;
+                                        this.visualFeedbackPoint = { x: org.x, y: org.y };
+                                    }
+                                }
                                 if (!snapPoint && !toolToToolSnap && (w instanceof SetSquareWidget || w instanceof RulerWidget || w instanceof CompassWidget)) {
                                     let bestLineDist = 15;
                                     this.entities.forEach(ent => {
@@ -19152,6 +19221,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         if (distA < distB) snappedAngle = angleToPoint; else snappedAngle = angleToPoint + Math.PI;
                                         bestDist = distMousePoint;
                                     }
+                                }
+                            }
+                            /* Équerre posée sur la règle : en tournant, elle se colle
+                               dès qu'elle approche de la direction de la règle ou de sa
+                               perpendiculaire. C'est le geste de la perpendiculaire et
+                               de la parallèle, et jusqu'ici il fallait viser à l'œil :
+                               seuls les objets déjà tracés aimantaient la rotation, pas
+                               les instruments entre eux. On exige que le coin de
+                               l'équerre soit effectivement sur la règle, côté
+                               graduations, pour ne pas coller à distance. */
+                            if (snappedAngle === null && w instanceof SetSquareWidget
+                                && this.activeWidgets.ruler && this.rulerWidget) {
+                                const rul = this.rulerWidget;
+                                const l = rul.toLocal(w.x, w.y);
+                                if (Math.abs(l.y) < 22 && l.x > -22 && l.x < rul.width + 22) {
+                                    const tol = 6 * (Math.PI / 180);
+                                    let best = null, bestEcart = tol;
+                                    for (let k = 0; k < 4; k++) {
+                                        const cible = rul.angle + k * Math.PI / 2;
+                                        const ecart = Math.abs(Math.atan2(Math.sin(newAngle - cible), Math.cos(newAngle - cible)));
+                                        if (ecart < bestEcart) { bestEcart = ecart; best = cible; }
+                                    }
+                                    if (best !== null) snappedAngle = best;
                                 }
                             }
                             if (snappedAngle === null && (w instanceof SetSquareWidget || w instanceof ProtractorWidget || w instanceof RulerWidget)) {
@@ -19327,19 +19419,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (mode === 'crop-e') { w.cropR = Math.max(pctX, w.cropL + 0.05); }
                     }
                     else if (mode === 'resize' && w instanceof CompassWidget) {
-                        let newRadius = MathUtils.dist(x, y, w.x, w.y);
-                        const snap = this.entities.filter(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point).find(p => MathUtils.dist(x, y, p.x, p.y) < 15);
+                        /* Position de la mine VIRTUELLE : la pastille est décalée, on
+                           retranche l'écart mémorisé à la saisie pour que l'aimantation
+                           porte sur le point où l'utilisateur voit la mine. */
+                        const off = this.compassResizeOffset;
+                        let mx = x, my = y;
+                        if (off) {
+                            const vr = Math.max(1, MathUtils.dist(x, y, w.x, w.y) - off.dr);
+                            const va = Math.atan2(y - w.y, x - w.x) - off.da;
+                            mx = w.x + vr * Math.cos(va); my = w.y + vr * Math.sin(va);
+                        }
+                        let newRadius = MathUtils.dist(mx, my, w.x, w.y);
+                        const snap = this.entities.filter(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point).find(p => MathUtils.dist(mx, my, p.x, p.y) < 15);
                         if (!snap) {
                             let bestCurveDist = 10;
                             this.entities.forEach(ent => {
                                 if ((ent.visible !== false || this.showHidden) && (ent instanceof Circle || ent instanceof Arc || ent instanceof CompassArc)) {
                                     const cx = ent.center ? ent.center.x : (ent.p1 ? ent.p1.x : ent.x); const cy = ent.center ? ent.center.y : (ent.p1 ? ent.p1.y : ent.y); const radius = ent.radius !== undefined ? ent.radius : (ent.getRadius ? ent.getRadius() : 0);
-                                    const dCenter = MathUtils.dist(x, y, cx, cy); const distToCurve = Math.abs(dCenter - radius);
-                                    if (distToCurve < bestCurveDist && dCenter > 0.1) { bestCurveDist = distToCurve; const ratio = radius / dCenter; const projX = cx + (x - cx) * ratio; const projY = cy + (y - cy) * ratio; newRadius = MathUtils.dist(w.x, w.y, projX, projY); w.angle = Math.atan2(projY - w.y, projX - w.x); }
+                                    const dCenter = MathUtils.dist(mx, my, cx, cy); const distToCurve = Math.abs(dCenter - radius);
+                                    if (distToCurve < bestCurveDist && dCenter > 0.1) { bestCurveDist = distToCurve; const ratio = radius / dCenter; const projX = cx + (mx - cx) * ratio; const projY = cy + (my - cy) * ratio; newRadius = MathUtils.dist(w.x, w.y, projX, projY); w.angle = Math.atan2(projY - w.y, projX - w.x); }
                                 }
                             });
                         }
-                        if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); } else { w.angle = Math.atan2(y - w.y, x - w.x); }
+                        if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); } else { w.angle = Math.atan2(my - w.y, mx - w.x); }
                         w.radius = newRadius;
                     }
                     else if (mode === 'resize' && w instanceof RulerWidget) {
