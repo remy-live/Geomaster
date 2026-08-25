@@ -6035,8 +6035,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <ul>
                                 <li><strong>◀ 2/12 ▶ :</strong> Changer de page sans rien réimporter. Le cadre, le
                                     zoom et l'opacité sont conservés.</li>
-                                <li><strong>Cadre :</strong> Déplacer la fenêtre, tirer un bord pour en découvrir plus,
-                                    tirer le coin pour tout agrandir, la poignée du haut pour redresser un scan.</li>
+                                <li><strong>Cadre :</strong> Huit poignées. Les quatre <b>bords creux</b> ouvrent le
+                                    volet de leur côté et découvrent plus de page ; les quatre <b>coins pleins</b>
+                                    agrandissent la fenêtre et son contenu, le coin opposé restant en place. La
+                                    poignée du haut redresse un scan de travers.</li>
                                 <li><strong>Page :</strong> Faire coulisser la page dans le cadre, et la zoomer — au
                                     doigt en pinçant, à la souris avec la molette. Le cadre, lui, ne bouge pas.</li>
                                 <li><strong>🔒 Verrouiller :</strong> Dernière étape : le document se fige et l'on
@@ -8406,16 +8408,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                le bord de la page. */
             ouvrirVolet(bord, delta) {
                 const e = this.echelle();
-                if (bord === 'e') {
-                    const dispo = (1 - this.cropR) * this.srcW * e;
-                    const d = Math.max(-(this.width - 40), Math.min(delta, dispo));
-                    this.width += d; this.cropR += d / (e * this.srcW);
-                    return d;
+                const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
+                let d;
+                if (bord === 'e' || bord === 'w') {
+                    const dispo = (bord === 'e' ? (1 - this.cropR) : this.cropL) * this.srcW * e;
+                    d = Math.max(-(this.width - 40), Math.min(delta, dispo));
+                    this.width += d;
+                    if (bord === 'e') { this.cropR += d / (e * this.srcW); this.x += (d / 2) * cos; this.y += (d / 2) * sin; }
+                    else { this.cropL -= d / (e * this.srcW); this.x -= (d / 2) * cos; this.y -= (d / 2) * sin; }
+                } else {
+                    const dispo = (bord === 's' ? (1 - this.cropB) : this.cropT) * this.srcH * e;
+                    d = Math.max(-(this.height - 40), Math.min(delta, dispo));
+                    this.height += d;
+                    if (bord === 's') { this.cropB += d / (e * this.srcH); this.x -= (d / 2) * sin; this.y += (d / 2) * cos; }
+                    else { this.cropT -= d / (e * this.srcH); this.x += (d / 2) * sin; this.y -= (d / 2) * cos; }
                 }
-                const dispo = (1 - this.cropB) * this.srcH * e;
-                const d = Math.max(-(this.height - 40), Math.min(delta, dispo));
-                this.height += d; this.cropB += d / (e * this.srcH);
                 return d;
+            }
+            /* Coin tiré : la fenêtre ET son contenu changent de taille ensemble, le
+               coin OPPOSÉ restant planté là où il est. Ancrer au centre, comme avant,
+               faisait fuir le document sous la main dès qu'on redimensionnait. */
+            tirerCoin(coin, lx, ly) {
+                const sx = coin.includes('e') ? 1 : -1;
+                const sy = coin.includes('s') ? 1 : -1;
+                const fixe = this.toGlobal(-sx * this.width / 2, -sy * this.height / 2);
+                const du = sx * lx + this.width / 2;
+                const dv = sy * ly + this.height / 2;
+                let k = Math.max(du / this.width, dv / this.height);
+                if (!isFinite(k) || k <= 0) return;
+                if (this.width * k < 40) k = 40 / this.width;
+                if (this.height * k < 40) k = 40 / this.height;
+                const nw = this.width * k, nh = this.height * k;
+                const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
+                const ux = sx * nw / 2, uy = sy * nh / 2;
+                this.x = fixe.x + ux * cos - uy * sin;
+                this.y = fixe.y + ux * sin + uy * cos;
+                this.width = nw; this.height = nh;
             }
 
             toLocal(mx, my) {
@@ -8470,9 +8498,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return dedans ? 'pageGlisser' : null;
                 }
                 if (MathUtils.dist(l.x, l.y, 0, -h2 - 25) < margin) return 'rotate';
-                if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return 'resize-both';
+                /* Poignées sur les quatre coins et les quatre bords. Il n'y en avait
+                   qu'à droite, en bas et dans le coin bas-droit : pour découvrir la
+                   page vers le haut ou la gauche, il fallait déplacer la fenêtre puis
+                   rattraper de l'autre côté. Les coins d'abord : ils sont à
+                   l'intersection de deux bords. */
+                if (MathUtils.dist(l.x, l.y, -w2, -h2) < margin) return 'coin-nw';
+                if (MathUtils.dist(l.x, l.y, w2, -h2) < margin) return 'coin-ne';
+                if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return 'coin-se';
+                if (MathUtils.dist(l.x, l.y, -w2, h2) < margin) return 'coin-sw';
                 if (Math.abs(l.x - w2) < margin && Math.abs(l.y) < h2 - 10) return 'volet-e';
+                if (Math.abs(l.x + w2) < margin && Math.abs(l.y) < h2 - 10) return 'volet-w';
                 if (Math.abs(l.y - h2) < margin && Math.abs(l.x) < w2 - 10) return 'volet-s';
+                if (Math.abs(l.y + h2) < margin && Math.abs(l.x) < w2 - 10) return 'volet-n';
                 if (dedans) return 'move';
                 return null;
             }
@@ -8546,11 +8584,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             ctx.fillStyle = '#2980b9';
                             ctx.beginPath(); ctx.arc(0, -h2 - 25, 6, 0, Math.PI * 2); ctx.fill();
 
-                            ctx.fillStyle = 'white'; ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2;
-                            ctx.beginPath(); ctx.rect(w2 - 6, -6, 12, 12); ctx.fill(); ctx.stroke();
-                            ctx.beginPath(); ctx.rect(-6, h2 - 6, 12, 12); ctx.fill(); ctx.stroke();
+                            /* Quatre coins pleins — ils redimensionnent — et quatre
+                               bords creux — ils ouvrent le volet. La différence de
+                               remplissage dit laquelle fait quoi sans un mot. */
+                            ctx.lineWidth = 2; ctx.strokeStyle = '#2980b9';
                             ctx.fillStyle = '#2980b9';
-                            ctx.beginPath(); ctx.rect(w2 - 6, h2 - 6, 12, 12); ctx.fill();
+                            [[-w2, -h2], [w2, -h2], [w2, h2], [-w2, h2]].forEach(([hx, hy]) => {
+                                ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill();
+                            });
+                            ctx.fillStyle = 'white';
+                            [[w2, 0], [-w2, 0], [0, h2], [0, -h2]].forEach(([hx, hy]) => {
+                                ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill(); ctx.stroke();
+                            });
                         }
                     }
                 }
@@ -19700,23 +19745,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             }
                         }
                     }
-                    else if (mode === 'resize-both' && w instanceof BackgroundImage) {
-                        const dist = MathUtils.dist(rx, ry, w.x, w.y); const ratio = (w.width / w.height) || 1; const newDiagSq = (dist * 2) ** 2;
-                        if (newDiagSq > 0 && ratio > 0) { const newWidth = Math.sqrt(newDiagSq / (1 + 1 / (ratio * ratio))); if (newWidth > 20) { w.width = newWidth; w.height = newWidth / ratio; } }
+                    else if (mode && mode.startsWith('coin-') && w instanceof BackgroundImage) {
+                        const local = w.toLocal(rx, ry);
+                        w.tirerCoin(mode.slice(5), local.x, local.y);
                     }
                     /* Volets : le bord tiré agrandit la fenêtre ET découvre d'autant
                        plus de page. L'ancien resize-w/h étirait le document, ce qui
                        n'a jamais de sens pour une page. Le cadre grandit d'un seul
                        côté : son centre suit de la moitié, dans le repère tourné. */
-                    else if (mode === 'volet-e' && w instanceof BackgroundImage) {
+                    else if (mode && mode.startsWith('volet-') && w instanceof BackgroundImage) {
                         const local = w.toLocal(rx, ry);
-                        const d = w.ouvrirVolet('e', local.x - w.width / 2);
-                        w.x += (d / 2) * Math.cos(w.angle); w.y += (d / 2) * Math.sin(w.angle);
-                    }
-                    else if (mode === 'volet-s' && w instanceof BackgroundImage) {
-                        const local = w.toLocal(rx, ry);
-                        const d = w.ouvrirVolet('s', local.y - w.height / 2);
-                        w.x -= (d / 2) * Math.sin(w.angle); w.y += (d / 2) * Math.cos(w.angle);
+                        const bord = mode.slice(6);
+                        // distance dont le bord saisi s'écarte de sa position actuelle
+                        const ecart = bord === 'e' ? local.x - w.width / 2
+                            : bord === 'w' ? -(local.x + w.width / 2)
+                                : bord === 's' ? local.y - w.height / 2
+                                    : -(local.y + w.height / 2);
+                        w.ouvrirVolet(bord, ecart);
                     }
                     else if (mode === 'pageGlisser' && w instanceof BackgroundImage) {
                         const av = w.toLocal(this.dragStartMouse.x, this.dragStartMouse.y);
@@ -19860,7 +19905,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (hoveredWidget) {
                     const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
                     if (hoveredWidget instanceof ProtractorWidget) { if (zone === 'toggleLock') this.canvas.title = "Verrouiller le centre pour tracer..."; else if (zone === 'toggleDouble') this.canvas.title = "Double graduation"; else this.canvas.title = ""; } else { this.canvas.title = ""; }
-                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-s': 'ns-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
+                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-w': 'ew-resize', 'volet-s': 'ns-resize', 'volet-n': 'ns-resize', 'coin-nw': 'nwse-resize', 'coin-se': 'nwse-resize', 'coin-ne': 'nesw-resize', 'coin-sw': 'nesw-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
                     if (cursors[zone]) cursor = cursors[zone]; else cursor = 'pointer';
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
