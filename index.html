@@ -6181,7 +6181,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
                         <div class="icon-btn" onclick="document.getElementById('bgImageInput').click()"
-                            aria-label="Image de fond" data-libelle="Image" data-tooltip="Importer une image de fond">
+                            aria-label="Importer une image ou un PDF en fond" data-libelle="Image / PDF"
+                            data-tooltip="Importer une image ou un PDF en fond">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 style="fill:none;">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -6278,7 +6279,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                 </div>
                 <input type="file" id="fileInput" accept=".geo" onchange="app.loadFile(this)" style="display:none;">
-                <input type="file" id="bgImageInput" accept="image/*, .pdf" style="display:none"
+                <!-- accept : iOS n'ouvre pas les PDF de l'app Fichiers quand seule
+                     l'extension est déclarée. On donne le type MIME complet, et l'on
+                     garde l'extension pour les navigateurs qui ne s'appuient que sur
+                     elle. Sans virgule-espace : certaines implémentations ne coupent
+                     pas proprement sur les blancs. -->
+                <input type="file" id="bgImageInput" accept="image/*,application/pdf,.pdf" style="display:none"
                     onchange="app.handleFileUpload(this.files[0]); this.value='';">
                 <button class="top-btn" id="btnCopy" onclick="app.copyToClipboard()" aria-label="Copier"
                     data-tooltip="Copier la figure">
