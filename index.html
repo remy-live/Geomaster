@@ -8323,6 +8323,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return svg;
             }
         };
+        /* Ce que chaque construction magique attend VRAIMENT. Quatre outils très
+           différents partageaient auparavant un seul message — « Cliquez sur un
+           angle, ou sur 3 points d'un triangle » — annoncé aussi bien pour le
+           rectangle et le parallélogramme, qui ne demandent aucun triangle, que pour
+           la bissectrice. Une consigne fausse coûte plus cher que pas de consigne :
+           on décrit ici l'entrée réelle de chaque outil, vérifiée sur son code de
+           construction.
+
+           Trois familles :
+           - un segment (ou deux points), le clic décidant du côté ;
+           - trois points, le DEUXIÈME étant le sommet ;
+           - les transformations, objet(s) puis référence. */
+        const GM_CONSIGNES_MAGIE = {
+            // segment ou 2 points ; l'endroit du clic choisit le côté
+            magic_triangle: "Cliquez un segment (ou 2 points) : le triangle se construit du côté du clic",
+            magic_square: "Cliquez un segment (ou 2 points) : le carré se construit du côté du clic",
+            magic_hexagon: "Cliquez un segment (ou 2 points) : l'hexagone se construit du côté du clic",
+            magic_pentagon: "Cliquez un segment (ou 2 points) : le pentagone se construit du côté du clic",
+            magic_rhombus: "Cliquez un segment (ou 2 points) : le losange se construit du côté du clic",
+            magic_rosette: "Cliquez un segment (ou 2 points) : il donne le rayon de la rosace",
+            magic_hexagram: "Cliquez un segment (ou 2 points) : il donne le côté de l'étoile",
+            magic_seed_of_life: "Cliquez un segment (ou 2 points) : il donne le rayon de la graine de vie",
+            magic_yin_yang: "Cliquez un segment (ou 2 points) : il donne le diamètre du yin yang",
+            magic_octagram: "Cliquez un segment (ou 2 points) : il donne le côté de l'octagramme",
+            magic_pythagoras: "Cliquez un segment (ou 2 points) : il amorce l'escargot de Pythagore",
+            magic_mediatrice: "Cliquez un segment, ou ses 2 extrémités",
+            // trois points, le deuxième est le sommet
+            magic_rectangle: "Cliquez 3 sommets — le 2e est le coin, et son angle doit être droit — ou un angle droit déjà tracé",
+            magic_parallelogram: "Cliquez 3 sommets consécutifs — le 2e est le coin — ou un angle déjà tracé",
+            magic_bisector: "Cliquez un angle, ou 3 points dont le 2e est le sommet",
+            magic_circumcircle: "Cliquez 3 points du cercle, ou un angle déjà tracé",
+            // transformations
+            magic_sym_centrale: "Cliquez le point à transformer, puis le centre de symétrie",
+            magic_sym_axiale: "Cliquez le ou les points à transformer, puis l'axe",
+        };
+        const GM_CONSIGNE_MAGIE_DEFAUT = "Cliquez un segment, ou 2 points";
+
         class BackgroundImage {
             constructor(imgObj, x, y, width, height) {
                 this.img = imgObj;
@@ -16766,15 +16803,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 if (toolName.startsWith('magic_')) {
                     this.canvas.style.cursor = 'crosshair';
-                    if (['magic_parallelogram', 'magic_rectangle', 'magic_bisector', 'magic_circumcircle'].includes(toolName)) {
-                        this.showToast("🪄 Cliquez sur un angle, ou sur 3 points d'un triangle");
-                    } else if (toolName === 'magic_sym_centrale') {
-                        this.showToast("🪄 Cliquez sur le point à transformer, puis sur le centre");
-                    } else if (toolName === 'magic_sym_axiale') {
-                        this.showToast("🪄 Cliquez sur les points à transformer, puis sur l'axe");
-                    } else {
-                        this.showToast("🪄 Cliquez sur un segment, 2 points, ou dans le vide");
-                    }
+                    this.showToast('🪄 ' + (GM_CONSIGNES_MAGIE[toolName] || GM_CONSIGNE_MAGIE_DEFAUT));
                 } else if (toolName !== 'pan' && toolName !== 'move') {
                     this.canvas.style.cursor = 'crosshair';
                 } else if (toolName === 'move') {
