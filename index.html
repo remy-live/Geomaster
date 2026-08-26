@@ -6080,10 +6080,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 le rejeu.</p>
                             <ul>
                                 <li><strong>L'encre suit ce qu'elle annote.</strong> Codez un angle : la marque se
-                                    déplace, tourne et s'adapte avec lui. Barrez un segment : la barre le suit.
+                                    déplace et tourne avec lui. Barrez un segment : la barre le suit.
                                     Dessinez à l'écart : l'encre reste sur la feuille, comme un décor.</li>
-                                <li><strong>Appui long sur l'outil</strong> (ou clic droit) : le <b>surligneur</b>
-                                    — trait large et translucide — et l'ancrage, débrayable.</li>
+                                <li><strong>Et quand la figure grandit ?</strong> Une petite marque — un trait de
+                                    codage, une croix — garde sa taille et reste à sa place proportionnelle, comme
+                                    les codages du logiciel. Un tracé étendu — une accolade, un surlignage — grandit
+                                    avec l'objet, sinon il ne le couvrirait plus. L'option d'échelle permet
+                                    d'imposer l'un ou l'autre.</li>
+                                <li><strong>Appui long sur l'outil</strong> (ou clic droit) : l'ancrage débrayable,
+                                    l'<b>adoucissement</b> — un geste rapide ne donne que quelques points, on arrondit
+                                    les angles au dessin —, le <b>surligneur</b> et l'échelle.</li>
                                 <li>Couleur et épaisseur viennent de la palette de style.</li>
                                 <li>Supprimer l'objet annoté emporte son encre : elle le décrivait.</li>
                             </ul>
@@ -7663,8 +7669,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Stylo</div>
         <label class="croquis-opt"><input type="checkbox" id="optStyloAncrage" checked
                 onchange="app.reglerStylo('ancrage', this.checked)"><span>L'encre suit la figure<i>elle se déplace et tourne avec l'objet annoté</i></span></label>
+        <label class="croquis-opt"><input type="checkbox" id="optStyloAdoucir" checked
+                onchange="app.reglerStylo('adoucir', this.checked)"><span>Adoucir le tracé<i>arrondit les angles d'un geste rapide</i></span></label>
         <label class="croquis-opt"><input type="checkbox" id="optStyloSurligneur"
                 onchange="app.reglerStylo('surligneur', this.checked)"><span>Surligneur<i>trait large et translucide</i></span></label>
+        <div style="padding:6px 6px 2px; border-top:1px solid #f1f5f9; margin-top:4px;">
+            <div style="font-size:12.5px; color:#334155; margin-bottom:4px;">Taille quand la figure change</div>
+            <select id="optStyloEchelle" onchange="app.reglerStylo('echelle', this.value)"
+                style="width:100%; padding:5px 6px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px; font-family:inherit; background:#fff;">
+                <option value="auto">Automatique — petite marque : taille fixe</option>
+                <option value="fixe">Toujours la taille d'origine</option>
+                <option value="suit">Toujours à l'échelle de la figure</option>
+            </select>
+        </div>
     </div>
     <div id="croquisModal" class="modal-overlay" style="display:none;">
         <div class="modal-box" style="max-width: 420px;">
@@ -8968,6 +8985,65 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             return { reconnaitre, simplifier, repartir, ajusterCercle, nettoyer, _boite: boite };
+        })();
+
+        /* ============================================================
+           GmEncre — les points d'un trait à main levée, dans un lien.
+
+           Un trait fait quelques dizaines de points, et un point écrit « à la
+           virgule » coûte une dizaine de caractères : une seule annotation pesait
+           plus lourd que toute la figure. Trois idées, chacune gagnante :
+
+           1. ENTIERS. On quantifie — au millième de la longueur de l'objet ancré,
+              soit 0,4 px sur un segment de 400, bien en deçà du trait lui-même.
+           2. DIFFÉRENCES. On n'écrit que l'écart au point précédent : d'un point à
+              l'autre d'un tracé, il est petit, donc court.
+           3. CHIFFRES SERRÉS. Chaque entier part en base 64 (5 bits utiles par
+              caractère, le sixième annonçant la suite), sans séparateur : un écart
+              courant tient sur UN caractère là où « -0.0123, » en demandait neuf.
+
+           Le tout passe ensuite dans LZString comme le reste du lien. */
+        // ordre figé : c'est le code écrit dans les liens, il ne se réarrange pas
+        const GM_ENCRE_MODES = ['libre', 'point', 'deux', 'marque'];
+        const GmEncre = (() => {
+            // 64 caractères sûrs dans une URL, et surtout ni « ; » ni « ¦ »
+            const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+            const idx = {}; for (let i = 0; i < 64; i++) idx[A[i]] = i;
+            // zigzag : 0,-1,1,-2,2… → 0,1,2,3,4… pour que les petits négatifs
+            // restent courts eux aussi
+            const pousser = (n, out) => {
+                let z = (n < 0) ? (-n * 2 - 1) : n * 2;
+                do {
+                    const c = z % 32; z = Math.floor(z / 32);
+                    out.push(A[c + (z > 0 ? 32 : 0)]);
+                } while (z > 0);
+            };
+            function coder(pts, q) {
+                const out = []; let pu = 0, pv = 0;
+                pts.forEach(p => {
+                    const u = Math.round(p.u * q), v = Math.round(p.v * q);
+                    pousser(u - pu, out); pousser(v - pv, out);
+                    pu = u; pv = v;
+                });
+                return out.join('');
+            }
+            function decoder(s, q) {
+                const n = []; let z = 0, k = 1;
+                for (let i = 0; i < s.length; i++) {
+                    const c = idx[s.charAt(i)];
+                    if (c === undefined) continue;
+                    z += (c % 32) * k;
+                    if (c >= 32) k *= 32;
+                    else { n.push((z % 2) ? -(z + 1) / 2 : z / 2); z = 0; k = 1; }
+                }
+                const pts = []; let pu = 0, pv = 0;
+                for (let i = 0; i + 1 < n.length; i += 2) {
+                    pu += n[i]; pv += n[i + 1];
+                    pts.push({ u: pu / q, v: pv / q });
+                }
+                return pts;
+            }
+            return { coder, decoder };
         })();
 
         class BackgroundImage {
@@ -10524,10 +10600,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 super(null, null, id);
                 this.local = [];        // points dans le repère de l'ancre
                 this.ancre = null;      // entité de référence, ou null
-                this.mode = 'libre';    // 'libre' | 'point' | 'deux'
+                this.mode = 'libre';    // 'libre' | 'point' | 'deux' | 'marque'
                 this.color = '#c0392b';
                 this.lineWidth = 3;
                 this.opacity = 1;       // < 1 pour le surligneur
+                this.lisse = true;      // arrondir les angles au rendu
+            }
+            /* Adoucissement. Le pointeur n'envoie qu'un point par image : tracé
+               vite, un arc arrive sous forme de trois ou quatre points espacés, et
+               le trait est visiblement cassé. On n'y remédie PAS en fabriquant des
+               points — cela alourdirait la mémoire, l'export et le lien — mais au
+               rendu, en passant des courbes de Bézier par les milieux des segments.
+               Le trait est stocké tel qu'il a été fait ; seul son dessin est arrondi,
+               et l'option se coche ou se décoche après coup sans rien perdre. */
+            static tracerChemin(pts, ctx, lisse) {
+                ctx.moveTo(pts[0].x, pts[0].y);
+                if (!lisse || pts.length < 3) {
+                    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+                    return;
+                }
+                for (let i = 1; i < pts.length - 1; i++) {
+                    ctx.quadraticCurveTo(pts[i].x, pts[i].y,
+                        (pts[i].x + pts[i + 1].x) / 2, (pts[i].y + pts[i + 1].y) / 2);
+                }
+                ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
             }
             /* Les deux points de référence d'une entité, s'ils existent. */
             static repere(ent) {
@@ -10539,7 +10635,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return null;
             }
             /* Range un tracé du monde vers le repère choisi. */
-            ancrer(ptsMonde, ent) {
+            ancrer(ptsMonde, ent, echelle) {
                 const r = Annotation.repere(ent);
                 this.ancre = (r ? ent : null);
                 if (!r) {
@@ -10555,11 +10651,46 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const dx = r.B.x - r.A.x, dy = r.B.y - r.A.y;
                 const L2 = dx * dx + dy * dy;
                 if (L2 < 1e-6) { this.mode = 'point'; this.local = ptsMonde.map(p => ({ u: p.x - r.A.x, v: p.y - r.A.y })); return; }
-                this.mode = 'deux';
                 this.local = ptsMonde.map(p => {
                     const ex = p.x - r.A.x, ey = p.y - r.A.y;
                     return { u: (ex * dx + ey * dy) / L2, v: (-ex * dy + ey * dx) / L2 };
                 });
+                /* Grandir avec l'objet, ou garder sa taille ? Les deux réponses sont
+                   justes, mais pas pour la même encre.
+
+                   Une petite MARQUE — un trait de codage, une croix, un point
+                   d'interrogation — doit garder sa taille : c'est déjà ainsi que se
+                   comportent les codages du logiciel, identiques sur un segment de
+                   3 cm et sur un de 30. La faire grossir donnerait des marques
+                   énormes sur les grands segments.
+
+                   Un trait ÉTENDU — une accolade sous tout le segment, un surlignage
+                   qui le recouvre — parle au contraire de son étendue : il doit
+                   grandir avec lui, sinon il n'en couvre plus que la moitié.
+
+                   On tranche donc par ce que l'encre couvre déjà : moins de 35 % de
+                   l'objet, c'est une marque ; au-delà, c'est une étendue. Dans les
+                   deux cas la POSITION reste proportionnelle et l'orientation suit —
+                   un trait de codage au milieu reste au milieu, et perpendiculaire.
+
+                   Ce partage n'est qu'un défaut : l'option d'échelle permet d'imposer
+                   « taille fixe » ou « suit la figure » quand on sait mieux que la
+                   règle — un grand point d'interrogation, une petite accolade. */
+                let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+                this.local.forEach(q => {
+                    u0 = Math.min(u0, q.u); u1 = Math.max(u1, q.u);
+                    v0 = Math.min(v0, q.v); v1 = Math.max(v1, q.v);
+                });
+                const etendue = Math.max(u1 - u0, v1 - v0);
+                const fixe = (echelle === 'fixe') ? true
+                    : (echelle === 'suit') ? false : (etendue < 0.35);
+                if (fixe) {
+                    this.mode = 'marque';
+                    this.L0 = Math.sqrt(L2);
+                    this.centre = { u: (u0 + u1) / 2, v: (v0 + v1) / 2 };
+                } else {
+                    this.mode = 'deux';
+                }
             }
             versMonde() {
                 if (this.mode === 'libre' || !this.ancre) return this.local.map(q => ({ x: q.u, y: q.v }));
@@ -10567,6 +10698,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!r) return this.local.map(q => ({ x: q.u, y: q.v }));
                 if (this.mode === 'point' || !r.B) return this.local.map(q => ({ x: r.A.x + q.u, y: r.A.y + q.v }));
                 const dx = r.B.x - r.A.x, dy = r.B.y - r.A.y;
+                if (this.mode === 'marque') {
+                    /* Le CENTRE suit proportionnellement, la TAILLE reste celle du
+                       tracé d'origine : on tourne les écarts au centre avec l'objet,
+                       mais on les mesure toujours avec la longueur L0 qu'il avait au
+                       moment du tracé. */
+                    const L = Math.hypot(dx, dy) || 1;
+                    const ux = dx / L, uy = dy / L;
+                    const c = this.centre || { u: 0, v: 0 };
+                    const cx = r.A.x + c.u * dx - c.v * dy;
+                    const cy = r.A.y + c.u * dy + c.v * dx;
+                    const k = this.L0 || L;
+                    return this.local.map(q => {
+                        const eu = (q.u - c.u) * k, ev = (q.v - c.v) * k;
+                        return { x: cx + eu * ux - ev * uy, y: cy + eu * uy + ev * ux };
+                    });
+                }
                 return this.local.map(q => ({
                     x: r.A.x + q.u * dx - q.v * dy,
                     y: r.A.y + q.u * dy + q.v * dx,
@@ -10582,7 +10729,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 ctx.setLineDash([]);
                 ctx.beginPath();
-                pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+                Annotation.tracerChemin(pts, ctx, this.lisse !== false);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -10605,7 +10752,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const pts = this.versMonde();
                 if (pts.length < 2) return '';
                 const n = (v) => Math.round(v * 100) / 100;
-                const d = pts.map((p, i) => (i ? 'L' : 'M') + n(p.x) + ',' + n(p.y)).join(' ');
+                let d;
+                if (this.lisse !== false && pts.length > 2) {
+                    // mêmes quadratiques par les milieux qu'à l'écran : le PDF et le
+                    // SVG doivent montrer exactement le trait que l'on voit
+                    d = 'M' + n(pts[0].x) + ',' + n(pts[0].y);
+                    for (let i = 1; i < pts.length - 1; i++) {
+                        d += ' Q' + n(pts[i].x) + ',' + n(pts[i].y) + ' '
+                            + n((pts[i].x + pts[i + 1].x) / 2) + ',' + n((pts[i].y + pts[i + 1].y) / 2);
+                    }
+                    d += ' L' + n(pts[pts.length - 1].x) + ',' + n(pts[pts.length - 1].y);
+                } else {
+                    d = pts.map((p, i) => (i ? 'L' : 'M') + n(p.x) + ',' + n(p.y)).join(' ');
+                }
                 return `<path d="${d}" fill="none" stroke="${this.color}" stroke-width="${n(this.lineWidth)}"` +
                     ` stroke-linecap="round" stroke-linejoin="round" opacity="${this.opacity}"/>`;
             }
@@ -14207,6 +14366,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (entity instanceof PerpendicularLine) return 11;
                 if (entity instanceof Arc) return 12;
                 if (entity instanceof ToolAnimation) return 13;
+                if (entity instanceof Annotation) return 14;
                 return 0;
             }
             clearCanvas() {
@@ -14235,10 +14395,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     5: { 3: 0, 4: 2, 5: 0, 6: 'none', 7: 0.2 },
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
-                    9: { 4: 16, 5: 0, 6: encodeURIComponent("'Segoe UI', sans-serif") },
+                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif" },
                     10: { 3: 0, 4: 2, 5: 0 },
                     11: { 3: 0, 4: 2, 5: 0 },
                     12: { 5: 0, 6: 2, 7: 0 },
+                    14: { 4: 0, 5: 1, 6: 0, 7: 2, 8: 100 },
+                };
+                /* Échappement minimal. Le format n'a que deux caractères interdits —
+                   « ; » qui sépare les champs et « ¦ » les objets, plus « | » dans la
+                   liste des étapes. encodeURIComponent les protégeait, mais protégeait
+                   AUSSI les espaces, les accents, les virgules, les chevrons : mesuré,
+                   une consigne de 156 caractères en occupait 254, soit 63 % de plus,
+                   pour rien. On n'échappe donc que le nécessaire.
+                   Les anciens liens se relisent inchangés : decodeURIComponent, qui
+                   reste le lecteur, ne touche qu'aux séquences %XX et laisse tout le
+                   reste tel quel. Le « % » littéral part en %25, sans quoi un texte
+                   contenant « %3C » se relirait en « < ». */
+                const echapper = (s, avecBarre) => {
+                    let t = String(s).replace(/%/g, '%25').replace(/;/g, '%3B').replace(/¦/g, '%C2%A6');
+                    if (avecBarre) t = t.replace(/\|/g, '%7C');
+                    return t;
                 };
                 let wMask = 0;
                 if (this.activeWidgets.ruler) wMask += 1;
@@ -14282,7 +14458,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0);
                     }
                     else if (e instanceof TextLabel) {
-                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), encodeURIComponent(e.fontFamily || ""));
+                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), echapper(e.fontFamily || ""));
                     }
                     else if (e instanceof Circle) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color), e.lineWidth || 2, (e.dash && e.dash.length > 0) ? 1 : 0, e.fillMode === 'solid' ? 0 : (e.fillMode || 'none'), f(e.opacity !== undefined ? e.opacity : 0.2), this.couleurCompacte(e.fillColor));
@@ -14314,6 +14490,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const width = e.lineWidth || 2;
                         const dash = (e.dash && e.dash.length > 0) ? 1 : 0;
                         arr.push(idMap.get(e.center.id), f(e.radius), f(e.startAngle), f(e.endAngle), this.couleurCompacte(e.color), width, dash);
+                    }
+                    else if (e instanceof Annotation) {
+                        const ai = (e.ancre && idMap.has(e.ancre.id)) ? idMap.get(e.ancre.id) : -1;
+                        const mCode = GM_ENCRE_MODES.indexOf(e.mode);
+                        /* Le pas de quantification. Les modes ancrés rangent des
+                           fractions de la longueur de l'objet : le millième vaut
+                           0,4 px sur un segment de 40 cm. Les modes libres rangent
+                           des pixels de feuille, où le demi-pixel suffit largement —
+                           et un pas deux fois plus fin coûterait un caractère de plus
+                           par écart, mesuré, sans que personne le voie. */
+                        const libre = (e.mode === 'libre' || e.mode === 'point');
+                        /* Les points d'abord, la description ensuite : c'est la seule
+                           façon de profiter du rognage de queue, qui ne mord que sur
+                           la FIN de la ligne. Un trait ordinaire — noir, fin, opaque,
+                           adouci — s'écrit alors « 14;points;ancre;mode » et rien de
+                           plus. Le centre n'est pas transmis : il se recalcule à la
+                           lecture, c'est le milieu de la boîte des points. */
+                        arr.push(GmEncre.coder(e.local || [], libre ? 2 : 1000),
+                            ai, (mCode < 0 ? 0 : mCode), f(e.L0 || 0),
+                            (e.lisse !== false) ? 1 : 0, this.couleurCompacte(e.color),
+                            f(e.lineWidth || 3),
+                            Math.round((e.opacity !== undefined ? e.opacity : 1) * 100));
                     }
                     /* Rognage de la queue de ligne. L'ancienne version retirait
                        toute valeur terminale égale à "", 2, -0,79 ou 14, sans égard
@@ -14349,11 +14547,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const consigneIntacte = (this.consigneInitiale !== undefined) &&
                     instrHtml.trim() === String(this.consigneInitiale).trim();
                 if (instrHtml && instrHtml.length > 10 && !(consigneIntacte && !isInstrVisible)) {
-                    finalStr += "¦INSTRUCTIONS:" + (isInstrVisible ? "1" : "0") + ";" + encodeURIComponent(instrHtml);
+                    finalStr += "¦INSTRUCTIONS:" + (isInstrVisible ? "1" : "0") + ";" + echapper(instrHtml);
                 }
                 const stepKeys = Object.keys(this.stepInstructions || {});
                 if (stepKeys.length > 0) {
-                    const stepStr = stepKeys.map(k => `${k}=${encodeURIComponent(this.stepInstructions[k])}`).join('|');
+                    const stepStr = stepKeys.map(k => `${k}=${echapper(this.stepInstructions[k], true)}`).join('|');
                     finalStr += "¦STEPS:" + stepStr;
                 }
                 const container = this.canvas.parentElement;
@@ -14501,6 +14699,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.dash = (d[7] == "1") ? [5, 5] : [];
                             obj._tempCenter = parseInt(d[1]);
                         }
+                        else if (typeId === 14) {
+                            obj = new Annotation();
+                            obj.mode = GM_ENCRE_MODES[parseInt(d[3] || 0)] || 'libre';
+                            const libre = (obj.mode === 'libre' || obj.mode === 'point');
+                            obj.local = GmEncre.decoder(d[1] || '', libre ? 2 : 1000);
+                            obj.L0 = parseFloat(d[4] || 0);
+                            obj.lisse = (d[5] !== "0");
+                            obj.color = idx2col(d[6] === undefined || d[6] === '' ? 0 : d[6]);
+                            obj.lineWidth = parseFloat(d[7] || 2);
+                            obj.opacity = (d[8] === undefined || d[8] === '') ? 1 : parseInt(d[8]) / 100;
+                            // le centre n'est pas transmis : c'est le milieu de la
+                            // boîte des points, on le refait ici à l'identique
+                            if (obj.mode === 'marque' && obj.local.length) {
+                                let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+                                obj.local.forEach(q => {
+                                    u0 = Math.min(u0, q.u); u1 = Math.max(u1, q.u);
+                                    v0 = Math.min(v0, q.v); v1 = Math.max(v1, q.v);
+                                });
+                                obj.centre = { u: (u0 + u1) / 2, v: (v0 + v1) / 2 };
+                            }
+                            obj._tempAncre = parseInt(d[2]);
+                        }
                         if (obj) { this.addEntity(obj); tempObjects.push(obj); } else tempObjects.push(null);
                     });
                     const brokenObjects = new Set();
@@ -14526,6 +14746,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (typeId === 10 || typeId === 11) { const p1 = tempObjects[parseInt(d[1])], ref = tempObjects[parseInt(d[2])]; if (!p1 || !ref) brokenObjects.add(obj); else { obj.p1 = p1; obj.refLine = ref; } }
                         else if (typeId === 12) { const c = tempObjects[obj._tempCenter]; if (!c) brokenObjects.add(obj); else obj.center = c; delete obj._tempCenter; }
                         else if (typeId === 13 && obj.targetId !== -1 && tempObjects[obj.targetId]) { obj.targetId = tempObjects[obj.targetId].id; }
+                        else if (typeId === 14) {
+                            /* L'ancre perdue emporte l'encre : ses points sont écrits
+                               en fractions de l'objet annoté, les rattacher à rien les
+                               ramènerait tous vers l'origine de la feuille. */
+                            const anc = (obj._tempAncre >= 0) ? tempObjects[obj._tempAncre] : null;
+                            if (obj._tempAncre >= 0 && !anc) brokenObjects.add(obj);
+                            else obj.ancre = anc;
+                            delete obj._tempAncre;
+                        }
                     });
                     if (brokenObjects.size > 0) this.entities = this.entities.filter(e => !brokenObjects.has(e));
                     if (widgetsBlock) {
@@ -16119,6 +16348,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.croquisNommer = true;
                 this.styloSurligneur = false;
                 this.styloAncrage = true;
+                this.styloAdoucir = true;
+                this.styloEchelle = 'auto';   // 'auto' | 'fixe' | 'suit'
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -16252,6 +16483,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!pan) return;
                         document.getElementById('optStyloAncrage').checked = this.styloAncrage !== false;
                         document.getElementById('optStyloSurligneur').checked = !!this.styloSurligneur;
+                        document.getElementById('optStyloAdoucir').checked = this.styloAdoucir !== false;
+                        document.getElementById('optStyloEchelle').value = this.styloEchelle || 'auto';
                         pan.style.display = 'block';
                         const b = btnSt.getBoundingClientRect(), p2 = pan.getBoundingClientRect();
                         let x = b.right + 8, y = b.top;
@@ -17262,6 +17495,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.mode = e.mode;
                         data.opacity = e.opacity;
                         data.ancreId = e.ancre ? e.ancre.id : null;
+                        data.lisse = (e.lisse !== false);
+                        if (e.L0 !== undefined) data.L0 = e.L0;
+                        if (e.centre) data.centre = e.centre;
                     }
                     return data;
                 }).filter(item => item !== null);
@@ -17298,7 +17534,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         obj = new Annotation(data.id);
                         obj.local = data.local || [];
                         obj.mode = data.mode || 'libre';
+                        if (data.L0 !== undefined) obj.L0 = data.L0;
+                        if (data.centre) obj.centre = data.centre;
                         if (data.opacity !== undefined) obj.opacity = data.opacity;
+                        obj.lisse = (data.lisse !== false);
                         obj._ancreId = data.ancreId || null;
                     } else if (data.type === 'Segment') obj = new Segment(null, null, data.id);
                     else if (data.type === 'Ray') obj = new Ray(null, null, data.id);
@@ -18089,11 +18328,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             poserEncre(trait) {
                 if (!trait || trait.length < 2) { this.render(); return; }
+                /* Le pointeur envoie un point par image : un trait d'une seconde en
+                   compte une soixantaine, presque tous alignés. On les allège d'abord
+                   — tolérance d'un demi-pixel À L'ÉCRAN, donc invisible à tout zoom —
+                   avant de les ranger : cela vaut pour la mémoire, pour l'export et
+                   surtout pour le lien de partage, où chaque point compte. */
+                const net = (trait.length > 3)
+                    ? GmCroquis.simplifier(trait, 0.5 / (this.view.zoom || 1)) : trait;
                 const a = new Annotation();
                 a.color = this.globalStyle.color || '#c0392b';
                 a.lineWidth = (this.globalStyle.width || 3) * (this.styloSurligneur ? 5 : 1);
                 a.opacity = this.styloSurligneur ? 0.35 : 1;
-                a.ancrer(trait, this.choisirAncre(trait));
+                a.lisse = this.styloAdoucir !== false;
+                a.ancrer(net, this.choisirAncre(net), this.styloEchelle || 'auto');
                 this.addEntity(a);
                 this.saveState();
                 this.render();
@@ -18101,6 +18348,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             reglerStylo(quoi, valeur) {
                 if (quoi === 'surligneur') this.styloSurligneur = valeur;
                 else if (quoi === 'ancrage') this.styloAncrage = valeur;
+                else if (quoi === 'echelle') this.styloEchelle = valeur;
+                else if (quoi === 'adoucir') {
+                    this.styloAdoucir = valeur;
+                    /* L'adoucissement n'est qu'une manière de dessiner : on l'applique
+                       aussi aux traits déjà posés, pour que cocher la case se voie
+                       tout de suite au lieu de ne valoir que pour la suite. */
+                    this.entities.forEach(e => { if (e instanceof Annotation) e.lisse = valeur; });
+                    this.saveState();
+                    this.render();
+                }
             }
 
             /* Options du croquis, ouvertes par un appui long — ou par un clic droit
@@ -19201,7 +19458,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     c.lineCap = 'round'; c.lineJoin = 'round';
                     c.setLineDash([]);
                     c.beginPath();
-                    this.traitCroquis.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+                    // au stylo, l'aperçu est arrondi comme le sera le trait posé :
+                    // sinon le tracé change de forme au lever du doigt
+                    Annotation.tracerChemin(this.traitCroquis, c,
+                        auStylo && this.styloAdoucir !== false);
                     c.stroke();
                     c.restore();
                 }
@@ -20073,7 +20333,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return;
                     }
                 }
-                const pointWithClickedLabel = this.entities.slice().reverse().find(ent =>
+                /* Les outils à main levée ne déplacent PAS les étiquettes. Entourer
+                   un nom, le barrer, le souligner : c'est le geste même du stylo, et
+                   l'étiquette occupe une vingtaine de pixels autour de chaque point.
+                   Sans cette exception, poser la mine près d'un nom saisissait
+                   l'étiquette et aucun trait n'était tracé. */
+                const outilEncre = (this.currentTool === 'stylo' || this.currentTool === 'croquis'
+                    || this.currentTool === 'magic_croquis');
+                const pointWithClickedLabel = outilEncre ? null : this.entities.slice().reverse().find(ent =>
                     ent instanceof Point && ent.visible !== false && ent.isLabelHit && ent.isLabelHit(this.ctx, mousePos.x, mousePos.y)
                 );
                 if (pointWithClickedLabel) {
