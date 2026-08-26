@@ -6008,11 +6008,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <circle cx="16" cy="17" r="1" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Texte</strong>Cliquez n'importe où pour écrire, ou sur
-                                un point pour le renommer. Sa barre donne la couleur, la taille, la police, le
-                                <b>gras</b>, l'<i>italique</i>, le <u>souligné</u> et l'<b>encadré</b> — bordure de la
-                                couleur du texte, fond au choix. Le bouton « ? » compose les formules (fractions,
-                                puissances, racines). Double-cliquez sur un texte pour le reprendre : tout revient
-                                comme il était.</div>
+                                un point pour le renommer. Le <b>gras</b>, l'<i>italique</i> et le <u>souligné</u>
+                                s'appliquent à ce qui est <b>sélectionné</b> — un mot, une ligne — ou arment ce que
+                                vous allez taper ; les boutons s'allument selon l'endroit où est le curseur.
+                                L'<b>encadré</b>, lui, entoure tout le texte : bordure de sa couleur, fond au choix.
+                                Le bouton « ? » compose les formules (fractions, puissances, racines).
+                                Double-cliquez sur un texte pour le reprendre : tout revient comme il était.</div>
                         </div>
                         <div class="help-item-row">
                             <div class="help-item-icon"><svg viewBox="0 0 24 24" width="24" height="24"
@@ -10085,6 +10086,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.souligne = false;
                 this.cadre = false;          // encadré : bordure + fond
                 this.fond = '#fff9c4';       // la couleur de fond de l'encadré
+                /* Le style par PASSAGE. Un titre veut un mot en gras, pas tout le
+                   texte. « morceaux » est alors la vérité : une liste de lignes, et
+                   dans chaque ligne une suite de {t, g, i, s} — le texte du passage
+                   et ses trois attributs. « text » reste le texte nu, dérivé, car
+                   tout le reste du logiciel le lit (mesures de repli, listes,
+                   recherche). Quand morceaux est nul, on retombe sur les trois
+                   drapeaux d'ensemble : c'est le cas des figures antérieures. */
+                this.morceaux = null;
+            }
+            /* Le texte, découpé en lignes de passages — quelle que soit la manière
+               dont il a été enregistré. Point de passage unique : le dessin, la
+               mesure et les exports lisent tous ceci, jamais les drapeaux bruts. */
+            lignesRiches() {
+                if (this.morceaux && this.morceaux.length) return this.morceaux;
+                return String(this.text || '').split('\n').map(l => [{
+                    t: l, g: !!this.gras, i: !!this.italique, s: !!this.souligne,
+                }]);
+            }
+            static texteNu(lignes) {
+                return lignes.map(l => l.map(m => m.t).join('')).join('\n');
+            }
+            // la police d'un passage, dans l'ordre qu'impose la propriété « font »
+            policeMorceau(m) {
+                return (m.i ? 'italic ' : '') + (m.g ? 'bold ' : '') + this.fontSize + 'px ' + this.fontFamily;
             }
             /* Le préfixe de style, dans l'ordre qu'impose la propriété raccourcie
                « font » : style, puis graisse, puis taille, puis famille. */
@@ -10101,21 +10126,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                fois moins de large que ses onze caractères, mais deux fois plus haut).
                On mesure donc pour de vrai, avec le contexte du canevas. */
             emprise(ctx) {
-                const lignes = String(this.text || '').split('\n');
+                const riches = this.lignesRiches();
                 const inter = this.fontSize * 1.2;
                 let large = 0, haut = 0;
-                lignes.forEach((l) => {
-                    if (GmFormule.contientFormule(l)) {
-                        const m = GmFormule.composer(ctx, l, this.fontSize, this.fontFamily, this.prefixePolice());
+                riches.forEach((mos) => {
+                    const brut = mos.map(m => m.t).join('');
+                    if (GmFormule.contientFormule(brut)) {
+                        /* Une ligne de formule est composée d'un bloc : le moteur
+                           construit une mise en page entière, on ne peut pas lui
+                           passer un mot en gras au milieu. Elle prend donc le style
+                           de son premier passage — ce qui rend « toute la ligne en
+                           gras », le seul cas qu'on demande vraiment à une formule. */
+                        const st = mos[0] || {};
+                        const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
+                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.fontFamily, pre);
                         large = Math.max(large, m.largeur);
                         haut += Math.max(inter, m.hauteur);
                     } else {
-                        ctx.font = this.prefixePolice() + `${this.fontSize}px ${this.fontFamily}`;
-                        large = Math.max(large, ctx.measureText(l).width);
+                        let l = 0;
+                        mos.forEach(mo => {
+                            ctx.font = this.policeMorceau(mo);
+                            l += ctx.measureText(mo.t).width;
+                        });
+                        large = Math.max(large, l);
                         haut += inter;
                     }
                 });
-                return { largeur: large, hauteur: haut, interligne: inter, lignes: lignes };
+                return { largeur: large, hauteur: haut, interligne: inter, lignes: riches.map(mos => mos.map(m => m.t).join('')) };
             }
             isNear(mx, my) {
                 if (!this.text) return false;
@@ -10139,7 +10176,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!this.text) return;
 
                 const couleur = opts.isHovered ? "#2980b9" : (opts.isSelected ? "#e67e22" : (this.color || "black"));
-                const lignes = this.text.split('\n');
+                const riches = this.lignesRiches();
                 const inter = this.fontSize * 1.2;
 
                 /* L'encadré se dessine AVANT le texte, sinon son fond le recouvrirait.
@@ -10168,28 +10205,93 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = couleur;
 
                 let y = this.y;
-                lignes.forEach((ligne) => {
+                riches.forEach((mos) => {
+                    const brut = mos.map(m => m.t).join('');
                     // Une ligne qui porte une commande, un exposant ou un indice est
                     // composée ; les autres suivent le chemin d'origine, au caractère
                     // près, pour ne rien changer aux figures existantes.
-                    if (GmFormule.contientFormule(ligne)) {
-                        const m = GmFormule.composer(ctx, ligne, this.fontSize, this.fontFamily, this.prefixePolice());
-                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily, this.prefixePolice());
-                        if (this.souligne) this.souligner(ctx, this.x, y + m.hauteur, m.largeur, couleur);
+                    if (GmFormule.contientFormule(brut)) {
+                        const st = mos[0] || {};
+                        const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
+                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.fontFamily, pre);
+                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily, pre);
+                        if (st.s) this.souligner(ctx, this.x, y + m.hauteur, m.largeur, couleur);
                         y += Math.max(inter, m.hauteur);
                         ctx.textAlign = "left";
                         ctx.textBaseline = "top";
                         ctx.fillStyle = couleur;
                     } else {
-                        ctx.font = this.prefixePolice() + `${this.fontSize}px ${this.fontFamily}`;
-                        ctx.fillText(ligne, this.x, y);
-                        if (this.souligne) {
-                            this.souligner(ctx, this.x, y + this.fontSize * 1.08,
-                                ctx.measureText(ligne).width, couleur);
-                        }
+                        /* Chaque passage est écrit avec SA police, et l'on avance de
+                           sa largeur mesurée : c'est ce qui permet un mot en gras au
+                           milieu d'une phrase sans décaler la suite. */
+                        let x = this.x;
+                        mos.forEach((mo) => {
+                            if (!mo.t) return;
+                            ctx.font = this.policeMorceau(mo);
+                            ctx.fillText(mo.t, x, y);
+                            const w = ctx.measureText(mo.t).width;
+                            if (mo.s) this.souligner(ctx, x, y + this.fontSize * 1.08, w, couleur);
+                            x += w;
+                        });
                         y += inter;
                     }
                 });
+            }
+            /* Lit un champ « contenteditable » et en tire des lignes de passages.
+               C'est le navigateur qui produit ce balisage, au fil de execCommand :
+               des <b>, des <i>, des <u>, parfois des <span style="...">, et des
+               <div> ou des <br> pour les retours à la ligne. On ne fait donc pas
+               confiance aux seules balises — le style calculé tranche, ce qui couvre
+               aussi bien <strong> que font-weight:700 posé par le navigateur. */
+            static depuisHTML(racine) {
+                const lignes = [[]];
+                const derniere = () => lignes[lignes.length - 1];
+                const ajouter = (txt, st) => {
+                    if (!txt) return;
+                    const d = derniere();
+                    const p = d[d.length - 1];
+                    // on fusionne avec le passage précédent s'il a le même style :
+                    // le navigateur découpe volontiers là où l'on ne voit rien
+                    if (p && p.g === st.g && p.i === st.i && p.s === st.s) p.t += txt;
+                    else d.push({ t: txt, g: st.g, i: st.i, s: st.s });
+                };
+                const marcher = (n, st) => {
+                    n.childNodes.forEach((e) => {
+                        if (e.nodeType === 3) { ajouter(e.nodeValue, st); return; }
+                        if (e.nodeType !== 1) return;
+                        const tag = e.tagName.toLowerCase();
+                        if (tag === 'br') { lignes.push([]); return; }
+                        // un bloc ouvre une ligne, sauf s'il n'y a encore rien dessus
+                        const bloc = (tag === 'div' || tag === 'p' || tag === 'li');
+                        if (bloc && derniere().length) lignes.push([]);
+                        let cs = null;
+                        try { cs = window.getComputedStyle(e); } catch (err) { cs = null; }
+                        const poids = cs ? parseInt(cs.fontWeight, 10) : 400;
+                        const st2 = {
+                            g: st.g || tag === 'b' || tag === 'strong' || (poids >= 600),
+                            i: st.i || tag === 'i' || tag === 'em' || (cs && cs.fontStyle === 'italic'),
+                            s: st.s || tag === 'u' || (cs && String(cs.textDecorationLine || cs.textDecoration).indexOf('underline') !== -1),
+                        };
+                        marcher(e, st2);
+                    });
+                };
+                marcher(racine, { g: false, i: false, s: false });
+                // une ligne vide en fin de saisie n'est qu'un retour chariot de trop
+                while (lignes.length > 1 && !derniere().length) lignes.pop();
+                return lignes.map(l => l.length ? l : [{ t: '', g: false, i: false, s: false }]);
+            }
+            /* Le chemin inverse : remplir le champ de saisie à partir du modèle,
+               pour que rééditer un texte le retrouve avec ses gras et ses italiques. */
+            versHTML() {
+                const e = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return this.lignesRiches().map(mos => mos.map((m) => {
+                    let h = e(m.t) || '';
+                    if (!h) return '';
+                    if (m.s) h = '<u>' + h + '</u>';
+                    if (m.i) h = '<i>' + h + '</i>';
+                    if (m.g) h = '<b>' + h + '</b>';
+                    return h;
+                }).join('')).join('<br>');
             }
             /* Le soulignement est tracé, pas écrit : le canevas n'a pas d'équivalent
                de text-decoration, et une ligne pleine se place mieux qu'une suite de
@@ -14491,6 +14593,65 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.resetInteraction();
                 this.render();
             }
+            /* Les passages d'un texte, dans un lien. On n'y répète PAS le texte —
+               il est déjà écrit en clair au champ 3 — mais seulement la suite de ses
+               styles, par plages : un chiffre de style (gras 1, italique 2, souligné
+               4) suivi de la longueur de la plage en base 36, les plages séparées par
+               un point. « 06.13.09 » se lit : six caractères ordinaires, trois en
+               gras, neuf ordinaires. Un texte sans le moindre enrichissement rend la
+               chaîne vide, qui est le défaut : il ne paie rien.
+               Les longueurs comptent les caractères du texte nu, retours à la ligne
+               compris — le remplacement des « ; » et des « ¦ » par une espace, plus
+               haut, garde exactement la même longueur. */
+            codeMorceaux(e) {
+                if (!e.morceaux || !e.morceaux.length) return '';
+                const plages = [];
+                let precedent = -1;
+                e.morceaux.forEach((mos, iL) => {
+                    if (iL) { // le retour à la ligne est un caractère du texte nu
+                        if (precedent === 0) plages[plages.length - 1].n += 1;
+                        else { plages.push({ s: 0, n: 1 }); precedent = 0; }
+                    }
+                    mos.forEach((m) => {
+                        if (!m.t) return;
+                        const st = (m.g ? 1 : 0) + (m.i ? 2 : 0) + (m.s ? 4 : 0);
+                        if (st === precedent) plages[plages.length - 1].n += m.t.length;
+                        else { plages.push({ s: st, n: m.t.length }); precedent = st; }
+                    });
+                });
+                if (!plages.some(p => p.s)) return '';
+                return plages.map(p => String(p.s) + p.n.toString(36)).join('.');
+            }
+            /* Le chemin inverse : redécouper le texte nu selon les plages lues. */
+            lireMorceaux(texte, code) {
+                const brut = String(texte == null ? '' : texte);
+                const plages = String(code).split('.').map((p) => ({
+                    s: parseInt(p.charAt(0), 10) || 0,
+                    n: parseInt(p.slice(1), 36) || 0,
+                })).filter(p => p.n > 0);
+                if (!plages.length) return null;
+                const lignes = [[]];
+                let i = 0;
+                plages.forEach((p) => {
+                    const bout = brut.substr(i, p.n);
+                    i += p.n;
+                    // un retour à la ligne dans une plage la coupe en deux
+                    bout.split('\n').forEach((part, k) => {
+                        if (k) lignes.push([]);
+                        if (part) lignes[lignes.length - 1].push({
+                            t: part, g: !!(p.s & 1), i: !!(p.s & 2), s: !!(p.s & 4),
+                        });
+                    });
+                });
+                // le reste, si le code est plus court que le texte : sans style
+                if (i < brut.length) {
+                    brut.slice(i).split('\n').forEach((part, k) => {
+                        if (k) lignes.push([]);
+                        if (part) lignes[lignes.length - 1].push({ t: part, g: false, i: false, s: false });
+                    });
+                }
+                return lignes.map(l => l.length ? l : [{ t: '', g: false, i: false, s: false }]);
+            }
             getCompressedString() {
                 /* Valeur que le DÉCODEUR appliquera si le champ est absent, par type
                    et par position dans la ligne. Toute entrée ajoutée ici doit être
@@ -14509,7 +14670,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     5: { 3: 0, 4: 2, 5: 0, 6: 'none', 7: 0.2 },
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
-                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif", 7: 0, 8: this.couleurCompacte('#fff9c4') },
+                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif", 7: 0, 8: this.couleurCompacte('#fff9c4'), 9: '' },
                     10: { 3: 0, 4: 2, 5: 0 },
                     11: { 3: 0, 4: 2, 5: 0 },
                     12: { 5: 0, 6: 2, 7: 0 },
@@ -14578,7 +14739,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            ne paie rien puisque 0 est le défaut rogné. */
                         const bits = (e.gras ? 1 : 0) + (e.italique ? 2 : 0)
                             + (e.souligne ? 4 : 0) + (e.cadre ? 8 : 0);
-                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), echapper(e.fontFamily || ""), bits, this.couleurCompacte(e.fond));
+                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), echapper(e.fontFamily || ""), bits, this.couleurCompacte(e.fond), this.codeMorceaux(e));
                     }
                     else if (e instanceof Circle) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color), e.lineWidth || 2, (e.dash && e.dash.length > 0) ? 1 : 0, e.fillMode === 'solid' ? 0 : (e.fillMode || 'none'), f(e.opacity !== undefined ? e.opacity : 0.2), this.couleurCompacte(e.fillColor));
@@ -14814,6 +14975,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.gras = !!(bits & 1); obj.italique = !!(bits & 2);
                             obj.souligne = !!(bits & 4); obj.cadre = !!(bits & 8);
                             if (d[8] !== undefined && d[8] !== '') obj.fond = idx2col(d[8]);
+                            if (d[9]) obj.morceaux = this.lireMorceaux(obj.text, d[9]);
                         } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
                         else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
                         else if (typeId === 12) {
@@ -16480,7 +16642,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    sur le champ : la barre l'édite, le champ le montre, l'objet créé
                    le reçoit, et la réédition le recharge. Un seul état, quatre
                    lectures d'accord entre elles. */
-                this.styleTexte = { gras: false, italique: false, souligne: false, cadre: false, fond: '#fff9c4' };
+                this.styleTexte = { cadre: false, fond: '#fff9c4' };
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -16709,7 +16871,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ghost.style.color = targetText.color || '#000000';
                         ghost.style.font = `${targetText.fontSize}px ${targetText.fontFamily}`;
                         ghost.style.display = 'block';
-                        ghost.innerText = targetText.text; // On charge l'ancien texte
+                        // le balisage et non le texte nu : on retrouve ses gras
+                        ghost.innerHTML = targetText.versHTML();
 
                         setTimeout(() => { ghost.focus(); }, 50);
 
@@ -16723,11 +16886,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         tFont.value = targetText.fontFamily || "'Segoe UI', sans-serif";
                         // rééditer, c'est retrouver le texte TEL QU'IL EST : son gras,
                         // son encadré et sa couleur de fond reviennent avec lui
-                        this.styleTexte = {
-                            gras: !!targetText.gras, italique: !!targetText.italique,
-                            souligne: !!targetText.souligne, cadre: !!targetText.cadre,
-                            fond: targetText.fond || '#fff9c4',
-                        };
+                        this.styleTexte = { cadre: !!targetText.cadre, fond: targetText.fond || '#fff9c4' };
                         this.appliquerStyleFantome();
 
                         this.pendingTextCoords = { x: targetText.x, y: targetText.y };
@@ -17630,6 +17789,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.souligne = !!e.souligne;
                         data.cadre = !!e.cadre;
                         data.fond = e.fond;
+                        if (e.morceaux) data.morceaux = e.morceaux;
                     } else {
                         data.p1Id = e.p1?.id;
                         data.p2Id = e.p2?.id;
@@ -17707,6 +17867,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         obj.souligne = !!data.souligne;
                         obj.cadre = !!data.cadre;
                         if (data.fond) obj.fond = data.fond;
+                        if (data.morceaux) obj.morceaux = data.morceaux;
                     }
                     else if (data.type === 'Polygon') {
                         obj = new Polygon([], data.id);
@@ -18499,11 +18660,58 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                preventDefault : sans cela le champ perdrait le focus, et sur mobile
                la saisie se refermerait au premier gras. */
             basculerStyleTexte(quoi) {
-                const s = this.styleTexte;
-                s[quoi] = !s[quoi];
-                this.appliquerStyleFantome();
                 const ghost = document.getElementById('ghostTextInput');
-                if (ghost && ghost.style.display === 'block') ghost.focus();
+                /* L'encadré porte sur tout le texte — c'est une boîte, elle ne peut
+                   pas n'entourer qu'un mot. Le gras, l'italique et le souligné, eux,
+                   portent sur la SÉLECTION : c'est ce qu'on attend d'eux, et sans
+                   sélection ils arment le style de ce qu'on va taper. */
+                if (quoi === 'cadre') {
+                    this.styleTexte.cadre = !this.styleTexte.cadre;
+                    this.appliquerStyleFantome();
+                    if (ghost && ghost.style.display === 'block') ghost.focus();
+                    return;
+                }
+                if (!ghost || ghost.style.display !== 'block') return;
+                ghost.focus();
+                /* Il faut un curseur DANS le champ pour que la commande porte. Le
+                   focus seul ne suffit pas : après un passage par la taille ou la
+                   police de la barre, la sélection n'est plus dans le champ, et
+                   presser « B » n'armait alors rien du tout — mesuré, le texte tapé
+                   ensuite sortait maigre. On replace le curseur en fin de saisie. */
+                const sel = document.getSelection();
+                if (sel && (!sel.rangeCount || !ghost.contains(sel.anchorNode))) {
+                    const r = document.createRange();
+                    r.selectNodeContents(ghost);
+                    r.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+                }
+                const cmd = { gras: 'bold', italique: 'italic', souligne: 'underline' }[quoi];
+                if (!cmd) return;
+                try {
+                    /* En balises et non en styles : on veut des <b>, des <i> et des
+                       <u>, que la relecture reconnaît sans dépendre du style calculé
+                       — et qui survivent au copier-coller. */
+                    document.execCommand('styleWithCSS', false, false);
+                    document.execCommand(cmd, false, null);
+                } catch (e) { /* navigateur sans execCommand : rien de cassé, rien de gras */ }
+                this.majBoutonsStyleTexte();
+            }
+            /* Allume les boutons selon ce qui est vrai LÀ OÙ EST LE CURSEUR. Appelé
+               au moindre déplacement de la sélection : c'est ce qui fait qu'on voit
+               « gras » s'allumer en entrant dans un mot gras. */
+            majBoutonsStyleTexte() {
+                const ghost = document.getElementById('ghostTextInput');
+                const ouvert = ghost && ghost.style.display === 'block';
+                const etat = (cmd) => {
+                    if (!ouvert) return false;
+                    try { return document.queryCommandState(cmd); } catch (e) { return false; }
+                };
+                const paires = { btnTexteGras: 'bold', btnTexteItal: 'italic', btnTexteSoul: 'underline' };
+                Object.keys(paires).forEach((id) => {
+                    const b = document.getElementById(id);
+                    if (b) b.classList.toggle('actif', etat(paires[id]));
+                });
             }
             /* Reporte le style courant sur le champ de saisie et sur l'état visible
                des boutons. Le champ montre le gras et l'italique tels quels ; pour
@@ -18512,17 +18720,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             appliquerStyleFantome() {
                 const s = this.styleTexte;
                 const ghost = document.getElementById('ghostTextInput');
-                const paires = { gras: 'btnTexteGras', italique: 'btnTexteItal', souligne: 'btnTexteSoul', cadre: 'btnTexteCadre' };
-                Object.keys(paires).forEach(k => {
-                    const b = document.getElementById(paires[k]);
-                    if (b) b.classList.toggle('actif', !!s[k]);
-                });
+                const bc = document.getElementById('btnTexteCadre');
+                if (bc) bc.classList.toggle('actif', !!s.cadre);
+                this.majBoutonsStyleTexte();
                 const fond = document.getElementById('ghostTextFond');
                 if (fond) { fond.style.display = s.cadre ? 'block' : 'none'; fond.value = s.fond || '#fff9c4'; }
                 if (!ghost) return;
-                ghost.style.fontWeight = s.gras ? '700' : '400';
-                ghost.style.fontStyle = s.italique ? 'italic' : 'normal';
-                ghost.style.textDecoration = s.souligne ? 'underline' : 'none';
                 if (s.cadre) {
                     const t = parseInt(document.getElementById('ghostTextSize').value, 10) || 16;
                     const mg = Math.max(6, t * 0.45);
@@ -19103,6 +19306,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ghost.addEventListener('focus', () => {
                         ghost.dataset.session = String(this.jetonTexte || 0);
                     });
+                    /* Les boutons suivent le curseur : entrer dans un mot gras doit
+                       allumer « B », en sortir l'éteindre. selectionchange est le seul
+                       événement qui couvre à la fois la souris, le clavier et la
+                       poignée de sélection tactile. */
+                    document.addEventListener('selectionchange', () => {
+                        if (ghost.style.display !== 'block') return;
+                        const sel = document.getSelection();
+                        if (!sel || !sel.anchorNode || !ghost.contains(sel.anchorNode)) return;
+                        this.majBoutonsStyleTexte();
+                    });
                     ghost.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
                             e.preventDefault();
@@ -19192,7 +19405,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // On clôt la session AVANT tout : le ghost.blur() ci-dessous
                 // déclencherait sinon un second passage ici.
                 this.jetonTexte = (this.jetonTexte || 0) + 1;
-                const txt = ghost.innerText;
+                /* On lit le champ AVANT de le vider : ses passages en gras et en
+                   italique sont dans son balisage, pas dans innerText. */
+                const riches = TextLabel.depuisHTML(ghost);
+                const txt = TextLabel.texteNu(riches);
                 // Referme le clavier logiciel : sur mobile il resterait ouvert
                 // au-dessus d'un champ devenu invisible.
                 if (document.activeElement === ghost) ghost.blur();
@@ -19210,9 +19426,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     label.fontSize = parseInt(tSize.value, 10);
                     label.fontFamily = tFont.value;
                     const st = this.styleTexte || {};
-                    label.gras = !!st.gras; label.italique = !!st.italique;
-                    label.souligne = !!st.souligne; label.cadre = !!st.cadre;
+                    label.cadre = !!st.cadre;
                     label.fond = st.fond || '#fff9c4';
+                    /* On ne garde les passages que s'il y a vraiment quelque chose à
+                       dire : un texte sans le moindre enrichissement retombe sur le
+                       chemin d'origine, ce qui allège la mémoire comme le lien. */
+                    const orne = riches.some(l => l.some(m => m.g || m.i || m.s));
+                    label.morceaux = orne ? riches : null;
                     this.addEntity(label);
                     this.saveState();
                     this.render();
@@ -20155,11 +20375,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (e instanceof TextLabel) {
                         const fs = e.fontSize || 16;
                         const ff = policePDF(e.fontFamily);
-                        const stylePol = e.prefixePolice ? e.prefixePolice() : '';
-                        const attrsPol = (e.italique ? ' font-style="italic"' : '')
-                            + (e.gras ? ' font-weight="bold"' : '');
-
-                        const lines = e.text.split('\n');
+                        const riches = e.lignesRiches();
                         const lineHeight = fs * 1.2;
 
                         /* L'encadré d'abord, comme à l'écran : c'est un fond, il passe
@@ -20180,24 +20396,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            interdit à l'export de diverger du canevas — l'erreur qu'on
                            avait faite pour les longueurs, calculées deux fois. */
                         let yLigne = e.y;
-                        lines.forEach((line) => {
-                            if (GmFormule.contientFormule(line)) {
-                                const m = GmFormule.composer(this.ctx, line, fs, e.fontFamily || 'sans-serif', stylePol);
-                                svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff, stylePol);
-                                if (e.souligne) svgContent += `<rect x="${e.x}" y="${yLigne + m.hauteur}"` +
+                        riches.forEach((mos) => {
+                            const brut = mos.map(m => m.t).join('');
+                            if (GmFormule.contientFormule(brut)) {
+                                const st = mos[0] || {};
+                                const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
+                                const m = GmFormule.composer(this.ctx, brut, fs, e.fontFamily || 'sans-serif', pre);
+                                svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff, pre);
+                                if (st.s) svgContent += `<rect x="${e.x}" y="${yLigne + m.hauteur}"` +
                                     ` width="${m.largeur}" height="${Math.max(1, fs / 14)}" fill="${color}"/>`;
                                 yLigne += Math.max(lineHeight, m.hauteur);
                             } else {
-                                const safeText = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                                svgContent += `<text x="${e.x}" y="${yLigne}" font-family="${ff}" font-size="${fs}"` + attrsPol + ` fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
-                                if (e.souligne && this.ctx) {
-                                    this.ctx.save();
-                                    this.ctx.font = stylePol + fs + 'px ' + (e.fontFamily || 'sans-serif');
-                                    const w = this.ctx.measureText(line).width;
-                                    this.ctx.restore();
-                                    svgContent += `<rect x="${e.x}" y="${yLigne + fs * 1.08}"` +
+                                /* Un <text> par passage, posé à l'abscisse où le
+                                   canevas l'a mis : la largeur vient de la MÊME mesure
+                                   qu'à l'écran, sinon l'export dériverait dès le
+                                   premier mot en gras. */
+                                let xM = e.x;
+                                mos.forEach((mo) => {
+                                    if (!mo.t) return;
+                                    const safeText = mo.t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                    const attrs = (mo.i ? ' font-style="italic"' : '') + (mo.g ? ' font-weight="bold"' : '');
+                                    svgContent += `<text x="${xM}" y="${yLigne}" font-family="${ff}" font-size="${fs}"` + attrs + ` fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                                    let w = 0;
+                                    if (this.ctx) {
+                                        this.ctx.save();
+                                        this.ctx.font = e.policeMorceau(mo);
+                                        w = this.ctx.measureText(mo.t).width;
+                                        this.ctx.restore();
+                                    }
+                                    if (mo.s) svgContent += `<rect x="${xM}" y="${yLigne + fs * 1.08}"` +
                                         ` width="${w}" height="${Math.max(1, fs / 14)}" fill="${color}"/>`;
-                                }
+                                    xM += w;
+                                });
                                 yLigne += lineHeight;
                             }
                         });
