@@ -6073,6 +6073,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                     <div class="help-tool-row">
                         <div class="help-tool-text" style="flex:1;">
+                            <h4>Le stylo — annoter sans rien créer</h4>
+                            <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 8px;">Le jumeau du
+                                croquis : même geste, intention inverse. Il pose de l'<b>encre</b>, qui n'entre pas
+                                dans la figure, ne compte pas comme étape de construction et reste visible pendant
+                                le rejeu.</p>
+                            <ul>
+                                <li><strong>L'encre suit ce qu'elle annote.</strong> Codez un angle : la marque se
+                                    déplace, tourne et s'adapte avec lui. Barrez un segment : la barre le suit.
+                                    Dessinez à l'écart : l'encre reste sur la feuille, comme un décor.</li>
+                                <li><strong>Appui long sur l'outil</strong> (ou clic droit) : le <b>surligneur</b>
+                                    — trait large et translucide — et l'ancrage, débrayable.</li>
+                                <li>Couleur et épaisseur viennent de la palette de style.</li>
+                                <li>Supprimer l'objet annoté emporte son encre : elle le décrivait.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="help-tool-row">
+                        <div class="help-tool-text" style="flex:1;">
                             <h4>Le croquis à main levée</h4>
                             <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 8px;">Dessinez la figure
                                 d'un seul trait : elle est reconnue, puis <b>construite pour de vrai</b> — points
@@ -6846,6 +6864,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <path d="M11.5 17.5l-3.6.9.9-3.6L18 5.6a1.9 1.9 0 012.7 2.7l-9.2 9.2z" />
                     <path d="M3 20.5c1.6-2.6 3.2.9 4.8-1.2" stroke-width="1.8" />
                     <path d="M5.6 6.8V3.4M3.9 5.1h3.4" stroke-width="1.7" opacity="0.8" />
+                </svg>
+            </button>
+            <!-- Le stylo simple, jumeau du magique : même geste, intention inverse.
+                 Il ne transforme rien et n'entre pas dans la construction. -->
+            <button class="tool-btn" id="btnStylo" onclick="app.setTool('stylo')" aria-label="Stylo, annotation libre"
+                data-tooltip="Stylo : annoter sans créer de figure — appui long : options">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.5 17.5l-3.6.9.9-3.6L19 5.6a1.9 1.9 0 012.7 2.7l-9.2 9.2z" />
+                    <path d="M2.5 20.6c1.7-2.7 3.4 1 5.1-1.3" />
                 </svg>
             </button>
             <div class="group-label" onclick="app.toggleInstrumentsDock()" data-tooltip="Détacher la trousse d'instruments"
@@ -7629,6 +7657,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 onchange="app.reglerCroquis('droiteLongue', this.checked)"><span>Trait long → droite<i>au-delà d'un demi-écran</i></span></label>
         <label class="croquis-opt"><input type="checkbox" id="optCroquisBord" checked
                 onchange="app.reglerCroquis('bord', this.checked)"><span>Vers le bord → demi-droite<i>les deux bords → droite</i></span></label>
+    </div>
+    <div id="styloOptions"
+        style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:246px; font-family:'Segoe UI', sans-serif; font-size:13px;">
+        <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Stylo</div>
+        <label class="croquis-opt"><input type="checkbox" id="optStyloAncrage" checked
+                onchange="app.reglerStylo('ancrage', this.checked)"><span>L'encre suit la figure<i>elle se déplace et tourne avec l'objet annoté</i></span></label>
+        <label class="croquis-opt"><input type="checkbox" id="optStyloSurligneur"
+                onchange="app.reglerStylo('surligneur', this.checked)"><span>Surligneur<i>trait large et translucide</i></span></label>
     </div>
     <div id="croquisModal" class="modal-overlay" style="display:none;">
         <div class="modal-box" style="max-width: 420px;">
@@ -10459,6 +10495,119 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.stroke();
                     ctx.restore();
                 }
+            }
+        }
+        /* ============================================================
+           ENCRE LIBRE — le stylo qui ne transforme rien
+           ------------------------------------------------------------
+           Annoter une figure dynamique pose une question qu'on ne peut pas
+           esquiver : si l'on code un angle et qu'on bouge l'angle, que devient la
+           marque ? Une encre posée en coordonnées de feuille resterait sur place
+           et deviendrait fausse — pire que pas d'annotation du tout.
+
+           L'encre est donc rangée dans le REPÈRE de ce qu'elle annote. Un repère
+           se ramène toujours à deux points de référence A et B : origine A, axe
+           des x le long de A→B, unité |AB|. Chaque point d'encre est stocké en
+           (u, v) dans cette base, et reconstruit à chaque rendu. Bouger, tourner
+           ou étirer la figure emmène l'encre avec elle, exactement.
+
+           Trois cas :
+           - segment, droite, demi-droite : (p1, p2) ;
+           - cercle : (centre, point du bord) ;
+           - angle : (sommet, première branche) — c'est le cas demandé ;
+           - point seul : pas de direction, donc translation seule, sinon une
+             annotation manuscrite tournerait sans raison ;
+           - rien à proximité : coordonnées de feuille, décor pur.
+           ============================================================ */
+        class Annotation extends GeometryObject {
+            constructor(id) {
+                super(null, null, id);
+                this.local = [];        // points dans le repère de l'ancre
+                this.ancre = null;      // entité de référence, ou null
+                this.mode = 'libre';    // 'libre' | 'point' | 'deux'
+                this.color = '#c0392b';
+                this.lineWidth = 3;
+                this.opacity = 1;       // < 1 pour le surligneur
+            }
+            /* Les deux points de référence d'une entité, s'ils existent. */
+            static repere(ent) {
+                if (!ent) return null;
+                if (ent instanceof Angle) return (ent.p2 && ent.p1) ? { A: ent.p2, B: ent.p1 } : null;
+                if (ent instanceof Circle || ent instanceof CompassCircle) return (ent.p1 && ent.p2) ? { A: ent.p1, B: ent.p2 } : null;
+                if (ent instanceof LinearObject) return (ent.p1 && ent.p2) ? { A: ent.p1, B: ent.p2 } : null;
+                if (ent instanceof Point) return { A: ent, B: null };
+                return null;
+            }
+            /* Range un tracé du monde vers le repère choisi. */
+            ancrer(ptsMonde, ent) {
+                const r = Annotation.repere(ent);
+                this.ancre = (r ? ent : null);
+                if (!r) {
+                    this.mode = 'libre';
+                    this.local = ptsMonde.map(p => ({ u: p.x, v: p.y }));
+                    return;
+                }
+                if (!r.B) {
+                    this.mode = 'point';
+                    this.local = ptsMonde.map(p => ({ u: p.x - r.A.x, v: p.y - r.A.y }));
+                    return;
+                }
+                const dx = r.B.x - r.A.x, dy = r.B.y - r.A.y;
+                const L2 = dx * dx + dy * dy;
+                if (L2 < 1e-6) { this.mode = 'point'; this.local = ptsMonde.map(p => ({ u: p.x - r.A.x, v: p.y - r.A.y })); return; }
+                this.mode = 'deux';
+                this.local = ptsMonde.map(p => {
+                    const ex = p.x - r.A.x, ey = p.y - r.A.y;
+                    return { u: (ex * dx + ey * dy) / L2, v: (-ex * dy + ey * dx) / L2 };
+                });
+            }
+            versMonde() {
+                if (this.mode === 'libre' || !this.ancre) return this.local.map(q => ({ x: q.u, y: q.v }));
+                const r = Annotation.repere(this.ancre);
+                if (!r) return this.local.map(q => ({ x: q.u, y: q.v }));
+                if (this.mode === 'point' || !r.B) return this.local.map(q => ({ x: r.A.x + q.u, y: r.A.y + q.v }));
+                const dx = r.B.x - r.A.x, dy = r.B.y - r.A.y;
+                return this.local.map(q => ({
+                    x: r.A.x + q.u * dx - q.v * dy,
+                    y: r.A.y + q.u * dy + q.v * dx,
+                }));
+            }
+            draw(ctx, o) {
+                const pts = this.versMonde();
+                if (pts.length < 2) return;
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.strokeStyle = (o && o.isToDelete) ? '#e74c3c' : this.color;
+                ctx.lineWidth = this.lineWidth * ((o && o.isHovered) ? 1.35 : 1);
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+                ctx.stroke();
+                ctx.restore();
+            }
+            isNear(mx, my) {
+                const pts = this.versMonde();
+                const tol = Math.max(8, this.lineWidth);
+                for (let i = 1; i < pts.length; i++) {
+                    if (MathUtils.distanceToSegment(mx, my, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y) < tol) return true;
+                }
+                return false;
+            }
+            emprise() {
+                const pts = this.versMonde();
+                if (!pts.length) return null;
+                let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+                pts.forEach(p => { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
+                return { x0, y0, x1, y1 };
+            }
+            versSVG() {
+                const pts = this.versMonde();
+                if (pts.length < 2) return '';
+                const n = (v) => Math.round(v * 100) / 100;
+                const d = pts.map((p, i) => (i ? 'L' : 'M') + n(p.x) + ',' + n(p.y)).join(' ');
+                return `<path d="${d}" fill="none" stroke="${this.color}" stroke-width="${n(this.lineWidth)}"` +
+                    ` stroke-linecap="round" stroke-linejoin="round" opacity="${this.opacity}"/>`;
             }
         }
         class Polygon extends GeometryObject {
@@ -15226,7 +15375,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.entities.forEach(e => {
                     if (e.visible === false) return;
 
-                    if (e instanceof Point) {
+                    if (e instanceof Annotation) {
+                        // l'encre compte dans le cadrage : une annotation en marge ne
+                        // doit pas être rognée à l'export
+                        const b = e.emprise();
+                        if (b) { extend(b.x0, b.y0); extend(b.x1, b.y1); }
+                    }
+                    else if (e instanceof Point) {
                         extend(e.x, e.y);
                     }
                     else if (e instanceof TextLabel) {
@@ -15962,6 +16117,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.croquisDroiteLongue = true;
                 this.croquisBordDemiDroite = true;
                 this.croquisNommer = true;
+                this.styloSurligneur = false;
+                this.styloAncrage = true;
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -16085,6 +16242,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Appui long sur l'outil croquis : ses options. Au doigt il n'y a pas
                    d'infobulle, et les réglages doivent être là où l'on travaille. Le
                    clic droit fait la même chose à la souris. */
+                /* Le stylo a lui aussi ses options à l'appui long, au même endroit
+                   et par le même geste que le stylo magique. */
+                const btnSt = document.getElementById('btnStylo');
+                if (btnSt) {
+                    let minSt = null;
+                    const ouvrirSt = () => {
+                        const pan = document.getElementById('styloOptions');
+                        if (!pan) return;
+                        document.getElementById('optStyloAncrage').checked = this.styloAncrage !== false;
+                        document.getElementById('optStyloSurligneur').checked = !!this.styloSurligneur;
+                        pan.style.display = 'block';
+                        const b = btnSt.getBoundingClientRect(), p2 = pan.getBoundingClientRect();
+                        let x = b.right + 8, y = b.top;
+                        if (x + p2.width > window.innerWidth - 6) x = Math.max(6, b.left - p2.width - 8);
+                        y = Math.max(6, Math.min(y, window.innerHeight - p2.height - 6));
+                        pan.style.left = Math.round(x) + 'px';
+                        pan.style.top = Math.round(y) + 'px';
+                    };
+                    const desSt = () => { clearTimeout(minSt); minSt = null; };
+                    btnSt.addEventListener('pointerdown', () => { desSt(); minSt = setTimeout(() => { minSt = null; ouvrirSt(); }, 500); });
+                    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btnSt.addEventListener(t, desSt));
+                    btnSt.addEventListener('contextmenu', (e) => { e.preventDefault(); desSt(); ouvrirSt(); });
+                    document.addEventListener('pointerdown', (e) => {
+                        const pan = document.getElementById('styloOptions');
+                        if (!pan || pan.style.display === 'none') return;
+                        if (pan.contains(e.target) || btnSt.contains(e.target)) return;
+                        pan.style.display = 'none';
+                    }, true);
+                }
                 const btnCr = document.getElementById('btnCroquis');
                 if (btnCr) {
                     let minCr = null;
@@ -17070,6 +17256,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.p1Id = e.p1?.id;
                         data.p2Id = e.p2?.id;
                     }
+                    if (e instanceof Annotation) {
+                        // l'ancre est notée par son identifiant, comme les autres liens
+                        data.local = e.local;
+                        data.mode = e.mode;
+                        data.opacity = e.opacity;
+                        data.ancreId = e.ancre ? e.ancre.id : null;
+                    }
                     return data;
                 }).filter(item => item !== null);
                 return JSON.stringify(state);
@@ -17101,6 +17294,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (data.fontSize !== undefined) obj.fontSize = data.fontSize;
                         if (data.visible !== undefined) obj.visible = data.visible;
                         if (data.showLabel !== undefined) obj.showLabel = data.showLabel;
+                    } else if (data.type === 'Annotation') {
+                        obj = new Annotation(data.id);
+                        obj.local = data.local || [];
+                        obj.mode = data.mode || 'libre';
+                        if (data.opacity !== undefined) obj.opacity = data.opacity;
+                        obj._ancreId = data.ancreId || null;
                     } else if (data.type === 'Segment') obj = new Segment(null, null, data.id);
                     else if (data.type === 'Ray') obj = new Ray(null, null, data.id);
                     else if (data.type === 'Line') obj = new Line(null, null, data.id);
@@ -17170,6 +17369,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         };
                     } else if (data.type === 'Arc') {
                         obj.center = idMap.get(data.centerId);
+                    } else if (data.type === 'Annotation') {
+                        // ancre perdue (objet supprimé depuis) : l'encre redevient du décor
+                        obj.ancre = data.ancreId ? (idMap.get(data.ancreId) || null) : null;
+                        if (!obj.ancre) obj.mode = 'libre';
                     } else if (data.type === 'Polygon') {
                         obj.points = data.pointIds.map(pid => idMap.get(pid)).filter(p => p);
                     } else if (data.type === 'ParallelLine' || data.type === 'PerpendicularLine') {
@@ -17412,7 +17615,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (btn) btn.classList.add('active');
                 }
                 
-                if (toolName === 'croquis') {
+                if (toolName === 'stylo') {
+                    this.canvas.style.cursor = 'crosshair';
+                    this.showToast('🖊️ Annotez librement — rien ne sera transformé');
+                } else if (toolName === 'croquis') {
                     this.canvas.style.cursor = 'crosshair';
                     this.showToast('✏️ ' + GM_CONSIGNE_CROQUIS);
                 } else if (toolName.startsWith('magic_')) {
@@ -17830,6 +18036,71 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // cercle, segment, triangle quelconque : rien à construire de plus
                 this.isMagicConstructing = false;
                 return this.construireCroquisSimple(res, true);
+            }
+
+            /* Pose un trait d'encre, ancré à ce qu'il annote. L'ancre est choisie
+               par le CENTRE du tracé : entourer un sommet vise l'angle, barrer un
+               segment vise le segment. L'angle passe avant le point, sinon coder un
+               angle donnerait une marque qui ne tournerait pas avec lui — c'est
+               justement le cas qui motive tout ce mécanisme. */
+            choisirAncre(pts) {
+                if (this.styloAncrage === false) return null;
+                let cx = 0, cy = 0;
+                pts.forEach(p => { cx += p.x / pts.length; cy += p.y / pts.length; });
+                let etendue = 0;
+                pts.forEach(p => { etendue = Math.max(etendue, Math.hypot(p.x - cx, p.y - cy)); });
+                /* Portée = rayon du tracé PLUS une marge. Un arc de codage entoure
+                   son sommet : il est à distance de lui par construction, et une
+                   portée proportionnelle au seul rayon le manquait d'un pixel —
+                   mesuré, le sommet tombait à 54 px pour une portée de 53. La marge
+                   fixe règle le cas sans ouvrir la porte aux ancres lointaines. */
+                const portee = etendue + 35;
+                // distance du centre du tracé à l'entité, chacune selon sa nature
+                const distance = (e) => {
+                    if (e instanceof Angle) return e.p2 ? Math.hypot(e.p2.x - cx, e.p2.y - cy) : Infinity;
+                    if (e instanceof Circle || e instanceof CompassCircle) {
+                        if (!e.p1 || !e.p2) return Infinity;
+                        const r = Math.hypot(e.p2.x - e.p1.x, e.p2.y - e.p1.y);
+                        return Math.abs(Math.hypot(cx - e.p1.x, cy - e.p1.y) - r);
+                    }
+                    if (e instanceof LinearObject) {
+                        if (!e.p1 || !e.p2) return Infinity;
+                        return (e instanceof Segment)
+                            ? MathUtils.distanceToSegment(cx, cy, e.p1.x, e.p1.y, e.p2.x, e.p2.y)
+                            : MathUtils.distanceToLine(cx, cy, e.p1, e.p2, e.constructor.name);
+                    }
+                    if (e instanceof Point) return Math.hypot(e.x - cx, e.y - cy);
+                    return Infinity;
+                };
+                // l'angle passe avant la ligne, qui passe avant le point : coder un
+                // angle doit donner une marque qui TOURNE avec lui
+                const rang = (e) => (e instanceof Angle) ? 0
+                    : (e instanceof Circle || e instanceof CompassCircle || e instanceof LinearObject) ? 1
+                        : (e instanceof Point) ? 2 : 9;
+                let best = null, bestRang = 9, bestDist = Infinity;
+                this.entities.forEach(e => {
+                    const r = rang(e);
+                    if (r === 9 || e.visible === false || !Annotation.repere(e)) return;
+                    const dd = distance(e);
+                    if (!isFinite(dd) || dd > portee) return;
+                    if (r < bestRang || (r === bestRang && dd < bestDist)) { best = e; bestRang = r; bestDist = dd; }
+                });
+                return best;
+            }
+            poserEncre(trait) {
+                if (!trait || trait.length < 2) { this.render(); return; }
+                const a = new Annotation();
+                a.color = this.globalStyle.color || '#c0392b';
+                a.lineWidth = (this.globalStyle.width || 3) * (this.styloSurligneur ? 5 : 1);
+                a.opacity = this.styloSurligneur ? 0.35 : 1;
+                a.ancrer(trait, this.choisirAncre(trait));
+                this.addEntity(a);
+                this.saveState();
+                this.render();
+            }
+            reglerStylo(quoi, valeur) {
+                if (quoi === 'surligneur') this.styloSurligneur = valeur;
+                else if (quoi === 'ancrage') this.styloAncrage = valeur;
             }
 
             /* Options du croquis, ouvertes par un appui long — ou par un clic droit
@@ -18920,9 +19191,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // trace du croquis en cours : visible pendant le geste, jamais gardée
                 if (this.traitCroquis && this.traitCroquis.length > 1 && !this.isExporting) {
                     const c = this.ctx;
+                    const auStylo = (this.currentTool === 'stylo');
                     c.save();
-                    c.strokeStyle = 'rgba(41,128,185,0.75)';
-                    c.lineWidth = 2.5 / (this.view.zoom || 1);
+                    c.globalAlpha = auStylo ? (this.styloSurligneur ? 0.35 : 1) : 1;
+                    c.strokeStyle = auStylo ? (this.globalStyle.color || '#c0392b') : 'rgba(41,128,185,0.75)';
+                    c.lineWidth = auStylo
+                        ? (this.globalStyle.width || 3) * (this.styloSurligneur ? 5 : 1)
+                        : 2.5 / (this.view.zoom || 1);
                     c.lineCap = 'round'; c.lineJoin = 'round';
                     c.setLineDash([]);
                     c.beginPath();
@@ -18967,9 +19242,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     'Segment': 1,
                     'ParallelLine': 1,
                     'PerpendicularLine': 1,
-                    'Point': 2
+                    'Point': 2,
+                    'Annotation': 3
                 };
+                /* L'encre n'est pas une étape de construction : elle commente la
+                   figure finie. Elle reste donc visible pendant le rejeu, quelle que
+                   soit la position du curseur de lecture. */
                 const toDraw = this.entities.slice(0, limit);
+                if (limit < this.entities.length) {
+                    for (let i = limit; i < this.entities.length; i++) {
+                        if (this.entities[i] instanceof Annotation) toDraw.push(this.entities[i]);
+                    }
+                }
                 toDraw.sort((a, b) => {
                     const zA = zIndex[a.constructor.name] || 0;
                     const zB = zIndex[b.constructor.name] || 0;
@@ -19368,7 +19652,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const strokeW = e.lineWidth || 2;
                     const dash = e.dash && e.dash.length > 0 ? `stroke-dasharray="${e.dash.join(',')}"` : "";
 
-                    if (e instanceof Polygon) {
+                    if (e instanceof Annotation) {
+                        // l'encre part à l'export comme décor, avec sa transparence
+                        svgContent += e.versSVG();
+                    }
+                    else if (e instanceof Polygon) {
                         const pts = e.points.map(p => `${p.x},${p.y}`).join(' ');
                         let fillAttr = `fill="${color}" fill-opacity="${e.opacity !== undefined ? e.opacity : 0.2}"`;
                         if (e.fillMode === 'none') fillAttr = 'fill="none"';
@@ -19948,7 +20236,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return;
                 }
 
-                if (this.currentTool === 'magic_croquis' || this.currentTool === 'croquis') {
+                if (this.currentTool === 'magic_croquis' || this.currentTool === 'croquis'
+                    || this.currentTool === 'stylo') {
                     // début du tracé : on n'accumule que des points, rien n'est décidé
                     // avant le relâchement
                     const dep = this.getMousePos(e);
@@ -20244,7 +20533,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                             });
                         }
-                        this.entities = this.entities.filter(e => !listToDelete.includes(e));
+                        /* L'encre ancrée à un objet supprimé n'a plus de sens : elle
+                           décrivait cet objet. On l'emporte avec lui plutôt que de la
+                           laisser flotter, ou pire, revenir à des coordonnées de
+                           feuille et se retrouver ailleurs. */
+                        const encresOrphelines = this.entities.filter(e =>
+                            e instanceof Annotation && e.ancre && listToDelete.includes(e.ancre));
+                        const aRetirer = listToDelete.concat(encresOrphelines);
+                        this.entities = this.entities.filter(e => !aRetirer.includes(e));
                         this.toDeletePreview = [];
                         this.selectedObject = null;
                     }
@@ -20930,8 +21226,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.traitCroquis) {
                     const trait = this.traitCroquis;
                     const question = (this.currentTool === 'magic_croquis');
+                    const encre = (this.currentTool === 'stylo');
                     this.traitCroquis = null;
-                    this.construireCroquis(trait, question);
+                    if (encre) this.poserEncre(trait);
+                    else this.construireCroquis(trait, question);
                     return;
                 }
 
@@ -25296,7 +25594,7 @@ var qrcode = function() {
                         var a = window.app;
                         return !!a && (a.currentTool === 'pan' || a.isPanning
                             || a.currentTool === 'magic_croquis' || a.currentTool === 'croquis'
-                            || !!a.traitCroquis);
+                            || a.currentTool === 'stylo' || !!a.traitCroquis);
                     };
 
                     var minuterie = null;
