@@ -2556,7 +2556,6 @@
         body.mode-lecture #btnHelp,
         body.mode-lecture #contextMenu,
         body.mode-lecture #donateBtn,
-        body.mode-lecture #miniMapContainer,
         body.mode-lecture #panel-toggle,
         body.mode-lecture #panelToggle,
         body.mode-lecture #replayBar,
@@ -6268,13 +6267,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         </div>
     </div>
     <div id="toast-notification">Message par défaut</div>
-    <div id="miniMapContainer" style="display:none;">
-        <div class="minimap-header">
-            <span>🗺️ Aperçu</span>
-            <button onclick="app.toggleMiniMap()">×</button>
-        </div>
-        <canvas id="miniGeoCanvas" width="250" height="180"></canvas>
-    </div>
+    <!-- L'aperçu miniature a été retiré : rien ne l'ouvrait, rien ne dessinait
+         dans son canevas, et sa croix appelait une fonction inexistante — un
+         clic dessus levait « app.toggleMiniMap is not a function ». -->
     <header>
         <div class="logo">Géomaster</div>
         <input type="text" id="docTitleInput" value="Sans titre" placeholder="Nom du projet..."
@@ -7904,7 +7899,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <div id="record-action-btn" style="display:none;">
     </div>
     <div id="video-cursor-highlight" class="cursor-highlighter"></div>
-    <video id="webcam-pip" style="display:none;" autoplay muted></video>
     <div id="previewModal">
         <div class="phone-mockup">
             <iframe id="previewFrame"></iframe>
@@ -12069,6 +12063,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 this.refreshStepInstructionUI();
             }
+            /* Le bouton « 💡 Étape » de la barre des consignes n'avait jamais eu de
+               fonction : cliquer dessus levait « app.toggleStepInstruction is not a
+               function ». Ce qu'il promet — « ajouter une consigne à cette étape » —
+               c'est d'attacher le texte du panneau à l'endroit où en est le rejeu,
+               ce que le studio de scénario fait déjà par un autre chemin
+               (addStepFromStudio). On le lui donne, avec la même mécanique.
+               « toggle » n'est pas un mot en l'air : rappuyer sur une étape déjà
+               annotée retire sa consigne, sans quoi on ne pourrait plus la défaire. */
+            toggleStepInstruction() {
+                const zone = document.getElementById('instrContent');
+                const texte = zone ? (zone.innerText || '').trim() : '';
+                if (!this.stepInstructions) this.stepInstructions = {};
+                /* L'index de l'étape : là où en est le rejeu s'il est commencé,
+                   sinon la fin de la figure — « à partir d'ici ». */
+                const enCours = this.replayIndex > 0 && this.replayIndex < this.entities.length;
+                const index = enCours ? this.replayIndex : this.entities.length;
+                if (this.stepInstructions[index] !== undefined && !texte) {
+                    delete this.stepInstructions[index];
+                    this.saveState();
+                    this.refreshStepInstructionUI();
+                    this.showToast(`Consigne retirée de l'étape ${index}`);
+                    return;
+                }
+                if (!texte) { this.showToast("Écrivez d'abord la consigne dans le panneau"); return; }
+                if (this.stepInstructions[index] === texte) {
+                    delete this.stepInstructions[index];
+                    this.saveState();
+                    this.refreshStepInstructionUI();
+                    this.showToast(`Consigne retirée de l'étape ${index}`);
+                    return;
+                }
+                this.stepInstructions[index] = texte;
+                this.saveState();
+                this.refreshStepInstructionUI();
+                this.showToast(`Consigne posée à l'étape ${index}`);
+            }
             initScenarioDrag() {
                 const panel = document.getElementById('scenarioPanel');
                 const handle = document.getElementById('scenarioHandle');
@@ -15223,6 +15253,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             else if (typeCode === 'C') { this.activeWidgets.compass = true; this.compassWidget = new CompassWidget(x, y); this.compassWidget.angle = ang; if (w[4]) this.compassWidget.radius = parseFloat(w[4]); document.getElementById('btn-compass').classList.add('widget-active'); }
                         });
                     }
+                    /* Le drapeau et l'objet doivent dire la même chose. L'en-tête du
+                       lien porte un masque d'instruments, leurs positions sont dans un
+                       bloc séparé : si le masque annonce une règle que le bloc ne
+                       décrit pas, on se retrouvait avec un drapeau levé sur un objet
+                       nul. Rien ne se voyait — le dessin teste avant de tracer — mais
+                       la modale d'export, elle, se déclenche sur ce drapeau, et
+                       l'export s'y cassait. On instancie donc ce qui manque, au centre
+                       de la vue : le masque affirme que l'instrument était sur la
+                       feuille, autant l'y remettre plutôt que de l'effacer. */
+                    const fabriques = { ruler: RulerWidget, setsquare: SetSquareWidget,
+                        protractor: ProtractorWidget, compass: CompassWidget };
+                    const champs = { ruler: 'rulerWidget', setsquare: 'setSquareWidget',
+                        protractor: 'protractorWidget', compass: 'compassWidget' };
+                    Object.keys(fabriques).forEach((type) => {
+                        if (!this.activeWidgets[type] || this[champs[type]]) return;
+                        const cont = this.canvas ? this.canvas.parentElement : null;
+                        const cx = cont ? (cont.clientWidth / 2 - this.view.x) / (this.view.zoom || 1) : 400;
+                        const cy = cont ? (cont.clientHeight / 2 - this.view.y) / (this.view.zoom || 1) : 300;
+                        this[champs[type]] = new fabriques[type](cx, cy);
+                    });
                     if (instrBlock) {
                         const raw = instrBlock.replace("INSTRUCTIONS:", "");
                         const sepIdx = raw.indexOf(";");
@@ -16116,26 +16166,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 });
 
+                /* Le drapeau ne suffit pas : on vérifie que l'instrument EXISTE.
+                   Un lien dont l'en-tête annonce des instruments sans porter leurs
+                   positions laissait le drapeau levé et l'objet nul — le dessin s'en
+                   accommodait (il teste), mais l'export s'y cassait, et c'est
+                   justement lui qu'on proposait à l'utilisateur puisque la modale se
+                   déclenche sur ce même drapeau. */
                 if (includeTools) {
-                    if (this.activeWidgets.ruler) {
+                    if (this.activeWidgets.ruler && this.rulerWidget) {
                         const w = this.rulerWidget;
                         [[0, 0], [w.width, 0], [0, w.height], [w.width, w.height]].forEach(p => {
                             const g = w.toGlobal(p[0], p[1]); extend(g.x, g.y);
                         });
                     }
-                    if (this.activeWidgets.setsquare) {
+                    if (this.activeWidgets.setsquare && this.setSquareWidget) {
                         const w = this.setSquareWidget;
                         [[0, 0], [w.width, 0], [0, w.height]].forEach(p => {
                             const g = w.toGlobal(p[0], p[1]); extend(g.x, g.y);
                         });
                     }
-                    if (this.activeWidgets.protractor) {
+                    if (this.activeWidgets.protractor && this.protractorWidget) {
                         const w = this.protractorWidget;
                         [[-w.radius, 0], [w.radius, 0], [-w.radius, 15], [w.radius, 15], [0, -w.radius]].forEach(p => {
                             const g = w.toGlobal(p[0], p[1]); extend(g.x, g.y);
                         });
                     }
-                    if (this.activeWidgets.compass) {
+                    if (this.activeWidgets.compass && this.compassWidget) {
                         const w = this.compassWidget;
                         const h = Math.sqrt(w.legLength ** 2 - (w.radius / 2) ** 2);
                         [[0, 0], [w.radius, 0], [w.radius / 2, -h]].forEach(p => {
@@ -17661,17 +17717,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (boxGeo) boxGeo.style.display = 'none';
                     if (boxImg) boxImg.style.display = 'flex';
                     const range = document.getElementById('imgOpacityRange');
-                    const txt = document.getElementById('txtImgLock');
                     const btn = document.getElementById('btnImgLock');
                     if (range) range.value = this.selectedObject.opacity;
-                    if (btn && txt) {
-                        if (this.selectedObject.isLocked) {
-                            txt.innerText = "Verrouillé";
-                            btn.style.background = "#fab1a0";
-                        } else {
-                            txt.innerText = "Déverrouillé";
-                            btn.style.background = "rgba(255,255,255,0.6)";
-                        }
+                    /* L'état du verrou ne se voyait pas : tout l'affichage était
+                       conditionné à un libellé « txtImgLock » qui n'existe pas dans
+                       la page. Le bouton gardait donc le même fond et la même
+                       infobulle, verrouillé ou non. On s'en tient à ce qui existe —
+                       le bouton — et l'on dit son état par sa couleur ET par son
+                       infobulle, qui est ce que lit un lecteur d'écran. */
+                    if (btn) {
+                        const verrou = !!this.selectedObject.isLocked;
+                        btn.style.background = verrou ? "#fab1a0" : "rgba(255,255,255,0.6)";
+                        btn.setAttribute('data-tooltip', verrou ? "Verrouillé — cliquer pour libérer" : "Déverrouiller");
+                        btn.setAttribute('aria-label', verrou ? "Image verrouillée" : "Image déverrouillée");
+                        btn.setAttribute('aria-pressed', verrou ? 'true' : 'false');
                     }
                     return;
                 }
