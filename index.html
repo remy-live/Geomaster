@@ -6028,6 +6028,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                     <div class="help-tool-row">
                         <div class="help-tool-text" style="flex:1;">
+                            <h4>Le croquis à main levée</h4>
+                            <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 8px;">Dans le tiroir des
+                                <b>constructions magiques</b>, le premier outil. Dessinez la figure d'un seul trait :
+                                elle est reconnue puis <b>reconstruite pour de vrai</b>, avec ses points nommés, ses
+                                segments et son animation à la règle et au compas — pas un dessin redressé.</p>
+                            <ul>
+                                <li><strong>Reconnu :</strong> cercle (avec son centre), segment, triangle, triangle
+                                    équilatéral, carré, rectangle.</li>
+                                <li><strong>Un sommet sur un point existant</strong> réutilise ce point : on peut
+                                    croquer par-dessus une figure en cours.</li>
+                                <li><strong>Rien n'est reconnu ?</strong> Rien n'est construit — retracez plus
+                                    franchement. Mieux vaut recommencer que redresser de travers.</li>
+                                <li><strong>Erreur :</strong> une seule annulation efface toute la figure.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="help-tool-row">
+                        <div class="help-tool-text" style="flex:1;">
                             <h4>Le document de fond (PDF ou image)</h4>
                             <p style="font-size:13px; color:#555; line-height:1.5; margin:0 0 8px;">Le document est une
                                 <b>fenêtre</b> posée sur la feuille : la page coulisse derrière. Une barre apparaît
@@ -6417,6 +6435,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         
                         <div class="magic-divider"></div>
                         <div class="magic-grid">
+                            <!-- Croquis à main levée : premier de la grille, c'est le
+                                 raccourci le plus direct vers une figure. -->
+                            <div class="magic-grid-item" onclick="app.setTool('magic_croquis')"
+                                data-tooltip="Croquis à main levée">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M3 17c2-6 5-9 8-9s4 2 3 4-4 2-4 0 2-4 5-4 4 3 6 5"
+                                        stroke-linecap="round" />
+                                    <path d="M14 20l6-6" stroke-dasharray="2 2" />
+                                    <circle cx="19" cy="19" r="2.4" />
+                                </svg>
+                            </div>
                             <div class="magic-grid-item" onclick="app.setTool('magic_mediatrice')" data-tooltip="Médiatrice">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <line x1="4" y1="16" x2="20" y2="16"/>
@@ -8357,8 +8386,245 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             // transformations
             magic_sym_centrale: "Le point, puis le centre",
             magic_sym_axiale: "Les points, puis l'axe",
+            magic_croquis: "Dessinez la figure d'un trait",
         };
         const GM_CONSIGNE_MAGIE_DEFAUT = "Un segment, ou 2 points";
+
+        /* ============================================================
+           RECONNAISSANCE DE CROQUIS À MAIN LEVÉE
+           ------------------------------------------------------------
+           Le tracé du doigt entre ici, une figure NOMMÉE en sort — jamais
+           l'ébauche elle-même. Le module ne fabrique rien : il dit « c'est un
+           carré, de côté a, centré là, incliné de θ », et l'application appelle
+           le constructeur qui existe déjà (buildSquare, buildRectangle...).
+           C'est ce qui garantit une figure mathématiquement exacte, avec ses
+           points, ses segments et son animation à la règle, et non un dessin
+           habillé en géométrie.
+
+           Aucun apprentissage automatique : de la géométrie classique, donc un
+           comportement déterministe et débogable. En cas de doute, on préfère
+           ne RIEN construire — se tromper coûte une annulation puis un nouveau
+           tracé, ne rien reconnaître ne coûte que le nouveau tracé.
+           ============================================================ */
+        const GmCroquis = (function () {
+            const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+            function longueur(p) { let L = 0; for (let i = 1; i < p.length; i++) L += d(p[i - 1], p[i]); return L; }
+
+            // supprime les points quasi confondus : un doigt immobile en produit des dizaines
+            function nettoyer(pts) {
+                const out = [];
+                for (const p of pts) if (!out.length || d(out[out.length - 1], p) > 1.5) out.push({ x: p.x, y: p.y });
+                return out;
+            }
+
+            function boite(p) {
+                let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+                p.forEach(q => { x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y); });
+                return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0, diag: Math.hypot(x1 - x0, y1 - y0) };
+            }
+
+            /* Ré-échantillonne à pas constant. Indispensable avant toute moyenne :
+               les points bruts s'entassent là où la main ralentit, et un centre de
+               gravité calculé dessus serait tiré vers les coins. */
+            function repartir(pts, n) {
+                const L = longueur(pts);
+                if (L === 0) return pts.slice();
+                const pas = L / (n - 1);
+                const out = [pts[0]];
+                let reste = pas, i = 1;
+                let cour = { x: pts[0].x, y: pts[0].y };
+                while (i < pts.length) {
+                    const seg = d(cour, pts[i]);
+                    if (seg >= reste) {
+                        const t = reste / seg;
+                        cour = { x: cour.x + (pts[i].x - cour.x) * t, y: cour.y + (pts[i].y - cour.y) * t };
+                        out.push({ x: cour.x, y: cour.y });
+                        reste = pas;
+                    } else { reste -= seg; cour = pts[i]; i++; }
+                }
+                while (out.length < n) out.push({ x: pts[pts.length - 1].x, y: pts[pts.length - 1].y });
+                return out;
+            }
+
+            function distSeg(p, a, b) {
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const l2 = dx * dx + dy * dy;
+                if (l2 === 0) return d(p, a);
+                let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+            }
+
+            // Douglas-Peucker : ne garde que les points qui font vraiment un coin
+            function simplifier(pts, eps) {
+                if (pts.length < 3) return pts.slice();
+                let iMax = 0, dMax = 0;
+                for (let i = 1; i < pts.length - 1; i++) {
+                    const dd = distSeg(pts[i], pts[0], pts[pts.length - 1]);
+                    if (dd > dMax) { dMax = dd; iMax = i; }
+                }
+                if (dMax <= eps) return [pts[0], pts[pts.length - 1]];
+                const g = simplifier(pts.slice(0, iMax + 1), eps);
+                const dr = simplifier(pts.slice(iMax), eps);
+                return g.slice(0, -1).concat(dr);
+            }
+
+            const angleEn = (a, b, c) => {
+                const a1 = Math.atan2(a.y - b.y, a.x - b.x), a2 = Math.atan2(c.y - b.y, c.x - b.x);
+                let t = Math.abs(a1 - a2);
+                if (t > Math.PI) t = 2 * Math.PI - t;
+                return t;
+            };
+
+            /* Écarte les faux coins : celui que l'on crée en démarrant le tracé au
+               milieu d'un côté, et ceux que produit une main qui tremble. Un vrai
+               sommet fait tourner d'au moins 25°. */
+            function vraisSommets(v, ferme) {
+                let s = v.slice();
+                if (ferme && s.length > 1 && d(s[0], s[s.length - 1]) < 1e-6) s.pop();
+                let change = true;
+                while (change && s.length > 3) {
+                    change = false;
+                    for (let i = 0; i < s.length; i++) {
+                        const av = s[(i - 1 + s.length) % s.length], ap = s[(i + 1) % s.length];
+                        if (Math.PI - angleEn(av, s[i], ap) < 25 * Math.PI / 180) {
+                            s.splice(i, 1); change = true; break;
+                        }
+                    }
+                }
+                return s;
+            }
+
+            /* Ajustement algébrique de cercle (Kåsa) : bien plus fidèle qu'un centre
+               de gravité, surtout si le tracé ne boucle pas tout à fait. */
+            function ajusterCercle(p) {
+                let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sz = 0, sxz = 0, syz = 0;
+                const n = p.length;
+                p.forEach(q => {
+                    const z = q.x * q.x + q.y * q.y;
+                    sx += q.x; sy += q.y; sxx += q.x * q.x; syy += q.y * q.y; sxy += q.x * q.y;
+                    sz += z; sxz += q.x * z; syz += q.y * z;
+                });
+                const a11 = 2 * (sxx - sx * sx / n), a12 = 2 * (sxy - sx * sy / n), a22 = 2 * (syy - sy * sy / n);
+                const b1 = sxz - sx * sz / n, b2 = syz - sy * sz / n;
+                const det = a11 * a22 - a12 * a12;
+                if (Math.abs(det) < 1e-9) return null;
+                const cx = (b1 * a22 - b2 * a12) / det, cy = (a11 * b2 - a12 * b1) / det;
+                let r = 0; p.forEach(q => { r += d(q, { x: cx, y: cy }); });
+                return { cx, cy, r: r / n };
+            }
+
+            // moyenne circulaire des directions, à un quart de tour près
+            function orientationDominante(cotes) {
+                let sx = 0, sy = 0;
+                cotes.forEach(c => { sx += Math.cos(4 * c.a) * c.l; sy += Math.sin(4 * c.a) * c.l; });
+                return Math.atan2(sy, sx) / 4;
+            }
+
+            function reconnaitre(brut) {
+                const pts = nettoyer(brut || []);
+                if (pts.length < 8) return null;
+                const L = longueur(pts), B = boite(pts);
+                // trop petit : le tremblement dépasse la figure, on ne devine pas
+                if (L < 60 || B.diag < 34) return null;
+
+                const ecart = d(pts[0], pts[pts.length - 1]);
+                const ferme = ecart < 0.28 * L;
+                const P = repartir(pts, 72);
+
+                if (!ferme) {
+                    // droit ? l'écart maximal à la corde reste faible
+                    let m = 0;
+                    P.forEach(q => { m = Math.max(m, distSeg(q, P[0], P[P.length - 1])); });
+                    if (m < 0.055 * d(P[0], P[P.length - 1])) {
+                        return { forme: 'segment', a: P[0], b: P[P.length - 1] };
+                    }
+                }
+
+                if (!ferme) return null;
+
+                /* Polygone d'ABORD, cercle ensuite. L'ordre inverse se trompait :
+                   sur un carré, le rayon oscille entre le demi-côté et la
+                   demi-diagonale, ce qui donne une irrégularité de 0,13 — juste sous
+                   le seuil du cercle. Le vrai discriminant n'est pas la régularité du
+                   rayon mais la RECTITUDE des côtés : sur un cercle, chaque « côté »
+                   bombe de 20 % de sa longueur, sur un carré tremblé de 2 %. */
+                const chaine = P.concat([P[0]]);
+                const sommets = vraisSommets(simplifier(chaine, 0.045 * B.diag), true);
+                const n = sommets.length;
+
+                let polygoneNet = (n >= 3 && n <= 6);
+                if (polygoneNet) {
+                    const lmv = sommets.reduce((s2, v, i) => s2 + d(v, sommets[(i + 1) % n]), 0) / n;
+                    let bombe = 0;
+                    P.forEach(q => {
+                        let m = Infinity;
+                        for (let i = 0; i < n; i++) m = Math.min(m, distSeg(q, sommets[i], sommets[(i + 1) % n]));
+                        bombe = Math.max(bombe, m);
+                    });
+                    if (bombe > 0.10 * lmv) polygoneNet = false;
+                }
+
+                if (!polygoneNet) {
+                    const cer = ajusterCercle(P);
+                    if (cer && cer.r > 12) {
+                        let s2 = 0; P.forEach(q => { const e = d(q, { x: cer.cx, y: cer.cy }) - cer.r; s2 += e * e; });
+                        const irregularite = Math.sqrt(s2 / P.length) / cer.r;
+                        if (irregularite < 0.13) {
+                            return { forme: 'cercle', cx: cer.cx, cy: cer.cy, r: cer.r, irregularite };
+                        }
+                    }
+                    return null;
+                }
+
+                const cotes = sommets.map((v, i) => {
+                    const w = sommets[(i + 1) % n];
+                    return { l: d(v, w), a: Math.atan2(w.y - v.y, w.x - v.x) };
+                });
+                const lm = cotes.reduce((s, c) => s + c.l, 0) / n;
+                const dispersion = (Math.max(...cotes.map(c => c.l)) - Math.min(...cotes.map(c => c.l))) / lm;
+                const angles = sommets.map((v, i) =>
+                    angleEn(sommets[(i - 1 + n) % n], v, sommets[(i + 1) % n]));
+                const centre = sommets.reduce((s, v) => ({ x: s.x + v.x / n, y: s.y + v.y / n }), { x: 0, y: 0 });
+
+                if (n === 3) {
+                    if (dispersion < 0.18) return { forme: 'triangle_equilateral', sommets, cote: lm, centre };
+                    return { forme: 'triangle', sommets, centre };
+                }
+                if (n === 4) {
+                    /* Angles droits ou losange ? Les angles eux-mêmes tranchent mal :
+                       un losange à 100°/80° reste dans n'importe quelle tolérance
+                       assez large pour accepter un carré tracé à la main. Les
+                       DIAGONALES, elles, sont sans appel — égales dans la famille du
+                       rectangle, inégales dans celle du losange. */
+                    const diag1 = d(sommets[0], sommets[2]), diag2 = d(sommets[1], sommets[3]);
+                    const diagEgales = Math.abs(diag1 - diag2) / Math.max(diag1, diag2) < 0.10;
+                    const droits = diagEgales
+                        && angles.every(a => Math.abs(a - Math.PI / 2) < 20 * Math.PI / 180);
+                    const theta = orientationDominante(cotes);
+                    if (droits) {
+                        // demi-dimensions dans le repère de la figure
+                        const c = Math.cos(-theta), s = Math.sin(-theta);
+                        const u = sommets.map(v => ({
+                            x: (v.x - centre.x) * c - (v.y - centre.y) * s,
+                            y: (v.x - centre.x) * s + (v.y - centre.y) * c,
+                        }));
+                        const demiL = (Math.max(...u.map(p => p.x)) - Math.min(...u.map(p => p.x))) / 2;
+                        const demiH = (Math.max(...u.map(p => p.y)) - Math.min(...u.map(p => p.y))) / 2;
+                        const carre = Math.abs(demiL - demiH) / Math.max(demiL, demiH) < 0.16;
+                        const cote = carre ? (demiL + demiH) : demiL;
+                        return carre
+                            ? { forme: 'carre', centre, theta, cote: cote, sommets }
+                            : { forme: 'rectangle', centre, theta, largeur: demiL * 2, hauteur: demiH * 2, sommets };
+                    }
+                    return null;   // losange et parallélogramme : pas encore
+                }
+                return null;
+            }
+
+            return { reconnaitre, simplifier, repartir, ajusterCercle, nettoyer, _boite: boite };
+        })();
 
         class BackgroundImage {
             constructor(imgObj, x, y, width, height) {
@@ -16715,6 +16981,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             resetInteraction() {
                 this.hoveredEntities = [];
                 this.toDeletePreview = [];
+                // un croquis abandonné en changeant d'outil ne doit pas rester à
+                // l'écran, ni repartir au geste suivant
+                this.traitCroquis = null;
                 this.creationStartPoint = null;
                 // actionStep décrit l'étape du tracé en deux appuis (tactile) et
                 // allait de pair avec creationStartPoint, mais n'était pas remis à
@@ -17007,6 +17276,101 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     });
                 }
                 return toDelete;
+            }
+            /* ---- CROQUIS À MAIN LEVÉE ----
+               Le tracé est reconnu, puis confié aux constructeurs qui existent déjà :
+               le carré passe par buildSquare, le rectangle par buildRectangle. On
+               n'obtient donc pas un dessin redressé mais une VRAIE figure, avec ses
+               points nommés, ses segments et son animation à la règle et au compas.
+               Un seul saveState à la fin : une reconnaissance ratée s'annule d'un
+               seul retour en arrière, pas d'une quinzaine. */
+            pointCroquis(x, y) {
+                // un sommet qui tombe sur un point existant le réutilise : c'est ce
+                // qui permet de croquer PAR-DESSUS une figure en cours
+                const proche = this.entities.filter(e => e instanceof Point && e.visible !== false)
+                    .find(p => Math.hypot(p.x - x, p.y - y) < 14);
+                if (proche) return proche;
+                const p = new Point(x, y, this.getNextLabel());
+                this.addEntity(p);
+                return p;
+            }
+            /* Deux sommets adjacents, ordonnés pour que le constructeur bâtisse du
+               bon côté : buildSquare pose le 4e sommet à baseAngle - 90°, et
+               buildEquilateralTriangle le 3e à baseAngle - 60°. On choisit donc
+               l'ordre qui envoie la figure vers le centre du croquis. */
+            ordonnerBase(pA, pB, centre, quart) {
+                const dir = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) - quart;
+                const bout = (a, b) => {
+                    const l = Math.hypot(b.x - a.x, b.y - a.y), t = dir(a, b);
+                    return { x: a.x + Math.cos(t) * l, y: a.y + Math.sin(t) * l };
+                };
+                const v1 = bout(pA, pB), v2 = bout(pB, pA);
+                const d1 = Math.hypot(v1.x - centre.x, v1.y - centre.y);
+                const d2 = Math.hypot(v2.x - centre.x, v2.y - centre.y);
+                return d1 <= d2 ? [pA, pB] : [pB, pA];
+            }
+            coinsQuadrilatere(centre, theta, demiL, demiH) {
+                const c = Math.cos(theta), s = Math.sin(theta);
+                return [[-demiL, -demiH], [demiL, -demiH], [demiL, demiH], [-demiL, demiH]]
+                    .map(([u, v]) => ({ x: centre.x + u * c - v * s, y: centre.y + u * s + v * c }));
+            }
+            construireCroquis(trait) {
+                const res = (typeof GmCroquis !== 'undefined') ? GmCroquis.reconnaitre(trait) : null;
+                if (!res) {
+                    this.render();
+                    this.showToast("Forme non reconnue — retracez plus franchement");
+                    return;
+                }
+                const col = this.globalStyle.color || '#000000';
+                const ep = this.globalStyle.width || 2;
+                const seg = (a, b) => this.addEntity(new Segment(a, b, { color: col, width: ep, dash: false }));
+                let nom = '';
+
+                if (res.forme === 'cercle') {
+                    const centre = this.pointCroquis(res.cx, res.cy);
+                    const bord = this.pointCroquis(res.cx + res.r, res.cy);
+                    const cercle = new Circle(centre, bord);
+                    cercle.color = col; cercle.lineWidth = ep;
+                    this.addEntity(cercle);
+                    nom = 'Cercle';
+                } else if (res.forme === 'segment') {
+                    seg(this.pointCroquis(res.a.x, res.a.y), this.pointCroquis(res.b.x, res.b.y));
+                    nom = 'Segment';
+                } else if (res.forme === 'triangle') {
+                    const p = res.sommets.map(v => this.pointCroquis(v.x, v.y));
+                    seg(p[0], p[1]); seg(p[1], p[2]); seg(p[2], p[0]);
+                    nom = 'Triangle';
+                } else if (res.forme === 'triangle_equilateral') {
+                    const c = res.centre;
+                    const a = res.sommets[0], b = res.sommets[1];
+                    const [pA, pB] = this.ordonnerBase(a, b, c, Math.PI / 3);
+                    const q1 = this.pointCroquis(pA.x, pA.y), q2 = this.pointCroquis(pB.x, pB.y);
+                    const base = new Segment(q1, q2, { color: col, width: ep, dash: false });
+                    this.addEntity(base);
+                    this.buildEquilateralTriangle(base, c.x, c.y);
+                    nom = 'Triangle équilatéral';
+                } else if (res.forme === 'carre') {
+                    const d2 = res.cote / 2;
+                    const co = this.coinsQuadrilatere(res.centre, res.theta, d2, d2);
+                    const [pA, pB] = this.ordonnerBase(co[0], co[1], res.centre, Math.PI / 2);
+                    const q1 = this.pointCroquis(pA.x, pA.y), q2 = this.pointCroquis(pB.x, pB.y);
+                    const base = new Segment(q1, q2, { color: col, width: ep, dash: false });
+                    this.addEntity(base);
+                    this.buildSquare(base, res.centre.x, res.centre.y);
+                    nom = 'Carré';
+                } else if (res.forme === 'rectangle') {
+                    const co = this.coinsQuadrilatere(res.centre, res.theta, res.largeur / 2, res.hauteur / 2);
+                    // buildRectangle attend 3 sommets consécutifs, le 2e au coin
+                    const pA = this.pointCroquis(co[0].x, co[0].y);
+                    const pB = this.pointCroquis(co[1].x, co[1].y);
+                    const pC = this.pointCroquis(co[2].x, co[2].y);
+                    this.buildRectangle(pA, pB, pC);
+                    nom = 'Rectangle';
+                }
+                this.saveState();
+                this.setTool('move');
+                this.render();
+                if (nom) this.showToast(nom + ' reconnu');
             }
             createPointAt(x, y) {
                 const existing = this.hoveredEntities.filter(e => e instanceof Point).pop();
@@ -17971,6 +18335,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 // la barre du document suit le cadre : elle se replace à chaque rendu
                 if (!targetCtx && !this.isExporting) this.placerBarreDocument();
+                // trace du croquis en cours : visible pendant le geste, jamais gardée
+                if (this.traitCroquis && this.traitCroquis.length > 1 && !this.isExporting) {
+                    const c = this.ctx;
+                    c.save();
+                    c.strokeStyle = 'rgba(41,128,185,0.75)';
+                    c.lineWidth = 2.5 / (this.view.zoom || 1);
+                    c.lineCap = 'round'; c.lineJoin = 'round';
+                    c.setLineDash([]);
+                    c.beginPath();
+                    this.traitCroquis.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+                    c.stroke();
+                    c.restore();
+                }
 
                 this.drawGrid();
 
@@ -18989,6 +19366,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return;
                 }
 
+                if (this.currentTool === 'magic_croquis') {
+                    // début du tracé : on n'accumule que des points, rien n'est décidé
+                    // avant le relâchement
+                    const dep = this.getMousePos(e);
+                    this.traitCroquis = [{ x: dep.x, y: dep.y }];
+                    this.render();
+                    return;
+                }
                 if (this.currentTool && this.currentTool.startsWith('magic_')) {
                     this.isMagicConstructing = true;
                     if (['magic_triangle', 'magic_square', 'magic_hexagon', 'magic_pentagon', 'magic_rhombus', 'magic_rosette', 'magic_hexagram', 'magic_seed_of_life', 'magic_yin_yang', 'magic_octagram', 'magic_pythagoras'].includes(this.currentTool)) {
@@ -19291,6 +19676,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 if (this.activePointers.has(e.pointerId)) {
                     this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                }
+                if (this.traitCroquis) {
+                    const m = this.getMousePos(e);
+                    const der = this.traitCroquis[this.traitCroquis.length - 1];
+                    // on jette les points quasi confondus : un doigt posé en produit
+                    // des dizaines, et ils fausseraient toutes les moyennes
+                    if (!der || Math.hypot(m.x - der.x, m.y - der.y) > 1.5) {
+                        this.traitCroquis.push({ x: m.x, y: m.y });
+                        this.render();
+                    }
+                    return;
                 }
                 if (this.isPinching && this.activePointers.size === 2) {
                     const pts = Array.from(this.activePointers.values());
@@ -19946,6 +20342,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             handlePointerUp(e) {
                 if (this.isLocked) return;
                 this.activePointers.delete(e.pointerId);
+                if (this.traitCroquis) {
+                    const trait = this.traitCroquis;
+                    this.traitCroquis = null;
+                    this.construireCroquis(trait);
+                    return;
+                }
 
                 // Marqueur d'aimantation à la grille : il n'est posé et effacé que
                 // par getSmartCoords(), appelée uniquement à l'appui et au
@@ -24268,11 +24670,15 @@ var qrcode = function() {
                     var doigtsPoses = 0;
                     var pince = function () { return doigtsPoses >= 2; };
 
-                    // L'outil main ne vise rien : il fait glisser la vue. Une loupe
-                    // par-dessus masquerait justement la figure qu'on déplace.
+                    /* L'outil main ne vise rien : il fait glisser la vue. Une loupe
+                       par-dessus masquerait justement la figure qu'on déplace.
+                       Le croquis à main levée non plus ne vise pas : on y dessine
+                       d'un geste ample, et la loupe cacherait le trait en train de
+                       se former. */
                     var outilSansLoupe = function () {
                         var a = window.app;
-                        return !!a && (a.currentTool === 'pan' || a.isPanning);
+                        return !!a && (a.currentTool === 'pan' || a.isPanning
+                            || a.currentTool === 'magic_croquis' || !!a.traitCroquis);
                     };
 
                     var minuterie = null;
