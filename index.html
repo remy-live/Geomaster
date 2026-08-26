@@ -6013,7 +6013,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 vous allez taper ; les boutons s'allument selon l'endroit où est le curseur.
                                 L'<b>encadré</b>, lui, entoure tout le texte : bordure de sa couleur, fond au choix.
                                 Le bouton « ? » compose les formules (fractions, puissances, racines).
-                                Double-cliquez sur un texte pour le reprendre : tout revient comme il était.</div>
+                                Un appui à côté <b>valide et referme</b> la saisie ; l'outil reste armé, un second
+                                appui écrit le texte suivant. Double-cliquez sur un texte pour le reprendre : tout
+                                revient comme il était.</div>
                         </div>
                         <div class="help-item-row">
                             <div class="help-item-icon"><svg viewBox="0 0 24 24" width="24" height="24"
@@ -6125,6 +6127,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <li><strong>🪄 Tiroir magique :</strong> la figure reconnue est annoncée, et l'on vous
                                     demande si vous voulez la <b>construction détaillée</b> à la règle et au compas,
                                     rejouable pas à pas. Rien ne se lance avant votre réponse.</li>
+                                <li><strong>L'outil reste armé</strong> après chaque figure : on enchaîne les
+                                    croquis sans retourner le chercher. On en sort en choisissant un autre outil.</li>
                                 <li><strong>Reconnu :</strong> cercle (avec son centre), segment, demi-droite,
                                     droite, triangle, triangle équilatéral, carré, rectangle, losange,
                                     parallélogramme, pentagone et hexagone réguliers.</li>
@@ -18855,7 +18859,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // aucun bâtisseur appelé : le repère de relecture ne doit pas rester
                 this.croquisDebutRejeu = null;
                 this.saveState();
-                this.setTool('move');
+                /* L'outil RESTE armé. On dessine rarement une figure seule : après un
+                   triangle vient son cercle circonscrit, après un carré un autre carré.
+                   Repasser en mode déplacement obligeait à retourner chercher l'outil
+                   entre chaque tracé. On en sort comme des autres outils, en en
+                   choisissant un autre. */
                 this.render();
                 if (nom) this.showToast(nom + (avecOutils ? ' construit' : ' reconnu'));
             }
@@ -18875,7 +18883,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const res = this.croquisEnAttente;
                 this.croquisEnAttente = null;
                 if (!res) return;
-                if (avecOutils === null) { this.setTool('move'); this.render(); return; }
+                // annuler ne désarme pas non plus : on voulait juste ne pas de
+                // construction détaillée, pas quitter l'outil
+                if (avecOutils === null) { this.render(); return; }
                 this.finirCroquis(res, avecOutils);
             }
             createPointAt(x, y) {
@@ -20672,13 +20682,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // puis plus du tout.
                     this.validerTexteFantome();
 
-                    // Avec l'outil texte, l'appui vaut « je valide et j'écris là » :
-                    // on enchaîne sur une nouvelle saisie plus bas. Avec un autre
-                    // outil, l'appui n'a servi qu'à valider et s'arrête ici.
-                    if (this.currentTool !== 'text') {
-                        this.render();
-                        return;
-                    }
+                    /* L'appui n'a servi qu'à VALIDER, quel que soit l'outil. Il
+                       enchaînait auparavant sur une nouvelle saisie quand l'outil
+                       texte était actif : on ne pouvait plus refermer un texte sans
+                       en ouvrir un autre, et le moindre appui à côté — pour regarder
+                       la figure, pour viser un point — laissait un champ ouvert.
+                       L'outil reste armé : un second appui écrit le texte suivant. */
+                    this.render();
+                    return;
                 }
 
                 // Même chose pour l'éditeur de nom de point (double-clic sur une étiquette) :
