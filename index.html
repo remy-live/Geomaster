@@ -8601,12 +8601,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return Math.atan2(sy, sx) / 4;
             }
 
-            function reconnaitre(brut) {
+            /* Droite des moindres carrés totaux : centre + direction principale.
+               On s'en sert pour retrouver le VRAI côté d'un polygone dessiné à la
+               main, en ne regardant que sa partie droite, loin des coins. */
+            function ajusterDroite(pts) {
+                const n = pts.length;
+                let cx = 0, cy = 0;
+                pts.forEach(q => { cx += q.x / n; cy += q.y / n; });
+                let sxx = 0, syy = 0, sxy = 0;
+                pts.forEach(q => { const dx = q.x - cx, dy = q.y - cy; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; });
+                const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+                return { x: cx, y: cy, dx: Math.cos(th), dy: Math.sin(th) };
+            }
+            function croiser(a, b) {
+                const det = a.dx * (-b.dy) - a.dy * (-b.dx);
+                if (Math.abs(det) < 1e-9) return null;
+                const t = ((b.x - a.x) * (-b.dy) - (b.y - a.y) * (-b.dx)) / det;
+                return { x: a.x + a.dx * t, y: a.y + a.dy * t };
+            }
+            function distDroite(q, d) {
+                return Math.abs((q.x - d.x) * d.dy - (q.y - d.y) * d.dx);
+            }
+
+            function reconnaitre(brut, zoom) {
                 const pts = nettoyer(brut || []);
                 if (pts.length < 8) return null;
                 const L = longueur(pts), B = boite(pts);
-                // trop petit : le tremblement dépasse la figure, on ne devine pas
-                if (L < 60 || B.diag < 34) return null;
+                /* Le seuil « trop petit » se mesure en pixels ÉCRAN, pas en unités de
+                   feuille : c'est là que vit le tremblement de la main. Exprimé en
+                   unités de feuille, il rejetait à fort zoom des figures parfaitement
+                   nettes, et acceptait à faible zoom des taches de 8 pixels. */
+                const z = (typeof zoom === 'number' && zoom > 0) ? zoom : 1;
+                if (L * z < 60 || B.diag * z < 34) return null;
 
                 const ecart = d(pts[0], pts[pts.length - 1]);
                 const ferme = ecart < 0.28 * L;
@@ -8627,23 +8653,85 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    sur un carré, le rayon oscille entre le demi-côté et la
                    demi-diagonale, ce qui donne une irrégularité de 0,13 — juste sous
                    le seuil du cercle. Le vrai discriminant n'est pas la régularité du
-                   rayon mais la RECTITUDE des côtés : sur un cercle, chaque « côté »
-                   bombe de 20 % de sa longueur, sur un carré tremblé de 2 %. */
-                const chaine = P.concat([P[0]]);
-                const sommets = vraisSommets(simplifier(chaine, 0.045 * B.diag), true);
-                const n = sommets.length;
+                   rayon mais la RECTITUDE des côtés.
 
+                   Mais une main n'angule pas : elle ARRONDIT les coins, d'autant plus
+                   que la figure est petite. Mesuré, un rayon de 8px sur un carré de
+                   80px faisait échouer la reconnaissance dans 100 % des cas — les
+                   points de l'arc, loin des deux cordes voisines, faisaient croire à
+                   un cercle. On ne juge donc la rectitude QUE sur la partie droite des
+                   côtés, et l'on retrouve les vrais sommets en croisant les droites
+                   ajustées sur ces parties droites, au lieu de prendre le milieu de
+                   l'arrondi. */
+                const chaine = P.concat([P[0]]);
+                let sommets = vraisSommets(simplifier(chaine, 0.05 * B.diag), true);
+
+                /* Un coin bien arrondi rend DEUX sommets, séparés par un côté
+                   anormalement court — la corde de l'arc. Un seuil de distance absolu
+                   ne marche pas : il dépend du rayon d'arrondi, qu'on ne connaît pas.
+                   On supprime donc le côté le plus court tant qu'il reste très en
+                   dessous de la médiane des autres, ce qui vise exactement l'artefact
+                   sans toucher aux vrais petits côtés. */
+                sommets = sommets.map(v => ({ x: v.x, y: v.y }));
+                for (let garde = 0; garde < 8 && sommets.length > 3; garde++) {
+                    const m2 = sommets.length;
+                    const cot = sommets.map((v, i) => d(v, sommets[(i + 1) % m2]));
+                    let iMin = 0;
+                    cot.forEach((l, i) => { if (l < cot[iMin]) iMin = i; });
+                    const autres = cot.filter((_, i) => i !== iMin).slice().sort((a, b2) => a - b2);
+                    const mediane = autres[Math.floor(autres.length / 2)];
+                    if (cot[iMin] > 0.42 * mediane) break;
+                    const j = (iMin + 1) % m2;
+                    sommets[iMin] = { x: (sommets[iMin].x + sommets[j].x) / 2, y: (sommets[iMin].y + sommets[j].y) / 2 };
+                    sommets.splice(j, 1);
+                }
+
+                let n = sommets.length;
                 let polygoneNet = (n >= 3 && n <= 6);
                 if (polygoneNet) {
-                    const lmv = sommets.reduce((s2, v, i) => s2 + d(v, sommets[(i + 1) % n]), 0) / n;
-                    let bombe = 0;
-                    P.forEach(q => {
-                        let m = Infinity;
-                        for (let i = 0; i < n; i++) m = Math.min(m, distSeg(q, sommets[i], sommets[(i + 1) % n]));
-                        bombe = Math.max(bombe, m);
+                    // indice, le long du tracé, du point le plus proche de chaque sommet
+                    const idx = sommets.map(v => {
+                        let best = 0, bd = Infinity;
+                        P.forEach((q, i) => { const dd = d(q, v); if (dd < bd) { bd = dd; best = i; } });
+                        return best;
                     });
-                    if (bombe > 0.10 * lmv) polygoneNet = false;
+                    const droites = [], parts = [];
+                    for (let i = 0; i < n; i++) {
+                        const a = idx[i], b2 = idx[(i + 1) % n];
+                        const pts = [];
+                        let i2 = a;
+                        for (let k = 0; k < P.length; k++) {
+                            i2 = (a + k) % P.length;
+                            pts.push(P[i2]);
+                            if (i2 === b2) break;
+                        }
+                        // on retire un quart à chaque bout : c'est là que la main arrondit
+                        const c = Math.floor(pts.length * 0.25);
+                        const droit = pts.slice(c, pts.length - c);
+                        if (droit.length < 3) { polygoneNet = false; break; }
+                        parts.push(droit);
+                        droites.push(ajusterDroite(droit));
+                    }
+                    if (polygoneNet) {
+                        // rectitude jugée seulement sur les parties droites
+                        let lmv = 0;
+                        for (let i = 0; i < n; i++) lmv += d(sommets[i], sommets[(i + 1) % n]) / n;
+                        let bombe = 0;
+                        for (let i = 0; i < n; i++) parts[i].forEach(q => { bombe = Math.max(bombe, distDroite(q, droites[i])); });
+                        if (bombe > 0.08 * lmv) polygoneNet = false;
+                    }
+                    if (polygoneNet) {
+                        // vrais sommets = croisement des côtés voisins
+                        const exacts = [];
+                        for (let i = 0; i < n; i++) {
+                            const c2 = croiser(droites[(i - 1 + n) % n], droites[i]);
+                            if (!c2 || d(c2, sommets[i]) > 0.5 * B.diag) { polygoneNet = false; break; }
+                            exacts.push(c2);
+                        }
+                        if (polygoneNet) sommets = exacts;
+                    }
                 }
+                n = sommets.length;
 
                 if (!polygoneNet) {
                     const cer = ajusterCercle(P);
@@ -17502,7 +17590,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             construireCroquis(trait, avecQuestion) {
-                const res = (typeof GmCroquis !== 'undefined') ? GmCroquis.reconnaitre(trait) : null;
+                const res = (typeof GmCroquis !== 'undefined')
+                    ? GmCroquis.reconnaitre(trait, this.view.zoom || 1) : null;
                 if (!res) {
                     this.render();
                     this.showToast("Forme non reconnue — retracez plus franchement");
