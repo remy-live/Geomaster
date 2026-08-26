@@ -6511,11 +6511,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                  raccourci le plus direct vers une figure. -->
                             <div class="magic-grid-item" onclick="app.setTool('magic_croquis')" data-libelle="Croquis"
                                 data-tooltip="Croquis à main levée">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M3 17c2-6 5-9 8-9s4 2 3 4-4 2-4 0 2-4 5-4 4 3 6 5"
-                                        stroke-linecap="round" />
-                                    <path d="M14 20l6-6" stroke-dasharray="2 2" />
-                                    <circle cx="19" cy="19" r="2.4" />
+                                <!-- Même dessin que l'outil de la barre de gauche : c'est
+                                     le même geste, il doit se reconnaître au même signe. -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11.5 17.5l-3.6.9.9-3.6L18 5.6a1.9 1.9 0 012.7 2.7l-9.2 9.2z" />
+                                    <path d="M3 20.5c1.6-2.6 3.2.9 4.8-1.2" />
+                                    <path d="M5.6 6.8V3.4M3.9 5.1h3.4" opacity="0.8" />
                                 </svg>
                             </div>
                             <div class="magic-grid-item" onclick="app.setTool('magic_mediatrice')" data-libelle="Médiatrice" data-tooltip="Médiatrice">
@@ -11273,6 +11275,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         class GeometrieAppCore {
             playStepLoop(startIndex, endIndex) {
+                /* Le croquis pose lui-même le premier côté et son tracé à la règle
+                   AVANT d'appeler le bâtisseur. Celui-ci capture donc un index de
+                   départ situé APRÈS, et la relecture commençait au deuxième côté :
+                   le premier trait était déjà là, tout fait, sans que la règle ne se
+                   pose. On recule le départ jusqu'à ce que le croquis a posé. */
+                if (typeof this.croquisDebutRejeu === 'number') {
+                    startIndex = Math.min(startIndex, this.croquisDebutRejeu);
+                    this.croquisDebutRejeu = null;
+                }
                 if (this.isMagicConstructing && this.magicAnimate === false) {
                     this.fastForward(endIndex);
                     this.replayIndex = endIndex;
@@ -17715,6 +17726,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const col = this.globalStyle.color || '#000000';
                 const ep = this.globalStyle.width || 2;
                 this.isMagicConstructing = true;
+                // tout ce qui suit doit être rejoué, premier côté compris
+                this.croquisDebutRejeu = this.entities.length;
                 if (res.forme === 'triangle_equilateral' || res.forme === 'carre') {
                     let pA, pB;
                     if (res.forme === 'carre') {
@@ -17852,6 +17865,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             finirCroquis(res, avecOutils) {
                 const nom = avecOutils ? this.construireCroquisAvecOutils(res)
                     : this.construireCroquisSimple(res, this.croquisCodage !== false);
+                // aucun bâtisseur appelé : le repère de relecture ne doit pas rester
+                this.croquisDebutRejeu = null;
                 this.saveState();
                 this.setTool('move');
                 this.render();
