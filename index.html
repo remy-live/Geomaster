@@ -6085,7 +6085,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     demande si vous voulez la <b>construction détaillée</b> à la règle et au compas,
                                     rejouable pas à pas. Rien ne se lance avant votre réponse.</li>
                                 <li><strong>Reconnu :</strong> cercle (avec son centre), segment, demi-droite,
-                                    droite, triangle, triangle équilatéral, carré, rectangle, losange.</li>
+                                    droite, triangle, triangle équilatéral, carré, rectangle, losange,
+                                    parallélogramme.</li>
+                                <li><strong>Les sommets sont nommés dans l'ordre du tracé :</strong> A là où vous
+                                    avez commencé, puis B, C… dans le sens où vous avez tourné. Débrayable.</li>
                                 <li><strong>Un trait droit</strong> devient une <b>droite</b> si ses deux bouts
                                     atteignent le bord de l'écran, ou s'il traverse plus d'un demi-écran ; une
                                     <b>demi-droite</b> si un seul bout va au bord, son origine étant l'autre bout ;
@@ -7612,6 +7615,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <div id="croquisOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:232px; font-family:'Segoe UI', sans-serif; font-size:13px;">
         <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Croquis à main levée</div>
+        <label class="croquis-opt"><input type="checkbox" id="optCroquisNommer" checked
+                onchange="app.reglerCroquis('nommer', this.checked)"><span>Nommer les sommets<i>A, B, C… dans l'ordre du tracé</i></span></label>
         <label class="croquis-opt"><input type="checkbox" id="optCroquisCodage" checked
                 onchange="app.reglerCroquis('codage', this.checked)"><span>Coder le dessin<i>côtés égaux, angles droits</i></span></label>
         <label class="croquis-opt"><input type="checkbox" id="optCroquisDroite" checked
@@ -8848,7 +8853,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             cote: Math.hypot(d1, d2),
                         };
                     }
-                    return null;   // parallélogramme : pas encore
+                    /* Parallélogramme : côtés opposés égaux et parallèles. Il vient
+                       en dernier car carré, rectangle et losange en sont tous. On le
+                       redresse par ses DIAGONALES, qui se coupent en leur milieu :
+                       poser les sommets en c±a et c±b garantit la figure exacte, sans
+                       avoir à corriger quatre côtés séparément. */
+                    const par1 = Math.abs(cotes[0].l - cotes[2].l) / Math.max(cotes[0].l, cotes[2].l);
+                    const par2 = Math.abs(cotes[1].l - cotes[3].l) / Math.max(cotes[1].l, cotes[3].l);
+                    const ecartAngle = (a, b2) => {
+                        let t = Math.abs(a - b2) % Math.PI;
+                        return Math.min(t, Math.PI - t);
+                    };
+                    const p1 = ecartAngle(cotes[0].a, cotes[2].a), p2 = ecartAngle(cotes[1].a, cotes[3].a);
+                    const tolPar = 14 * Math.PI / 180;
+                    if (par1 < 0.20 && par2 < 0.20 && p1 < tolPar && p2 < tolPar) {
+                        const c3 = { x: (sommets[0].x + sommets[1].x + sommets[2].x + sommets[3].x) / 4,
+                                     y: (sommets[0].y + sommets[1].y + sommets[2].y + sommets[3].y) / 4 };
+                        const ax = (sommets[0].x - sommets[2].x) / 2, ay = (sommets[0].y - sommets[2].y) / 2;
+                        const bx = (sommets[1].x - sommets[3].x) / 2, by = (sommets[1].y - sommets[3].y) / 2;
+                        return {
+                            forme: 'parallelogramme', centre: c3,
+                            sommets: [
+                                { x: c3.x + ax, y: c3.y + ay }, { x: c3.x + bx, y: c3.y + by },
+                                { x: c3.x - ax, y: c3.y - ay }, { x: c3.x - bx, y: c3.y - by },
+                            ],
+                        };
+                    }
+                    return null;
                 }
                 return null;
             }
@@ -15874,6 +15905,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.croquisCodage = true;
                 this.croquisDroiteLongue = true;
                 this.croquisBordDemiDroite = true;
+                this.croquisNommer = true;
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -17547,7 +17579,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const proche = this.entities.filter(e => e instanceof Point && e.visible !== false)
                     .find(p => Math.hypot(p.x - x, p.y - y) < 14);
                 if (proche) return proche;
-                const p = new Point(x, y, this.getNextLabel());
+                /* Les lettres sont posées dans l'ordre où la main a parcouru la
+                   figure : les sommets sont fournis dans cet ordre (voir
+                   alignerSurTrace), et getNextLabel donne la suivante à chaque appel.
+                   Sans nommage, le point existe quand même — il porte la figure. */
+                const p = new Point(x, y, this.croquisNommer === false ? '' : this.getNextLabel());
                 this.addEntity(p);
                 return p;
             }
@@ -17573,8 +17609,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Sommets exacts d'une figure reconnue, dans l'ordre du contour. */
             sommetsCroquis(res) {
-                if (res.forme === 'carre') return this.coinsQuadrilatere(res.centre, res.theta, res.cote / 2, res.cote / 2);
-                if (res.forme === 'rectangle') return this.coinsQuadrilatere(res.centre, res.theta, res.largeur / 2, res.hauteur / 2);
+                if (res.forme === 'carre') return this.alignerSurTrace(
+                    this.coinsQuadrilatere(res.centre, res.theta, res.cote / 2, res.cote / 2), res.sommets);
+                if (res.forme === 'rectangle') return this.alignerSurTrace(
+                    this.coinsQuadrilatere(res.centre, res.theta, res.largeur / 2, res.hauteur / 2), res.sommets);
                 if (res.forme === 'triangle_equilateral') {
                     const c = res.centre, a = res.sommets[0], b = res.sommets[1];
                     const [pA, pB] = this.ordonnerBase(a, b, c, Math.PI / 3);
@@ -17582,8 +17620,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const t = Math.atan2(pB.y - pA.y, pB.x - pA.x) - Math.PI / 3;
                     return [pA, pB, { x: pA.x + Math.cos(t) * l, y: pA.y + Math.sin(t) * l }];
                 }
-                if (res.forme === 'triangle' || res.forme === 'losange') return res.sommets;
+                if (res.forme === 'triangle' || res.forme === 'losange'
+                    || res.forme === 'parallelogramme') return res.sommets;
                 return null;
+            }
+
+            /* Remet une liste de sommets exacts dans l'ordre où la main les a
+               parcourus. Pour le carré et le rectangle, les coins sont regénérés à
+               partir du centre et de l'inclinaison : leur ordre n'a plus rien à voir
+               avec le tracé, et les lettres tombaient donc n'importe où. On essaie les
+               quatre départs et les deux sens, on garde le plus proche du croquis. */
+            alignerSurTrace(exacts, detectes) {
+                if (!detectes || detectes.length !== exacts.length) return exacts;
+                const n = exacts.length;
+                let meilleur = exacts, best = Infinity;
+                for (let sens = 0; sens < 2; sens++) {
+                    const base = sens ? exacts.slice().reverse() : exacts;
+                    for (let k = 0; k < n; k++) {
+                        const cand = base.slice(k).concat(base.slice(0, k));
+                        let c = 0;
+                        for (let i = 0; i < n; i++) c += Math.hypot(cand[i].x - detectes[i].x, cand[i].y - detectes[i].y);
+                        if (c < best) { best = c; meilleur = cand; }
+                    }
+                }
+                return meilleur;
             }
 
             /* Figure NUE : les points, les côtés, et rien d'autre. Aucune animation,
@@ -17641,7 +17701,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 }
-                const noms = { carre: 'Carré', rectangle: 'Rectangle', losange: 'Losange', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral' };
+                const noms = { carre: 'Carré', rectangle: 'Rectangle', losange: 'Losange',
+                    parallelogramme: 'Parallélogramme', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral' };
                 return noms[res.forme] || 'Figure';
             }
 
@@ -17680,11 +17741,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else this.buildEquilateralTriangle(base, res.centre.x, res.centre.y);
                     return res.forme === 'carre' ? 'Carré' : 'Triangle équilatéral';
                 }
-                if (res.forme === 'rectangle') {
-                    const co = this.coinsQuadrilatere(res.centre, res.theta, res.largeur / 2, res.hauteur / 2);
-                    this.buildRectangle(this.pointCroquis(co[0].x, co[0].y),
-                        this.pointCroquis(co[1].x, co[1].y), this.pointCroquis(co[2].x, co[2].y));
-                    return 'Rectangle';
+                if (res.forme === 'rectangle' || res.forme === 'parallelogramme') {
+                    const co = this.sommetsCroquis(res);
+                    // les deux bâtisseurs attendent 3 sommets consécutifs, le 2e au coin,
+                    // et tracent déjà leurs deux premiers côtés à la règle
+                    const a = this.pointCroquis(co[0].x, co[0].y);
+                    const b3 = this.pointCroquis(co[1].x, co[1].y);
+                    const c4 = this.pointCroquis(co[2].x, co[2].y);
+                    if (res.forme === 'rectangle') { this.buildRectangle(a, b3, c4); return 'Rectangle'; }
+                    this.buildParallelogram(a, b3, c4);
+                    return 'Parallélogramme';
                 }
                 // cercle, segment, triangle quelconque : rien à construire de plus
                 this.isMagicConstructing = false;
@@ -17701,6 +17767,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (cb) cb.checked = valeur;
                 } else if (quoi === 'droiteLongue') this.croquisDroiteLongue = valeur;
                 else if (quoi === 'bord') this.croquisBordDemiDroite = valeur;
+                else if (quoi === 'nommer') this.croquisNommer = valeur;
             }
             ouvrirOptionsCroquis(btn) {
                 const pan = document.getElementById('croquisOptions');
@@ -17708,6 +17775,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 document.getElementById('optCroquisCodage').checked = this.croquisCodage !== false;
                 document.getElementById('optCroquisDroite').checked = this.croquisDroiteLongue !== false;
                 document.getElementById('optCroquisBord').checked = this.croquisBordDemiDroite !== false;
+                document.getElementById('optCroquisNommer').checked = this.croquisNommer !== false;
                 pan.style.display = 'block';
                 const b = btn.getBoundingClientRect(), p = pan.getBoundingClientRect();
                 let x = b.right + 8, y = b.top;
@@ -17771,7 +17839,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (res.forme === 'segment') res.forme = this.natureDuTrait(res);
                 // Cercle, segment et triangle quelconque n'ont pas de construction à
                 // détailler : poser la question n'aurait aucun sens.
-                const construisible = ['carre', 'rectangle', 'triangle_equilateral'].includes(res.forme);
+                const construisible = ['carre', 'rectangle', 'triangle_equilateral', 'parallelogramme'].includes(res.forme);
                 if (avecQuestion && construisible) {
                     this.croquisEnAttente = res;
                     this.ouvrirChoixCroquis(res);
@@ -17791,7 +17859,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             ouvrirChoixCroquis(res) {
-                const noms = { carre: 'un carré', rectangle: 'un rectangle', triangle_equilateral: 'un triangle équilatéral' };
+                const noms = { carre: 'un carré', rectangle: 'un rectangle',
+                    parallelogramme: 'un parallélogramme', triangle_equilateral: 'un triangle équilatéral' };
                 const m = document.getElementById('croquisModal');
                 if (!m) { this.finirCroquis(res, false); return; }
                 document.getElementById('croquisQuoi').textContent = noms[res.forme] || 'une figure';
