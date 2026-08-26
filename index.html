@@ -249,6 +249,30 @@
             stroke-width: 1.5;
         }
 
+        /* Dix-huit pictogrammes monochromes alignés sans un mot : mesuré, tous
+           visibles et cliquables, et pourtant impossibles à distinguer — au doigt
+           il n'y a même pas d'infobulle au survol. Chaque outil porte donc son nom
+           sous son icône. */
+        .magic-grid-item[data-libelle] {
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 2px;
+            width: 62px;
+            height: auto;
+            padding: 5px 2px 4px;
+        }
+        .magic-grid-item[data-libelle]::after {
+            content: attr(data-libelle);
+            font-size: 9px;
+            line-height: 1.1;
+            color: #64748b;
+            text-align: center;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+        .magic-grid-item[data-libelle]:hover::after,
+        .magic-grid-item[data-libelle].active::after { color: #0ea5e9; }
+
         .header-dropdown-content.grid-3-cols .sep-h {
             grid-column: span 3;
             width: 100%;
@@ -3861,6 +3885,14 @@
                 height: 38px;
             }
 
+            /* Au doigt, la cible garde ses 44px de large et gagne le nom en dessous. */
+            .magic-grid-item[data-libelle] {
+                width: 68px;
+                height: auto;
+                min-height: 52px;
+                padding: 6px 2px 5px;
+            }
+
             .modal-btn,
             .icon-btn {
                 min-height: 40px;
@@ -6437,7 +6469,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <div class="magic-grid">
                             <!-- Croquis à main levée : premier de la grille, c'est le
                                  raccourci le plus direct vers une figure. -->
-                            <div class="magic-grid-item" onclick="app.setTool('magic_croquis')"
+                            <div class="magic-grid-item" onclick="app.setTool('magic_croquis')" data-libelle="Croquis"
                                 data-tooltip="Croquis à main levée">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M3 17c2-6 5-9 8-9s4 2 3 4-4 2-4 0 2-4 5-4 4 3 6 5"
@@ -6446,7 +6478,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <circle cx="19" cy="19" r="2.4" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_mediatrice')" data-tooltip="Médiatrice">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_mediatrice')" data-libelle="Médiatrice" data-tooltip="Médiatrice">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <line x1="4" y1="16" x2="20" y2="16"/>
                                     <line x1="12" y1="4" x2="12" y2="22" stroke-dasharray="2 2"/>
@@ -6454,7 +6486,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <path d="M7 14v4 M17 14v4"/>
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_bisector')" data-tooltip="Bissectrice">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_bisector')" data-libelle="Bissectrice" data-tooltip="Bissectrice">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M4 20 L22 20 M4 20 L12 6" />
                                     <path d="M4 20 L20 11" stroke-dasharray="2 2" />
@@ -6462,13 +6494,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <path d="M9 19l1 -2 M9.5 15.5l1.5 -1.5" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_circumcircle')" data-tooltip="Cercle circonscrit à un triangle">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_circumcircle')" data-libelle="Circonscrit" data-tooltip="Cercle circonscrit à un triangle">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="12" r="9.5" />
                                     <polygon points="12,4 19,16.5 5,16.5" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_sym_axiale')" data-tooltip="Symétrie Axiale">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_sym_axiale')" data-libelle="Sym. axiale" data-tooltip="Symétrie Axiale">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <line x1="12" y1="2" x2="12" y2="22" />
                                     <polygon points="4,6 8,12 4,18" fill="currentColor" stroke="none" opacity="0.3" />
@@ -6476,7 +6508,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <line x1="8" y1="12" x2="16" y2="12" stroke-dasharray="2 2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_sym_centrale')" data-tooltip="Symétrie Centrale">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_sym_centrale')" data-libelle="Sym. centrale" data-tooltip="Symétrie Centrale">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M 5 5 L 9 5 L 5 9 Z" fill="currentColor" stroke="none" opacity="0.3"/>
                                     <path d="M 19 19 L 15 19 L 19 15 Z" fill="currentColor" stroke="none" opacity="0.3"/>
@@ -6488,20 +6520,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         <div class="magic-divider"></div>
                         <div class="magic-grid" style="flex-wrap: nowrap;">
-                            <div class="magic-grid-item" onclick="app.setTool('magic_triangle')" data-tooltip="Triangle équilatéral">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_triangle')" data-libelle="Triangle" data-tooltip="Triangle équilatéral">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="12,4 4,18 20,18" />
                                     <path d="M12 17v2 M7.1 10.5l1.75 1 M16.9 10.5l-1.75 1" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_square')" data-tooltip="Carré">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_square')" data-libelle="Carré" data-tooltip="Carré">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <rect x="5" y="5" width="14" height="14" />
                                     <path d="M5 8h3v-3 M16 5v3h3 M19 16h-3v3 M8 19v-3h-3" />
                                     <path d="M12 4v2 M12 18v2 M4 12h2 M18 12h2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_rectangle')" data-tooltip="Rectangle">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_rectangle')" data-libelle="Rectangle" data-tooltip="Rectangle">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <rect x="3" y="7" width="18" height="10" />
                                     <path d="M3 10h3v-3 M18 7v3h3 M21 14h-3v3 M6 17v-3h-3" />
@@ -6509,26 +6541,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <path d="M2 12h2 M20 12h2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_rhombus')" data-tooltip="Losange">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_rhombus')" data-libelle="Losange" data-tooltip="Losange">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="12,3 17,12 12,21 7,12" />
                                     <path d="M13.5 7.5h2 M13.5 16.5h2 M8.5 16.5h2 M8.5 7.5h2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_parallelogram')" data-tooltip="Parallélogramme">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_parallelogram')" data-libelle="Parallélo." data-tooltip="Parallélogramme">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="4,18 18,18 20,6 6,6" />
                                     <path d="M11 5v2 M13 5v2 M11 17v2 M13 17v2" />
                                     <path d="M4 12h2 M18 12h2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_hexagon')" data-tooltip="Hexagone régulier">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_hexagon')" data-libelle="Hexagone" data-tooltip="Hexagone régulier">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="12,2 20.66,7 20.66,17 12,22 3.34,17 3.34,7" />
                                     <path d="M19.66 12h2 M2.34 12h2" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_pentagon')" data-tooltip="Pentagone régulier">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_pentagon')" data-libelle="Pentagone" data-tooltip="Pentagone régulier">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="12,2 21,9.5 17.5,20.5 6.5,20.5 3,9.5" />
                                 </svg>
@@ -6537,7 +6569,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         <div class="magic-divider"></div>
                         <div class="magic-grid">
-                            <div class="magic-grid-item" onclick="app.setTool('magic_rosette')" data-tooltip="Rosace">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_rosette')" data-libelle="Rosace" data-tooltip="Rosace">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="12" r="10" />
                                     <ellipse cx="12" cy="12" rx="10" ry="3" />
@@ -6545,13 +6577,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <ellipse cx="12" cy="12" rx="10" ry="3" transform="rotate(120 12 12)" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_hexagram')" data-tooltip="Étoile à 6 branches">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_hexagram')" data-libelle="Étoile 6" data-tooltip="Étoile à 6 branches">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="12,2 20.66,17 3.34,17" />
                                     <polygon points="12,22 3.34,7 20.66,7" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_seed_of_life')" data-tooltip="Graine de Vie">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_seed_of_life')" data-libelle="Graine de vie" data-tooltip="Graine de Vie">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="12" r="3.5" />
                                     <circle cx="12" cy="8.5" r="3.5" />
@@ -6562,7 +6594,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <circle cx="15.03" cy="13.75" r="3.5" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_yin_yang')" data-tooltip="Yin Yang">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_yin_yang')" data-libelle="Yin yang" data-tooltip="Yin Yang">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="12" r="10" />
                                     <path d="M12 2 A5 5 0 0 1 12 12 A5 5 0 0 0 12 22" />
@@ -6570,13 +6602,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <circle cx="12" cy="17" r="1.5" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_octagram')" data-tooltip="Octagramme">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_octagram')" data-libelle="Octagramme" data-tooltip="Octagramme">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <rect x="5" y="5" width="14" height="14" />
                                     <rect x="5" y="5" width="14" height="14" transform="rotate(45 12 12)" />
                                 </svg>
                             </div>
-                            <div class="magic-grid-item" onclick="app.setTool('magic_pythagoras')" data-tooltip="Escargot de Pythagore">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_pythagoras')" data-libelle="Escargot" data-tooltip="Escargot de Pythagore">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M12 12 L12 18 L18 18 Z" />
                                     <path d="M12 12 L18 18 L20.5 12.5 Z" />
