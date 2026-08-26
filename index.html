@@ -6086,7 +6086,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     rejouable pas à pas. Rien ne se lance avant votre réponse.</li>
                                 <li><strong>Reconnu :</strong> cercle (avec son centre), segment, demi-droite,
                                     droite, triangle, triangle équilatéral, carré, rectangle, losange,
-                                    parallélogramme.</li>
+                                    parallélogramme, pentagone et hexagone réguliers.</li>
+                                <li><strong>Trop loin d'une figure connue ?</strong> Le tracé devient un
+                                    <b>polygone</b> aux côtés redressés — trapèze, cerf-volant, quadrilatère de
+                                    travers. Rien n'est perdu. Au-delà de six côtés en revanche, un polygone
+                                    régulier est presque un cercle : c'est le cercle qui l'emporte.</li>
                                 <li><strong>Les sommets sont nommés dans l'ordre du tracé :</strong> A là où vous
                                     avez commencé, puis B, C… dans le sens où vous avez tourné. Débrayable.</li>
                                 <li><strong>Un trait droit</strong> devient une <b>droite</b> si ses deux bouts
@@ -8730,6 +8734,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
 
                 let n = sommets.length;
+                /* Au-delà de six côtés, un polygone régulier EST presque un cercle :
+                   la flèche de chaque arc vaut tan(pi/2n) de sa corde, soit 20 % à
+                   huit côtés et 13 % à douze — sous le seuil de rectitude. Mesuré, en
+                   acceptant jusqu'à huit sommets, un vrai cercle se faisait classer
+                   « polygone » six fois sur six. On s'arrête donc à six : au-delà,
+                   c'est le cercle qui décide. */
                 let polygoneNet = (n >= 3 && n <= 6);
                 if (polygoneNet) {
                     // indice, le long du tracé, du point le plus proche de chaque sommet
@@ -8808,7 +8818,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        assez large pour accepter un carré tracé à la main. Les
                        DIAGONALES, elles, sont sans appel — égales dans la famille du
                        rectangle, inégales dans celle du losange. */
+                    /* Tout commence par : est-ce un PARALLÉLOGRAMME ? Carré,
+                       rectangle et losange en sont tous. Sans ce préalable, un
+                       cerf-volant — deux paires de côtés adjacents égaux — passait
+                       pour un losange : mesuré 6 fois sur 6, ses côtés (170, 200, 200,
+                       170) tenaient dans la tolérance de dispersion. Ses diagonales,
+                       elles, ne se coupent pas en leur milieu. */
                     const diag1 = d(sommets[0], sommets[2]), diag2 = d(sommets[1], sommets[3]);
+                    /* Le test décisif : les diagonales se coupent-elles en leur
+                       MILIEU ? C'est la propriété qui définit le parallélogramme, et
+                       la seule qui sépare proprement le cerf-volant. Comparer les
+                       côtés opposés ne suffit pas : mesuré, un cerf-volant de côtés
+                       170, 200, 200, 170 tenait dans toute tolérance assez large pour
+                       accepter un parallélogramme tracé à la main, et se faisait
+                       classer losange six fois sur six. Ses milieux de diagonales,
+                       eux, sont distants de 8 % — le test les écarte. */
+                    const mi1 = { x: (sommets[0].x + sommets[2].x) / 2, y: (sommets[0].y + sommets[2].y) / 2 };
+                    const mi2 = { x: (sommets[1].x + sommets[3].x) / 2, y: (sommets[1].y + sommets[3].y) / 2 };
+                    const estPara = d(mi1, mi2) < 0.05 * ((diag1 + diag2) / 2)
+                        && Math.abs(cotes[0].l - cotes[2].l) / Math.max(cotes[0].l, cotes[2].l) < 0.20
+                        && Math.abs(cotes[1].l - cotes[3].l) / Math.max(cotes[1].l, cotes[3].l) < 0.20;
+                    if (!estPara) return { forme: 'polygone', sommets, centre };
                     const diagEgales = Math.abs(diag1 - diag2) / Math.max(diag1, diag2) < 0.10;
                     const droits = diagEgales
                         && angles.every(a => Math.abs(a - Math.PI / 2) < 20 * Math.PI / 180);
@@ -8855,20 +8885,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             cote: Math.hypot(d1, d2),
                         };
                     }
-                    /* Parallélogramme : côtés opposés égaux et parallèles. Il vient
-                       en dernier car carré, rectangle et losange en sont tous. On le
-                       redresse par ses DIAGONALES, qui se coupent en leur milieu :
-                       poser les sommets en c±a et c±b garantit la figure exacte, sans
-                       avoir à corriger quatre côtés séparément. */
-                    const par1 = Math.abs(cotes[0].l - cotes[2].l) / Math.max(cotes[0].l, cotes[2].l);
-                    const par2 = Math.abs(cotes[1].l - cotes[3].l) / Math.max(cotes[1].l, cotes[3].l);
-                    const ecartAngle = (a, b2) => {
-                        let t = Math.abs(a - b2) % Math.PI;
-                        return Math.min(t, Math.PI - t);
-                    };
-                    const p1 = ecartAngle(cotes[0].a, cotes[2].a), p2 = ecartAngle(cotes[1].a, cotes[3].a);
-                    const tolPar = 14 * Math.PI / 180;
-                    if (par1 < 0.20 && par2 < 0.20 && p1 < tolPar && p2 < tolPar) {
+                    /* Reste le parallélogramme quelconque. Comme le losange, on le
+                       redresse par ses diagonales, qui se coupent en leur milieu :
+                       poser les sommets en c±a et c±b donne la figure exacte sans
+                       corriger quatre côtés séparément. */
+                    {
                         const c3 = { x: (sommets[0].x + sommets[1].x + sommets[2].x + sommets[3].x) / 4,
                                      y: (sommets[0].y + sommets[1].y + sommets[2].y + sommets[3].y) / 4 };
                         const ax = (sommets[0].x - sommets[2].x) / 2, ay = (sommets[0].y - sommets[2].y) / 2;
@@ -8881,7 +8902,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             ],
                         };
                     }
-                    return null;
+                }
+                if (n === 5 || n === 6) {
+                    /* Régulier ? Côtés égaux ET angles tous à la valeur attendue,
+                       (n-2)·180/n. Les deux conditions ensemble : des côtés égaux
+                       seuls décrivent aussi une figure étoilée ou concave. */
+                    const attendu = Math.PI * (n - 2) / n;
+                    const reguliers = dispersion < 0.16
+                        && angles.every(a => Math.abs(a - attendu) < 13 * Math.PI / 180);
+                    if (reguliers) {
+                        // rayon moyen et orientation, moyenne circulaire au pas de 2π/n
+                        let R = 0, sx = 0, sy = 0;
+                        sommets.forEach(v => {
+                            R += d(v, centre) / n;
+                            const a = Math.atan2(v.y - centre.y, v.x - centre.x) * n;
+                            sx += Math.cos(a); sy += Math.sin(a);
+                        });
+                        const t0 = Math.atan2(sy, sx) / n;
+                        const exacts = [];
+                        for (let k = 0; k < n; k++) {
+                            const a = t0 + k * 2 * Math.PI / n;
+                            exacts.push({ x: centre.x + R * Math.cos(a), y: centre.y + R * Math.sin(a) });
+                        }
+                        return { forme: n === 5 ? 'pentagone' : 'hexagone', sommets: exacts, centre, rayon: R, detectes: sommets };
+                    }
+                    return { forme: 'polygone', sommets, centre };
                 }
                 return null;
             }
@@ -17631,7 +17676,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const t = Math.atan2(pB.y - pA.y, pB.x - pA.x) - Math.PI / 3;
                     return [pA, pB, { x: pA.x + Math.cos(t) * l, y: pA.y + Math.sin(t) * l }];
                 }
-                if (res.forme === 'triangle' || res.forme === 'losange'
+                if (res.forme === 'pentagone' || res.forme === 'hexagone')
+                    return this.alignerSurTrace(res.sommets, res.detectes);
+                if (res.forme === 'triangle' || res.forme === 'losange' || res.forme === 'polygone'
                     || res.forme === 'parallelogramme') return res.sommets;
                 return null;
             }
@@ -17713,7 +17760,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 const noms = { carre: 'Carré', rectangle: 'Rectangle', losange: 'Losange',
-                    parallelogramme: 'Parallélogramme', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral' };
+                    parallelogramme: 'Parallélogramme', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral',
+                    pentagone: 'Pentagone régulier', hexagone: 'Hexagone régulier', polygone: 'Polygone' };
                 return noms[res.forme] || 'Figure';
             }
 
@@ -17728,6 +17776,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.isMagicConstructing = true;
                 // tout ce qui suit doit être rejoué, premier côté compris
                 this.croquisDebutRejeu = this.entities.length;
+                if (res.forme === 'pentagone' || res.forme === 'hexagone') {
+                    const co = this.sommetsCroquis(res);
+                    const [pA, pB] = this.ordonnerBase(co[0], co[1], res.centre, Math.PI / 2);
+                    const q1 = this.pointCroquis(pA.x, pA.y), q2 = this.pointCroquis(pB.x, pB.y);
+                    const base = new Segment(q1, q2, { color: col, width: ep, dash: false });
+                    const ang0 = Math.atan2(q2.y - q1.y, q2.x - q1.x);
+                    const dep0 = { x: q1.x, y: q1.y, angle: ang0 };
+                    const an0 = new ToolAnimation('trace', dep0, dep0); an0.widgetType = 'ruler';
+                    this.addEntity(an0); this.addEntity(base);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    if (res.forme === 'pentagone') this.buildRegularPentagon(base, res.centre.x, res.centre.y);
+                    else this.buildHexagon(base, res.centre.x, res.centre.y);
+                    return res.forme === 'pentagone' ? 'Pentagone régulier' : 'Hexagone régulier';
+                }
                 if (res.forme === 'triangle_equilateral' || res.forme === 'carre') {
                     let pA, pB;
                     if (res.forme === 'carre') {
@@ -17852,7 +17914,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (res.forme === 'segment') res.forme = this.natureDuTrait(res);
                 // Cercle, segment et triangle quelconque n'ont pas de construction à
                 // détailler : poser la question n'aurait aucun sens.
-                const construisible = ['carre', 'rectangle', 'triangle_equilateral', 'parallelogramme'].includes(res.forme);
+                const construisible = ['carre', 'rectangle', 'triangle_equilateral', 'parallelogramme',
+                    'pentagone', 'hexagone'].includes(res.forme);
                 if (avecQuestion && construisible) {
                     this.croquisEnAttente = res;
                     this.ouvrirChoixCroquis(res);
@@ -17875,7 +17938,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             ouvrirChoixCroquis(res) {
                 const noms = { carre: 'un carré', rectangle: 'un rectangle',
-                    parallelogramme: 'un parallélogramme', triangle_equilateral: 'un triangle équilatéral' };
+                    parallelogramme: 'un parallélogramme', triangle_equilateral: 'un triangle équilatéral',
+                    pentagone: 'un pentagone régulier', hexagone: 'un hexagone régulier' };
                 const m = document.getElementById('croquisModal');
                 if (!m) { this.finirCroquis(res, false); return; }
                 document.getElementById('croquisQuoi').textContent = noms[res.forme] || 'une figure';
