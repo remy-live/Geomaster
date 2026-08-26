@@ -6380,7 +6380,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
                         <div class="icon-btn" onclick="app.requestExport('svg')" aria-label="Exporter SVG" data-libelle="SVG"
-                            data-tooltip="Exporter en SVG">
+                            data-tooltip="Exporter en SVG — police embarquée au choix">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <g transform="translate(0, -4) scale(0.8) translate(3, 3)">
@@ -7642,8 +7642,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="modal-box">
             <div class="modal-text" style="margin-bottom: 15px; text-align: left;">
                 <h3 style="margin-top:0; color:#2980b9;">📥 Options d'exportation</h3>
-                <p style="font-size:14px; color:#555;">Des instruments géométriques sont présents sur la figure.</p>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                <p style="font-size:14px; color:#555;" id="expIntro">Des instruments géométriques sont présents sur la figure.</p>
+                <div id="expToolsBlock" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
                     <label
                         style="display:flex; align-items:center; gap:8px; margin-bottom: 12px; font-weight: 500; cursor: pointer;">
                         <input type="checkbox" id="expIncludeTools" checked style="width:16px; height:16px;"
@@ -7668,6 +7668,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <span>Masquer les nombres <i style="color:#888;">(Créer des exercices)</i></span>
                         </label>
                     </div>
+                </div>
+                <!-- Réservé au SVG : le PDF embarque toujours la police, un SVG est
+                     un document isolé qui, ouvert ailleurs, se rabat sur une
+                     substitution — d'où le choix, puisqu'il pèse. -->
+                <div id="expFontBlock"
+                    style="display:none; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-top: 10px;">
+                    <label style="display:flex; align-items:flex-start; gap:8px; font-weight: 500; cursor: pointer;">
+                        <input type="checkbox" id="expPolice" checked style="width:16px; height:16px; margin-top:2px;">
+                        <span>🔤 Embarquer la police dans le fichier
+                            <i style="display:block; font-weight:400; font-style:normal; font-size:12.5px; color:#888; margin-top:3px;">
+                                Le SVG s'affichera partout comme à l'écran. Sans elle, un autre
+                                logiciel lui substituera sa propre police.
+                                <span id="expPoliceTaille"></span></i></span>
+                    </label>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -14177,22 +14191,51 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             requestExport(format) {
                 const hasTools = this.activeWidgets.ruler || this.activeWidgets.setsquare || this.activeWidgets.protractor || this.activeWidgets.compass;
-                if (!hasTools) {
+                // Le SVG a lui aussi une question à poser : embarquer la police.
+                const questionPolice = (format === 'svg' && !!window.gmCssPolice);
+                if (!hasTools && !questionPolice) {
                     this.executeExport(format, false, 'text');
                     return;
                 }
                 const modal = document.getElementById('exportModal');
+                const blocTools = document.getElementById('expToolsBlock');
+                const blocFont = document.getElementById('expFontBlock');
+                const intro = document.getElementById('expIntro');
+                if (blocTools) blocTools.style.display = hasTools ? '' : 'none';
+                if (blocFont) blocFont.style.display = questionPolice ? '' : 'none';
+                if (intro) {
+                    intro.textContent = hasTools
+                        ? "Des instruments géométriques sont présents sur la figure."
+                        : "Comment voulez-vous ce fichier ?";
+                }
+                /* Le poids annoncé est CALCULÉ, pas recopié : il suivra la police
+                   si elle change un jour, et l'on ne promet rien qu'on ne mesure. */
+                const lblTaille = document.getElementById('expPoliceTaille');
+                if (lblTaille && questionPolice) {
+                    /* On interroge le VRAI export plutôt que de deviner où se trouve
+                       du gras : les noms de points, les valeurs d'angles et les
+                       graduations du rapporteur en portent, une liste qu'on aurait
+                       recopiée ici et qui aurait fini par diverger. Fabriquer le SVG
+                       une fois de plus coûte quelques millisecondes. */
+                    let gras = true;
+                    try { gras = /font-weight="bold"/.test(this.generateSVGString(hasTools, 'text') || ''); }
+                    catch (e) { gras = true; }
+                    const ko = Math.round(window.gmCssPolice(gras).length / 1024);
+                    lblTaille.textContent = `Elle ajoute environ ${ko} Ko au fichier.`;
+                }
                 modal.style.display = 'flex';
                 const btnConfirm = document.getElementById('btnConfirmExport');
                 btnConfirm.onclick = () => {
-                    const includeTools = document.getElementById('expIncludeTools').checked;
-                    const numbersMode = document.querySelector('input[name="expNumbersMode"]:checked').value;
+                    const includeTools = hasTools && document.getElementById('expIncludeTools').checked;
+                    const numbersMode = hasTools
+                        ? document.querySelector('input[name="expNumbersMode"]:checked').value : 'text';
+                    const police = questionPolice && document.getElementById('expPolice').checked;
                     modal.style.display = 'none';
-                    this.executeExport(format, includeTools, numbersMode);
+                    this.executeExport(format, includeTools, numbersMode, police);
                 };
             }
-            executeExport(format, includeTools, numbersMode) {
-                if (format === 'svg') this.exportSVG(includeTools, numbersMode);
+            executeExport(format, includeTools, numbersMode, police) {
+                if (format === 'svg') this.exportSVG(includeTools, numbersMode, police);
                 else if (format === 'pdf') this.exportPDF(includeTools, numbersMode);
                 else this.exportImage(format, includeTools, numbersMode);
             }
@@ -20769,9 +20812,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             // 2. Fonction qui exporte en SVG (Le téléchargement classique)
-            exportSVG(includeTools = false, numbersMode = 'text') {
-                const svgContent = this.generateSVGString(includeTools, numbersMode);
+            /* Glisse la règle @font-face dans le fichier SVG. On n'embarque le gras
+               que si le dessin en contient : c'est la moitié du poids, et une
+               figure sans un seul mot en gras n'a pas à la porter. */
+            embarquerPoliceSVG(svg) {
+                if (!window.gmCssPolice || svg.indexOf('GeoSans') === -1) return svg;
+                const gras = /font-weight="bold"/.test(svg);
+                const css = window.gmCssPolice(gras);
+                return svg.replace(/^(<svg[^>]*>)/, (m) =>
+                    m + '<style type="text/css"><![CDATA[' + css + ']]></style>');
+            }
+            exportSVG(includeTools = false, numbersMode = 'text', embarquerPolice = false) {
+                let svgContent = this.generateSVGString(includeTools, numbersMode);
                 if (!svgContent) return;
+                if (embarquerPolice) svgContent = this.embarquerPoliceSVG(svgContent);
 
                 const blob = new Blob([svgContent], { type: "image/svg+xml" });
                 const url = URL.createObjectURL(blob);
@@ -20782,7 +20836,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                this.showToast("✒️ Fichier SVG exporté !");
+                this.showToast(embarquerPolice ? "✒️ SVG exporté, police comprise" : "✒️ Fichier SVG exporté !");
             }
 
             // 3. Fonction magique qui génère le PDF vectoriel !
@@ -23788,6 +23842,23 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
                     if (window.app && window.app.render) window.app.render();
                 }).catch(function () { /* repli silencieux : la pile CSS suffit */ });
             }
+
+            /* --- côté SVG exporté : la même règle, à embarquer dans le fichier.
+               Un SVG est un document isolé : ouvert ailleurs, il n'a pas la police
+               du logiciel et se rabat sur une substitution. Le PDF, lui, l'embarque
+               toujours. On rend donc la règle disponible pour qui veut un SVG
+               fidèle — c'est une option, car elle pèse.
+               Les deux graisses sont rendues séparément : une figure sans le
+               moindre gras n'a aucune raison de payer la seconde. */
+            window.gmCssPolice = function (avecGras) {
+                var css = "@font-face{font-family:'GeoSans';font-style:normal;font-weight:400;"
+                        + "src:url(data:font/ttf;base64," + REGULIER + ") format('truetype');}";
+                if (avecGras) {
+                    css += "@font-face{font-family:'GeoSans';font-style:normal;font-weight:700;"
+                         + "src:url(data:font/ttf;base64," + GRAS + ") format('truetype');}";
+                }
+                return css;
+            };
 
             // --- côté PDF : enregistrement dans un document jsPDF
             window.gmEnregistrerPolice = function (pdf) {
