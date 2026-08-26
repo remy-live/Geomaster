@@ -17600,7 +17600,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     const q1 = this.pointCroquis(pA.x, pA.y), q2 = this.pointCroquis(pB.x, pB.y);
                     const base = new Segment(q1, q2, { color: col, width: ep, dash: false });
+                    /* Le premier côté se trace À LA RÈGLE, comme tous les suivants.
+                       Les bâtisseurs n'animent leur base que lorsqu'ils la fabriquent
+                       eux-mêmes ; on leur en fournit une, elle apparaissait donc d'un
+                       coup au milieu d'une construction par ailleurs entièrement
+                       instrumentée. On pose ici la même séquence qu'eux. */
+                    const angle = Math.atan2(q2.y - q1.y, q2.x - q1.x);
+                    const depart = { x: q1.x, y: q1.y, angle: angle };
+                    const animRegle = new ToolAnimation('trace', depart, depart);
+                    animRegle.widgetType = 'ruler';
+                    this.addEntity(animRegle);
                     this.addEntity(base);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                     if (res.forme === 'carre') this.buildSquare(base, res.centre.x, res.centre.y);
                     else this.buildEquilateralTriangle(base, res.centre.x, res.centre.y);
                     return res.forme === 'carre' ? 'Carré' : 'Triangle équilatéral';
