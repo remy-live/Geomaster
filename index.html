@@ -3161,6 +3161,19 @@
         /* ==========================================
            PALETTE DE STYLE (DROITE FLOTTANTE)
            ========================================== */
+        .croquis-opt {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 8px 6px; border-radius: 7px; cursor: pointer; color: #334155;
+        }
+        .croquis-opt:hover { background: #f1f5f9; }
+        .croquis-opt input { width: 18px; height: 18px; margin-top: 1px; accent-color: #0284c7; flex: 0 0 auto; }
+        .croquis-opt span { display: flex; flex-direction: column; line-height: 1.25; }
+        .croquis-opt i { font-style: normal; font-size: 11px; color: #94a3b8; }
+        @media (pointer: coarse) {
+            .croquis-opt { padding: 11px 8px; }
+            .croquis-opt input { width: 22px; height: 22px; }
+        }
+
         #barreDocument .doc-btn {
             display: inline-flex; align-items: center; gap: 5px;
             border: 1px solid #e2e8f0; background: #f8fafc; color: #334155;
@@ -6071,8 +6084,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <li><strong>🪄 Tiroir magique :</strong> la figure reconnue est annoncée, et l'on vous
                                     demande si vous voulez la <b>construction détaillée</b> à la règle et au compas,
                                     rejouable pas à pas. Rien ne se lance avant votre réponse.</li>
-                                <li><strong>Reconnu :</strong> cercle (avec son centre), segment, triangle, triangle
-                                    équilatéral, carré, rectangle, losange.</li>
+                                <li><strong>Reconnu :</strong> cercle (avec son centre), segment, demi-droite,
+                                    droite, triangle, triangle équilatéral, carré, rectangle, losange.</li>
+                                <li><strong>Un trait droit</strong> devient une <b>droite</b> si ses deux bouts
+                                    atteignent le bord de l'écran, ou s'il traverse plus d'un demi-écran ; une
+                                    <b>demi-droite</b> si un seul bout va au bord, son origine étant l'autre bout ;
+                                    un <b>segment</b> sinon.</li>
+                                <li><strong>Appui long sur l'outil</strong> (ou clic droit) : ses options — coder le
+                                    dessin, et les deux règles ci-dessus, débrayables.</li>
                                 <li><strong>Un sommet sur un point existant</strong> réutilise ce point : on peut
                                     croquer par-dessus une figure en cours.</li>
                                 <li><strong>Rien n'est reconnu ?</strong> Rien n'est construit — retracez plus
@@ -6807,13 +6826,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <!-- Croquis direct : la figure sort nue et codée, sans question ni
                  construction. C'est le geste rapide, à sa place parmi les outils de
                  tracé plutôt que dans le tiroir des constructions. -->
-            <button class="tool-btn" onclick="app.setTool('croquis')" aria-label="Croquis à main levée"
-                data-tooltip="Croquis à main levée">
+            <button class="tool-btn" id="btnCroquis" onclick="app.setTool('croquis')" aria-label="Croquis à main levée"
+                data-tooltip="Croquis à main levée — appui long : options">
+                <!-- Un crayon et son trait ondulé, plus une étincelle : « on dessine à
+                     main levée, et ça devient une figure ». Le carré à moitié tremblé
+                     essayé d'abord ne lisait plus qu'un carré à 24px — la nuance
+                     disparaissait, et il se confondait avec les formes voisines. -->
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"
                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 16c1.5-5 4-8 6.5-8 2 0 2.8 1.6 2 2.8-.8 1.2-2.7.6-2.3-.9C9.7 8 11.6 6 14 6c2.6 0 3.8 2.4 5.4 4.6" />
-                    <path d="M20 14.5l-5.5 5.5" stroke-dasharray="2.5 2.5" />
-                    <rect x="15.5" y="15.5" width="6" height="6" rx="1" />
+                    <path d="M11.5 17.5l-3.6.9.9-3.6L18 5.6a1.9 1.9 0 012.7 2.7l-9.2 9.2z" />
+                    <path d="M3 20.5c1.6-2.6 3.2.9 4.8-1.2" stroke-width="1.8" />
+                    <path d="M5.6 6.8V3.4M3.9 5.1h3.4" stroke-width="1.7" opacity="0.8" />
                 </svg>
             </button>
             <div class="group-label" onclick="app.toggleInstrumentsDock()" data-tooltip="Détacher la trousse d'instruments"
@@ -7583,6 +7606,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <!-- Le croquis a été reconnu : reste à savoir si l'on veut la figure seule,
          ou la construction détaillée à la règle et au compas. La question est posée
          AVANT de bâtir quoi que ce soit — rien ne se lance dans le dos. -->
+    <!-- Options du croquis, ouvertes par un appui long sur l'outil. Elles vivent
+         là plutôt que dans le tiroir magique : c'est l'outil qu'on est en train
+         d'utiliser, et au doigt il n'y a pas d'infobulle pour les annoncer. -->
+    <div id="croquisOptions"
+        style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:232px; font-family:'Segoe UI', sans-serif; font-size:13px;">
+        <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Croquis à main levée</div>
+        <label class="croquis-opt"><input type="checkbox" id="optCroquisCodage" checked
+                onchange="app.reglerCroquis('codage', this.checked)"><span>Coder le dessin<i>côtés égaux, angles droits</i></span></label>
+        <label class="croquis-opt"><input type="checkbox" id="optCroquisDroite" checked
+                onchange="app.reglerCroquis('droiteLongue', this.checked)"><span>Trait long → droite<i>au-delà d'un demi-écran</i></span></label>
+        <label class="croquis-opt"><input type="checkbox" id="optCroquisBord" checked
+                onchange="app.reglerCroquis('bord', this.checked)"><span>Vers le bord → demi-droite<i>les deux bords → droite</i></span></label>
+    </div>
     <div id="croquisModal" class="modal-overlay" style="display:none;">
         <div class="modal-box" style="max-width: 420px;">
             <h3 style="margin-top:0; color:#2980b9;">J'ai reconnu <span id="croquisQuoi">une figure</span></h3>
@@ -15836,6 +15872,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.isMagicConstructing = false;
                 this.magicUseTools = true;
                 this.croquisCodage = true;
+                this.croquisDroiteLongue = true;
+                this.croquisBordDemiDroite = true;
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -15956,6 +15994,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 setTimeout(() => this.checkAutoSave(), 500);
                 this.draggedLabelPoint = null;
                 this.initInstrumentsDrag();
+                /* Appui long sur l'outil croquis : ses options. Au doigt il n'y a pas
+                   d'infobulle, et les réglages doivent être là où l'on travaille. Le
+                   clic droit fait la même chose à la souris. */
+                const btnCr = document.getElementById('btnCroquis');
+                if (btnCr) {
+                    let minCr = null;
+                    const armer = (e) => {
+                        clearTimeout(minCr);
+                        minCr = setTimeout(() => { minCr = null; this.ouvrirOptionsCroquis(btnCr); }, 500);
+                    };
+                    const desarmer = () => { clearTimeout(minCr); minCr = null; };
+                    btnCr.addEventListener('pointerdown', armer);
+                    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btnCr.addEventListener(t, desarmer));
+                    btnCr.addEventListener('contextmenu', (e) => { e.preventDefault(); desarmer(); this.ouvrirOptionsCroquis(btnCr); });
+                    document.addEventListener('pointerdown', (e) => {
+                        const pan = document.getElementById('croquisOptions');
+                        if (!pan || pan.style.display === 'none') return;
+                        if (pan.contains(e.target) || btnCr.contains(e.target)) return;
+                        this.fermerOptionsCroquis();
+                    }, true);
+                }
                 this.canvas.ondblclick = (e) => this.traiterDoubleClic(e);
                 /* iOS ne synthétise pas de dblclick derrière un double-appui dès qu'un
                    gestionnaire tactile a appelé preventDefault — ce que fait le canevas
@@ -17547,9 +17606,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(cercle);
                     return 'Cercle';
                 }
-                if (res.forme === 'segment') {
-                    seg(this.pointCroquis(res.a.x, res.a.y), this.pointCroquis(res.b.x, res.b.y));
-                    return 'Segment';
+                if (res.forme === 'segment' || res.forme === 'droite' || res.forme === 'demi_droite') {
+                    const p1 = this.pointCroquis(res.a.x, res.a.y), p2 = this.pointCroquis(res.b.x, res.b.y);
+                    if (res.forme === 'segment') { seg(p1, p2); return 'Segment'; }
+                    // Ray part de p1 vers p2 ; Line s'étend des deux côtés
+                    const o = (res.forme === 'droite') ? new Line(p1, p2) : new Ray(p1, p2);
+                    o.color = col; o.lineWidth = ep; o.dash = [];
+                    this.addEntity(o);
+                    return res.forme === 'droite' ? 'Droite' : 'Demi-droite';
                 }
                 const som = this.sommetsCroquis(res);
                 if (!som) return '';
@@ -17627,6 +17691,75 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this.construireCroquisSimple(res, true);
             }
 
+            /* Options du croquis, ouvertes par un appui long — ou par un clic droit
+               à la souris — sur l'outil. Le tiroir magique garde son interrupteur de
+               codage, les deux restent d'accord. */
+            reglerCroquis(quoi, valeur) {
+                if (quoi === 'codage') {
+                    this.croquisCodage = valeur;
+                    const cb = document.getElementById('croquis-code-toggle');
+                    if (cb) cb.checked = valeur;
+                } else if (quoi === 'droiteLongue') this.croquisDroiteLongue = valeur;
+                else if (quoi === 'bord') this.croquisBordDemiDroite = valeur;
+            }
+            ouvrirOptionsCroquis(btn) {
+                const pan = document.getElementById('croquisOptions');
+                if (!pan || !btn) return;
+                document.getElementById('optCroquisCodage').checked = this.croquisCodage !== false;
+                document.getElementById('optCroquisDroite').checked = this.croquisDroiteLongue !== false;
+                document.getElementById('optCroquisBord').checked = this.croquisBordDemiDroite !== false;
+                pan.style.display = 'block';
+                const b = btn.getBoundingClientRect(), p = pan.getBoundingClientRect();
+                let x = b.right + 8, y = b.top;
+                if (x + p.width > window.innerWidth - 6) x = Math.max(6, b.left - p.width - 8);
+                y = Math.max(6, Math.min(y, window.innerHeight - p.height - 6));
+                pan.style.left = Math.round(x) + 'px';
+                pan.style.top = Math.round(y) + 'px';
+            }
+            fermerOptionsCroquis() {
+                const pan = document.getElementById('croquisOptions');
+                if (pan) pan.style.display = 'none';
+            }
+
+            /* Segment, demi-droite ou droite ? Le tracé le dit tout seul :
+               - les deux bouts touchent le bord de l'écran : ça continue des deux
+                 côtés, c'est une droite ;
+               - un seul bout touche le bord : ça continue d'un côté, c'est une
+                 demi-droite, et son origine est l'autre bout ;
+               - sinon, un trait qui traverse plus d'un demi-écran est une droite —
+                 personne ne dessine un segment aussi long pour rien.
+               Les deux dernières règles sont débrayables : certains voudront
+               n'obtenir que des segments. */
+            natureDuTrait(res) {
+                const r = this.canvas.getBoundingClientRect();
+                const z = this.view.zoom || 1;
+                const versEcran = (p) => ({ x: p.x * z + this.view.x + r.left, y: p.y * z + this.view.y + r.top });
+                const vue = {
+                    l: Math.max(0, r.left), t: Math.max(0, r.top),
+                    r: Math.min(window.innerWidth, r.right), b: Math.min(window.innerHeight, r.bottom),
+                };
+                const larg = vue.r - vue.l, haut = vue.b - vue.t;
+                if (larg <= 0 || haut <= 0) return 'segment';
+                const marge = Math.max(16, 0.05 * Math.min(larg, haut));
+                const auBord = (p) => (p.x - vue.l < marge) || (vue.r - p.x < marge)
+                    || (p.y - vue.t < marge) || (vue.b - p.y < marge);
+                const A = versEcran(res.a), B = versEcran(res.b);
+                if (this.croquisBordDemiDroite !== false) {
+                    const nA = auBord(A), nB = auBord(B);
+                    if (nA && nB) return 'droite';
+                    if (nA !== nB) {
+                        // l'origine de la demi-droite est le bout resté à l'intérieur
+                        if (nA) { const t = res.a; res.a = res.b; res.b = t; }
+                        return 'demi_droite';
+                    }
+                }
+                if (this.croquisDroiteLongue !== false) {
+                    const L = Math.hypot(B.x - A.x, B.y - A.y);
+                    if (L > 0.5 * Math.max(larg, haut)) return 'droite';
+                }
+                return 'segment';
+            }
+
             construireCroquis(trait, avecQuestion) {
                 const res = (typeof GmCroquis !== 'undefined')
                     ? GmCroquis.reconnaitre(trait, this.view.zoom || 1) : null;
@@ -17635,6 +17768,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.showToast("Forme non reconnue — retracez plus franchement");
                     return;
                 }
+                if (res.forme === 'segment') res.forme = this.natureDuTrait(res);
                 // Cercle, segment et triangle quelconque n'ont pas de construction à
                 // détailler : poser la question n'aurait aucun sens.
                 const construisible = ['carre', 'rectangle', 'triangle_equilateral'].includes(res.forme);
