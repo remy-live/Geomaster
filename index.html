@@ -7073,7 +7073,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 <select id="ghostTextFont"
                     style="height: 26px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; cursor: pointer; outline: none;">
-                    <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                    <!-- La police du logiciel, celle des noms de points et des
+                         longueurs. Elle est embarquée dans le PDF : c'est la seule
+                         du menu que l'export rend à l'identique. -->
+                    <option value="GeoSans, 'Segoe UI', Arial, sans-serif">Standard</option>
                     <option value="Arial, sans-serif">Arial</option>
                     <option value="'Courier New', monospace">Courier</option>
                     <option value="'Comic Sans MS', cursive">Comic Sans</option>
@@ -10177,7 +10180,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.text = text;
                 this.color = "black";
                 this.fontSize = 16;
-                this.fontFamily = "'Segoe UI', sans-serif";
+                this.fontFamily = (typeof window !== 'undefined' && window.GM_POLICE_PILE)
+                    || "GeoSans, 'Segoe UI', Arial, sans-serif";
                 this.gras = false;
                 this.italique = false;
                 this.souligne = false;
@@ -10204,9 +10208,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             static texteNu(lignes) {
                 return lignes.map(l => l.map(m => m.t).join('')).join('\n');
             }
+            /* La famille réellement utilisée. « 'Segoe UI', sans-serif » était la
+               valeur par défaut d'origine — mais Segoe UI est une police Windows :
+               ailleurs le canevas retombait sur un sans-serif système pendant que
+               le PDF, lui, écrivait GeoSans, la police embarquée du logiciel.
+               Mesuré sur trois mots de 16px : 55,7/106,7/46,8 au canevas contre
+               61,2/114,6/51,5 dans le PDF, soit jusqu'à 8pt d'écart par mot — de
+               quoi faire chevaucher un passage en gras avec ce qui le précède.
+               Cette valeur désigne donc désormais la police du logiciel, celle que
+               portent déjà les noms de points et les longueurs : les deux rendus
+               concordent alors à 0,4pt près. Les familles choisies explicitement
+               (Arial, Courier, Comic Sans) restent ce qu'elles sont. */
+            famillePolice() {
+                const f = this.fontFamily || '';
+                if (!f || f === "'Segoe UI', sans-serif") {
+                    return window.GM_POLICE_PILE || "GeoSans, 'Segoe UI', Arial, sans-serif";
+                }
+                return f;
+            }
             // la police d'un passage, dans l'ordre qu'impose la propriété « font »
             policeMorceau(m) {
-                return (m.i ? 'italic ' : '') + (m.g ? 'bold ' : '') + this.fontSize + 'px ' + this.fontFamily;
+                return (m.i ? 'italic ' : '') + (m.g ? 'bold ' : '') + this.fontSize + 'px ' + this.famillePolice();
             }
             /* Le préfixe de style, dans l'ordre qu'impose la propriété raccourcie
                « font » : style, puis graisse, puis taille, puis famille. */
@@ -10236,7 +10258,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            gras », le seul cas qu'on demande vraiment à une formule. */
                         const st = mos[0] || {};
                         const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
-                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.fontFamily, pre);
+                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.famillePolice(), pre);
                         large = Math.max(large, m.largeur);
                         haut += Math.max(inter, m.hauteur);
                     } else {
@@ -10310,8 +10332,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (GmFormule.contientFormule(brut)) {
                         const st = mos[0] || {};
                         const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
-                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.fontFamily, pre);
-                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily, pre);
+                        const m = GmFormule.composer(ctx, brut, this.fontSize, this.famillePolice(), pre);
+                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.famillePolice(), pre);
                         if (st.s) this.souligner(ctx, this.x, y + m.hauteur, m.largeur, couleur);
                         y += Math.max(inter, m.hauteur);
                         ctx.textAlign = "left";
@@ -14773,7 +14795,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     5: { 3: 0, 4: 2, 5: 0, 6: 'none', 7: 0.2 },
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
-                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif", 7: 0, 8: this.couleurCompacte('#fff9c4'), 9: '' },
+                    9: { 4: 16, 5: 0, 6: (window.GM_POLICE_PILE || "GeoSans, 'Segoe UI', Arial, sans-serif"), 7: 0, 8: this.couleurCompacte('#fff9c4'), 9: '' },
                     10: { 3: 0, 4: 2, 5: 0 },
                     11: { 3: 0, 4: 2, 5: 0 },
                     12: { 5: 0, 6: 2, 7: 0 },
@@ -16986,7 +17008,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.placerBarreTexte();
                         tColor.value = targetText.color || '#000000';
                         tSize.value = targetText.fontSize || 16;
-                        tFont.value = targetText.fontFamily || "'Segoe UI', sans-serif";
+                        // famillePolice() ramène l'ancienne valeur par défaut sur la
+                        // police du logiciel : sans cela le menu resterait vide pour
+                        // les textes écrits avant ce changement
+                        tFont.value = targetText.famillePolice();
                         // rééditer, c'est retrouver le texte TEL QU'IL EST : son gras,
                         // son encadré et sa couleur de fond reviennent avec lui
                         this.styleTexte = { cadre: !!targetText.cadre, fond: targetText.fond || '#fff9c4' };
@@ -20507,13 +20532,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     else if (e instanceof TextLabel) {
                         const fs = e.fontSize || 16;
-                        const ff = policePDF(e.fontFamily);
                         const riches = e.lignesRiches();
                         const lineHeight = fs * 1.2;
+                        const famille = e.famillePolice ? e.famillePolice() : (e.fontFamily || 'sans-serif');
 
                         /* L'encadré d'abord, comme à l'écran : c'est un fond, il passe
                            sous le texte. Son emprise est celle du canevas, mesurée par
                            le même code — l'export ne recalcule rien de son côté. */
+                        /* La police du logiciel est embarquée : le PDF l'écrit à
+                           l'identique. Une famille CHOISIE par l'utilisateur, elle,
+                           est transmise telle quelle — glisser GeoSans devant, comme
+                           pour les noms de points, ferait écrire GeoSans à sa place
+                           et le choix serait ignoré sans le dire. On ajoute Arial en
+                           repli, seule famille (avec sans-serif) que jsPDF ramène à
+                           Helvetica : sans elle, une fantaisie retomberait sur Times,
+                           à empattements. */
+                        const ff = /GeoSans/i.test(famille) ? policePDF(famille)
+                            : (/(monospace|courier)/i.test(famille) ? famille
+                                : (/(sans-serif|serif)\s*$/i.test(famille) ? famille : famille + ', Arial, sans-serif'));
                         if (e.cadre && this.ctx) {
                             const em = e.emprise(this.ctx);
                             const mg = e.margeCadre();
@@ -20534,7 +20570,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (GmFormule.contientFormule(brut)) {
                                 const st = mos[0] || {};
                                 const pre = (st.i ? 'italic ' : '') + (st.g ? 'bold ' : '');
-                                const m = GmFormule.composer(this.ctx, brut, fs, e.fontFamily || 'sans-serif', pre);
+                                const m = GmFormule.composer(this.ctx, brut, fs, famille, pre);
                                 svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff, pre);
                                 if (st.s) svgContent += `<rect x="${e.x}" y="${yLigne + m.hauteur}"` +
                                     ` width="${m.largeur}" height="${Math.max(1, fs / 14)}" fill="${color}"/>`;
@@ -20544,13 +20580,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                    canevas l'a mis : la largeur vient de la MÊME mesure
                                    qu'à l'écran, sinon l'export dériverait dès le
                                    premier mot en gras. */
-                                let xM = e.x;
+                                /* UN SEUL <text>, un <tspan> par passage. Poser chaque
+                                   passage à une abscisse calculée sur le canevas
+                                   supposait que le PDF les rende exactement aussi
+                                   larges — et la moindre différence de police les
+                                   faisait se chevaucher, ce qu'on voyait sur un mot en
+                                   gras. En laissant les tspan s'enchaîner, c'est le
+                                   PDF qui avance de ses propres largeurs : plus de
+                                   recouvrement ni de trou possibles. */
+                                const dyT = GmBase.decalage(`${fs}px ${famille}`, 'top');
+                                let contenu = '';
                                 mos.forEach((mo) => {
                                     if (!mo.t) return;
                                     const safeText = mo.t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                                     const attrs = (mo.i ? ' font-style="italic"' : '') + (mo.g ? ' font-weight="bold"' : '');
-                                    const dyT = GmBase.decalage(e.policeMorceau(mo), 'top');
-                                    svgContent += `<text x="${xM}" y="${yLigne + dyT}" font-family="${ff}" font-size="${fs}"` + attrs + ` fill="${color}" text-anchor="start">${safeText}</text>`;
+                                    contenu += `<tspan${attrs}>${safeText}</tspan>`;
+                                });
+                                if (contenu) {
+                                    svgContent += `<text x="${e.x}" y="${yLigne + dyT}" font-family="${ff}" font-size="${fs}" fill="${color}" text-anchor="start">${contenu}</text>`;
+                                }
+                                // le soulignement reste tracé, passage par passage
+                                let xM = e.x;
+                                mos.forEach((mo) => {
+                                    if (!mo.t) return;
                                     let w = 0;
                                     if (this.ctx) {
                                         this.ctx.save();
@@ -21084,7 +21136,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            Sans — et c'est bien Comic Sans qu'on obtenait en validant.
                            Mesuré : champ « Segoe UI », barre « Comic Sans », texte
                            créé en Comic Sans. */
-                        const ff = this.defaultFontFamily || "'Segoe UI', sans-serif";
+                        const ff = this.defaultFontFamily || window.GM_POLICE_PILE
+                            || "GeoSans, 'Segoe UI', Arial, sans-serif";
 
                         ghost.style.color = this.globalStyle.color || '#000000';
                         ghost.style.font = `${fs}px ${ff}`;
