@@ -8825,21 +8825,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        170) tenaient dans la tolérance de dispersion. Ses diagonales,
                        elles, ne se coupent pas en leur milieu. */
                     const diag1 = d(sommets[0], sommets[2]), diag2 = d(sommets[1], sommets[3]);
-                    /* Le test décisif : les diagonales se coupent-elles en leur
-                       MILIEU ? C'est la propriété qui définit le parallélogramme, et
-                       la seule qui sépare proprement le cerf-volant. Comparer les
-                       côtés opposés ne suffit pas : mesuré, un cerf-volant de côtés
-                       170, 200, 200, 170 tenait dans toute tolérance assez large pour
-                       accepter un parallélogramme tracé à la main, et se faisait
-                       classer losange six fois sur six. Ses milieux de diagonales,
-                       eux, sont distants de 8 % — le test les écarte. */
+                    const diagEgales = Math.abs(diag1 - diag2) / Math.max(diag1, diag2) < 0.10;
+                    /* Point de CROISEMENT des diagonales : dans un parallélogramme —
+                       donc dans un losange — elles se coupent en leur milieu. C'est ce
+                       qui écarte le cerf-volant, dont les côtés (170, 200, 200, 170)
+                       tiennent pourtant dans toute tolérance réaliste, et qui passait
+                       pour un losange 6 fois sur 6.
+                       Le test ne vaut QUE pour la famille du losange. Étendu au carré
+                       et au rectangle, il leur coûtait cher : mesuré, un carré aux
+                       sommets décalés de 20 % — ce que fait une main large — se faisait
+                       alors classer « polygone » 5 fois sur 8, et plus aucune
+                       construction n'était proposée. Eux sont déjà filtrés par leurs
+                       diagonales ÉGALES, que le cerf-volant rate. */
                     const mi1 = { x: (sommets[0].x + sommets[2].x) / 2, y: (sommets[0].y + sommets[2].y) / 2 };
                     const mi2 = { x: (sommets[1].x + sommets[3].x) / 2, y: (sommets[1].y + sommets[3].y) / 2 };
-                    const estPara = d(mi1, mi2) < 0.05 * ((diag1 + diag2) / 2)
-                        && Math.abs(cotes[0].l - cotes[2].l) / Math.max(cotes[0].l, cotes[2].l) < 0.20
-                        && Math.abs(cotes[1].l - cotes[3].l) / Math.max(cotes[1].l, cotes[3].l) < 0.20;
-                    if (!estPara) return { forme: 'polygone', sommets, centre };
-                    const diagEgales = Math.abs(diag1 - diag2) / Math.max(diag1, diag2) < 0.10;
+                    const ecartMilieux = d(mi1, mi2) / ((diag1 + diag2) / 2);
                     const droits = diagEgales
                         && angles.every(a => Math.abs(a - Math.PI / 2) < 20 * Math.PI / 180);
                     const theta = orientationDominante(cotes);
@@ -8863,6 +8863,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        qui sont perpendiculaires et se coupent en leur milieu : c'est
                        la définition la plus stable à mesurer sur un croquis, et elle
                        garantit les quatre côtés rigoureusement égaux. */
+                    if (ecartMilieux > 0.06) return { forme: 'polygone', sommets, centre, ecartMilieux };
                     if (dispersion < 0.18) {
                         const u0 = Math.atan2(sommets[0].y - sommets[2].y, sommets[0].x - sommets[2].x);
                         const v0 = Math.atan2(sommets[1].y - sommets[3].y, sommets[1].x - sommets[3].x);
@@ -8875,7 +8876,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                      y: (sommets[0].y + sommets[1].y + sommets[2].y + sommets[3].y) / 4 };
                         const ux = Math.cos(au), uy = Math.sin(au), vx = Math.cos(av), vy = Math.sin(av);
                         return {
-                            forme: 'losange', centre: c2,
+                            forme: 'losange', centre: c2, ecartMilieux,
                             sommets: [
                                 { x: c2.x + ux * d1, y: c2.y + uy * d1 },
                                 { x: c2.x + vx * d2, y: c2.y + vy * d2 },
@@ -8885,17 +8886,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             cote: Math.hypot(d1, d2),
                         };
                     }
-                    /* Reste le parallélogramme quelconque. Comme le losange, on le
-                       redresse par ses diagonales, qui se coupent en leur milieu :
-                       poser les sommets en c±a et c±b donne la figure exacte sans
-                       corriger quatre côtés séparément. */
+                    /* Reste le parallélogramme quelconque, redressé lui aussi par ses
+                       diagonales : poser les sommets en c±a et c±b donne la figure
+                       exacte sans corriger quatre côtés séparément. */
                     {
                         const c3 = { x: (sommets[0].x + sommets[1].x + sommets[2].x + sommets[3].x) / 4,
                                      y: (sommets[0].y + sommets[1].y + sommets[2].y + sommets[3].y) / 4 };
                         const ax = (sommets[0].x - sommets[2].x) / 2, ay = (sommets[0].y - sommets[2].y) / 2;
                         const bx = (sommets[1].x - sommets[3].x) / 2, by = (sommets[1].y - sommets[3].y) / 2;
                         return {
-                            forme: 'parallelogramme', centre: c3,
+                            forme: 'parallelogramme', centre: c3, ecartMilieux,
                             sommets: [
                                 { x: c3.x + ax, y: c3.y + ay }, { x: c3.x + bx, y: c3.y + by },
                                 { x: c3.x - ax, y: c3.y - ay }, { x: c3.x - bx, y: c3.y - by },
