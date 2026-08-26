@@ -3173,6 +3173,18 @@
             .croquis-opt { padding: 11px 8px; }
             .croquis-opt input { width: 22px; height: 22px; }
         }
+        /* Gras, italique, souligné, encadré : des interrupteurs, pas des boutons
+           d'action — leur état doit se lire d'un coup d'œil, d'où le fond plein
+           quand ils sont actifs. */
+        .txt-style-btn {
+            width: 27px; height: 26px; padding: 0; cursor: pointer;
+            border: 1px solid #ddd; background: #fff; color: #444; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; line-height: 1;
+        }
+        .txt-style-btn:hover { background: #f1f5f9; }
+        .txt-style-btn.actif { background: #1976d2; border-color: #1565c0; color: #fff; }
+        @media (pointer: coarse) { .txt-style-btn { width: 32px; height: 30px; } }
 
         #barreDocument .doc-btn {
             display: inline-flex; align-items: center; gap: 5px;
@@ -5996,7 +6008,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <circle cx="16" cy="17" r="1" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Texte</strong>Cliquez n'importe où pour écrire, ou sur
-                                un point pour le renommer.</div>
+                                un point pour le renommer. Sa barre donne la couleur, la taille, la police, le
+                                <b>gras</b>, l'<i>italique</i>, le <u>souligné</u> et l'<b>encadré</b> — bordure de la
+                                couleur du texte, fond au choix. Le bouton « ? » compose les formules (fractions,
+                                puissances, racines). Double-cliquez sur un texte pour le reprendre : tout revient
+                                comme il était.</div>
                         </div>
                         <div class="help-item-row">
                             <div class="help-item-icon"><svg viewBox="0 0 24 24" width="24" height="24"
@@ -6981,16 +6997,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div id="textFormatToolbar" style="
                 display: none;
                 position: absolute;
-                z-index: 4001;
+                /* Au-dessus de la palette de style (5500) : la saisie en cours prime
+                   sur un panneau qu'on n'utilise pas en écrivant. */
+                z-index: 5600;
                 background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(8px);
                 border: 1px solid rgba(0, 0, 0, 0.1);
                 border-radius: 8px;
                 padding: 6px 10px;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-                gap: 8px;
+                gap: 6px;
                 align-items: center;
                 font-family: 'Segoe UI', sans-serif;
+                /* La barre s'est allongée avec le gras, l'italique, le souligné et
+                   l'encadré : sur un téléphone elle dépasserait l'écran. On la laisse
+                   passer à la ligne plutôt que de sortir du cadre. */
+                flex-wrap: wrap;
+                max-width: calc(100vw - 16px);
             ">
                 <input type="color" id="ghostTextColor"
                     style="width: 26px; height: 26px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
@@ -7005,6 +7028,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <option value="'Courier New', monospace">Courier</option>
                     <option value="'Comic Sans MS', cursive">Comic Sans</option>
                 </select>
+                <div style="width:1px; height:16px; background:#ddd; margin:0 2px;"></div>
+
+                <!-- Gras, italique, souligné : ils valent pour tout le texte, pas
+                     pour un passage. C'est ce qu'on demande à un titre ou à une
+                     remarque, et cela garde une entité par texte — donc un lien
+                     court et un objet qu'on déplace d'un bloc. -->
+                <button id="btnTexteGras" onpointerdown="event.preventDefault(); app.basculerStyleTexte('gras');"
+                    class="txt-style-btn" data-tooltip="Gras" aria-label="Gras"
+                    style="font-weight:800; font-family:Georgia, serif;">B</button>
+                <button id="btnTexteItal" onpointerdown="event.preventDefault(); app.basculerStyleTexte('italique');"
+                    class="txt-style-btn" data-tooltip="Italique" aria-label="Italique"
+                    style="font-style:italic; font-family:Georgia, serif;">I</button>
+                <button id="btnTexteSoul" onpointerdown="event.preventDefault(); app.basculerStyleTexte('souligne');"
+                    class="txt-style-btn" data-tooltip="Souligné" aria-label="Souligné"
+                    style="text-decoration:underline; font-family:Georgia, serif;">S</button>
+                <div style="width:1px; height:16px; background:#ddd; margin:0 2px;"></div>
+
+                <!-- L'encadré : bordure de la couleur du texte, fond au choix. -->
+                <button id="btnTexteCadre" onpointerdown="event.preventDefault(); app.basculerStyleTexte('cadre');"
+                    class="txt-style-btn" data-tooltip="Encadrer" aria-label="Encadrer le texte"
+                    style="font-size:15px;">▭</button>
+                <input type="color" id="ghostTextFond" value="#fff9c4" data-tooltip="Couleur du fond"
+                    aria-label="Couleur du fond de l'encadré"
+                    style="display:none; width: 26px; height: 26px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
                 <div style="width:1px; height:16px; background:#ddd; margin:0 2px;"></div>
 
                 <button onclick="app.toggleVirtualKeyboard()"
@@ -9754,9 +9801,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return suite;
             }
 
+            /* Préfixe de style de la police — « italic », « bold », ou les deux.
+               Le moteur ne construit ses polices qu'à deux endroits (la mesure et
+               le dessin) ; plutôt que de faire descendre un paramètre de plus dans
+               la dizaine d'appels récursifs de mesurer() et poser(), on le pose ici
+               et les points d'entrée le fixent. */
+            let stylePolice = '';
+            const fixerStyle = (s) => { stylePolice = s || ''; };
+
             // ---------------- mesure ----------------
             function metriques(ctx, txt, taille, fam) {
-                ctx.font = taille + 'px ' + fam;
+                ctx.font = stylePolice + taille + 'px ' + fam;
                 const m = ctx.measureText(txt);
                 const a = (m.actualBoundingBoxAscent !== undefined && isFinite(m.actualBoundingBoxAscent))
                     ? Math.max(m.actualBoundingBoxAscent, taille * 0.5) : taille * 0.72;
@@ -9938,7 +9993,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return x;
             }
 
-            function composer(ctx, src, taille, fam) {
+            function composer(ctx, src, taille, fam, style) {
+                fixerStyle(style);
                 const arbre = analyser(String(src == null ? '' : src));
                 /* actualBoundingBoxAscent est mesurée PAR RAPPORT AU textBaseline
                    courant du contexte. TextLabel.draw pose « top » avant d'appeler le
@@ -9958,7 +10014,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return { largeur: m.w, hauteur: m.a + m.d, monter: m.a, primitives: prim };
             }
 
-            function dessiner(ctx, mise, x, y, couleur, fam) {
+            function dessiner(ctx, mise, x, y, couleur, fam, style) {
+                fixerStyle(style);
                 ctx.save();
                 ctx.fillStyle = couleur;
                 ctx.strokeStyle = couleur;
@@ -9966,7 +10023,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.textBaseline = 'alphabetic';
                 mise.primitives.forEach((p) => {
                     if (p.t === 'texte') {
-                        ctx.font = p.s + 'px ' + fam;
+                        ctx.font = stylePolice + p.s + 'px ' + fam;
                         ctx.fillText(p.v, x + p.x, y + p.y);
                     } else if (p.t === 'filet') {
                         ctx.fillRect(x + p.x, y + p.y, p.w, p.h);
@@ -9982,14 +10039,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.restore();
             }
 
-            function versSVG(mise, x, y, couleur, fam) {
+            function versSVG(mise, x, y, couleur, fam, style) {
+                const st = String(style || '');
+                const attrs = (st.indexOf('italic') !== -1 ? ' font-style="italic"' : '')
+                    + (st.indexOf('bold') !== -1 ? ' font-weight="bold"' : '');
                 const e = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const n = (v) => Math.round(v * 100) / 100;
                 let out = '';
                 mise.primitives.forEach((p) => {
                     if (p.t === 'texte') {
                         out += `<text x="${n(x + p.x)}" y="${n(y + p.y)}" font-family="${fam}" font-size="${n(p.s)}"` +
-                            ` fill="${couleur}" text-anchor="start">${e(p.v)}</text>`;
+                            attrs + ` fill="${couleur}" text-anchor="start">${e(p.v)}</text>`;
                     } else if (p.t === 'filet') {
                         out += `<rect x="${n(x + p.x)}" y="${n(y + p.y)}" width="${n(p.w)}" height="${n(p.h)}" fill="${couleur}" stroke="none"/>`;
                     } else if (p.t === 'trace') {
@@ -10020,6 +10080,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.color = "black";
                 this.fontSize = 16;
                 this.fontFamily = "'Segoe UI', sans-serif";
+                this.gras = false;
+                this.italique = false;
+                this.souligne = false;
+                this.cadre = false;          // encadré : bordure + fond
+                this.fond = '#fff9c4';       // la couleur de fond de l'encadré
+            }
+            /* Le préfixe de style, dans l'ordre qu'impose la propriété raccourcie
+               « font » : style, puis graisse, puis taille, puis famille. */
+            prefixePolice() {
+                return (this.italique ? 'italic ' : '') + (this.gras ? 'bold ' : '');
+            }
+            // marge de l'encadré autour du texte, nulle sans encadré
+            margeCadre() {
+                return this.cadre ? Math.max(6, this.fontSize * 0.45) : 0;
             }
             /* Emprise réelle du texte. L'ancienne estimation « nombre de
                caractères x 0,6 em » suffisait pour du texte ordinaire ; une formule
@@ -10032,11 +10106,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let large = 0, haut = 0;
                 lignes.forEach((l) => {
                     if (GmFormule.contientFormule(l)) {
-                        const m = GmFormule.composer(ctx, l, this.fontSize, this.fontFamily);
+                        const m = GmFormule.composer(ctx, l, this.fontSize, this.fontFamily, this.prefixePolice());
                         large = Math.max(large, m.largeur);
                         haut += Math.max(inter, m.hauteur);
                     } else {
-                        ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+                        ctx.font = this.prefixePolice() + `${this.fontSize}px ${this.fontFamily}`;
                         large = Math.max(large, ctx.measureText(l).width);
                         haut += inter;
                     }
@@ -10055,8 +10129,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     large = Math.max(...lignes.map(l => l.length)) * (this.fontSize * 0.6);
                     haut = lignes.length * (this.fontSize * 1.2);
                 }
-                return (mx >= this.x - 5 && mx <= this.x + large + 10) &&
-                    (my >= this.y - 5 && my <= this.y + haut + 10);
+                // l'encadré déborde du texte : on le prend dans la zone sensible,
+                // sinon on ne pourrait pas attraper une bordure pourtant visible
+                const mg = this.margeCadre();
+                return (mx >= this.x - 5 - mg && mx <= this.x + large + 10 + mg) &&
+                    (my >= this.y - 5 - mg && my <= this.y + haut + 10 + mg);
             }
             draw(ctx, opts) {
                 if (!this.text) return;
@@ -10064,6 +10141,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const couleur = opts.isHovered ? "#2980b9" : (opts.isSelected ? "#e67e22" : (this.color || "black"));
                 const lignes = this.text.split('\n');
                 const inter = this.fontSize * 1.2;
+
+                /* L'encadré se dessine AVANT le texte, sinon son fond le recouvrirait.
+                   Il se cale sur l'emprise réelle, formules comprises. */
+                if (this.cadre) {
+                    const em = this.emprise(ctx);
+                    const mg = this.margeCadre();
+                    const r = Math.min(mg * 1.2, 12);
+                    const x0 = this.x - mg, y0 = this.y - mg;
+                    const w = em.largeur + mg * 2, h = em.hauteur + mg * 2;
+                    ctx.save();
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(x0, y0, w, h, r);
+                    else ctx.rect(x0, y0, w, h);
+                    if (this.fond && this.fond !== 'none') { ctx.fillStyle = this.fond; ctx.fill(); }
+                    ctx.strokeStyle = couleur;
+                    ctx.lineWidth = Math.max(1, this.fontSize / 12);
+                    ctx.setLineDash([]);
+                    ctx.stroke();
+                    ctx.restore();
+                }
 
                 // ALIGNEMENT FIXE (Haut-Gauche) pour coller exactement au clic HTML
                 ctx.textAlign = "left";
@@ -10076,18 +10173,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // composée ; les autres suivent le chemin d'origine, au caractère
                     // près, pour ne rien changer aux figures existantes.
                     if (GmFormule.contientFormule(ligne)) {
-                        const m = GmFormule.composer(ctx, ligne, this.fontSize, this.fontFamily);
-                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily);
+                        const m = GmFormule.composer(ctx, ligne, this.fontSize, this.fontFamily, this.prefixePolice());
+                        GmFormule.dessiner(ctx, m, this.x, y, couleur, this.fontFamily, this.prefixePolice());
+                        if (this.souligne) this.souligner(ctx, this.x, y + m.hauteur, m.largeur, couleur);
                         y += Math.max(inter, m.hauteur);
                         ctx.textAlign = "left";
                         ctx.textBaseline = "top";
                         ctx.fillStyle = couleur;
                     } else {
-                        ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+                        ctx.font = this.prefixePolice() + `${this.fontSize}px ${this.fontFamily}`;
                         ctx.fillText(ligne, this.x, y);
+                        if (this.souligne) {
+                            this.souligner(ctx, this.x, y + this.fontSize * 1.08,
+                                ctx.measureText(ligne).width, couleur);
+                        }
                         y += inter;
                     }
                 });
+            }
+            /* Le soulignement est tracé, pas écrit : le canevas n'a pas d'équivalent
+               de text-decoration, et une ligne pleine se place mieux qu'une suite de
+               caractères de soulignement — elle suit la largeur mesurée, y compris
+               celle d'une formule composée. */
+            souligner(ctx, x, y, largeur, couleur) {
+                if (!(largeur > 0)) return;
+                const ep = Math.max(1, this.fontSize / 14);
+                ctx.save();
+                ctx.fillStyle = couleur;
+                ctx.fillRect(x, y, largeur, ep);
+                ctx.restore();
             }
         }
         class LinearObject extends GeometryObject {
@@ -14395,7 +14509,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     5: { 3: 0, 4: 2, 5: 0, 6: 'none', 7: 0.2 },
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
-                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif" },
+                    9: { 4: 16, 5: 0, 6: "'Segoe UI', sans-serif", 7: 0, 8: this.couleurCompacte('#fff9c4') },
                     10: { 3: 0, 4: 2, 5: 0 },
                     11: { 3: 0, 4: 2, 5: 0 },
                     12: { 5: 0, 6: 2, 7: 0 },
@@ -14458,7 +14572,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0);
                     }
                     else if (e instanceof TextLabel) {
-                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), echapper(e.fontFamily || ""));
+                        /* Les enrichissements s'ajoutent EN FIN de ligne, sous forme
+                           d'un seul entier de bits : les liens antérieurs, qui n'ont
+                           pas ce champ, se relisent inchangés, et un texte ordinaire
+                           ne paie rien puisque 0 est le défaut rogné. */
+                        const bits = (e.gras ? 1 : 0) + (e.italique ? 2 : 0)
+                            + (e.souligne ? 4 : 0) + (e.cadre ? 8 : 0);
+                        arr.push(f(e.x), f(e.y), (e.text || "").replace(/[¦;]/g, " "), e.fontSize || 16, this.couleurCompacte(e.color), echapper(e.fontFamily || ""), bits, this.couleurCompacte(e.fond));
                     }
                     else if (e instanceof Circle) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color), e.lineWidth || 2, (e.dash && e.dash.length > 0) ? 1 : 0, e.fillMode === 'solid' ? 0 : (e.fillMode || 'none'), f(e.opacity !== undefined ? e.opacity : 0.2), this.couleurCompacte(e.fillColor));
@@ -14690,6 +14810,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.fontSize = parseInt(d[4]) || 16;
                             obj.color = idx2col(d[5]);
                             if (d[6]) obj.fontFamily = decodeURIComponent(d[6]);
+                            const bits = parseInt(d[7] || 0) || 0;
+                            obj.gras = !!(bits & 1); obj.italique = !!(bits & 2);
+                            obj.souligne = !!(bits & 4); obj.cadre = !!(bits & 8);
+                            if (d[8] !== undefined && d[8] !== '') obj.fond = idx2col(d[8]);
                         } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
                         else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
                         else if (typeId === 12) {
@@ -15622,7 +15746,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             // haute et bien moins large que ses caractères).
                             if (typeof e.emprise === 'function' && this.ctx) {
                                 const em = e.emprise(this.ctx);
-                                extend(e.x + em.largeur, e.y + em.hauteur);
+                                const mg = e.margeCadre ? e.margeCadre() : 0;
+                                extend(e.x - mg, e.y - mg);
+                                extend(e.x + em.largeur + mg, e.y + em.hauteur + mg);
                             } else {
                                 const lines = e.text.split('\n');
                                 const fontSize = e.fontSize || 16;
@@ -16350,6 +16476,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.styloAncrage = true;
                 this.styloAdoucir = true;
                 this.styloEchelle = 'auto';   // 'auto' | 'fixe' | 'suit'
+                /* Style du texte en cours de saisie. Il vit sur l'application et non
+                   sur le champ : la barre l'édite, le champ le montre, l'objet créé
+                   le reçoit, et la réédition le recharge. Un seul état, quatre
+                   lectures d'accord entre elles. */
+                this.styleTexte = { gras: false, italique: false, souligne: false, cadre: false, fond: '#fff9c4' };
                 this.projectTitle = "Nom";
                 const titleInput = document.getElementById('docTitleInput');
                 if (titleInput) {
@@ -16584,11 +16715,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         // On affiche la Toolbar avec les propriétés du texte
                         toolbar.style.display = 'flex';
+                        this.majEscamotagePalette();
                         this.assurerSaisieVisible();
                         this.placerBarreTexte();
                         tColor.value = targetText.color || '#000000';
                         tSize.value = targetText.fontSize || 16;
                         tFont.value = targetText.fontFamily || "'Segoe UI', sans-serif";
+                        // rééditer, c'est retrouver le texte TEL QU'IL EST : son gras,
+                        // son encadré et sa couleur de fond reviennent avec lui
+                        this.styleTexte = {
+                            gras: !!targetText.gras, italique: !!targetText.italique,
+                            souligne: !!targetText.souligne, cadre: !!targetText.cadre,
+                            fond: targetText.fond || '#fff9c4',
+                        };
+                        this.appliquerStyleFantome();
 
                         this.pendingTextCoords = { x: targetText.x, y: targetText.y };
 
@@ -17485,6 +17625,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.text = e.text;
                         data.fontSize = e.fontSize;
                         data.fontFamily = e.fontFamily;
+                        data.gras = !!e.gras;
+                        data.italique = !!e.italique;
+                        data.souligne = !!e.souligne;
+                        data.cadre = !!e.cadre;
+                        data.fond = e.fond;
                     } else {
                         data.p1Id = e.p1?.id;
                         data.p2Id = e.p2?.id;
@@ -17557,6 +17702,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         obj = new TextLabel(data.x, data.y, data.text, data.id);
                         if (data.fontSize) obj.fontSize = data.fontSize;
                         if (data.fontFamily) obj.fontFamily = data.fontFamily;
+                        obj.gras = !!data.gras;
+                        obj.italique = !!data.italique;
+                        obj.souligne = !!data.souligne;
+                        obj.cadre = !!data.cadre;
+                        if (data.fond) obj.fond = data.fond;
                     }
                     else if (data.type === 'Polygon') {
                         obj = new Polygon([], data.id);
@@ -18345,6 +18495,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.saveState();
                 this.render();
             }
+            /* Un interrupteur de la barre de texte. On agit sur pointerdown avec
+               preventDefault : sans cela le champ perdrait le focus, et sur mobile
+               la saisie se refermerait au premier gras. */
+            basculerStyleTexte(quoi) {
+                const s = this.styleTexte;
+                s[quoi] = !s[quoi];
+                this.appliquerStyleFantome();
+                const ghost = document.getElementById('ghostTextInput');
+                if (ghost && ghost.style.display === 'block') ghost.focus();
+            }
+            /* Reporte le style courant sur le champ de saisie et sur l'état visible
+               des boutons. Le champ montre le gras et l'italique tels quels ; pour
+               l'encadré il porte un fond et une bordure, faute de quoi on ne verrait
+               le cadre qu'après avoir validé. */
+            appliquerStyleFantome() {
+                const s = this.styleTexte;
+                const ghost = document.getElementById('ghostTextInput');
+                const paires = { gras: 'btnTexteGras', italique: 'btnTexteItal', souligne: 'btnTexteSoul', cadre: 'btnTexteCadre' };
+                Object.keys(paires).forEach(k => {
+                    const b = document.getElementById(paires[k]);
+                    if (b) b.classList.toggle('actif', !!s[k]);
+                });
+                const fond = document.getElementById('ghostTextFond');
+                if (fond) { fond.style.display = s.cadre ? 'block' : 'none'; fond.value = s.fond || '#fff9c4'; }
+                if (!ghost) return;
+                ghost.style.fontWeight = s.gras ? '700' : '400';
+                ghost.style.fontStyle = s.italique ? 'italic' : 'normal';
+                ghost.style.textDecoration = s.souligne ? 'underline' : 'none';
+                if (s.cadre) {
+                    const t = parseInt(document.getElementById('ghostTextSize').value, 10) || 16;
+                    const mg = Math.max(6, t * 0.45);
+                    ghost.style.background = s.fond || '#fff9c4';
+                    ghost.style.border = `${Math.max(1, t / 12)}px solid ${ghost.style.color || '#000'}`;
+                    ghost.style.borderRadius = Math.min(mg * 1.2, 12) + 'px';
+                    ghost.style.padding = mg + 'px';
+                    ghost.style.margin = `-${mg}px 0 0 -${mg}px`;
+                } else {
+                    ghost.style.background = 'transparent';
+                    ghost.style.border = 'none';
+                    ghost.style.padding = '0';
+                    ghost.style.margin = '0';
+                }
+            }
             reglerStylo(quoi, valeur) {
                 if (quoi === 'surligneur') this.styloSurligneur = valeur;
                 else if (quoi === 'ancrage') this.styloAncrage = valeur;
@@ -18965,6 +19158,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             // On sauvegarde pour le prochain texte
                             this.globalStyle.color = tColor.value;
                             this.defaultFontSize = parseInt(tSize.value, 10);
+                            this.defaultFontFamily = tFont.value;
+                            // la bordure de l'encadré est de la couleur du texte et sa
+                            // marge dépend de la taille : les deux se refont ici
+                            this.appliquerStyleFantome();
                         }
                     });
 
@@ -18973,6 +19170,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (ghost.style.display === 'block') ghost.focus();
                     });
                 });
+                const tFond = document.getElementById('ghostTextFond');
+                if (tFond) {
+                    tFond.addEventListener('input', () => {
+                        this.styleTexte.fond = tFond.value;
+                        this.appliquerStyleFantome();
+                    });
+                    tFond.addEventListener('change', () => {
+                        if (ghost.style.display === 'block') ghost.focus();
+                    });
+                }
             }
             /* Valide la saisie de texte en cours, s'il y en a une. Appelée par le
                blur du champ, par le bouton « Valider » de sa barre d'outils, et
@@ -19002,6 +19209,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     label.color = tColor.value;
                     label.fontSize = parseInt(tSize.value, 10);
                     label.fontFamily = tFont.value;
+                    const st = this.styleTexte || {};
+                    label.gras = !!st.gras; label.italique = !!st.italique;
+                    label.souligne = !!st.souligne; label.cadre = !!st.cadre;
+                    label.fond = st.fond || '#fff9c4';
                     this.addEntity(label);
                     this.saveState();
                     this.render();
@@ -19944,9 +20155,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (e instanceof TextLabel) {
                         const fs = e.fontSize || 16;
                         const ff = policePDF(e.fontFamily);
+                        const stylePol = e.prefixePolice ? e.prefixePolice() : '';
+                        const attrsPol = (e.italique ? ' font-style="italic"' : '')
+                            + (e.gras ? ' font-weight="bold"' : '');
 
                         const lines = e.text.split('\n');
                         const lineHeight = fs * 1.2;
+
+                        /* L'encadré d'abord, comme à l'écran : c'est un fond, il passe
+                           sous le texte. Son emprise est celle du canevas, mesurée par
+                           le même code — l'export ne recalcule rien de son côté. */
+                        if (e.cadre && this.ctx) {
+                            const em = e.emprise(this.ctx);
+                            const mg = e.margeCadre();
+                            const r = Math.min(mg * 1.2, 12);
+                            svgContent += `<rect x="${e.x - mg}" y="${e.y - mg}"` +
+                                ` width="${em.largeur + mg * 2}" height="${em.hauteur + mg * 2}"` +
+                                ` rx="${r}" ry="${r}" fill="${e.fond || 'none'}" stroke="${color}"` +
+                                ` stroke-width="${Math.max(1, fs / 12)}"/>`;
+                        }
 
                         /* Les formules sont composées par GmFormule, exactement comme à
                            l'écran : une seule mise en page, deux rendus. C'est ce qui
@@ -19955,12 +20182,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         let yLigne = e.y;
                         lines.forEach((line) => {
                             if (GmFormule.contientFormule(line)) {
-                                const m = GmFormule.composer(this.ctx, line, fs, e.fontFamily || 'sans-serif');
-                                svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff);
+                                const m = GmFormule.composer(this.ctx, line, fs, e.fontFamily || 'sans-serif', stylePol);
+                                svgContent += GmFormule.versSVG(m, e.x, yLigne, color, ff, stylePol);
+                                if (e.souligne) svgContent += `<rect x="${e.x}" y="${yLigne + m.hauteur}"` +
+                                    ` width="${m.largeur}" height="${Math.max(1, fs / 14)}" fill="${color}"/>`;
                                 yLigne += Math.max(lineHeight, m.hauteur);
                             } else {
                                 const safeText = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                                svgContent += `<text x="${e.x}" y="${yLigne}" font-family="${ff}" font-size="${fs}" fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                                svgContent += `<text x="${e.x}" y="${yLigne}" font-family="${ff}" font-size="${fs}"` + attrsPol + ` fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                                if (e.souligne && this.ctx) {
+                                    this.ctx.save();
+                                    this.ctx.font = stylePol + fs + 'px ' + (e.fontFamily || 'sans-serif');
+                                    const w = this.ctx.measureText(line).width;
+                                    this.ctx.restore();
+                                    svgContent += `<rect x="${e.x}" y="${yLigne + fs * 1.08}"` +
+                                        ` width="${w}" height="${Math.max(1, fs / 14)}" fill="${color}"/>`;
+                                }
                                 yLigne += lineHeight;
                             }
                         });
@@ -20472,7 +20709,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const toolbar = document.getElementById('textFormatToolbar');
 
                         const fs = this.defaultFontSize || 16;
-                        const ff = "'Segoe UI', sans-serif";
+                        /* La police du texte précédent, pas Segoe UI d'office : la
+                           barre, elle, gardait le choix fait la fois d'avant. On
+                           écrivait donc en Segoe UI sous une barre annonçant Comic
+                           Sans — et c'est bien Comic Sans qu'on obtenait en validant.
+                           Mesuré : champ « Segoe UI », barre « Comic Sans », texte
+                           créé en Comic Sans. */
+                        const ff = this.defaultFontFamily || "'Segoe UI', sans-serif";
 
                         ghost.style.color = this.globalStyle.color || '#000000';
                         ghost.style.font = `${fs}px ${ff}`;
@@ -20489,11 +20732,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ghost.innerText = '';
 
                         toolbar.style.display = 'flex';
+                        this.majEscamotagePalette();
                         this.assurerSaisieVisible();
                         this.placerBarreTexte();
 
                         document.getElementById('ghostTextColor').value = this.globalStyle.color || '#000000';
                         document.getElementById('ghostTextSize').value = fs;
+                        const selPolice = document.getElementById('ghostTextFont');
+                        // une police inconnue du menu y vaudrait la valeur vide : on
+                        // ne la propose que si elle s'y trouve vraiment
+                        if (selPolice && Array.from(selPolice.options).some(o => o.value === ff)) selPolice.value = ff;
+                        this.appliquerStyleFantome();
 
                         setTimeout(() => { ghost.focus(); }, 50);
 
@@ -22035,13 +22284,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    escamote donc la palette le temps de la saisie — elle ne sert pas
                    à écrire, les réglages du texte étant dans sa propre barre — et
                    fermerAideFormule la remet exactement comme elle était. */
-                const pal = document.getElementById('stylePalettePanel');
-                if (pal && pal.offsetParent !== null && !this._palEscamotee
-                    && window.matchMedia('(max-width: 820px)').matches) {
-                    this._palAvant = pal.style.display;
-                    pal.style.display = 'none';
-                    this._palEscamotee = true;
-                }
+                this.majEscamotagePalette();
 
                 const grille = document.getElementById('aideFormuleGrille');
                 if (grille && !grille.childElementCount) {
@@ -22098,9 +22341,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             fermerAideFormule() {
                 const boite = document.getElementById('aideFormule');
                 if (boite) boite.style.display = 'none';
-                if (this._palEscamotee) {
-                    const pal = document.getElementById('stylePalettePanel');
-                    if (pal) pal.style.display = this._palAvant || '';
+                this.majEscamotagePalette();
+            }
+
+            /* Escamote la palette de style pendant qu'on écrit, sur écran étroit.
+               Elle le faisait déjà pour l'aide aux formules ; il fallait l'étendre à
+               la saisie elle-même. La barre de texte tient maintenant sur deux
+               rangées au téléphone — mesuré, la palette (z-index 5500 contre 4001)
+               recouvrait trois de ses quatre boutons de style, qui n'étaient donc
+               pas cliquables. La palette ne sert pas à écrire : les réglages du
+               texte sont dans sa propre barre.
+               Un seul point de décision pour les deux besoins, sinon l'un rendrait
+               la palette pendant que l'autre la voudrait encore cachée. */
+            majEscamotagePalette() {
+                const pal = document.getElementById('stylePalettePanel');
+                if (!pal) return;
+                const champ = document.getElementById('ghostTextInput');
+                const aide = document.getElementById('aideFormule');
+                const besoin = window.matchMedia('(max-width: 820px)').matches
+                    && ((champ && champ.style.display === 'block')
+                        || (aide && aide.style.display === 'block'));
+                if (besoin && !this._palEscamotee) {
+                    this._palAvant = pal.style.display;
+                    pal.style.display = 'none';
+                    this._palEscamotee = true;
+                } else if (!besoin && this._palEscamotee) {
+                    pal.style.display = this._palAvant || '';
                     this._palEscamotee = false;
                 }
             }
