@@ -6072,7 +6072,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     demande si vous voulez la <b>construction détaillée</b> à la règle et au compas,
                                     rejouable pas à pas. Rien ne se lance avant votre réponse.</li>
                                 <li><strong>Reconnu :</strong> cercle (avec son centre), segment, triangle, triangle
-                                    équilatéral, carré, rectangle.</li>
+                                    équilatéral, carré, rectangle, losange.</li>
                                 <li><strong>Un sommet sur un point existant</strong> réutilise ce point : on peut
                                     croquer par-dessus une figure en cours.</li>
                                 <li><strong>Rien n'est reconnu ?</strong> Rien n'est construit — retracez plus
@@ -8785,7 +8785,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             ? { forme: 'carre', centre, theta, cote: cote, sommets }
                             : { forme: 'rectangle', centre, theta, largeur: demiL * 2, hauteur: demiH * 2, sommets };
                     }
-                    return null;   // losange et parallélogramme : pas encore
+                    /* Losange : côtés égaux, diagonales inégales (sinon c'est un
+                       carré, déjà pris au-dessus). On le redresse par ses DIAGONALES,
+                       qui sont perpendiculaires et se coupent en leur milieu : c'est
+                       la définition la plus stable à mesurer sur un croquis, et elle
+                       garantit les quatre côtés rigoureusement égaux. */
+                    if (dispersion < 0.18) {
+                        const u0 = Math.atan2(sommets[0].y - sommets[2].y, sommets[0].x - sommets[2].x);
+                        const v0 = Math.atan2(sommets[1].y - sommets[3].y, sommets[1].x - sommets[3].x);
+                        // l'écart à la perpendicularité est partagé entre les deux axes
+                        let e = v0 - u0 - Math.PI / 2;
+                        e = Math.atan2(Math.sin(2 * e), Math.cos(2 * e)) / 2;
+                        const au = u0 + e / 2, av = v0 - e / 2;
+                        const d1 = d(sommets[0], sommets[2]) / 2, d2 = d(sommets[1], sommets[3]) / 2;
+                        const c2 = { x: (sommets[0].x + sommets[1].x + sommets[2].x + sommets[3].x) / 4,
+                                     y: (sommets[0].y + sommets[1].y + sommets[2].y + sommets[3].y) / 4 };
+                        const ux = Math.cos(au), uy = Math.sin(au), vx = Math.cos(av), vy = Math.sin(av);
+                        return {
+                            forme: 'losange', centre: c2,
+                            sommets: [
+                                { x: c2.x + ux * d1, y: c2.y + uy * d1 },
+                                { x: c2.x + vx * d2, y: c2.y + vy * d2 },
+                                { x: c2.x - ux * d1, y: c2.y - uy * d1 },
+                                { x: c2.x - vx * d2, y: c2.y - vy * d2 },
+                            ],
+                            cote: Math.hypot(d1, d2),
+                        };
+                    }
+                    return null;   // parallélogramme : pas encore
                 }
                 return null;
             }
@@ -17496,7 +17523,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const t = Math.atan2(pB.y - pA.y, pB.x - pA.x) - Math.PI / 3;
                     return [pA, pB, { x: pA.x + Math.cos(t) * l, y: pA.y + Math.sin(t) * l }];
                 }
-                if (res.forme === 'triangle') return res.sommets;
+                if (res.forme === 'triangle' || res.forme === 'losange') return res.sommets;
                 return null;
             }
 
@@ -17550,7 +17577,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 }
-                const noms = { carre: 'Carré', rectangle: 'Rectangle', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral' };
+                const noms = { carre: 'Carré', rectangle: 'Rectangle', losange: 'Losange', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral' };
                 return noms[res.forme] || 'Figure';
             }
 
