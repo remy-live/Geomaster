@@ -2628,6 +2628,30 @@
             transform: rotate(90deg)
         }
 
+        /* Le crayon du dock élève portait la classe des icônes du TIROIR — fond
+           transparent, sans bord ni ombre. Dans le tiroir, sur fond blanc, c'est
+           juste ; posé sur le quadrillage à côté d'un cercle vert de 64px et d'un
+           cercle blanc de 40px, il avait l'air abandonné là. Il prend la même
+           pastille que le bouton d'options : trois commandes, une même famille. */
+        #stdPencilBtn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0;
+        }
+
+        #stdPencilBtn:hover {
+            background: #f4f8fb;
+        }
+
+
         #stdDrawer {
             background: rgba(255, 255, 255, .95);
             backdrop-filter: blur(10px);
@@ -9055,6 +9079,54 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
               courant tient sur UN caractère là où « -0.0123, » en demandait neuf.
 
            Le tout passe ensuite dans LZString comme le reste du lien. */
+        /* ============================================================
+           GmBase — retrouver la ligne de base d'un texte.
+
+           Le canevas ancre ses textes par le HAUT (les étiquettes de texte) ou par
+           le MILIEU (noms de points, longueurs, valeurs d'angles, graduations des
+           instruments). Le SVG sait dire la même chose avec « dominant-baseline »
+           — mais svg2pdf, qui fabrique le PDF, ignore cet attribut et prend
+           l'ordonnée pour la ligne de base. Mesuré sur un texte de 30px posé à
+           y=300 : le PDF écrivait sa ligne de base à 300, soit tout le texte
+           remonté d'une ascendante ; et chaque nom de point remontait d'une
+           demi-hauteur d'x. Tous les textes du PDF étaient décalés.
+
+           On ne compte donc plus sur l'attribut : on calcule nous-mêmes où tombe
+           la ligne de base et on écrit cette ordonnée-là. L'écart se MESURE, il ne
+           s'estime pas — il dépend de la police : la même encre vue depuis deux
+           ancrages, la différence des deux ascendantes est exactement le décalage
+           cherché. Il est mis en cache, une police à la fois. */
+        const GmBase = (() => {
+            let ctx = null;
+            const cache = new Map();
+            return {
+                decalage(police, ancrage) {
+                    const cle = ancrage + '|' + police;
+                    if (cache.has(cle)) return cache.get(cle);
+                    let d = null;
+                    try {
+                        if (!ctx) ctx = document.createElement('canvas').getContext('2d');
+                        ctx.font = police;
+                        const asc = (b) => {
+                            ctx.textBaseline = b;
+                            const m = ctx.measureText('Hxg');
+                            return (m.actualBoundingBoxAscent !== undefined && isFinite(m.actualBoundingBoxAscent))
+                                ? m.actualBoundingBoxAscent : null;
+                        };
+                        const a = asc(ancrage), b = asc('alphabetic');
+                        if (a !== null && b !== null) d = b - a;
+                    } catch (e) { d = null; }
+                    if (d === null) {
+                        // repli si le navigateur ne donne pas les boîtes réelles
+                        const t = parseFloat((String(police).match(/([\d.]+)px/) || [0, 14])[1]) || 14;
+                        d = (ancrage === 'middle') ? t * 0.35 : t * 0.8;
+                    }
+                    cache.set(cle, d);
+                    return d;
+                },
+            };
+        })();
+
         // ordre figé : c'est le code écrit dans les liens, il ne se réarrange pas
         const GM_ENCRE_MODES = ['libre', 'point', 'deux', 'marque'];
         const GmEncre = (() => {
@@ -10427,6 +10499,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.fillRect(-w / 2 - 2, off - 12, w + 4, 16);
                     ctx.fillStyle = this.color || "blue";
                     ctx.textAlign = "center";
+                    /* Ancrage explicite. Il n'était pas posé : la longueur héritait
+                       du dernier textBaseline laissé par un autre dessin, donc de
+                       l'ordre des objets. C'est la ligne de base alphabétique qui
+                       tombait là en pratique — on l'écrit, pour que l'export puisse
+                       s'y fier au lieu de la deviner. */
+                    ctx.textBaseline = "alphabetic";
                     ctx.fillText(val, 0, off);
                     ctx.restore();
                 }
@@ -11628,7 +11706,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
                             svg += VectorFontUtils.getSVGGroup(i / cm, i, 22, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
                         } else {
-                            svg += `<text x="${i}" y="28" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" dominant-baseline="middle">${i / cm}</text>`;
+                            svg += `<text x="${i}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${i / cm}</text>`;
                         }
                     }
                 }
@@ -11640,7 +11718,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
                             svg += VectorFontUtils.getSVGGroup(i / cm, 22, i, this.EXPORT_SCALES.vector, style.graduations.color, -Math.PI / 2, "center");
                         } else {
-                            svg += `<text x="22" y="${i}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90, 22, ${i})">${i / cm}</text>`;
+                            svg += `<text x="22" y="${i + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" transform="rotate(-90, 22, ${i})">${i / cm}</text>`;
                         }
                     }
                 }
@@ -11704,7 +11782,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
                             svg += VectorFontUtils.getSVGGroup(i / cm, i, 28, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
                         } else {
-                            svg += `<text x="${i}" y="28" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" dominant-baseline="middle">${i / cm}</text>`;
+                            svg += `<text x="${i}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${i / cm}</text>`;
                         }
                     }
                 }
@@ -11814,8 +11892,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 svg += VectorFontUtils.getSVGGroup(valStandard, cos * (r - 24), sin * (r - 24), this.EXPORT_SCALES.vectorStandard, style.graduations.color, 0, "center");
                                 svg += VectorFontUtils.getSVGGroup(valReverse, cos * (r - 40), sin * (r - 40), this.EXPORT_SCALES.vectorSmall, "#222222", 0, "center");
                             } else {
-                                svg += `<text x="${cos * (r - 24)}" y="${sin * (r - 24)}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle" dominant-baseline="middle">${valStandard}</text>`;
-                                svg += `<text x="${cos * (r - 40)}" y="${sin * (r - 40)}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textSmall}" fill="#222" text-anchor="middle" dominant-baseline="middle">${valReverse}</text>`;
+                                svg += `<text x="${cos * (r - 24)}" y="${sin * (r - 24) + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${valStandard}</text>`;
+                                svg += `<text x="${cos * (r - 40)}" y="${sin * (r - 40) + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textSmall}" fill="#222" text-anchor="middle">${valReverse}</text>`;
                             }
                         } else {
                             const val = this.isReversed ? valReverse : valStandard;
@@ -11823,7 +11901,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
                                 svg += VectorFontUtils.getSVGGroup(val, cos * (r - 25), ty + 2, this.EXPORT_SCALES.vectorStandard, style.graduations.color, 0, "center");
                             } else {
-                                svg += `<text x="${cos * (r - 25)}" y="${ty + 2}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
+                                svg += `<text x="${cos * (r - 25)}" y="${ty + 2 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${val}</text>`;
                             }
                         }
                     }
@@ -18934,6 +19012,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return newPoint;
             }
+            /* Le clavier mathématique accompagne une saisie : il n'a plus rien à
+               servir quand elle est close. Il restait pourtant affiché, à couvrir
+               le bas de la figure, jusqu'à ce qu'on pense à le refermer soi-même.
+               On l'appelle depuis validerTexteFantome, point de passage unique de
+               la fin de saisie — comme l'aide aux formules. Sa position, si on l'a
+               déplacé, est remise à zéro : rouvert plus tard pour un autre texte,
+               il repartirait sinon là où on l'avait laissé, parfois hors écran. */
+            fermerClavierVirtuel() {
+                const vk = document.getElementById('virtualKeyboard');
+                if (!vk || !vk.classList.contains('visible')) return;
+                vk.classList.remove('visible');
+                vk.style.left = '';
+                vk.style.top = '';
+                vk.style.transform = '';
+            }
             toggleVirtualKeyboard() {
                 const vk = document.getElementById('virtualKeyboard');
                 if (vk) {
@@ -19424,8 +19517,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (document.activeElement === ghost) ghost.blur();
                 ghost.style.display = 'none';
                 if (toolbar) toolbar.style.display = 'none';
-                // L'aide aux formules accompagne la saisie : elle se referme avec elle.
+                // L'aide aux formules et le clavier mathématique accompagnent la
+                // saisie : ils se referment avec elle.
                 this.fermerAideFormule();
+                this.fermerClavierVirtuel();
                 ghost.innerText = '';
                 if (txt.trim().length > 0 && this.pendingTextCoords) {
                     const tColor = document.getElementById('ghostTextColor');
@@ -20374,12 +20469,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (style === 'pixel') svgContent += `<rect x="${e.x - 2.5}" y="${e.y - 2.5}" width="5" height="5" fill="${color}" stroke="${color}" stroke-width="1" />`;
                         else svgContent += `<path d="M${e.x - 3} ${e.y - 3} L${e.x + 3} ${e.y + 3} M${e.x + 3} ${e.y - 3} L${e.x - 3} ${e.y + 3}" stroke="${color}" stroke-width="${strokeW > 2 ? strokeW : 2}" stroke-linecap="round"/>`;
                         if (e.label && e.showLabel) {
+                            /* Mêmes formules que le canevas, au caractère près : il
+                               place le nom à « padding + fs/2 » du point et le rabat
+                               vers le haut par défaut. L'export utilisait 6 au lieu du
+                               padding (10) et un défaut à -45° au lieu de -90° — le nom
+                               tombait donc 4px plus près du point dans le PDF que sur
+                               la feuille, indépendamment de la ligne de base. */
                             const fs = e.fontSize || 14;
-                            const angle = (e.labelAngle !== undefined) ? e.labelAngle : -Math.PI / 4;
-                            const dist = 6 + fs / 2;
+                            const angle = (e.labelAngle !== undefined) ? e.labelAngle : -Math.PI / 2;
+                            const dist = (e.padding !== undefined ? e.padding : 10) + fs / 2;
                             const lx = e.x + Math.cos(angle) * dist;
                             const ly = e.y + Math.sin(angle) * dist;
-                            svgContent += `<text x="${lx}" y="${ly}" font-family="${policePDF('Arial')}" font-weight="bold" font-size="${fs}" fill="black" text-anchor="middle" dominant-baseline="middle">${e.label}</text>`;
+                            const dyNom = GmBase.decalage(`bold ${fs}px ${window.GM_POLICE_PILE || "Arial"}`, 'middle');
+                            svgContent += `<text x="${lx}" y="${ly + dyNom}" font-family="${policePDF('Arial')}" font-weight="bold" font-size="${fs}" fill="black" text-anchor="middle">${e.label}</text>`;
                         }
                     }
                     else if (e instanceof TextLabel) {
@@ -20426,7 +20528,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     if (!mo.t) return;
                                     const safeText = mo.t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                                     const attrs = (mo.i ? ' font-style="italic"' : '') + (mo.g ? ' font-weight="bold"' : '');
-                                    svgContent += `<text x="${xM}" y="${yLigne}" font-family="${ff}" font-size="${fs}"` + attrs + ` fill="${color}" text-anchor="start" dominant-baseline="text-before-edge">${safeText}</text>`;
+                                    const dyT = GmBase.decalage(e.policeMorceau(mo), 'top');
+                                    svgContent += `<text x="${xM}" y="${yLigne + dyT}" font-family="${ff}" font-size="${fs}"` + attrs + ` fill="${color}" text-anchor="start">${safeText}</text>`;
                                     let w = 0;
                                     if (this.ctx) {
                                         this.ctx.save();
@@ -20481,7 +20584,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     // une unité (« 0.075 m »), le texte en sortait.
                                     const larg = Math.max(30, val.length * 8 + 6);
                                     svgContent += `<rect x="${-larg / 2}" y="${off - 10}" width="${larg}" height="16" fill="white" fill-opacity="0.8" transform="translate(${mx},${my}) rotate(${txtAngle})" />`;
-                                    svgContent += `<text x="0" y="${off}" font-family="${policePDF('Segoe UI')}" font-size="14" fill="${color}" text-anchor="middle" dominant-baseline="middle" transform="translate(${mx},${my}) rotate(${txtAngle})">${val}</text>`;
+                                    // le canevas écrit la longueur SUR la ligne de base
+                                    // (alphabétique) : rien à corriger, contrairement aux
+                                    // textes ancrés par le haut ou par le milieu
+                                    svgContent += `<text x="0" y="${off}" font-family="${policePDF('Segoe UI')}" font-size="14" fill="${color}" text-anchor="middle" transform="translate(${mx},${my}) rotate(${txtAngle})">${val}</text>`;
                                 }
                             }
                         }
@@ -20566,7 +20672,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const txtY = e.p2.y + (radius + 20) * Math.sin(midA);
                             const txtVal = Math.round(val) + "°";
                             svgContent += `<rect x="${txtX - 15}" y="${txtY - 8}" width="30" height="16" fill="white" fill-opacity="0.7" rx="2" />`;
-                            svgContent += `<text x="${txtX}" y="${txtY}" font-family="${policePDF('Segoe UI')}" font-size="12" font-weight="bold" fill="${color}" text-anchor="middle" dominant-baseline="middle">${txtVal}</text>`;
+                            const dyA = GmBase.decalage(`bold 12px ${window.GM_POLICE_PILE || "'Segoe UI', sans-serif"}`, 'middle');
+                            svgContent += `<text x="${txtX}" y="${txtY + dyA}" font-family="${policePDF('Segoe UI')}" font-size="12" font-weight="bold" fill="${color}" text-anchor="middle">${txtVal}</text>`;
                         }
                     }
                 });
@@ -23139,7 +23246,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         function initStudentInterface() {
             const dockHTML = `
             <div id="studentDock">
-                <button class="std-icon-btn active" id="stdPencilBtn" data-tooltip="Crayon" style="color: #2980b9; margin-right: 10px;">
+                <button class="std-icon-btn active" id="stdPencilBtn" data-tooltip="Crayon : le montrer pendant le tracé" style="color: #2980b9;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 20h9"></path>
                       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
