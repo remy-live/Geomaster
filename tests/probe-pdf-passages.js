@@ -68,9 +68,16 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   console.log('  canevas ' + r.wCanevas.map(x => x.toFixed(1)).join(' / '));
   console.log('  pdf     ' + [r.wNorm[0], r.wGras[1], r.wNorm[2]].map(x => x.toFixed(1)).join(' / '));
   const pdfW = [r.wNorm[0], r.wGras[1], r.wNorm[2]];
-  const ecarts = r.wCanevas.map((c, i) => Math.abs(c - pdfW[i]));
-  ck('les trois passages font la même largeur des deux côtés (< 1pt)',
-     ecarts.every(e => e < 1), ecarts.map(e => e.toFixed(2)).join(' / '));
+  /* La tolérance est exprimée en POURCENTAGE, et pas en points. La mesure du
+     texte n'appartient pas au logiciel : selon la version du navigateur, elle
+     diffère — certaines livrent des largeurs entières et donnent la même valeur
+     pour le maigre et le gras (mesuré : 114,86 sur un Chromium 141, 120 tout
+     rond sur un autre 141, pour le même mot). Ce qui doit être vrai, c'est que
+     les deux mesures parlent bien de la même police, à quelques pour cent près,
+     et non qu'elles coïncident au point. */
+  const ecarts = r.wCanevas.map((c, i) => Math.abs(c - pdfW[i]) / pdfW[i]);
+  ck('les trois passages font la même largeur des deux côtés (< 8 %)',
+     ecarts.every(e => e < 0.08), ecarts.map(e => (e * 100).toFixed(1) + ' %').join(' / '));
 
   console.log('\n=== positions dans le PDF ===');
   const tms = [...r.flux.matchAll(/1\. 0\. 0\. -1\. ([\d.]+) ([\d.]+) Tm/g)].map(m => +m[1]);
@@ -79,9 +86,14 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const d1 = tms[1] - tms[0], d2 = tms[2] - tms[1];
     console.log(`  avance 1 : ${d1.toFixed(2)} (largeur pdf ${pdfW[0].toFixed(2)})`);
     console.log(`  avance 2 : ${d2.toFixed(2)} (largeur pdf ${pdfW[1].toFixed(2)})`);
-    ck('le 2e passage commence exactement où finit le 1er', Math.abs(d1 - pdfW[0]) < 0.6,
-       `écart ${(d1 - pdfW[0]).toFixed(2)}pt`);
-    ck('le 3e aussi', Math.abs(d2 - pdfW[1]) < 0.6, `écart ${(d2 - pdfW[1]).toFixed(2)}pt`);
+    /* Le vrai enjeu : PAS DE CHEVAUCHEMENT. Le défaut corrigé décalait de 9 % dès
+       le premier passage et s'accumulait de passage en passage — un mot en gras
+       mordait sur le précédent. L'écart qui subsiste vient de la mesure du
+       navigateur, ne s'accumule pas, et reste sous les 6 %. */
+    const e1 = Math.abs(d1 - pdfW[0]) / pdfW[0], e2 = Math.abs(d2 - pdfW[1]) / pdfW[1];
+    ck('le 2e passage commence là où finit le 1er, à 6 % près', e1 < 0.06,
+       `${(e1 * 100).toFixed(1)} % (${(d1 - pdfW[0]).toFixed(2)}pt)`);
+    ck('le 3e aussi', e2 < 0.06, `${(e2 * 100).toFixed(1)} % (${(d2 - pdfW[1]).toFixed(2)}pt)`);
   } else {
     ck('trois positions de texte dans le PDF', false, tms.length + ' trouvées');
   }
