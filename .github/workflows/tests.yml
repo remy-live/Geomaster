@@ -1,12 +1,22 @@
-# Lance les sondes à chaque modification : elles ouvrent GéoMaster dans un vrai
-# navigateur et vérifient que ce qui marchait marche encore.
+# Lance les sondes : elles ouvrent GéoMaster dans un vrai navigateur et
+# vérifient que ce qui marchait marche encore.
 name: Tests
 
 on:
+  # Seulement « main ». Le même commit est aussi poussé sur une branche de
+  # travail, ce qui déclenchait DEUX exécutions par modification — et donc deux
+  # courriels à chaque fois qu'une chose n'allait pas.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
+
+# Une poussée qui en suit une autre de près annule la précédente : inutile de
+# tester un état déjà dépassé, et cela évite d'empiler les avis d'échec.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sondes:
