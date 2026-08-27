@@ -3169,6 +3169,126 @@
         /* Gras, italique, souligné, encadré : des interrupteurs, pas des boutons
            d'action — leur état doit se lire d'un coup d'œil, d'où le fond plein
            quand ils sont actifs. */
+        /* Recherche de commandes. Elle se pose au-dessus de tout (z-index le plus
+           haut de l'application) et n'occupe que le haut de l'écran : on doit
+           continuer de voir sa figure pendant qu'on cherche. */
+        #rechercheOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 20000;
+            background: rgba(15, 23, 42, 0.28);
+            padding-top: max(8vh, 40px);
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #rechercheOverlay.ouvert { display: flex; }
+
+        #rechercheBoite {
+            width: min(560px, calc(100vw - 24px));
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            max-height: min(70vh, 560px);
+        }
+
+        #rechercheHaut {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eef2f7;
+            color: #64748b;
+            flex: 0 0 auto;
+        }
+
+        #rechercheChamp {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;      /* 16px : en dessous, iOS zoome tout seul à la saisie */
+            font-family: inherit;
+            color: #0f172a;
+            background: transparent;
+            min-width: 0;
+        }
+
+        #rechercheFermer {
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 17px;
+            cursor: pointer;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            flex: 0 0 auto;
+        }
+
+        #rechercheFermer:hover { background: #f1f5f9; color: #475569; }
+
+        #rechercheListe {
+            overflow-y: auto;
+            padding: 6px;
+        }
+
+        .rech-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            cursor: pointer;
+            color: #1e293b;
+            font-size: 14px;
+        }
+
+        .rech-item .rech-icone {
+            width: 22px;
+            height: 22px;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+        }
+
+        .rech-item .rech-icone svg { width: 18px; height: 18px; }
+
+        .rech-item .rech-nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .rech-item .rech-ou {
+            flex: 0 0 auto;
+            font-size: 11.5px;
+            color: #94a3b8;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        .rech-item.actif { background: #e0f2fe; color: #0369a1; }
+        .rech-item.actif .rech-ou { background: #bae6fd; color: #075985; }
+
+        #rechercheAide {
+            flex: 0 0 auto;
+            padding: 8px 14px;
+            border-top: 1px solid #eef2f7;
+            font-size: 11.5px;
+            color: #94a3b8;
+        }
+
+        #rechercheVide { padding: 22px 14px; text-align: center; color: #94a3b8; font-size: 13.5px; }
+
+        @media (pointer: coarse) {
+            .rech-item { padding: 13px 12px; }
+            #rechercheAide { display: none; }   /* pas de clavier, pas de raccourcis */
+        }
+
         .txt-style-btn {
             width: 27px; height: 26px; padding: 0; cursor: pointer;
             border: 1px solid #ddd; background: #fff; color: #444; border-radius: 4px;
@@ -5735,6 +5855,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <div class="help-section">
                         <h3>⌨️ Raccourcis Clavier</h3>
                         <div class="shortcut-grid">
+                            <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>K</kbd> <span>Chercher une commande par son
+                                    nom — et voir où elle se trouve</span></div>
                             <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Z</kbd> <span>Annuler la dernière action</span>
                             </div>
                             <div class="sc-row"><kbd>Ctrl</kbd> + <kbd>Y</kbd> <span>Rétablir l'action annulée</span>
@@ -6217,6 +6339,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <p>1. Tracez un triangle...</p>
         </div>
     </div>
+    <!-- ======================================================================
+         Recherche de commandes.
+         248 commandes, dont 183 rangées dans 22 panneaux : trois sur quatre sont
+         derrière quelque chose qu'il faut d'abord ouvrir. On tape ce qu'on veut
+         faire, on l'obtient — et la ligne dit AUSSI où la commande se trouve,
+         pour qu'on finisse par le savoir au lieu d'en être dispensé.
+         ====================================================================== -->
+    <div id="rechercheOverlay" role="dialog" aria-modal="true" aria-label="Rechercher une commande">
+        <div id="rechercheBoite">
+            <div id="rechercheHaut">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round" />
+                </svg>
+                <input type="text" id="rechercheChamp" autocomplete="off" spellcheck="false"
+                    placeholder="Que voulez-vous faire ? (médiatrice, compas, exporter…)"
+                    aria-label="Rechercher une commande" aria-controls="rechercheListe">
+                <button id="rechercheFermer" onclick="app.fermerRecherche()" aria-label="Fermer">✕</button>
+            </div>
+            <div id="rechercheListe" role="listbox"></div>
+            <div id="rechercheAide">↑ ↓ pour choisir · Entrée pour lancer · Échap pour fermer</div>
+        </div>
+    </div>
     <div id="toast-notification">Message par défaut</div>
     <!-- L'aperçu miniature a été retiré : rien ne l'ouvrait, rien ne dessinait
          dans son canevas, et sa croix appelait une fonction inexistante — un
@@ -6227,6 +6372,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             aria-label="Renommer le projet" data-tooltip="Renommer le projet">
         <div class="top-toolbar">
             <div class="toolbar-group">
+                <!-- La recherche est en TÊTE de barre : sur téléphone l'en-tête
+                     défile horizontalement (894px de contenu pour 390 de large),
+                     et c'est précisément la commande qui doit rester atteignable
+                     sans avoir à chercher. -->
+                <button class="top-btn" id="btnRecherche" onclick="app.ouvrirRecherche()"
+                    aria-label="Rechercher une commande" data-tooltip="Rechercher une commande (Ctrl+K)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="7" />
+                        <line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round" />
+                    </svg>
+                </button>
                 <button class="top-btn" id="btnPan" onclick="app.togglePanMode()"
                     aria-label="Déplacer la feuille (Main)" data-tooltip="Déplacer la feuille (Main)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -12049,6 +12205,198 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.refreshStepInstructionUI();
                 this.showToast(`Consigne posée à l'étape ${index}`);
             }
+            /* ============================================================
+               LA RECHERCHE DE COMMANDES
+
+               L'index n'est écrit nulle part : il est RÉCOLTÉ dans la page à
+               chaque ouverture. C'est ce qui le rend fiable — un catalogue tenu à
+               la main finit toujours par mentir, alors qu'ici une commande
+               ajoutée à l'interface est trouvable le jour même, et une commande
+               retirée disparaît d'elle-même.
+               ============================================================ */
+
+            /* Le nom d'un panneau, tel qu'on le dirait à quelqu'un. Sert à
+               répondre « où » et pas seulement « quoi » : on apprend en cherchant. */
+            static get LIEUX() {
+                return [
+                    ['#rechercheOverlay', null],           // la recherche elle-même : jamais listée
+                    ['.magic-menu-content', 'Constructions magiques'],
+                    ['#contextMenu', "Menu de l'objet"],
+                    ['#stylePalettePanel', 'Palette de style'],
+                    ['#instrumentsPalettePanel', 'Instruments'],
+                    ['#replayBar', 'Lecteur'],
+                    ['#studentDock', 'Mode élève'],
+                    ['#scenarioPanel', 'Scénario'],
+                    ['#instructionBox', 'Consignes'],
+                    ['#croquisOptions', 'Options du croquis'],
+                    ['#styloOptions', 'Options du stylo'],
+                    ['#textFormatToolbar', 'Barre du texte'],
+                    ['#virtualKeyboard', 'Clavier mathématique'],
+                    ['#aideFormule', 'Aide aux formules'],
+                    ['#exportModal', "Options d'exportation"],
+                    ['#helpModal', 'Aide'],
+                    ['.modal-overlay', 'Boîte de dialogue'],
+                    ['.header-dropdown-content', 'Menu du haut'],
+                    ['.toolbar', 'Barre des outils'],
+                    ['header', 'Barre du haut'],
+                ];
+            }
+
+            /* Sans accents ni majuscules : « mediatrice » doit trouver
+               « Médiatrice », et « PDF » comme « pdf ». */
+            static aplatir(t) {
+                return String(t || '').toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, ' ').trim();
+            }
+
+            recolterCommandes() {
+                const lieux = GeometrieAppCore.LIEUX;
+                const cmds = [];
+                const vus = new Set();
+                document.querySelectorAll('[onclick], [onpointerdown]').forEach((e) => {
+                    const code = (e.getAttribute('onclick') || '') + ';' + (e.getAttribute('onpointerdown') || '');
+                    // ce qui ne fait qu'absorber un événement n'est pas une commande
+                    if (!/[A-Za-z_$][\w$]*\s*\(/.test(code.replace(/event\.\w+\(\)/g, ''))) return;
+                    /* Le nom vient d'abord des attributs. À défaut, du texte —
+                       mais seulement si l'élément est une COMMANDE et non un
+                       conteneur : un panneau entier peut porter un onclick, et son
+                       texte fait alors des milliers de caractères. On exige donc
+                       qu'il ne contienne aucun bloc, et que le texte soit court. */
+                    let nom = (e.getAttribute('data-tooltip') || e.getAttribute('aria-label')
+                        || e.getAttribute('data-libelle') || '').trim();
+                    if (!nom) {
+                        const t = (e.innerText || '').replace(/\s+/g, ' ').trim();
+                        const feuille = e.querySelectorAll('div, section, table, ul, ol, p, h1, h2, h3, form').length === 0;
+                        if (feuille && t.length <= 40) nom = t;
+                    }
+                    nom = nom.replace(/\s+/g, ' ').trim();
+                    // sans nom, ou réduit à un signe : introuvable de toute façon
+                    if (!nom || nom.length < 3) return;
+                    let ou = '', ignorer = false, conteneur = null;
+                    for (const [sel, libelle] of lieux) {
+                        const c = e.closest(sel);
+                        if (c) { if (libelle === null) ignorer = true; ou = libelle || ''; conteneur = c; break; }
+                    }
+                    if (ignorer) return;
+                    /* Les réponses d'une boîte de dialogue (Confirmer, Annuler) et les
+                       commandes du menu d'un objet ne veulent rien dire hors contexte :
+                       elles répondent à une situation, on ne les invoque pas de but en
+                       blanc. On ne les propose donc que si leur boîte est ouverte. */
+                    if (conteneur && (conteneur.matches('.modal-overlay') || conteneur.id === 'contextMenu')) {
+                        const st = getComputedStyle(conteneur);
+                        if (st.display === 'none' || st.visibility === 'hidden') return;
+                    }
+                    const cle = GeometrieAppCore.aplatir(nom) + '|' + ou;
+                    if (vus.has(cle)) return;
+                    vus.add(cle);
+                    const icone = e.querySelector('svg');
+                    cmds.push({ nom, ou, el: e, code,
+                        cherche: GeometrieAppCore.aplatir(nom + ' ' + ou),
+                        icone: icone ? icone.outerHTML : '' });
+                });
+                return cmds;
+            }
+
+            ouvrirRecherche() {
+                const voile = document.getElementById('rechercheOverlay');
+                const champ = document.getElementById('rechercheChamp');
+                if (!voile || !champ) return;
+                this.commandesTrouvees = this.recolterCommandes();
+                champ.value = '';
+                this.rechercheIndex = 0;
+                voile.classList.add('ouvert');
+                this.filtrerRecherche('');
+                // le focus après l'affichage, sinon iOS n'ouvre pas son clavier
+                setTimeout(() => champ.focus(), 60);
+            }
+
+            fermerRecherche() {
+                const voile = document.getElementById('rechercheOverlay');
+                if (voile) voile.classList.remove('ouvert');
+                const champ = document.getElementById('rechercheChamp');
+                if (champ) champ.blur();
+            }
+
+            filtrerRecherche(texte) {
+                const liste = document.getElementById('rechercheListe');
+                if (!liste) return;
+                const q = GeometrieAppCore.aplatir(texte);
+                const mots = q ? q.split(' ').filter(Boolean) : [];
+                /* Tous les mots doivent être présents, dans n'importe quel ordre :
+                   « export pdf » comme « pdf export ». Le classement met devant ce
+                   qui COMMENCE par ce qu'on a tapé — on cherche presque toujours
+                   par le début d'un mot. */
+                let res = (this.commandesTrouvees || []).filter(c => mots.every(m => c.cherche.includes(m)));
+                if (!mots.length) {
+                    /* À l'ouverture, on montre d'abord ce qu'on utilise tous les
+                       jours : les outils de tracé, puis la barre du haut. */
+                    const rang = { 'Barre des outils': 0, 'Barre du haut': 1, 'Constructions magiques': 2,
+                        'Palette de style': 3, 'Instruments': 4, 'Menu du haut': 5 };
+                    res = res.slice().sort((a, b) =>
+                        (rang[a.ou] === undefined ? 9 : rang[a.ou]) - (rang[b.ou] === undefined ? 9 : rang[b.ou]));
+                }
+                if (mots.length) {
+                    const score = (c) => {
+                        const n = GeometrieAppCore.aplatir(c.nom);
+                        if (n.startsWith(q)) return 0;
+                        if (n.split(' ').some(w => w.startsWith(mots[0]))) return 1;
+                        return 2;
+                    };
+                    res.sort((a, b) => score(a) - score(b) || a.nom.length - b.nom.length);
+                }
+                res = res.slice(0, 40);
+                this.rechercheResultats = res;
+                if (this.rechercheIndex >= res.length) this.rechercheIndex = 0;
+                if (!res.length) {
+                    liste.innerHTML = '<div id="rechercheVide">Aucune commande ne correspond</div>';
+                    return;
+                }
+                const echapper = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                liste.innerHTML = res.map((c, i) =>
+                    `<div class="rech-item${i === this.rechercheIndex ? ' actif' : ''}" role="option" data-i="${i}">`
+                    + `<span class="rech-icone">${c.icone}</span>`
+                    + `<span class="rech-nom">${echapper(c.nom)}</span>`
+                    + (c.ou ? `<span class="rech-ou">${echapper(c.ou)}</span>` : '')
+                    + '</div>').join('');
+                liste.querySelectorAll('.rech-item').forEach((el) => {
+                    el.addEventListener('click', () => this.lancerRecherche(parseInt(el.dataset.i, 10)));
+                });
+            }
+
+            deplacerRecherche(delta) {
+                const n = (this.rechercheResultats || []).length;
+                if (!n) return;
+                this.rechercheIndex = (this.rechercheIndex + delta + n) % n;
+                const liste = document.getElementById('rechercheListe');
+                liste.querySelectorAll('.rech-item').forEach((el, i) =>
+                    el.classList.toggle('actif', i === this.rechercheIndex));
+                const actif = liste.querySelector('.rech-item.actif');
+                if (actif) actif.scrollIntoView({ block: 'nearest' });
+            }
+
+            lancerRecherche(i) {
+                const c = (this.rechercheResultats || [])[i === undefined ? this.rechercheIndex : i];
+                if (!c) return;
+                this.fermerRecherche();
+                /* On referme AVANT d'exécuter : la commande ouvre parfois un
+                   panneau ou une modale, qui doit se retrouver au premier plan. */
+                setTimeout(() => {
+                    const el = c.el;
+                    try {
+                        const op = el.getAttribute('onpointerdown');
+                        const oc = el.getAttribute('onclick');
+                        if (op) new Function('event', op).call(el, new PointerEvent('pointerdown', { bubbles: true }));
+                        if (oc) new Function('event', oc).call(el, new MouseEvent('click', { bubbles: true }));
+                    } catch (e) {
+                        console.warn('Commande impossible à lancer :', c.nom, e);
+                        this.showToast("Cette commande n'est pas disponible ici");
+                        return;
+                    }
+                    if (c.ou) this.showToast(`${c.nom} — ${c.ou}`);
+                }, 20);
+            }
+
             initScenarioDrag() {
                 const panel = document.getElementById('scenarioPanel');
                 const handle = document.getElementById('scenarioHandle');
@@ -26430,6 +26778,39 @@ var qrcode = function() {
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') closeAll(null);
             });
+
+            /* --- La recherche de commandes : clavier et champ ---------------
+               Ctrl+K (ou Cmd+K) l'ouvre de partout, y compris depuis un champ de
+               saisie — c'est le raccourci que tout le monde connaît. Les flèches
+               et Entrée ne sont écoutées QUE lorsqu'elle est ouverte, pour ne
+               rien voler aux autres usages du clavier. */
+            (function () {
+                var voile = document.getElementById('rechercheOverlay');
+                var champ = document.getElementById('rechercheChamp');
+                if (!voile || !champ) return;
+                document.addEventListener('keydown', function (e) {
+                    var app = window.app;
+                    if (!app) return;
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+                        e.preventDefault();
+                        if (voile.classList.contains('ouvert')) app.fermerRecherche();
+                        else app.ouvrirRecherche();
+                        return;
+                    }
+                    if (!voile.classList.contains('ouvert')) return;
+                    if (e.key === 'Escape') { e.preventDefault(); app.fermerRecherche(); }
+                    else if (e.key === 'ArrowDown') { e.preventDefault(); app.deplacerRecherche(1); }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); app.deplacerRecherche(-1); }
+                    else if (e.key === 'Enter') { e.preventDefault(); app.lancerRecherche(); }
+                });
+                champ.addEventListener('input', function () {
+                    if (window.app) window.app.filtrerRecherche(champ.value);
+                });
+                // un appui à côté de la boîte referme, comme toute modale
+                voile.addEventListener('pointerdown', function (e) {
+                    if (e.target === voile && window.app) window.app.fermerRecherche();
+                });
+            })();
 
             /* --- 4. Info-bulles : ne pas les déclencher au doigt ------------
                Le survol est émulé à l'appui sur mobile : la bulle apparaît puis

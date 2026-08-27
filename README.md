@@ -55,6 +55,18 @@ Import d'une image ou d'un **PDF** en fond, page par page, recadrable. Export en
 **PDF vectoriel** (police embarquée, texte au même endroit qu'à l'écran), en
 **SVG** (police embarquée en option) et en image.
 
+### Trouver une commande
+
+248 commandes, dont trois sur quatre rangées dans un panneau qu'il faut d'abord
+ouvrir. La **loupe** de la barre du haut — ou `Ctrl+K` — ouvre une recherche :
+on tape ce qu'on veut faire (« médiatrice », « exporter pdf », « compas »), on
+choisit, c'est lancé. Chaque résultat dit **où** la commande se trouve, pour
+qu'on finisse par le savoir.
+
+L'index n'est écrit nulle part : il est récolté dans la page à chaque ouverture.
+Une commande ajoutée à l'interface est donc trouvable le jour même, et une
+commande retirée disparaît d'elle-même.
+
 ### Et aussi
 
 Cinq quadrillages, symétries axiale et centrale, médiatrices, bissectrices,
