@@ -2079,22 +2079,6 @@
             bottom: 35px
         }
 
-        #headerColorMenu {
-            display: none;
-            position: absolute;
-            top: 55px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            padding: 12px;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
-            width: auto;
-            min-width: 180px;
-            z-index: 6000;
-            border: 1px solid #eee
-        }
-
         .palette-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -2115,39 +2099,6 @@
         .color-swatch:hover {
             transform: scale(1.25);
             z-index: 2
-        }
-
-        #headerColorPreview {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            border: 3px solid #fff !important;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
-            box-sizing: content-box;
-            transition: transform .2s
-        }
-
-        #btnHeaderColor:hover #headerColorPreview {
-            transform: scale(1.15)
-        }
-
-        .gradient-swatch {
-            background: conic-gradient(from 0deg, red, orange, #ff0, #0f0, #0ff, #00f, #ff00ff, red);
-            position: relative;
-            overflow: hidden
-        }
-
-        .gradient-swatch input[type=color] {
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            opacity: 0;
-            cursor: pointer;
-            padding: 0;
-            margin: 0;
-            border: none
         }
 
         .menu-separator {
@@ -10726,7 +10677,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const isRightAngle = Math.abs(val - 90) < 0.5;
                 const baseRadius = 25;
                 let baseColor = this.color || "green";
-                if (window.app && window.app.getThemeColor) baseColor = window.app.getThemeColor(baseColor);
                 const isSelected = arguments[1] ? arguments[1].isSelected : false;
                 const s = isToDelete ? "#d32f2f" : (isHovered ? baseColor : (isSelected ? "orange" : baseColor));
                 const width = (isHovered || isSelected || isToDelete) ? 4 : 2;
@@ -13836,7 +13786,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             refreshStepInstructionUI() {
                 if (!this.stepInstructions) this.stepInstructions = {};
-                const band = document.getElementById('stepInstructionBand') || document.getElementById('instructionBand');
+                const band = document.getElementById('stepInstructionBand');
                 const input = document.getElementById('stepInstructionInput');
                 const badge = document.getElementById('stepBadgeText');
                 const scenarioPanel = document.getElementById('scenarioPanel');
@@ -14574,7 +14524,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             togglePlayPause() {
                 if (this.isPlaying) {
                     this.pauseAnimation();
-                    const btn = document.getElementById('btnStudentPlay');
+                    const btn = document.getElementById('stdMainPlay');
                     if (btn) btn.innerHTML = "▶";
                 } else {
                     if (this.replayIndex >= this.entities.length) {
@@ -14582,7 +14532,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else {
                         this.resumeAnimation();
                     }
-                    const btn = document.getElementById('btnStudentPlay');
+                    const btn = document.getElementById('stdMainPlay');
                     if (btn) btn.innerHTML = "⏸";
                 }
             }
@@ -15575,46 +15525,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (Math.abs(bisX) < 0.001 && Math.abs(bisY) < 0.001) return -Math.PI / 2;
                 return Math.atan2(-bisY, -bisX);
             }
-            initColorMenu() {
-                const grid = document.getElementById('paletteGrid');
-                if (!grid || grid.children.length > 0) return;
-                for (const [name, hex] of Object.entries(this.COLORS)) {
-                    const div = document.createElement('div');
-                    div.className = 'color-swatch';
-                    div.style.background = hex;
-                    div.dataset.tooltip = name;
-                    div.onclick = () => {
-                        this.setGlobalColor(hex, false);
-                        this.toggleColorMenu();
-                    };
-                    grid.appendChild(div);
-                }
-                const gradientDiv = document.createElement('div');
-                gradientDiv.className = 'color-swatch gradient-swatch';
-                gradientDiv.dataset.tooltip = "Choisir une couleur...";
-                const picker = document.createElement('input');
-                picker.type = 'color';
-                picker.value = this.globalStyle.color;
-                picker.oninput = (e) => this.setGlobalColor(e.target.value, false);
-                picker.onchange = (e) => {
-                    this.setGlobalColor(e.target.value, true);
-                    this.toggleColorMenu();
-                };
-                gradientDiv.appendChild(picker);
-                grid.appendChild(gradientDiv);
-            }
-            toggleColorMenu() {
-                const menu = document.getElementById('headerColorMenu');
-                if (!menu) return;
-                if (menu.style.display === 'block') {
-                    menu.style.display = 'none';
-                } else {
-                    this.initColorMenu();
-                    menu.style.display = 'block';
-                    const globalPicker = document.getElementById('globalColorPicker');
-                    if (globalPicker) globalPicker.value = this.globalStyle.color;
-                }
-            }
+            /* Le menu de couleur d'en-tête a été retiré : aucun bouton ne
+               l'ouvrait — la palette de style l'a remplacé depuis longtemps — et
+               ses éléments (#headerColorMenu, #paletteGrid, #globalColorPicker,
+               #btnHeaderColor) n'existaient plus dans la page. Cinquante lignes
+               qui ne pouvaient plus s'exécuter. */
             toggleShowHidden() {
                 this.showHidden = !this.showHidden;
                 const btn = document.getElementById('btnShowHidden');
@@ -16381,18 +16296,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 });
-                const mainBtn = document.getElementById('btnPointStyleMain');
-                if (mainBtn) {
-                    let svgContent = '';
-                    if (style === 'cross') {
-                        svgContent = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none"><path d="M6 6l12 12M18 6l-12 12" /></svg>';
-                    } else if (style === 'dot') {
-                        svgContent = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="5" /></svg>';
-                    } else if (style === 'pixel') {
-                        svgContent = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="10" y="10" width="4" height="4" /></svg>';
-                    }
-                    mainBtn.innerHTML = svgContent;
-                }
+                /* Le bouton « style de point » principal a disparu de la barre :
+                   ce sont les trois boutons croix / disque / pixel, allumés
+                   juste au-dessus, qui montrent désormais le style courant. */
             }
             togglePanMode() {
                 const btn = document.getElementById('btnPan');
@@ -17250,12 +17156,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const line = document.getElementById('thicknessLine');
                 if (line) line.setAttribute('stroke-width', val);
                 const numDisplay = document.getElementById('thicknessValue');
-                if (numDisplay) {
-                    numDisplay.innerText = val;
-                } else {
-                    const oldDisplay = document.getElementById('widthValueDisplay');
-                    if (oldDisplay) oldDisplay.innerText = val;
-                }
+                if (numDisplay) numDisplay.innerText = val;
                 if (this.selectedObject) {
                     this.selectedObject.lineWidth = this.globalStyle.width;
                     if (this.selectedObject.style) {
@@ -17395,8 +17296,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.canvas) this.canvas.style.cursor = 'not-allowed';
                     const ctxMenu = document.getElementById('contextMenu');
                     if (ctxMenu) ctxMenu.style.display = 'none';
-                    const txtEditor = document.getElementById('textEditor');
-                    if (txtEditor) txtEditor.style.display = 'none';
+                    /* Une saisie en cours doit se refermer avec le reste. Elle
+                       visait « textEditor », qui n'existe plus : le champ restait
+                       donc ouvert et modifiable par-dessus une interface verrouillée.
+                       On le VALIDE au lieu de le masquer — masquer aurait perdu ce
+                       qui venait d'être tapé. */
+                    const champTexte = document.getElementById('ghostTextInput');
+                    if (champTexte && champTexte.style.display === 'block') this.validerTexteFantome();
                 } else {
                     if (this.canvas) this.canvas.style.cursor = 'default';
                 }
@@ -21028,11 +20934,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return;
                 }
                 if (this.isPinching) return;
-                const colorMenu = document.getElementById('headerColorMenu');
-                if (colorMenu && colorMenu.style.display === 'block') {
-                    colorMenu.style.display = 'none';
-                    return;
-                }
                 const isTouch = (e.pointerType === 'touch' || e.pointerType === 'pen');
                 // Tolérance d'aimantation à l'appui. 30px accrochait trop tôt au
                 // doigt ; 22 laisse de la marge tout en restant très au-dessus des
@@ -23374,7 +23275,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             toggleScenario() {
                 this.showBandeauScenario = !this.showBandeauScenario;
                 const btnHeader = document.getElementById('btnScenarioToggle') || document.querySelector('button[title="Scénario & Consignes"]');
-                const band = document.getElementById('stepInstructionBand') || document.getElementById('instructionBand');
+                const band = document.getElementById('stepInstructionBand');
                 if (this.showBandeauScenario) {
                     if (btnHeader) btnHeader.classList.add('active');
                     if (band) {
@@ -23419,15 +23320,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         document.getElementById('donateModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeDonateModal();
-            }
-        });
-        window.addEventListener('mousedown', (e) => {
-            const menu = document.getElementById('headerColorMenu');
-            const btn = document.getElementById('btnHeaderColor');
-            if (menu && menu.style.display === 'block') {
-                if (!menu.contains(e.target) && !btn.contains(e.target)) {
-                    menu.style.display = 'none';
-                }
             }
         });
         function initStudentInterface() {

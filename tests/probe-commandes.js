@@ -44,6 +44,19 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   });
   ck('aucun identifiant en double', dup.length === 0, dup.join(', '));
 
+  console.log('\n=== aucun code ne cherche un élément absent de la page ===');
+  /* C'est ce contrôle qui a révélé le verrou d'image muet : tout son affichage
+     dépendait d'un libellé qui n'existait plus, si bien que le bouton gardait le
+     même aspect, verrouillé ou non. On lit le source de la page et l'on vérifie
+     que chaque identifiant demandé existe — soit dans le balisage, soit fabriqué
+     quelque part en JavaScript. */
+  const src = require('fs').readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
+  const demandes = new Set([...src.matchAll(/getElementById\(\s*['"]([\w-]+)['"]\s*\)/g)].map(m => m[1]));
+  const poses = new Set([...src.matchAll(/\bid\s*=\s*["']([\w-]+)["']/g)].map(m => m[1]));
+  [...src.matchAll(/id\s*[:=]\s*['"]([\w-]+)['"]/g)].forEach(m => poses.add(m[1]));
+  const fantomes = [...demandes].filter(d => !poses.has(d));
+  ck('aucun identifiant demandé n\'est introuvable', fantomes.length === 0, fantomes.join(', '));
+
   console.log('\n=== on clique sur tout, rien ne doit se casser ===');
   await page.evaluate(() => {
     window.print = () => {};

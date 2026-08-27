@@ -74,6 +74,24 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('rappuyer la retire', Object.keys(etape.retire).length === 0);
   ck('sans texte, il le dit au lieu de rien faire', /consigne/i.test(etape.bulle), etape.bulle);
 
+  console.log('\n=== verrouiller l\'interface referme la saisie en gardant le texte ===');
+  const verrouSaisie = await page.evaluate(() => {
+    const a = window.app; a.clearCanvas();
+    a.setTool('text');
+    const g = document.getElementById('ghostTextInput');
+    a.pendingTextCoords = { x: 300, y: 300 };
+    g.style.display = 'block'; g.innerHTML = 'En cours de frappe';
+    document.getElementById('textFormatToolbar').style.display = 'flex';
+    a.lockInterface(true);
+    const res = { champ: g.style.display,
+                  garde: (a.entities.find(e => e.constructor.name === 'TextLabel') || {}).text };
+    a.lockInterface(false);
+    return res;
+  });
+  console.log('  ' + JSON.stringify(verrouSaisie));
+  ck('la saisie est refermée', verrouSaisie.champ === 'none', verrouSaisie.champ);
+  ck('et le texte n\'est pas perdu', verrouSaisie.garde === 'En cours de frappe', String(verrouSaisie.garde));
+
   console.log('\n=== le verrou de l\'image montre son état ===');
   const verrou = await page.evaluate(() => {
     const a = window.app;
