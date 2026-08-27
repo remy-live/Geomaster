@@ -9,7 +9,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const b = await chromium.launch({ executablePath: NAVIGATEUR });
   let fail = 0;
   const ck = (l, ok, d) => { console.log(`  ${ok ? '✓' : '✗'} ${l}${d ? ' — ' + d : ''}`); if (!ok) fail++; };
-  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  /* Le presse-papiers est refusé par défaut à une page « file:// » sur un
+     serveur d'intégration : plusieurs commandes (partager, copier le lien élève)
+     échouaient alors pour une raison d'environnement et non de code. */
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true,
+    permissions: ['clipboard-read', 'clipboard-write'] });
   const page = await ctx.newPage();
   const erreurs = [];
   page.on('pageerror', e => erreurs.push('page: ' + e.message));
@@ -89,7 +93,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     }, c.sel);
     await page.waitForTimeout(25);
     const jete = await page.evaluate(() => { const e = window.__err || []; window.__err = []; return e; });
-    if (jete.length || erreurs.length) casses.push({ ...c, quoi: [...jete, ...erreurs] });
+    /* Ce que la MACHINE ne sait pas faire n'est pas un défaut du logiciel :
+       l'enregistrement d'écran et le presse-papiers n'existent pas sur un serveur
+       sans écran ni session graphique. On ne retient que ce qui vient du code. */
+    const machine = (m) => /NotAllowedError|NotSupportedError|Clipboard|getDisplayMedia|permission denied/i.test(m);
+    const vrais = [...jete, ...erreurs].filter(m => !machine(m));
+    if (vrais.length) casses.push({ ...c, quoi: vrais });
   }
   casses.forEach(x => console.log(`      ✗ ${x.nom} — ${x.code}\n        ${x.quoi.join(' | ').slice(0, 160)}`));
   ck(`les ${cibles.length} commandes s'exécutent sans erreur`, casses.length === 0,

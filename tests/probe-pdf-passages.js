@@ -13,6 +13,14 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const page = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   const errs = []; page.on('pageerror', e => errs.push(e.message));
   await page.goto(PAGE); await page.waitForTimeout(1800);
+  /* On attend que la police embarquée soit VRAIMENT chargée. Elle arrive de façon
+     asynchrone ; sur une machine lente, le canevas mesurait encore avec la police
+     de repli pendant que le PDF, lui, écrivait GeoSans — 2,78pt d'écart, dus à
+     l'attente et non au code. */
+  await page.evaluate(() => Promise.all([
+    document.fonts.load("400 16px GeoSans"),
+    document.fonts.load("700 16px GeoSans"),
+  ]).then(() => document.fonts.ready));
 
   const r = await page.evaluate(async () => {
     const a = window.app; a.clearCanvas();
