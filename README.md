@@ -39,8 +39,9 @@ de modification.
 On trace un carré du doigt : le logiciel le reconnaît et construit un vrai carré,
 avec ses points nommés et ses codages — ou, si on le demande, la **construction
 détaillée à la règle et au compas**, rejouable. Sont reconnus : cercle (avec son
-centre), segment, demi-droite, droite, triangle, triangle équilatéral, carré,
-rectangle, losange, parallélogramme, pentagone et hexagone réguliers.
+centre), segment, demi-droite, droite, triangle, triangle équilatéral, triangle
+rectangle, carré, rectangle, losange, parallélogramme, pentagone et hexagone
+réguliers.
 
 ### Écrire et annoter
 
@@ -119,7 +120,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 49 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 50 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

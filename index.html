@@ -6247,8 +6247,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <li><strong>L'outil reste armé</strong> après chaque figure : on enchaîne les
                                     croquis sans retourner le chercher. On en sort en choisissant un autre outil.</li>
                                 <li><strong>Reconnu :</strong> cercle (avec son centre), segment, demi-droite,
-                                    droite, triangle, triangle équilatéral, carré, rectangle, losange,
-                                    parallélogramme, pentagone et hexagone réguliers.</li>
+                                    droite, triangle, triangle équilatéral, <b>triangle rectangle</b>, carré,
+                                    rectangle, losange, parallélogramme, pentagone et hexagone réguliers.</li>
                                 <li><strong>Trop loin d'une figure connue ?</strong> Le tracé devient un
                                     <b>polygone</b> aux côtés redressés — trapèze, cerf-volant, quadrilatère de
                                     travers. Rien n'est perdu. Au-delà de six côtés en revanche, un polygone
@@ -9078,6 +9078,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 if (n === 3) {
                     if (dispersion < 0.18) return { forme: 'triangle_equilateral', sommets, cote: lm, centre };
+                    /* Triangle RECTANGLE. On ne se fie pas à l'angle mesuré sur les
+                       sommets bruts — la main tremble, et un sommet déplacé de trois
+                       pixels décale l'angle de plusieurs degrés. On applique le
+                       théorème de Pythagore aux longueurs des côtés, qui sont, elles,
+                       moyennées sur toute la longueur du tracé : si a² + b² vaut c² à
+                       quelques pour cent près, l'angle opposé au plus grand côté est
+                       droit. La tolérance de 6 % sur les carrés correspond à environ
+                       4° sur l'angle, ce qu'un tracé à main levée tient sans peine.
+                       L'angle sert malgré tout de garde-fou, à 15° près, pour écarter
+                       un triangle très aplati que le rapport des carrés flatterait. */
+                    const l = cotes.map(c => c.l).slice().sort((x, y) => x - y);
+                    const hyp = l[2], ecart = Math.abs(l[0] * l[0] + l[1] * l[1] - hyp * hyp) / (hyp * hyp);
+                    if (ecart < 0.06) {
+                        // le sommet opposé au plus grand côté porte l'angle droit
+                        let iDroit = 0, maxL = -1;
+                        cotes.forEach((c, i) => { if (c.l > maxL) { maxL = c.l; iDroit = i; } });
+                        // le côté i joint les sommets i et i+1 : l'angle droit est au 3e
+                        const sDroit = (iDroit + 2) % 3;
+                        if (Math.abs(angles[sDroit] - Math.PI / 2) < 15 * Math.PI / 180) {
+                            return { forme: 'triangle_rectangle', sommets, centre,
+                                     droit: sDroit, ecart };
+                        }
+                    }
                     return { forme: 'triangle', sommets, centre };
                 }
                 if (n === 4) {
@@ -12737,75 +12760,153 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(animTrace); this.addEntity(segAB);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 }
+                const cote = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+                this.batirRectangleSurBase(segAB, cote, true, startIndex);
+            }
 
-                let baseAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-                let dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+            /* Le triangle rectangle : la base est une jambe, l'angle droit se pose à
+               l'équerre à l'une de ses extrémités, la seconde jambe se reporte au
+               compas, et l'hypoténuse se referme à la règle. « versQuoi » indique de
+               quel côté de la base se trouve le troisième sommet — le tracé le dit,
+               il n'y a pas à le deviner. */
+            batirTriangleRectangle(segAB, jambe, versQuoi) {
+                const startIndex = this.entities.length;
+                const pA = segAB.p1, pB = segAB.p2;
+                const baseAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+                // le côté où tombe le troisième sommet, lu sur le croquis
+                const cote = Math.sign((pB.x - pA.x) * (versQuoi.y - pA.y)
+                                     - (pB.y - pA.y) * (versQuoi.x - pA.x)) || 1;
+                const perp = baseAngle + cote * Math.PI / 2;
+
+                this.stepInstructions[this.entities.length] = "L'équerre pose l'angle droit à une extrémité de la base.";
+                const pC = new Point(pA.x + Math.cos(perp) * jambe, pA.y + Math.sin(perp) * jambe, "C");
+                const animPerp = new ToolAnimation('trace', { x: pA.x, y: pA.y, angle: perp }, { x: pA.x, y: pA.y, angle: perp });
+                animPerp.widgetType = 'setsquare';
+                this.addEntity(animPerp);
+                const segAC = new Segment(pA, pC, { color: segAB.color, width: segAB.lineWidth });
+                this.addEntity(segAC);
+                this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
+                this.addEntity(pC);
+
+                this.stepInstructions[this.entities.length] = "La règle referme l'hypoténuse.";
+                const aCB = Math.atan2(pB.y - pC.y, pB.x - pC.x);
+                const segCB = new Segment(pC, pB, { color: segAB.color, width: segAB.lineWidth });
+                const animCB = new ToolAnimation('trace', { x: pC.x, y: pC.y, angle: aCB }, { x: pC.x, y: pC.y, angle: aCB });
+                animCB.widgetType = 'ruler';
+                this.addEntity(animCB); this.addEntity(segCB);
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
+                this.stepInstructions[this.entities.length] = "L'angle droit est marqué : le côté opposé est l'hypoténuse.";
+                const ang = new Angle(pB, pA, pC);
+                ang.showValue = false;
+                this.addEntity(ang);
+
+                for (let i = 0; i < 4; i++) this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                this.saveState();
+                this.replayIndex = startIndex; this.fastForward(startIndex);
+                this.playStepLoop(startIndex, this.entities.length);
+            }
+
+            /* Construit un rectangle À PARTIR DE SA BASE, à l'équerre et au compas :
+               perpendiculaire à une extrémité, puis report des deux longueurs. C'était
+               la construction du carré ; le rectangle la partage désormais, la seule
+               différence étant que les deux côtés diffèrent — et le codage qui s'ensuit.
+
+               Le croquis d'un rectangle appelait jusqu'ici un autre bâtisseur, qui
+               recevait TROIS sommets déjà placés : l'animation commençait donc avec
+               trois points posés d'avance, là où le carré partait de deux. Elle part
+               maintenant de deux dans les deux cas. */
+            batirRectangleSurBase(segAB, largeur, carre, startIndex) {
+                const pA = segAB.p1, pB = segAB.p2;
+                if (startIndex === undefined) startIndex = this.entities.length;
+                const baseAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+                const dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+                const perp = baseAngle - Math.PI / 2;
 
                 this.stepInstructions[this.entities.length] = "Construction de la perpendiculaire en une extrémité.";
-                
-                // 1. SetSquare to trace perpendicular AD directly
-                let pD = new Point(pA.x + Math.cos(baseAngle - Math.PI/2)*dist, pA.y + Math.sin(baseAngle - Math.PI/2)*dist, "D");
+
+                // 1. L'équerre trace directement la perpendiculaire AD
+                let pD = new Point(pA.x + Math.cos(perp) * largeur, pA.y + Math.sin(perp) * largeur, "D");
                 let segAD = new Segment(pA, pD, {color: segAB.color, width: segAB.lineWidth});
-                let animPerp = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: baseAngle - Math.PI/2}, {x: pA.x, y: pA.y, angle: baseAngle - Math.PI/2});
+                let animPerp = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: perp}, {x: pA.x, y: pA.y, angle: perp});
                 animPerp.widgetType = 'setsquare';
                 this.addEntity(animPerp); this.addEntity(segAD); this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
                 this.addEntity(pD);
-                
-                this.stepInstructions[this.entities.length] = "On prend l'écartement du segment avec le compas pour placer le dernier sommet.";
-                // 2. Show compass taking the measurement of AB
-                let aAB = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+
+                this.stepInstructions[this.entities.length] = carre
+                    ? "On prend l'écartement du segment avec le compas pour placer le dernier sommet."
+                    : "On reporte la longueur de la base depuis D, et celle du côté depuis B.";
+                // 2. Le compas prend la longueur AB
+                let aAB = baseAngle;
                 let animOpenAB = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: aAB, radius: 0}, {x: pA.x, y: pA.y, angle: aAB, radius: dist});
                 animOpenAB.widgetType = 'compass';
                 this.addEntity(animOpenAB);
-                
-                // Compass move to D
-                let pC = new Point(pB.x + Math.cos(baseAngle - Math.PI/2)*dist, pB.y + Math.sin(baseAngle - Math.PI/2)*dist, "C");
+
+                // Le compas se déplace en D et reporte AB
+                let pC = new Point(pB.x + Math.cos(perp) * largeur, pB.y + Math.sin(perp) * largeur, "C");
                 let aDC = Math.atan2(pC.y - pD.y, pC.x - pD.x);
                 let animMoveD = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: aAB, radius: dist}, {x: pD.x, y: pD.y, angle: aDC - 0.3, radius: dist});
                 animMoveD.widgetType = 'compass';
                 this.addEntity(animMoveD);
-                
+
                 let arcC1 = new CompassArc(pD, dist, aDC - 0.3, aDC + 0.3, false); arcC1.color = '#e91e63';
                 let animC1 = new ToolAnimation('trace', {x: pD.x, y: pD.y, angle: aDC - 0.3, radius: dist}, {x: pD.x, y: pD.y, angle: aDC + 0.3, radius: dist});
                 animC1.widgetType = 'compass'; animC1.counterClockwise = false;
                 this.addEntity(animC1); this.addEntity(arcC1);
-                
-                // Compass move to B
+
+                /* Le compas se déplace en B et reporte LA LARGEUR — pour un carré c'est
+                   la même longueur, pour un rectangle non : il faut donc le rouvrir. */
                 let aBC = Math.atan2(pC.y - pB.y, pC.x - pB.x);
-                let animMoveB = new ToolAnimation('move', {x: pD.x, y: pD.y, angle: aDC + 0.3, radius: dist}, {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: dist});
+                let animMoveB = new ToolAnimation('move', {x: pD.x, y: pD.y, angle: aDC + 0.3, radius: dist}, {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: largeur});
                 animMoveB.widgetType = 'compass';
                 this.addEntity(animMoveB);
-                
-                let arcC2 = new CompassArc(pB, dist, aBC + 0.3, aBC - 0.3, true); arcC2.color = '#e91e63';
-                let animC2 = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: dist}, {x: pB.x, y: pB.y, angle: aBC - 0.3, radius: dist});
+
+                let arcC2 = new CompassArc(pB, largeur, aBC + 0.3, aBC - 0.3, true); arcC2.color = '#e91e63';
+                let animC2 = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: largeur}, {x: pB.x, y: pB.y, angle: aBC - 0.3, radius: largeur});
                 animC2.widgetType = 'compass'; animC2.counterClockwise = true;
                 this.addEntity(animC2); this.addEntity(arcC2);
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 this.addEntity(pC);
-                
-                // 4. Ruler trace DC, CB
+
+                // 4. La règle trace DC puis CB
                 let segDC = new Segment(pD, pC, {color: segAB.color, width: segAB.lineWidth});
                 let animDC = new ToolAnimation('trace', {x: pD.x, y: pD.y, angle: aDC}, {x: pD.x, y: pD.y, angle: aDC}); animDC.widgetType = 'ruler';
                 this.addEntity(animDC); this.addEntity(segDC); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-                
+
                 let segCB = new Segment(pC, pB, {color: segAB.color, width: segAB.lineWidth});
                 let aCB = Math.atan2(pB.y - pC.y, pB.x - pC.x);
                 let animCB = new ToolAnimation('trace', {x: pC.x, y: pC.y, angle: aCB}, {x: pC.x, y: pC.y, angle: aCB}); animCB.widgetType = 'ruler';
                 this.addEntity(animCB); this.addEntity(segCB); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-                
-                this.stepInstructions[this.entities.length] = "Le carré a 4 angles droits et 4 côtés égaux.";
+
+                this.stepInstructions[this.entities.length] = carre
+                    ? "Le carré a 4 angles droits et 4 côtés égaux."
+                    : "Le rectangle a 4 angles droits et ses côtés opposés sont de même longueur.";
                 let a1 = new Angle(pB, pA, pD); this.addEntity(a1);
                 let a2 = new Angle(pC, pB, pA); this.addEntity(a2);
                 let a3 = new Angle(pD, pC, pB); this.addEntity(a3);
                 let a4 = new Angle(pA, pD, pC); this.addEntity(a4);
-                
-                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = 'mark-1'; this.addEntity(c1);
-                let c2 = new Segment(pB, pC, {color: segAB.color, width: segAB.lineWidth}); c2.coding = 'mark-1'; this.addEntity(c2);
-                let c3 = new Segment(pC, pD, {color: segAB.color, width: segAB.lineWidth}); c3.coding = 'mark-1'; this.addEntity(c3);
-                let c4 = new Segment(pD, pA, {color: segAB.color, width: segAB.lineWidth}); c4.coding = 'mark-1'; this.addEntity(c4);
-                
+
+                /* Le carré marque ses quatre côtés d'un trait ; le rectangle distingue
+                   ses deux paires — c'est ce que dit sa propriété.
+
+                   Le codage se pose SUR les côtés déjà tracés. Le bâtisseur ajoutait
+                   jusqu'ici quatre segments codés par-dessus les trois qu'il venait
+                   de construire : les côtés existaient en double, exactement
+                   superposés. Invisible à l'œil, mais on en supprimait un et l'autre
+                   restait. Seule la base fait exception quand le bâtisseur l'a
+                   fabriquée lui-même : elle est alors masquée, et c'est sa copie
+                   codée qui se voit. */
+                const marqueBase = 'mark-1', marqueCote = carre ? 'mark-1' : 'mark-2';
+                if (segAB.hidden) {
+                    let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth});
+                    c1.coding = marqueBase; this.addEntity(c1);
+                } else segAB.coding = marqueBase;
+                segCB.coding = marqueCote;
+                segDC.coding = marqueBase;
+                segAD.coding = marqueCote;
+
                 for(let i=0; i<8; i++) this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-                
+
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -18918,7 +19019,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 if (res.forme === 'pentagone' || res.forme === 'hexagone')
                     return this.alignerSurTrace(res.sommets, res.detectes);
-                if (res.forme === 'triangle' || res.forme === 'losange' || res.forme === 'polygone'
+                /* Le triangle rectangle est REDRESSÉ, comme le sont le carré, le
+                   rectangle et le losange : sans cela l'angle marqué droit mesurait
+                   90,5° — la marque disait une chose et l'outil de mesure une autre.
+                   On garde le sommet de l'angle droit et les deux longueurs, et on
+                   fait pivoter les deux côtés de part et d'autre de leur bissectrice
+                   jusqu'à l'écart exact d'un quart de tour : la figure ne bouge donc
+                   pas, elle se referme sur elle-même. */
+                if (res.forme === 'triangle_rectangle' && res.droit !== undefined) {
+                    const s = res.sommets, i = res.droit;
+                    const A = s[i], B = s[(i + 1) % 3], C = s[(i + 2) % 3];
+                    const aB = Math.atan2(B.y - A.y, B.x - A.x);
+                    const aC = Math.atan2(C.y - A.y, C.x - A.x);
+                    let ecart = aC - aB;
+                    while (ecart <= -Math.PI) ecart += 2 * Math.PI;
+                    while (ecart > Math.PI) ecart -= 2 * Math.PI;
+                    const sens = ecart >= 0 ? 1 : -1, milieu = aB + ecart / 2;
+                    const bout = (angle, p) => ({
+                        x: A.x + Math.cos(angle) * Math.hypot(p.x - A.x, p.y - A.y),
+                        y: A.y + Math.sin(angle) * Math.hypot(p.x - A.x, p.y - A.y) });
+                    const out = [];
+                    out[i] = { x: A.x, y: A.y };
+                    out[(i + 1) % 3] = bout(milieu - sens * Math.PI / 4, B);
+                    out[(i + 2) % 3] = bout(milieu + sens * Math.PI / 4, C);
+                    return out;
+                }
+                if (res.forme === 'triangle'
+                    || res.forme === 'losange' || res.forme === 'polygone'
                     || res.forme === 'parallelogramme') return res.sommets;
                 return null;
             }
@@ -18998,9 +19125,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.addEntity(a);
                         }
                     }
+                    // le triangle rectangle n'a qu'un angle à marquer, et c'est LUI
+                    // qui fait la figure : le reconnaître sans le coder n'aurait pas
+                    // de sens
+                    if (res.forme === 'triangle_rectangle' && res.droit !== undefined) {
+                        const i = res.droit;
+                        const a = new Angle(pts[(i - 1 + n) % n], pts[i], pts[(i + 1) % n]);
+                        a.showValue = false; a.color = col;
+                        this.addEntity(a);
+                    }
                 }
                 const noms = { carre: 'Carré', rectangle: 'Rectangle', losange: 'Losange',
                     parallelogramme: 'Parallélogramme', triangle: 'Triangle', triangle_equilateral: 'Triangle équilatéral',
+                    triangle_rectangle: 'Triangle rectangle',
                     pentagone: 'Pentagone régulier', hexagone: 'Hexagone régulier', polygone: 'Polygone' };
                 return noms[res.forme] || 'Figure';
             }
@@ -19030,11 +19167,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else this.buildHexagon(base, res.centre.x, res.centre.y);
                     return res.forme === 'pentagone' ? 'Pentagone régulier' : 'Hexagone régulier';
                 }
-                if (res.forme === 'triangle_equilateral' || res.forme === 'carre') {
-                    let pA, pB;
+                if (res.forme === 'triangle_equilateral' || res.forme === 'carre' || res.forme === 'rectangle') {
+                    let pA, pB, largeur = null;
                     if (res.forme === 'carre') {
                         const co = this.coinsQuadrilatere(res.centre, res.theta, res.cote / 2, res.cote / 2);
                         [pA, pB] = this.ordonnerBase(co[0], co[1], res.centre, Math.PI / 2);
+                    } else if (res.forme === 'rectangle') {
+                        /* On part du côté le plus LONG : c'est celui qu'on trace en
+                           premier à la main, et la perpendiculaire s'appuie dessus.
+                           coinsQuadrilatere donne les sommets dans l'ordre, le côté
+                           0-1 mesurant « largeur » et le côté 1-2 « hauteur ». */
+                        const co = this.coinsQuadrilatere(res.centre, res.theta, res.largeur / 2, res.hauteur / 2);
+                        const base = (res.largeur >= res.hauteur) ? [co[0], co[1]] : [co[1], co[2]];
+                        largeur = Math.min(res.largeur, res.hauteur);
+                        [pA, pB] = this.ordonnerBase(base[0], base[1], res.centre, Math.PI / 2);
                     } else {
                         [pA, pB] = this.ordonnerBase(res.sommets[0], res.sommets[1], res.centre, Math.PI / 3);
                     }
@@ -19053,17 +19199,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(base);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                     if (res.forme === 'carre') this.buildSquare(base, res.centre.x, res.centre.y);
+                    else if (res.forme === 'rectangle') this.batirRectangleSurBase(base, largeur, false);
                     else this.buildEquilateralTriangle(base, res.centre.x, res.centre.y);
-                    return res.forme === 'carre' ? 'Carré' : 'Triangle équilatéral';
+                    return res.forme === 'carre' ? 'Carré'
+                        : (res.forme === 'rectangle' ? 'Rectangle' : 'Triangle équilatéral');
                 }
-                if (res.forme === 'rectangle' || res.forme === 'parallelogramme') {
+                if (res.forme === 'triangle_rectangle') {
+                    /* On part de la plus longue JAMBE — celle qu'on trace d'abord à la
+                       main — et l'on construit l'angle droit à l'équerre, exactement
+                       comme pour le carré. L'hypoténuse se referme à la règle : c'est
+                       la construction qu'on demande à un élève. */
+                    const som = this.sommetsCroquis(res);
+                    const iD = res.droit;
+                    const pDroit = som[iD];
+                    const autres = [som[(iD + 1) % 3], som[(iD + 2) % 3]];
+                    const lg = autres.map(q => Math.hypot(q.x - pDroit.x, q.y - pDroit.y));
+                    const iLong = (lg[0] >= lg[1]) ? 0 : 1;
+                    const pBout = autres[iLong], pAutre = autres[1 - iLong];
+                    const q1 = this.pointCroquis(pDroit.x, pDroit.y);
+                    const q2 = this.pointCroquis(pBout.x, pBout.y);
+                    const base = new Segment(q1, q2, { color: col, width: ep, dash: false });
+                    const angle = Math.atan2(q2.y - q1.y, q2.x - q1.x);
+                    const dep = { x: q1.x, y: q1.y, angle: angle };
+                    const anR = new ToolAnimation('trace', dep, dep); anR.widgetType = 'ruler';
+                    this.addEntity(anR); this.addEntity(base);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    this.batirTriangleRectangle(base, Math.hypot(pAutre.x - q1.x, pAutre.y - q1.y),
+                        pAutre);
+                    return 'Triangle rectangle';
+                }
+                if (res.forme === 'parallelogramme') {
                     const co = this.sommetsCroquis(res);
-                    // les deux bâtisseurs attendent 3 sommets consécutifs, le 2e au coin,
-                    // et tracent déjà leurs deux premiers côtés à la règle
+                    // le bâtisseur attend 3 sommets consécutifs, le 2e au coin,
+                    // et trace déjà ses deux premiers côtés à la règle
                     const a = this.pointCroquis(co[0].x, co[0].y);
                     const b3 = this.pointCroquis(co[1].x, co[1].y);
                     const c4 = this.pointCroquis(co[2].x, co[2].y);
-                    if (res.forme === 'rectangle') { this.buildRectangle(a, b3, c4); return 'Rectangle'; }
                     this.buildParallelogram(a, b3, c4);
                     return 'Parallélogramme';
                 }
@@ -19322,8 +19493,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (res.forme === 'segment') res.forme = this.natureDuTrait(res);
                 // Cercle, segment et triangle quelconque n'ont pas de construction à
                 // détailler : poser la question n'aurait aucun sens.
-                const construisible = ['carre', 'rectangle', 'triangle_equilateral', 'parallelogramme',
-                    'pentagone', 'hexagone'].includes(res.forme);
+                const construisible = ['carre', 'rectangle', 'triangle_equilateral', 'triangle_rectangle',
+                    'parallelogramme', 'pentagone', 'hexagone'].includes(res.forme);
                 if (avecQuestion && construisible) {
                     this.croquisEnAttente = res;
                     this.ouvrirChoixCroquis(res);
@@ -19351,6 +19522,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             ouvrirChoixCroquis(res) {
                 const noms = { carre: 'un carré', rectangle: 'un rectangle',
                     parallelogramme: 'un parallélogramme', triangle_equilateral: 'un triangle équilatéral',
+                    triangle_rectangle: 'un triangle rectangle',
                     pentagone: 'un pentagone régulier', hexagone: 'un hexagone régulier' };
                 const m = document.getElementById('croquisModal');
                 if (!m) { this.finirCroquis(res, false); return; }

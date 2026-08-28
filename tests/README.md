@@ -11,6 +11,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-pdf-textes.js` | le texte du PDF tombe au même endroit que sur la feuille |
 | `probe-reprise.js` | après fermeture du navigateur, la figure revient à l'identique |
 | `probe-url-encre.js` | l'encre du stylo survit au lien de partage, au pixel près |
+| `probe-rect-tri.js` | le rectangle se construit à partir de deux points, comme le carré |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
