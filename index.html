@@ -21550,15 +21550,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 targetWidget.rotMin = 0; targetWidget.rotMax = 0;
                             }
                             if (targetWidget instanceof CompassWidget && zone === 'resize') {
-                                /* On ne saisit plus la mine mais une pastille décalée :
-                                   sans cette correction, l'écartement sauterait d'un coup
-                                   à la distance pastille-pointe. On mémorise l'écart et
-                                   l'on raisonne ensuite sur une mine VIRTUELLE, celle que
-                                   l'utilisateur croit tenir. */
-                                const dm = MathUtils.dist(mousePos.x, mousePos.y, targetWidget.x, targetWidget.y);
+                                /* On ne saisit pas la mine mais une pastille décalée :
+                                   sans correction, l'écartement sauterait d'un coup à la
+                                   distance pastille-pointe. L'écart est mémorisé dans le
+                                   repère LOCAL de l'instrument, où la pastille est à
+                                   (rayon + 32, -35) : son décalage par rapport à la mine
+                                   y est CONSTANT.
+
+                                   Il était mémorisé en polaire (une distance et un angle
+                                   depuis la pointe sèche). Or ce décalage-là, lui, varie
+                                   avec le rayon : la pastille s'échappait du curseur dès
+                                   qu'on ouvrait grand — jusqu'à 50 px mesurés pour une
+                                   ouverture portée de 100 à 300 px, soit quatre fois le
+                                   rayon de la pastille. On tenait une poignée qui n'était
+                                   plus sous le doigt. */
+                                const l = targetWidget.toLocal(mousePos.x, mousePos.y);
                                 this.compassResizeOffset = {
-                                    dr: dm - targetWidget.radius,
-                                    da: Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x) - targetWidget.angle,
+                                    dx: l.x - targetWidget.radius,
+                                    dy: l.y,
                                 };
                             }
                             if (zone === 'move') { this.widgetOffset.x = mousePos.x - targetWidget.x; this.widgetOffset.y = mousePos.y - targetWidget.y; }
@@ -22648,14 +22657,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (mode === 'crop-e') { w.cropR = Math.max(pctX, w.cropL + 0.05); }
                     }
                     else if (mode === 'resize' && w instanceof CompassWidget) {
-                        /* Position de la mine VIRTUELLE : la pastille est décalée, on
-                           retranche l'écart mémorisé à la saisie pour que l'aimantation
-                           porte sur le point où l'utilisateur voit la mine. */
+                        /* Position de la mine VIRTUELLE — celle que l'utilisateur croit
+                           tenir. On cherche le couple (rayon, angle) qui replace la
+                           pastille EXACTEMENT sous le curseur : elle est à (rayon + dx,
+                           dy) dans le repère de l'instrument, donc à la distance
+                           √((rayon+dx)² + dy²) de la pointe. En égalant cette distance à
+                           celle du curseur, le rayon se lit d'un trait, et l'angle s'en
+                           déduit. La poignée reste sous le doigt, quelle que soit
+                           l'ouverture. */
                         const off = this.compassResizeOffset;
                         let mx = x, my = y;
-                        if (off) {
-                            const vr = Math.max(1, MathUtils.dist(x, y, w.x, w.y) - off.dr);
-                            const va = Math.atan2(y - w.y, x - w.x) - off.da;
+                        if (off && off.dx !== undefined) {
+                            const vx = x - w.x, vy = y - w.y;
+                            const D = Math.hypot(vx, vy);
+                            const base = Math.sqrt(Math.max(1, D * D - off.dy * off.dy));
+                            const vr = Math.max(1, base - off.dx);
+                            const va = Math.atan2(vy, vx) - Math.atan2(off.dy, base);
                             mx = w.x + vr * Math.cos(va); my = w.y + vr * Math.sin(va);
                         }
                         let newRadius = MathUtils.dist(mx, my, w.x, w.y);

@@ -33,9 +33,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
         for (let i=1;i<=n;i++) this.ev('pointermove', {x: de.x+(vers.x-de.x)*i/n, y: de.y+(vers.y-de.y)*i/n}, 1);
         this.ev('pointerup', vers, 0); },
       /* On ouvre le compas en visant LA MINE, pas la souris : la pastille de
-         saisie est décalée du crayon, et l'écart mémorisé à l'appui est celui
-         que l'application applique ensuite. Viser la souris reviendrait à
-         mesurer le décalage de la pastille, pas l'aimantation. */
+         saisie est décalée du crayon d'un écart constant (dx, dy) dans le
+         repère de l'instrument. Pour amener la mine à un endroit voulu, le
+         curseur doit donc aller à cet endroit PLUS l'écart, tourné de l'angle
+         du compas. Viser la souris reviendrait à mesurer le décalage de la
+         pastille, pas l'aimantation. */
       ouvrir(org, aBord, longueur, derive) {
         const app = window.app, co = this.co;
         co.x = org.x; co.y = org.y; co.radius = 50; co.angle = aBord;
@@ -45,9 +47,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
         const off = app.compassResizeOffset;
         const ux = Math.cos(aBord), uy = Math.sin(aBord);
         const mine = { x: org.x + longueur*ux - derive*uy, y: org.y + longueur*uy + derive*ux };
-        const mr = Math.hypot(mine.x-co.x, mine.y-co.y) + off.dr;
-        const ma = Math.atan2(mine.y-co.y, mine.x-co.x) + off.da;
-        const cible = { x: co.x + mr*Math.cos(ma), y: co.y + mr*Math.sin(ma) };
+        const r = Math.hypot(mine.x-co.x, mine.y-co.y), a = Math.atan2(mine.y-co.y, mine.x-co.x);
+        const cible = { x: co.x + (r+off.dx)*Math.cos(a) - off.dy*Math.sin(a),
+                        y: co.y + (r+off.dx)*Math.sin(a) + off.dy*Math.cos(a) };
         for (let i=1;i<=12;i++) this.ev('pointermove', { x: gp.x+(cible.x-gp.x)*i/12, y: gp.y+(cible.y-gp.y)*i/12 }, 1);
         this.ev('pointerup', cible, 0);
         const tip = { x: co.x + co.radius*Math.cos(co.angle), y: co.y + co.radius*Math.sin(co.angle) };

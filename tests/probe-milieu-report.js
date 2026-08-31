@@ -33,8 +33,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
         this.ev('pointerup', vers, 0); },
       segment(a, c) { const app = window.app; app.setTool('segment'); this.glisser(a, c); app.setTool('select'); },
       dernierPoint() { const p = window.app.entities.filter(e => e.constructor.name === 'Point'); return p[p.length-1]; },
-      /* On ouvre le compas en visant LA MINE : la pastille de saisie est
-         décalée du crayon, et l'application applique l'écart mémorisé à l'appui. */
+      /* On ouvre le compas en visant LA MINE : la pastille de saisie est décalée
+         du crayon d'un écart constant dans le repère de l'instrument, qu'il
+         faut donc ajouter à l'endroit où l'on veut amener la mine. */
       ouvrir(vise) {
         const app = window.app, co = this.co;
         co.x = 700; co.y = 600; co.radius = 50; co.angle = 0;
@@ -42,8 +43,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
         const gp = co.toGlobal(po.x, po.y);
         this.ev('pointerdown', gp, 1);
         const off = app.compassResizeOffset;
-        const mr = vise + off.dr, ma = off.da;
-        const cible = { x: co.x + mr*Math.cos(ma), y: co.y + mr*Math.sin(ma) };
+        const cible = { x: co.x + vise + off.dx, y: co.y + off.dy };
         for (let i=1;i<=12;i++) this.ev('pointermove', { x: gp.x+(cible.x-gp.x)*i/12, y: gp.y+(cible.y-gp.y)*i/12 }, 1);
         this.ev('pointerup', cible, 0);
         return +co.radius.toFixed(2);
