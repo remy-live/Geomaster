@@ -15,8 +15,10 @@ construit avec de vrais instruments, et on partage la figure par un lien.
 
 Règle, équerre, compas et rapporteur se prennent en main comme sur le tableau :
 on écarte le compas, on le plante, on le fait tourner ; l'équerre se colle à la
-règle quand on l'en approche en tournant. L'aimantation trouve toute seule les
-points et les intersections.
+règle quand on l'en approche en tournant, et glisse le long d'une droite déjà
+tracée. Pointe posée sur le zéro de la règle, le compas **reste le long des
+graduations** pendant qu'on l'écarte. L'aimantation trouve toute seule les
+points et les intersections — et se coupe d'un bouton quand elle gêne.
 
 ### La construction se rejoue
 
@@ -120,7 +122,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 50 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 52 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

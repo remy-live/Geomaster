@@ -6174,10 +6174,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     comprise — ou la <b>molette</b>.</li>
                                 <li><strong>↔️ Écarter :</strong> Tirer la <b>pastille ronde à flèches</b>, à droite
                                     de la molette. L'écartement s'affiche en centimètres.</li>
+                                <li><strong>📏 Prendre une longueur :</strong> Pointe sur le <b>zéro</b> de la règle
+                                    ou de l'équerre, la mine <b>reste le long des graduations</b> pendant qu'on
+                                    écarte — on lit l'écartement au millimètre.</li>
+                                <li><strong>L'encre ne s'efface pas :</strong> revenir sur ses pas repasse sur
+                                    l'arc, sans le gommer ni le doubler.</li>
                                 <li><strong>🔄 Tourner (sans tracer) :</strong> Glisser le <b>bras</b>, entre la tête
                                     et le coude.</li>
                                 <li><strong>✋ Déplacer :</strong> Glisser la <b>branche de la pointe sèche</b>. Elle
-                                    se pose d'elle-même sur un point, ou sur le <b>zéro de la règle</b>.</li>
+                                    se pose d'elle-même sur un point, sur le <b>zéro de la règle</b> ou sur
+                                    l'<b>angle droit de l'équerre</b>.</li>
                             </ul>
                         </div>
                     </div>
@@ -21505,7 +21511,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 targetWidget.isTracing = true; targetWidget.startAngle = targetWidget.angle;
                                 targetWidget.lastMouseAngle = Math.atan2(mousePos.y - targetWidget.y, mousePos.x - targetWidget.x);
                                 this.widgetStartState.angle = targetWidget.angle;
-                                targetWidget.totalRotation = 0; targetWidget.drawDir = 0; this.currentTracingArc = null;
+                                targetWidget.totalRotation = 0; this.currentTracingArc = null;
+                                // bornes de l'encre posée depuis que la mine touche la feuille
+                                targetWidget.rotMin = 0; targetWidget.rotMax = 0;
                             }
                             if (targetWidget instanceof CompassWidget && zone === 'resize') {
                                 /* On ne saisit plus la mine mais une pastille décalée :
@@ -22226,11 +22234,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                    c'est le geste de base pour reporter une longueur lue
                                    sur les graduations. Prioritaire sur l'aimantation aux
                                    objets, sinon un point voisin la volerait. */
-                                if (w instanceof CompassWidget && this.activeWidgets.ruler && this.rulerWidget) {
-                                    const org = this.rulerWidget.toGlobal(0, 0);
-                                    if (MathUtils.dist(targetX, targetY, org.x, org.y) < 15) {
-                                        w.x = org.x; w.y = org.y; toolToToolSnap = true;
-                                        this.visualFeedbackPoint = { x: org.x, y: org.y };
+                                if (w instanceof CompassWidget) {
+                                    const zeros = [];
+                                    if (this.activeWidgets.ruler && this.rulerWidget) zeros.push(this.rulerWidget.toGlobal(0, 0));
+                                    // l'équerre est graduée elle aussi, depuis son angle droit
+                                    if (this.activeWidgets.setsquare && this.setSquareWidget) zeros.push(this.setSquareWidget.toGlobal(0, 0));
+                                    for (const org of zeros) {
+                                        if (MathUtils.dist(targetX, targetY, org.x, org.y) < 15) {
+                                            w.x = org.x; w.y = org.y; toolToToolSnap = true;
+                                            this.visualFeedbackPoint = { x: org.x, y: org.y };
+                                            break;
+                                        }
                                     }
                                 }
                                 if (!snapPoint && !toolToToolSnap && (w instanceof SetSquareWidget || w instanceof RulerWidget || w instanceof CompassWidget)) {
@@ -22484,42 +22498,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         w.totalRotation += diff;
                         w.angle = w.startAngle + w.totalRotation;
                         w.lastMouseAngle = mouseAngle;
-                        if (Math.abs(diff) > 0.02) {
-                            const currentDir = Math.sign(diff);
-                            if (!w.drawDir) w.drawDir = currentDir;
-                            const hasMovedEnough = Math.abs(w.totalRotation) > 0.05;
-                            if (w.drawDir !== currentDir && hasMovedEnough) {
-                                if (this.currentTracingArc) {
-                                    const rawEndAngle = w.startAngle + w.totalRotation - diff;
-                                    const isCCW = (w.totalRotation - diff < 0);
-                                    this.currentTracingArc.endAngle = rawEndAngle; this.currentTracingArc.counterClockwise = isCCW;
-                                    const animStateStart = { ...this.widgetStartState, angle: w.startAngle };
-                                    const animStateEnd = { ...this.getWidgetState(w), angle: w.angle - diff };
-                                    const anim = new ToolAnimation('trace', animStateStart, animStateEnd);
-                                    anim.widgetType = 'compass'; anim.counterClockwise = isCCW;
-                                    anim.endState.angle = rawEndAngle; anim.createdEntityId = this.currentTracingArc.id;
-                                    const arcIndex = this.entities.indexOf(this.currentTracingArc);
-                                    if (arcIndex !== -1) this.entities.splice(arcIndex, 0, anim); else this.addEntity(anim);
-                                    this.saveState();
-                                }
-                                w.startAngle = w.angle; w.totalRotation = 0; w.drawDir = currentDir;
-                                this.widgetStartState = this.getWidgetState(w); this.widgetStartState.angle = w.angle;
-                                this.currentTracingArc = null;
-                            }
-                        }
-                        if (Math.abs(w.totalRotation) > 0.001) {
+                        /* L'ENCRE NE S'EFFACE PAS. L'arc couvre tous les angles que la
+                           mine a visités depuis qu'elle touche la feuille — on retient
+                           donc les deux bornes de la rotation, jamais la seule position
+                           courante. Revenir sur ses pas repasse sur le trait ; il ne le
+                           gomme pas, et ne le double pas non plus.
+
+                           Le code d'avant suivait la position courante et détectait les
+                           changements de sens image par image, au-delà d'un degré de
+                           mouvement. D'où deux défauts mesurés : un retour LENT — moins
+                           d'un degré par image, c'est-à-dire un retour soigneux — passait
+                           sous le seuil, n'était pas vu comme un demi-tour, et l'arc se
+                           rétractait de 60° à 30° ; un retour RAPIDE, lui, était vu, mais
+                           refermait le premier arc et en ouvrait un second par-dessus le
+                           premier, deux objets superposés au même endroit. */
+                        if (w.rotMin === undefined) { w.rotMin = 0; w.rotMax = 0; }
+                        if (w.totalRotation < w.rotMin) w.rotMin = w.totalRotation;
+                        if (w.totalRotation > w.rotMax) w.rotMax = w.totalRotation;
+                        if (Math.abs(w.rotMax - w.rotMin) > 0.001) {
                             const center = { x: w.x, y: w.y };
                             const centerPoint = this.entities.filter(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, center.x, center.y) < 5).pop();
-                            const isCCW = (w.totalRotation < 0);
+                            // au-delà du tour complet, le trait se referme sur lui-même
+                            const debut = w.startAngle + w.rotMin;
+                            const fin = Math.min(w.startAngle + w.rotMax, debut + Math.PI * 2);
                             if (!this.currentTracingArc) {
-                                const endAngle = w.startAngle + w.totalRotation;
-                                this.currentTracingArc = new CompassArc(centerPoint || center, w.radius, w.startAngle, endAngle, isCCW);
+                                this.currentTracingArc = new CompassArc(centerPoint || center, w.radius, debut, fin, false);
                                 this.currentTracingArc.dash = [...app.globalStyle.dash];
                                 this.currentTracingArc.color = app.globalStyle.color; this.currentTracingArc.lineWidth = this.globalStyle.width;
                                 this.addEntity(this.currentTracingArc);
                             } else {
-                                this.currentTracingArc.endAngle = w.startAngle + w.totalRotation;
-                                this.currentTracingArc.counterClockwise = isCCW;
+                                this.currentTracingArc.startAngle = debut;
+                                this.currentTracingArc.endAngle = fin;
+                                this.currentTracingArc.counterClockwise = false;
                             }
                         }
                     }
@@ -22579,8 +22589,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             mx = w.x + vr * Math.cos(va); my = w.y + vr * Math.sin(va);
                         }
                         let newRadius = MathUtils.dist(mx, my, w.x, w.y);
-                        const snap = this.entities.filter(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point).find(p => MathUtils.dist(mx, my, p.x, p.y) < 15);
-                        if (!snap) {
+                        let angleImpose = null;
+                        const snap = this.isObjectMagnetActive && this.entities.filter(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point).find(p => MathUtils.dist(mx, my, p.x, p.y) < 15);
+                        /* LE COMPAS SUIT LES GRADUATIONS. Pointe posée sur le bord
+                           gradué d'un instrument, la mine y reste en s'écartant : c'est
+                           ainsi qu'on prend une longueur au millimètre près, en lisant
+                           l'écartement sur la règle ou sur l'équerre. Sans cela il
+                           fallait tenir la main parfaitement droite pendant qu'on ouvre,
+                           et l'écartement lu ne valait rien.
+
+                           Deux conditions, pour que l'aimant ne se déclenche pas tout
+                           seul : la POINTE doit être sur le bord (6 px), et la mine ne
+                           doit pas s'en écarter de plus de 12 px. Au-delà, on ouvre le
+                           compas librement, comme avant. */
+                        if (!snap && this.isObjectMagnetActive) {
+                            const bords = [];
+                            if (this.activeWidgets.ruler && this.rulerWidget) {
+                                const r0 = this.rulerWidget.toGlobal(0, 0);
+                                bords.push({ x: r0.x, y: r0.y, a: this.rulerWidget.angle });
+                            }
+                            if (this.activeWidgets.setsquare && this.setSquareWidget) {
+                                const s0 = this.setSquareWidget.toGlobal(0, 0);
+                                bords.push({ x: s0.x, y: s0.y, a: this.setSquareWidget.angle });
+                                bords.push({ x: s0.x, y: s0.y, a: this.setSquareWidget.angle + Math.PI / 2 });
+                            }
+                            let meilleur = 12;
+                            for (const bd of bords) {
+                                const ux = Math.cos(bd.a), uy = Math.sin(bd.a);
+                                // la pointe du compas est-elle posée sur ce bord ?
+                                const dPointe = Math.abs((w.x - bd.x) * uy - (w.y - bd.y) * ux);
+                                if (dPointe > 6) continue;
+                                // projection de la mine sur le bord
+                                const t = (mx - bd.x) * ux + (my - bd.y) * uy;
+                                const px = bd.x + t * ux, py = bd.y + t * uy;
+                                const dMine = MathUtils.dist(mx, my, px, py);
+                                if (dMine < meilleur) {
+                                    meilleur = dMine;
+                                    newRadius = MathUtils.dist(w.x, w.y, px, py);
+                                    angleImpose = Math.atan2(py - w.y, px - w.x);
+                                    this.visualFeedbackPoint = { x: px, y: py };
+                                }
+                            }
+                        }
+                        if (!snap && angleImpose === null) {
                             let bestCurveDist = 10;
                             this.entities.forEach(ent => {
                                 if ((ent.visible !== false || this.showHidden) && (ent instanceof Circle || ent instanceof Arc || ent instanceof CompassArc)) {
@@ -22590,7 +22641,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                             });
                         }
-                        if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); } else { w.angle = Math.atan2(my - w.y, mx - w.x); }
+                        if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); }
+                        else if (angleImpose !== null) w.angle = angleImpose;
+                        else { w.angle = Math.atan2(my - w.y, mx - w.x); }
                         w.radius = newRadius;
                     }
                     else if (mode === 'resize' && w instanceof RulerWidget) {
@@ -22774,9 +22827,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (moved) anim = new ToolAnimation(this.draggedWidgetType, s, e2);
                     }
                     if (w instanceof CompassWidget && this.draggedWidgetMode === 'trace') {
-                        const rawEndAngle = w.startAngle + w.totalRotation;
-                        const isCCW = (w.totalRotation < 0);
+                        /* Le rejeu redessine l'encre telle qu'elle est : un seul balayage
+                           d'une borne à l'autre, dans le sens croissant. */
+                        const rotMin = w.rotMin || 0, rotMax = w.rotMax || 0;
+                        const rawStartAngle = w.startAngle + rotMin;
+                        const rawEndAngle = Math.min(w.startAngle + rotMax, rawStartAngle + Math.PI * 2);
+                        const isCCW = false;
                         if (anim) {
+                            anim.startState.angle = rawStartAngle;
                             anim.endState.angle = rawEndAngle; anim.counterClockwise = isCCW;
                             if (this.currentTracingArc) {
                                 anim.createdEntityId = this.currentTracingArc.id;
@@ -22786,10 +22844,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             } else this.addEntity(anim);
                         }
                         if (this.currentTracingArc) {
+                            this.currentTracingArc.startAngle = rawStartAngle;
                             this.currentTracingArc.endAngle = rawEndAngle; this.currentTracingArc.counterClockwise = isCCW; this.saveState();
                         }
                         this.currentTracingArc = null; w.isTracing = false; w.totalRotation = 0; w.lastMouseAngle = null;
-                        if (w.drawDir !== undefined) w.drawDir = 0;
+                        w.rotMin = 0; w.rotMax = 0;
                     } else {
                         if (anim) { this.addEntity(anim); this.saveState(); }
                     }
