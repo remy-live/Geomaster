@@ -5923,7 +5923,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 </svg>
                             </div>
                             <div class="help-item-desc"><strong>Aimantation (Magnétisme)</strong><br>Bascule
-                                l'assistance au tracé sur les intersections de la grille ou directement sur les objets.
+                                l'assistance au tracé sur les intersections de la grille ou directement sur les objets :
+                                points posés, intersections calculées (pastille grise) et <b>milieux de segments</b>
+                                (pastille violette). Un point posé sur un milieu <b>reste</b> le milieu quand le
+                                segment bouge.
                             </div>
                         </div>
                     </div>
@@ -6177,6 +6180,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <li><strong>📏 Prendre une longueur :</strong> Pointe sur le <b>zéro</b> de la règle
                                     ou de l'équerre, la mine <b>reste le long des graduations</b> pendant qu'on
                                     écarte — on lit l'écartement au millimètre.</li>
+                                <li><strong>↗️ Reporter une longueur :</strong> En écartant, l'ouverture se cale sur
+                                    la <b>longueur d'un segment déjà tracé</b>, où qu'il soit sur la feuille. Le
+                                    segment dont on prend la mesure s'éclaire en pointillé rouge.</li>
                                 <li><strong>L'encre ne s'efface pas :</strong> revenir sur ses pas repasse sur
                                     l'arc, sans le gommer ni le doubler.</li>
                                 <li><strong>🔄 Tourner (sans tracer) :</strong> Glisser le <b>bras</b>, entre la tête
@@ -6195,6 +6201,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <ul>
                                 <li><strong>✋ Déplacer :</strong> Glisser sur la <b>surface</b> du rapporteur.</li>
                                 <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
+                                <li><strong>🧲 Sur un angle :</strong> Centre posé sur le <b>sommet</b>, on tourne et
+                                    le <b>zéro se cale sur un côté</b> ; l'autre côté se lit alors directement sur
+                                    les graduations.</li>
                                 <li><strong>🔒 Cadenas :</strong> Bloquer le rapporteur pour tracer un angle depuis le
                                     centre.</li>
                                 <li><strong>x2 / Swap :</strong> Afficher la double graduation / Inverser le sens.</li>
@@ -18926,6 +18935,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return bestCandidate;
             }
+            /* LE MILIEU D'UN SEGMENT s'aimante comme un point. Les points posés et
+               les intersections calculées s'accrochaient depuis toujours ; le
+               milieu, non — alors qu'on le vise sans arrêt : médiane, médiatrice,
+               symétrique, partage d'un segment.
+
+               Il est rendu avec ses deux extrémités POUR PARENTS. Le point créé
+               dessus est donc un vrai milieu, celui de l'outil Milieu : il suit le
+               segment quand on le déplace ou qu'on l'allonge, au lieu de rester
+               planté là où il a été posé. */
+            trouverMilieuSousSouris(x, y, hitTolerance = 12) {
+                let best = null, minDistance = hitTolerance;
+                this.entities.forEach(ent => {
+                    if (!(ent instanceof Segment) || !ent.p1 || !ent.p2) return;
+                    if (ent.visible === false || (ent.hidden === true && !this.showHidden)) return;
+                    const mx = (ent.p1.x + ent.p2.x) / 2, my = (ent.p1.y + ent.p2.y) / 2;
+                    const d = Math.hypot(mx - x, my - y);
+                    if (d < minDistance) { minDistance = d; best = { x: mx, y: my, parents: [ent.p1, ent.p2], milieu: true }; }
+                });
+                return best;
+            }
             updateDependents() {
                 this.entities.forEach(entity => {
                     if (entity instanceof Point && entity.parents.length > 0) entity.update();
@@ -20821,7 +20850,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.ghostIntersection) {
                     this.ctx.beginPath();
                     this.ctx.arc(this.ghostIntersection.x, this.ghostIntersection.y, 6, 0, Math.PI * 2);
-                    this.ctx.fillStyle = "rgba(100, 100, 100, 0.5)";
+                    // le milieu se distingue de l'intersection : on ne vise pas la
+                    // même chose, on ne doit pas voir la même pastille
+                    this.ctx.fillStyle = this.ghostIntersection.milieu
+                        ? "rgba(142, 68, 173, 0.6)" : "rgba(100, 100, 100, 0.5)";
                     this.ctx.fill();
                     this.ctx.strokeStyle = "#fff";
                     this.ctx.lineWidth = 2;
@@ -20877,15 +20909,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const gx = this.ghostCursor.x;
                     const gy = this.ghostCursor.y;
                     const onPoint = !!this.ghostSnapPoint;
-                    const onInter = !onPoint && !!this.ghostIntersection;
+                    const onMilieu = !onPoint && !!(this.ghostIntersection && this.ghostIntersection.milieu);
+                    const onInter = !onPoint && !onMilieu && !!this.ghostIntersection;
                     // vert = accroché sur un point existant, rouge = intersection
-                    // calculée, bleu = position libre
-                    const tint = onPoint ? "#27ae60" : (onInter ? "#e74c3c" : "#2980b9");
+                    // calculée, violet = milieu d'un segment, bleu = position libre
+                    const tint = onPoint ? "#27ae60" : (onInter ? "#e74c3c" : (onMilieu ? "#8e44ad" : "#2980b9"));
 
                     this.ctx.beginPath();
                     this.ctx.arc(gx, gy, 12, 0, Math.PI * 2);
                     this.ctx.fillStyle = onPoint ? "rgba(39, 174, 96, 0.28)"
-                        : (onInter ? "rgba(231, 76, 60, 0.28)" : "rgba(41, 128, 185, 0.3)");
+                        : (onInter ? "rgba(231, 76, 60, 0.28)"
+                            : (onMilieu ? "rgba(142, 68, 173, 0.28)" : "rgba(41, 128, 185, 0.3)"));
                     this.ctx.fill();
 
                     this.ctx.beginPath();
@@ -21627,7 +21661,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     if (toolSnap) { finalX = toolSnap.x; finalY = toolSnap.y; }
                 }
-                const ghost = this.findIntersectionAtMouse(finalX, finalY);
+                /* L'aimant coupé coupe aussi les points CALCULÉS. Le déplacement
+                   respectait déjà le bouton, l'appui non : intersections et milieux
+                   s'accrochaient quand même, et le bouton ne tenait pas sa promesse. */
+                const ghost = this.isObjectMagnetActive
+                    && (this.findIntersectionAtMouse(finalX, finalY)
+                        || this.trouverMilieuSousSouris(finalX, finalY));
                 if (ghost && !closestPoint) {
                     finalX = ghost.x;
                     finalY = ghost.y;
@@ -22167,7 +22206,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         } else {
                             const isTracing = (this.draggedWidget instanceof CompassWidget && this.draggedWidgetMode === 'trace');
                             if (!this.draggedPoint && !isTracing) {
-                                const ghost = this.findIntersectionAtMouse(snappedPos.x, snappedPos.y);
+                                const ghost = this.findIntersectionAtMouse(snappedPos.x, snappedPos.y)
+                                    || this.trouverMilieuSousSouris(snappedPos.x, snappedPos.y);
                                 if (ghost) { snappedPos = { x: ghost.x, y: ghost.y, snapped: true }; this.ghostIntersection = ghost; }
                                 else { this.ghostIntersection = null; }
                             }
@@ -22217,7 +22257,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                                 if (!toolToToolSnap) {
                                     snapPoint = this.entities.find(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
-                                    if (!snapPoint) { const ghost = this.findIntersectionAtMouse(targetX, targetY); if (ghost) snapPoint = { x: ghost.x, y: ghost.y }; }
+                                    if (!snapPoint) { const ghost = this.findIntersectionAtMouse(targetX, targetY) || this.trouverMilieuSousSouris(targetX, targetY); if (ghost) snapPoint = { x: ghost.x, y: ghost.y }; }
                                 }
                                 if (!snapPoint && (w instanceof SetSquareWidget || w instanceof RulerWidget)) {
                                     let bestSideDist = 15;
@@ -22390,6 +22430,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     }
                                     if (best !== null) snappedAngle = best;
                                 }
+                            }
+                            /* LE RAPPORTEUR SE POSE SUR UN ANGLE. Centre sur le sommet,
+                               on tourne, et le zéro se cale sur un côté — après quoi
+                               l'autre côté se lit directement sur les graduations.
+
+                               L'alignement de direction qui suit ne regarde QUE l'angle :
+                               n'importe quel segment de la feuille, fût-il à l'autre bout,
+                               peut accrocher. D'où sa tolérance rabotée à 2°, trop fine
+                               pour être trouvée à la main. On exige ici que le côté PASSE
+                               PAR LE CENTRE du rapporteur, à 6 px : le seul accrochage
+                               possible est alors un côté de l'angle qu'on mesure, et cinq
+                               degrés de tolérance ne gênent plus personne. */
+                            if (snappedAngle === null && w instanceof ProtractorWidget) {
+                                const tol = 5 * (Math.PI / 180);
+                                let best = null, bestEcart = tol;
+                                for (let ent of this.entities) {
+                                    if (ent.visible === false && !this.showHidden) continue;
+                                    if (!(ent instanceof Segment || ent instanceof Line || ent instanceof Ray
+                                        || ent instanceof ParallelLine || ent instanceof PerpendicularLine)) continue;
+                                    const proj = MathUtils.getProjectedPoint(w.x, w.y, ent);
+                                    if (!proj || MathUtils.dist(w.x, w.y, proj.x, proj.y) > 6) continue;
+                                    let dir = 0;
+                                    if (ent.p1 && ent.p2) dir = Math.atan2(ent.p2.y - ent.p1.y, ent.p2.x - ent.p1.x);
+                                    else if (ent.angle !== undefined) dir = ent.angle;
+                                    for (const cible of [dir, dir + Math.PI]) {
+                                        const ecart = Math.abs(Math.atan2(Math.sin(newAngle - cible), Math.cos(newAngle - cible)));
+                                        if (ecart < bestEcart) { bestEcart = ecart; best = cible; }
+                                    }
+                                }
+                                if (best !== null) snappedAngle = best;
                             }
                             if (snappedAngle === null && (w instanceof SetSquareWidget || w instanceof ProtractorWidget || w instanceof RulerWidget)) {
                                 const limitRad = 2 * (Math.PI / 180); const normPi = (a) => { let r = a % Math.PI; if (r < 0) r += Math.PI; return r; };
@@ -22631,15 +22701,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                             }
                         }
+                        let surCourbe = false;
                         if (!snap && angleImpose === null) {
                             let bestCurveDist = 10;
                             this.entities.forEach(ent => {
                                 if ((ent.visible !== false || this.showHidden) && (ent instanceof Circle || ent instanceof Arc || ent instanceof CompassArc)) {
                                     const cx = ent.center ? ent.center.x : (ent.p1 ? ent.p1.x : ent.x); const cy = ent.center ? ent.center.y : (ent.p1 ? ent.p1.y : ent.y); const radius = ent.radius !== undefined ? ent.radius : (ent.getRadius ? ent.getRadius() : 0);
                                     const dCenter = MathUtils.dist(mx, my, cx, cy); const distToCurve = Math.abs(dCenter - radius);
-                                    if (distToCurve < bestCurveDist && dCenter > 0.1) { bestCurveDist = distToCurve; const ratio = radius / dCenter; const projX = cx + (mx - cx) * ratio; const projY = cy + (my - cy) * ratio; newRadius = MathUtils.dist(w.x, w.y, projX, projY); w.angle = Math.atan2(projY - w.y, projX - w.x); }
+                                    if (distToCurve < bestCurveDist && dCenter > 0.1) { bestCurveDist = distToCurve; surCourbe = true; const ratio = radius / dCenter; const projX = cx + (mx - cx) * ratio; const projY = cy + (my - cy) * ratio; newRadius = MathUtils.dist(w.x, w.y, projX, projY); w.angle = Math.atan2(projY - w.y, projX - w.x); }
                                 }
                             });
+                        }
+                        /* REPORT DE LONGUEUR — le geste même du compas. On prend
+                           l'écartement d'un segment déjà tracé pour le poser ailleurs.
+                           Le compas s'accrochait aux points et aux cercles, jamais aux
+                           LONGUEURS : reporter [AB] supposait de viser B, donc d'avoir
+                           déjà la pointe en A. L'écartement se cale maintenant sur la
+                           longueur de n'importe quel segment de la feuille, où qu'il
+                           soit, et le segment retenu s'éclaire en pointillé rouge —
+                           sans quoi on ne saurait pas QUELLE longueur on vient de
+                           prendre. Cinq pixels de tolérance : à peine plus que
+                           l'épaisseur d'un trait, pour ne pas gêner l'ouverture libre. */
+                        if (!snap && angleImpose === null && !surCourbe && this.isObjectMagnetActive) {
+                            const vise = newRadius;
+                            let meilleurEcart = 5, segPris = null;
+                            this.entities.forEach(ent => {
+                                if (!(ent instanceof Segment) || !ent.p1 || !ent.p2) return;
+                                if (ent.visible === false || (ent.hidden === true && !this.showHidden)) return;
+                                const l = MathUtils.dist(ent.p1.x, ent.p1.y, ent.p2.x, ent.p2.y);
+                                if (l < 10) return;
+                                const d = Math.abs(l - vise);
+                                if (d < meilleurEcart) { meilleurEcart = d; newRadius = l; segPris = ent; }
+                            });
+                            if (segPris) this.tempGuideLine = {
+                                p1: { x: segPris.p1.x, y: segPris.p1.y }, p2: { x: segPris.p2.x, y: segPris.p2.y } };
                         }
                         if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); }
                         else if (angleImpose !== null) w.angle = angleImpose;
