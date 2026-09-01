@@ -2323,6 +2323,17 @@
             width: 300px
         }
 
+        /* Le tiroir de droite écarte la palette de style. Les deux sont ancrés à
+           droite : ouverts ensemble, la palette (212 px à 20 px du bord) recouvrait
+           la liste des objets, dont il ne restait accessible qu'une bande de 66 px
+           à gauche — et rien du tout sous 1100 px de large. Une palette que
+           l'utilisateur a déplacée lui-même garde sa place : il a choisi. */
+        @media (min-width: 760px) {
+            body.tiroir-droit-ouvert .style-palette:not(.palette-deplacee) {
+                right: 320px;
+            }
+        }
+
         .panel-toggle.open {
             right: 300px
         }
@@ -2343,8 +2354,10 @@
             flex-shrink: 0
         }
 
+        /* La ligne survolée s'accompagne d'un halo sur la figure : le fond seul,
+           à peine plus clair que le blanc, ne disait pas de quel objet on parle. */
         .obj-item:hover {
-            background: #f9f9f9
+            background: #fff4e0
         }
 
         .border-point {
@@ -7737,7 +7750,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </button>
     <div id="rightPanel" class="right-panel">
         <div class="rp-header">
-            <span>Objets & Propriétés</span>
+            <span data-tooltip="Survolez une ligne : l'objet s'allume sur la feuille">Objets &amp; Propriétés</span>
         </div>
         <div id="objectList" class="rp-content">
         </div>
@@ -14629,6 +14642,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     panel.style.left = (e.clientX - offsetX) + 'px';
                     panel.style.top = (e.clientY - offsetY) + 'px';
                     panel.style.right = 'auto';
+                    // posée à la main : le tiroir de droite ne la déplacera plus
+                    panel.classList.add('palette-deplacee');
                 });
                 header.addEventListener('pointerup', () => isDragging = false);
                 header.addEventListener('pointercancel', () => isDragging = false);
@@ -15025,8 +15040,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             updateObjectList() {
                 const list = document.getElementById('objectList');
                 const panel = document.getElementById('rightPanel');
-                if (!panel || !panel.classList.contains('open')) return;
-                list.innerHTML = '';
+                if (!panel || !panel.classList.contains('open')) { this.signatureListe = null; return; }
+                /* Les lignes sont fabriquées à part, et ne remplacent les anciennes
+                   que si quelque chose a changé. render() appelle cette méthode à
+                   CHAQUE image : la liste était donc entièrement reconstruite
+                   soixante fois par seconde, et la ligne qu'on survolait disparaissait
+                   sous le curseur au moment même où l'on s'en servait. */
+                const frag = document.createDocumentFragment();
+                const parts = [];
+                // le survol quitte la LISTE, pas la ligne : le conteneur, lui, survit
+                // aux reconstructions, et son pointerleave part donc toujours
+                list.onpointerleave = () => {
+                    if (this.objetSurvoleListe) { this.objetSurvoleListe = null; this.render(); }
+                };
                 const n = (p) => (p && p.label) ? p.label : "";
                 const nomLigne = (obj) => {
                     if (!obj) return "?";
@@ -15060,6 +15086,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else { htmlContent = "Objet"; }
                     const row = document.createElement('div');
                     row.className = `obj-item ${borderClass}`;
+                    parts.push(`${ent.id}|${borderClass}|${htmlContent}|${ent.visible === false ? 0 : 1}|${this.selectedObject === ent ? 1 : 0}`);
                     if (ent.visible === false) {
                         row.style.opacity = '0.5';
                         row.style.backgroundColor = '#f8f8f8';
@@ -15109,6 +15136,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     btnGroup.appendChild(btnEye);
                     btnGroup.appendChild(btnDelete);
                     row.appendChild(btnGroup);
+                    // survol de la ligne → halo sur la figure, et rien d'autre :
+                    // on cherche l'objet, on ne le modifie pas
+                    row.onpointerenter = () => {
+                        if (this.objetSurvoleListe === ent) return;
+                        this.objetSurvoleListe = ent; this.render();
+                    };
                     row.onpointerdown = (e) => {
                         if (e.target.closest('button')) return;
                         this.selectedObject = ent;
@@ -15118,8 +15151,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.render();
                         this.updateObjectList();
                     };
-                    list.appendChild(row);
+                    frag.appendChild(row);
                 });
+                const signature = parts.join('¤');
+                if (signature === this.signatureListe && list.childElementCount) return;
+                this.signatureListe = signature;
+                list.innerHTML = '';
+                list.appendChild(frag);
             }
             toggleRightPanel() {
                 const panel = document.getElementById('rightPanel');
@@ -15127,6 +15165,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const isOpen = panel.classList.toggle('open');
                 btn.classList.toggle('open');
                 btn.innerHTML = isOpen ? '▶' : '◀';
+                // le tiroir ouvert pousse la palette de style, qui sinon le recouvre
+                document.body.classList.toggle('tiroir-droit-ouvert', isOpen);
                 this.updateObjectList();
             }
             trackMouseForVideo(e) {
@@ -17305,6 +17345,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.mousePos = { x: 0, y: 0 };
                 this.hoveredEntities = [];
                 this.ghostIntersection = null;
+                // objet survolé dans la liste du tiroir de droite (halo seulement)
+                this.objetSurvoleListe = null;
+                // empreinte de la liste affichée, pour ne la refaire qu'utilement
+                this.signatureListe = null;
                 this.toDeletePreview = [];
                 this.polygonPoints = [];
                 this.alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -20698,6 +20742,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         isToDelete
                     });
                     this.ctx.restore();
+                }
+
+                /* Objet survolé dans le tiroir « Objets & Propriétés » : on le
+                   rallume sur la feuille. La liste savait nommer les objets, elle ne
+                   savait pas les MONTRER — sur une figure un peu fournie, retrouver
+                   « Segment [AB] » parmi trente traits obligeait à le sélectionner,
+                   donc à le modifier pour le voir. Un halo suffit, et il ne touche à
+                   rien. Trois passes : l'ombre du canevas seule reste trop pâle sur
+                   un trait fin ou sur un point. */
+                if (this.objetSurvoleListe && this.entities.includes(this.objetSurvoleListe)) {
+                    const ent = this.objetSurvoleListe;
+                    const visibleIci = (ent.hidden !== true) || this.showHidden || this.isPlaying;
+                    if (ent.visible !== false && visibleIci) {
+                        this.ctx.save();
+                        this.ctx.shadowColor = 'rgba(255, 145, 0, 0.9)';
+                        this.ctx.shadowBlur = 16;
+                        for (let i = 0; i < 3; i++) ent.draw(this.ctx, { isHovered: true });
+                        this.ctx.restore();
+                    }
                 }
 
                 if (this.isToolAnimating) {
