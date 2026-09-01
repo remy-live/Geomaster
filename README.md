@@ -105,6 +105,18 @@ Conséquence pratique : le fichier fonctionne **hors connexion**, se copie sur u
 clé USB, s'héberge n'importe où, et ne peut pas cesser de marcher parce qu'un
 service tiers a fermé.
 
+### Hors connexion
+
+**[`index_offline.html`](index_offline.html)** est le fichier à emporter : la
+copie exacte d'`index.html`, sous un nom qui dit à quoi elle sert. On l'enregistre
+sur une clé, on double-clique, et tout marche — dessin, reconnaissance, import
+de PDF, exports PDF et SVG, QR code. Rien n'est demandé au réseau : une sonde
+coupe *toute* requête sortante et refait la chaîne complète à chaque poussée.
+
+Seule différence, dite par le logiciel lui-même : ouvert depuis un fichier, le
+lien de partage désigne un emplacement de **cet ordinateur**. Il rouvre la figure
+là où elle a été faite, mais ne s'envoie à personne.
+
 ### Ce qui est embarqué
 
 Rien n'est téléchargé à l'exécution, mais ces bibliothèques sont bien dans le
@@ -125,7 +137,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 55 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 56 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
