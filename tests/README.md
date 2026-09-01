@@ -15,6 +15,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-milieu-report.js` | le milieu d'un segment s'aimante, et le compas reporte une longueur |
 | `probe-survol-liste.js` | survoler une ligne du tiroir allume l'objet sur la feuille |
 | `probe-hors-connexion.js` | tout marche réseau coupé, et `index_offline.html` est à jour |
+| `probe-code-figure.js` | le code d'une figure s'ouvre partout, même venu d'une autre machine |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi

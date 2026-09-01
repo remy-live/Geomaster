@@ -5926,7 +5926,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Menu Fichiers</strong><br>Ouvrir, Sauvegarder, Image de
-                                fond, et Options d'Exportation (Élève, SVG, Vidéo, Écran).</div>
+                                fond, et Options d'Exportation (Élève, SVG, Vidéo, Écran).<br>
+                                <b>Partager :</b> le <b>lien</b> ou son <b>QR code</b> quand GéoMaster est en ligne ;
+                                le <b>code</b> de la figure quand il tourne depuis un fichier — un lien
+                                « file://… » désigne un emplacement de votre ordinateur et ne dit rien à personne
+                                d'autre, alors que le code s'ouvre dans n'importe quel GéoMaster, sans connexion
+                                (<b>Coller un code</b>, qui accepte aussi un lien entier).</div>
                         </div>
                         <div class="help-item-row">
                             <div class="help-item-icon">
@@ -6474,6 +6479,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                             </svg>
                         </div>
+                        <!-- Ouvrir une figure reçue sous forme de code, sans passer
+                             par une adresse : c'est le seul partage qui marche quand
+                             ni l'envoyeur ni le destinataire n'ont de connexion. -->
+                        <div class="icon-btn" onclick="app.ouvrirModaleCode()" aria-label="Ouvrir un code de figure"
+                            data-libelle="Coller un code" data-tooltip="Ouvrir une figure reçue sous forme de code">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" style="fill:none;">
+                                <polyline points="9 8 5 12 9 16" />
+                                <polyline points="15 8 19 12 15 16" />
+                                <line x1="13" y1="5" x2="11" y2="19" />
+                            </svg>
+                        </div>
                         <div class="icon-btn" onclick="app.saveFile()" aria-label="Sauvegarder" data-libelle="Enregistrer"
                             data-tooltip="Sauvegarder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -6544,6 +6561,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <svg viewBox="0 0 122.88 122.88" fill="currentColor" style="width:20px; height:20px;">
                                 <path
                                     d="M60.54,34.07A7.65,7.65,0,0,1,49.72,23.25l13-12.95a35.38,35.38,0,0,1,49.91,0l.07.08a35.37,35.37,0,0,1-.07,49.83l-13,12.95A7.65,7.65,0,0,1,88.81,62.34l13-13a20.08,20.08,0,0,0,0-28.23l-.11-.11a20.08,20.08,0,0,0-28.2.07l-12.95,13Zm14,3.16A7.65,7.65,0,0,1,85.31,48.05L48.05,85.31A7.65,7.65,0,0,1,37.23,74.5L74.5,37.23ZM62.1,89.05A7.65,7.65,0,0,1,72.91,99.87l-12.7,12.71a35.37,35.37,0,0,1-49.76.14l-.28-.27a35.38,35.38,0,0,1,.13-49.78L23,50A7.65,7.65,0,1,1,33.83,60.78L21.12,73.49a20.09,20.09,0,0,0,0,28.25l0,0a20.07,20.07,0,0,0,28.27,0L62.1,89.05Z" />
+                            </svg>
+                        </div>
+                        <!-- Le même partage, sans adresse : la figure seule. C'est le
+                             seul qui marche quand personne n'a de connexion. -->
+                        <div class="icon-btn" onclick="app.copierCodeFigure()" aria-label="Copier le code de la figure"
+                            data-libelle="Code" style="flex-direction:column; gap:2px;"
+                            data-tooltip="Copier le code de la figure (sans adresse)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px;">
+                                <polyline points="9 8 5 12 9 16" />
+                                <polyline points="15 8 19 12 15 16" />
+                                <line x1="13" y1="5" x2="11" y2="19" />
                             </svg>
                         </div>
                         <!-- QR code du même lien : à projeter pour que la classe le
@@ -7858,6 +7887,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <!-- QR code du lien de partage. On réutilise .modal-overlay / .modal-box pour
          hériter de toute l'adaptation déjà faite : hauteur plafonnée, largeur bornée
          au viewport, contenu défilant, cibles tactiles. -->
+    <!-- Ouvrir une figure reçue sous forme de code. On accepte aussi un lien
+         entier : on n'y prend que le fig=, pour que coller ce qu'on a sous la
+         main marche dans tous les cas. -->
+    <div id="codeModal" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box" style="width: 460px; max-width: 95%;">
+            <h3 style="margin-top:0; color:#8e44ad;">Ouvrir un code de figure</h3>
+            <p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">
+                Collez le code reçu — ou le lien entier, on y prendra ce qu'il faut.
+                Aucune connexion n'est nécessaire : la figure est <b>tout entière</b>
+                dans ce code.
+            </p>
+            <textarea id="codeSaisie" rows="5" placeholder="Collez ici…"
+                style="width:100%; box-sizing:border-box; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px; border:1px solid #d7dbe0; border-radius:8px; padding:8px; resize:vertical;"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel"
+                    onclick="document.getElementById('codeModal').style.display='none'">Annuler</button>
+                <button class="modal-btn modal-confirm" id="btnCodeOuvrir"
+                    onclick="app.validerModaleCode()">Ouvrir la figure</button>
+            </div>
+        </div>
+    </div>
     <div id="qrModal" class="modal-overlay" style="display:none;"
         onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-box" style="width: 420px; max-width: 95%;">
@@ -7885,6 +7936,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <button class="modal-btn modal-cancel"
                     onclick="document.getElementById('qrModal').style.display='none'">Fermer</button>
                 <button class="modal-btn modal-confirm" onclick="app.copierLienQR()">Copier le lien</button>
+                <!-- Le code sans adresse : il s'ouvre dans n'importe quel GéoMaster,
+                     y compris hors connexion, où que soit le fichier. -->
+                <button class="modal-btn modal-confirm" style="background:#8e44ad;"
+                    data-tooltip="La figure seule, sans adresse : à coller dans n'importe quel GéoMaster"
+                    onclick="app.copierCodeFigure()">Copier le code</button>
                 <button class="modal-btn modal-confirm" style="background:#27ae60;"
                     onclick="app.telechargerQR()">Enregistrer l'image</button>
             </div>
@@ -23363,6 +23419,63 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const prefixe = (mode === 'lecture') ? "?mode=lecture&fig=" : "?fig=";
                 return window.location.origin + window.location.pathname +
                     prefixe + this.getCompressedString();
+            }
+
+            /* LE CODE DE LA FIGURE, sans adresse devant.
+
+               Une figure voyage entière dans son code : rien n'est déposé sur un
+               serveur, le lien ne fait que transporter. Mais un LIEN contient aussi
+               l'adresse du programme — et c'est là que ça coince quand GéoMaster
+               tourne depuis un fichier : « file:///Users/moi/Bureau/… » ne désigne
+               rien chez le destinataire, qui n'a ni le même chemin ni la même
+               machine. Il fallait donc soit que l'autre ait déjà installé le
+               fichier au même endroit, soit passer par le site.
+
+               Le code seul n'a pas ce défaut : on l'envoie par n'importe quel canal
+               — courriel, ENT, messagerie — et l'autre le colle dans SON GéoMaster,
+               où qu'il soit : le site, sa copie sur clé, celle de la salle. Aucun
+               réseau n'est nécessaire des deux côtés. */
+            extraireCode(texte) {
+                let t = String(texte || '').trim();
+                if (!t) return '';
+                // on accepte aussi bien un lien entier qu'un code nu
+                const m = t.match(/[?&#]fig=([^&#\s]+)/);
+                if (m) t = m[1];
+                if (/%[0-9A-Fa-f]{2}/.test(t)) { try { t = decodeURIComponent(t); } catch (e) { } }
+                return t.trim();
+            }
+            ouvrirDepuisCode(texte) {
+                const code = this.extraireCode(texte);
+                if (code.length < 8) { this.showToast("Ce code est vide ou trop court."); return false; }
+                /* On vérifie AVANT de toucher à quoi que ce soit : un code abîmé par
+                   un copier-coller qui coupe les lignes ne doit pas effacer la figure
+                   en cours pour la remplacer par rien. */
+                let lisible = null;
+                try { lisible = LZString.decompressFromEncodedURIComponent(code); } catch (e) { lisible = null; }
+                if (!lisible) { this.showToast("Code illisible — a-t-il été copié en entier ?"); return false; }
+                this.loadFromCompressedString(code);
+                this.showToast("📐 Figure ouverte (" + this.entities.length + " objets)");
+                return true;
+            }
+            copierCodeFigure() {
+                const code = this.getCompressedString();
+                if (!navigator.clipboard) { this.showToast("Le presse-papiers n'est pas disponible ici."); return; }
+                navigator.clipboard.writeText(code).then(() =>
+                    this.showToast("🧩 Code copié (" + code.length + " car.) — il s'ouvre dans n'importe quel GéoMaster"));
+            }
+            ouvrirModaleCode() {
+                const m = document.getElementById('codeModal');
+                const z = document.getElementById('codeSaisie');
+                if (!m || !z) return;
+                z.value = '';
+                m.style.display = 'flex';
+                setTimeout(() => z.focus(), 30);
+            }
+            validerModaleCode() {
+                const z = document.getElementById('codeSaisie');
+                if (z && this.ouvrirDepuisCode(z.value)) {
+                    document.getElementById('codeModal').style.display = 'none';
+                }
             }
 
             choisirModeQR(mode) {

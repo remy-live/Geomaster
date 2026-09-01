@@ -34,7 +34,9 @@ veut.
 
 La figure entière est encodée dans l'URL — une construction de 300 objets pèse
 2,4 Ko. On envoie le lien, on affiche le QR code, et c'est tout : rien n'est
-stocké nulle part, rien n'expire, aucun compte n'est demandé.
+stocké nulle part, rien n'expire, aucun compte n'est demandé. Sans connexion,
+c'est le **code** de la figure qu'on envoie — la même chose, sans l'adresse du
+programme (voir *Hors connexion*).
 
 `?mode=lecture` ouvre le **lien élève** : la figure et son rejeu, sans les outils
 de modification.
@@ -113,9 +115,14 @@ sur une clé, on double-clique, et tout marche — dessin, reconnaissance, impor
 de PDF, exports PDF et SVG, QR code. Rien n'est demandé au réseau : une sonde
 coupe *toute* requête sortante et refait la chaîne complète à chaque poussée.
 
-Seule différence, dite par le logiciel lui-même : ouvert depuis un fichier, le
-lien de partage désigne un emplacement de **cet ordinateur**. Il rouvre la figure
-là où elle a été faite, mais ne s'envoie à personne.
+Reste le partage. Ouvert depuis un fichier, le lien vaut `file:///…` : il désigne
+un emplacement de **cet ordinateur**, et ne dit rien à personne d'autre — le
+logiciel le signale plutôt que de laisser croire à un partage. D'où le **code de
+la figure** : le même contenu, sans l'adresse du programme. On le copie, on
+l'envoie par n'importe quel canal, et le destinataire le colle dans **son**
+GéoMaster — le site, sa copie sur clé, celle de la salle. Personne n'a besoin
+d'être en ligne, ni des deux côtés ni d'un seul. La boîte « Coller un code »
+accepte aussi un lien entier : elle n'y prend que la figure.
 
 ### Ce qui est embarqué
 
@@ -137,7 +144,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 56 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 57 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
