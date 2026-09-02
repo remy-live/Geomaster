@@ -44,6 +44,13 @@ pages. Les séances se rangent dans une **bibliothèque** locale, avec vignette,
 et la collection entière s'exporte en un fichier pour changer de poste ou la
 donner à un collègue.
 
+Elle n'est pas vide au premier lancement : neuf **constructions d'exemple** y
+attendent — médiatrice, bissectrice, triangle équilatéral, carré, losange,
+hexagone, symétrique d'un point, cercle circonscrit, et une séance de quatre
+pages. Chacune est la sortie exacte du bâtisseur du logiciel, instruments et
+consignes comprises : on l'ouvre, on appuie sur ▶ ou sur *Page suivante*, et la
+construction se refait sous les yeux de la classe.
+
 ### Vu du fond de la salle
 
 Le **mode projection** épaissit traits et lettres d'un clic. Uniquement à
@@ -114,7 +121,7 @@ libellés restent affichés là où l'infobulle n'existe pas — c'est-à-dire a
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les
-bibliothèques. **3,4 Mo, soit 894 Ko une fois compressé** — ce que télécharge
+bibliothèques. **3,5 Mo, soit 902 Ko une fois compressé** — ce que télécharge
 réellement le navigateur.
 
 Plus de la moitié de ce poids (1,8 Mo) est en `type="text/plain"` : présent dans

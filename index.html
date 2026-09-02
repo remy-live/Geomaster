@@ -2393,6 +2393,40 @@
             color: #fff;
         }
 
+        /* Les exemples : pas de photo, un bandeau et deux lignes. Ils se
+           distinguent des séances de l'utilisateur, et c'est voulu. */
+        .biblio-titre {
+            width: 100%;
+            margin: 10px 2px 2px;
+            font: 600 11px 'Segoe UI', sans-serif;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #8e99a4;
+            border-top: 1px solid #edf0f2;
+            padding-top: 10px;
+        }
+
+        .biblio-carte.biblio-exemple {
+            width: 170px;
+            padding: 10px 10px 9px;
+            border-left: 4px solid #2980b9;
+            background: linear-gradient(180deg, #f7fbff 0%, #fff 60%);
+        }
+
+        .biblio-exemple .biblio-nom {
+            padding: 0;
+            white-space: normal;
+            line-height: 1.25;
+            min-height: 30px;
+        }
+
+        .biblio-exemple .biblio-detail {
+            display: block;
+            margin-top: 4px;
+            font: 11px 'Segoe UI', sans-serif;
+            color: #7f8c8d;
+        }
+
         /* Pagination de la séance. Discrète par construction : les commandes qui
            n'ont de sens qu'à plusieurs pages restent cachées tant qu'il n'y en a
            qu'une, et la barre se réduit alors à un seul « + ». */
@@ -6034,7 +6068,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 </svg></div>
                             <div class="help-item-desc"><strong>Menu Fichiers</strong><br>Ouvrir, Sauvegarder, Image de
                                 fond, <b>Bibliothèque</b> (les séances rangées ici, avec leur vignette ; la collection
-                                s'exporte en un fichier), et Options d'Exportation (Élève, SVG, Vidéo, Écran).<br>
+                                s'exporte en un fichier, et neuf <b>constructions d'exemple</b> y attendent —
+                                médiatrice, bissectrice, carré, hexagone… chacune se rejoue pas à pas),
+                                et Options d'Exportation (Élève, SVG, Vidéo, Écran).<br>
                                 <b>Partager :</b> le <b>lien</b> ou son <b>QR code</b> quand GéoMaster est en ligne ;
                                 le <b>code</b> de la figure quand il tourne depuis un fichier — un lien
                                 « file://… » désigne un emplacement de votre ordinateur et ne dit rien à personne
@@ -8039,6 +8075,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <!-- QR code du lien de partage. On réutilise .modal-overlay / .modal-box pour
          hériter de toute l'adaptation déjà faite : hauteur plafonnée, largeur bornée
          au viewport, contenu défilant, cibles tactiles. -->
+    <!-- SÉANCES D'EXEMPLE. Une bibliothèque vide n'apprend rien : on ne sait ni
+         ce qu'on peut y ranger, ni à quoi ressemble une construction rejouable.
+         Ces neuf-là sont fabriquées PAR LE LOGICIEL — chacune est la sortie
+         exacte de son bâtisseur, instruments et consignes d'étape compris — et
+         stockées telles qu'un lien les transporterait : 6,4 Ko en tout.
+
+         La dernière ne coûte rien : elle ne stocke aucun code, elle assemble
+         quatre des précédentes en un document de quatre pages. -->
+    <script>
+        window.GM_EXEMPLES = [
+        { n: "Médiatrice d'un segment", e: 2, c: "HIewtg3ADNBlCMEBMSYBZUQIIWnmAtPAHQCsA7AhAGxrqYBCuMLEax58sSeX8AzBADG4AA4BDAM6TkmDC2L8AHMgCcaWfRgl4KpOohE41PPo1RFKnSpgBiAGb3VqqDB5QEgkWAnTNbTGs1DRQtQyCzcLgBYTEpGVCAwgiDRPlDC2VgqI8TNwMiYl0MyzwHJxc3aK84vzTMAky9A1owpA5ybKMPGO9fGVak5A7swfSSVU7Ioy4TREj28k6J5Yhy51dkatifeJo6IZXRg-TCya7EHprdvzGGo8i7wkWpgsRZiHm34nOCF8+1o4NlUrjt+gAJACWABMAKb4BGsVjdKhofgwahIUgcEzMBGFCjRNjo5DwdhIDR45EkQmggBOAFcADawunEjFYnHhMiddAkzHY8gmAm8nKwQTwUifExKTwQRksulQuGI1XUolosJUvAiuCrQJS7SfbimVjuHWSiBgcR0gDWRBNgVM+Mt1rtDpiCtZyvhSLVFrgAGUACoAUQACoGAFz8AC8AGEQAA7SQAF0ZQlTkOTAAI4TmmeIc2AAJfQyHidOQoSwgA+qFjABki6Xy5W6dXYTnYWmc6JWf2k+WhMzxJC6V3xAyc5JYQBzMCwpOp7tJme5sCQpmQ2EM4iwABqAElQwB1KOXXjwcg8JRoVRAA" },
+        { n: "Bissectrice d'un angle", e: 3, c: "HIewtg3ADNBlCMEDMUYFYBsMCCFr5gFp4A6NAdgQnICZ0sIAhPGViAFhPPirVQhrwYAYRYFkJDBlg18PWTBqxyERIvE94SCAGNwABwCGAZ2PJ+mIlBKyGKeqxsQGxOBnwvrCpzAAcAuC1dAxMzewhLCGIbNGcYcMjCa19YlzVYdxg0mKjk2L8AqCokBkixNmiKQOQaAE4uFT5yElrEcvxKlSKgvTAjU2RS7Jp2ak52FRKHXMlR8nGVVyL3ITGSCajSEZmMUZgAYgAzQ9ra-gUEbV7+sLqGiKhm1ugSeFq1jaQ78kbHlsQkutEPN1otEDwVsCFi83jN2OCIEcTmd1N0riFTAAJACWABMAKbiNjEjrpRDsKBILjvdine7tIikKpoiAAJwArgAbfGs8zTQFobTxCyeMhCzZwPaqFS+S5srk8nEEokqirpFRqaUaOQQMCGVkAa2Iyi1qJ1MEQesNxoAygAVACiAAUbQAuDAAXgA8gA7AAEABdWYYdPi-ez-fqdH6CX7Q6ydNy4-ifUGAJd+4zs1l+pPGcBgfEBmNhzkAckMPoA5tySAAfeA0D0AAb9RlZAexOYJxj92NTPOM+J0nZAPuMABo-WPA8HQyX2QAPP1R3uxsAAK8LfuDAE8ZwBHdnYzNhnSskDYoep+vwXwegAyhj9ACMr0OR6zsfO9Oz9KWK2rJMUwXZdKxrfFezTKtDCXEhYAANQASQdAB1V1NQteBaAgXxaSAA" },
+        { n: "Triangle équilatéral", e: 2, c: "HIewtg3ADNBlCMEBMAOGBWAbDAghaBMAtPAHToDsCEmALBthAEL4xsS2kXyxIE-wAzBADG4AA4BDAM7TkaCFnYxUDdoMYk4Q0RJlzVixjA0qFSiCVKD0EU5cRQEwsWCmz5ah9dv3DFoiguX01HWEwCeysbSyCKW3Y+Jx1Xdzk6LysKAE47RgyjYiRrXKjEHgjEMq5comLBXMdkbRc9WQAJAEsAEwBTQgHlAi1kjkYkWhRSJGEAYVYBq0pnCAAnAFcAG17Vz0LvKAS9gLJD4bCkiHhk4Q3t1a6+wef2EZW7nbGVSenhU6PaOMfjMrqQzsQLlcrjc1lsdo9+kMkec4JcmpcIbYwJJVgBrEi8fiJRbwLE4-E8PjlYmvUkQbF4gk6D4PHqIl7PN7MuGsp7I5Fc248hEcgVhADKABUAKIABXFAC5BABeWYgAB20gALhsRFrOhqAATdADk63Vhp1nUk6oA5ttDQBLgCO606m0kWsdq0kmwAPvAKMqADK9S2ra12h0ut0er0+zaGySGwSGkQAF690idtsk6wAHqRYAA1ACS0oA6gqmjB4IG+ChaNkgA" },
+        { n: "Carré à l'équerre et au compas", e: 3, c: "HIewtg3ADNBlCMEBMAOGBWAbDAghaBMAtPAHToDsCE2G2EAQvjCxACykXyxIGIy9WJdBDABDAE4BrEggDMEAM4BTAC6KAjgFdJy5GghZiZSgVR1j5CgRJxBNM4QjDRkmd3gKV67boASAJYAJnqsYU7GcIjmyGwwACLMTiRW8hAAxuAADmKKivoWTjFGBHJIkVBpmWA5eQWG9DBlAgZIcc5QpArNzvxV2bn5MW3End3l9SPQXRA9tpWYDnNj0wowKMhRCtW1Q63tKz20DZZI1nN9nhkDdcclKWezE3f0KSjnE7bci4gXpI9vayIDaCfo1QaBEIRaFCS40KACdoAYSSsNSVwkWgANsoJJMDmZ9uF5jwHPARAJkuTXNJZBjsbjIaEYdCSfScXjjlMTNYYFz2jybH1eNT+JtYSJxLSPApMRymSzwhVYECCItWNwgSIxRqVWTtU5NWqINTdezGcFmUrWZdZQyJArrda2Xb5ZbFTathA5RaoU7PZVzQ73f7ibbvfbHR7YV6fcG-dGhbHIyHE8qAMoAFQAogAFdMALjkAF4kSAAHaKVSY9KqAIVgAEIQbWLEDayuI75aCAXS2LEAQkygbynLDa05eHygAHtWAJdgAKqOekAA+FGLAHkx1kh92WwByOfpSSqZRgUeqJtaBsqADmF-LV7EADdlOkW8Odrl2yAtBJ21bdJcU-JtcXLAIQMUcAL1UNckCQYsABkv0kCQ5wbNs2Ew8s7xxRQmwkEAlwItQG2w9IABflwIuc7zELRp1IWAADUAElswAdQLHUTXgCheBQNgAE4gA" },
+        { n: "Losange au compas", e: 2, c: "HIewtg3ADNBlCMEBMAOGBWJMCCFr5gFp4A6dAdgQgDYsJMYAhPGViAFhPPliXx-gBmCAGNwABwCGAZ2nI09Om1QYlEQeyKIoCYWLBTZ81VpKD06zccVEoXCxq1xq+RxGJmLhO+QswUyHCI7OgwSEjoZBYsBO6kFLqiEjJyKjbuPg5WIWERURlmlk46QkkGKRyhyHnoXnbCbjnVkbXQhW7EzjRFBcL1+AF8JXrJRk3hLX7tVrQmBb49ncNlhnKz6d72PesMcZ6LiDwuiB2Ze+YQiINBI+WyABIAlgAmAKaxbJ-4S1TkAJy5SZ4D57BKlABOAFcADavcHWXYeKB+BF0JEon5DGiJKGw8FPN4gr5sH4QmFwyqA-JscY1FHFXjdeDsHHk-Evd7EolxG4QXEU-5U1pIEhQP74QXNfIisXfbSM5mXVl4gmc7lfTH8fBYrQWMCScEAa2IjJgLjCsWIeoNxp4fGO7G1lvg1qNJr4iu0gRJLog+rdPAAygAVACiAAVAwAuQQAXgA8gA7AAE4nBr0Tz2T0Mk2ZAiYA5pDXpDwcnnpDk9JXgWwBmAC7JySV-SGVMgUvJsSJ6T1qGPdPZ17SZOCJuQvvDrsAF-rAEvpCQAD4u2MAGVeeekkkLm9z7Bn85Hb2TYAAV3W84Xi6WSLAAGoASVDAHUo16YPB4OQ+Ch2H8gA" },
+        { n: "Hexagone régulier", e: 3, c: "HIewtg3ADNBlCMEDMAOGBWAbDAghaBMAtPAHToDsCEWG2EAQvjCxACykXywBMB38JBADG4AA4BDAM5TkaGvVao6rePJJxBI8dNnKFq+ftoRMpHighriiKLEz95MMxYIBiAJxfvEPna2iYJIyciqOYSZkFB5W6rYIQoHBsiaRnDHWBlk8pEgZcXAOiJlRMTl5BJZ+1GwUMFzopCiWzIQQJORUATohqfTl+TC19fCNzb5NbLE2mok9ssMQDU1Vk9PsdUujK8ikbFOZGnYOgxMoU0h7UzBVmr4eI2MtbTadCdpBuhuPO5f76zwHlsnu0Busju8kl9AT9xkQwZkYcCdh1ouD4kUhIcwaiYjdfHceFAwq1WB1KJD5vdYZZcQDiVkOkh0OjZh9kr4GSYmSzEVz6EQoJxeQVjlYKOjcizBcLKgT-NT2FAOPA+KSCOSunNPiEiWEZRQRTAkWxlaRVe0hVjRZSdbITWaLTLrcagaaVX5cqyxTxiuordAvfjqohFu7zWqXu0yBTunaABIASwAJgBTKOsTPRtkAJwArgAbVM5rImHJQPGl-qkCsa+J8RAed75os5pNpjOdiFaFvF77I8aXeDXfvLQfmkcQvgZJDNwvF9vprPLuu5+clpFj2nlyub7ZwneruwNrFaiC9tsppedrPdoQXzn6shQFnG-mvF9H3ji3wCe-rxcbyjO9z3XRVwwtVgHQ9Nop1-Xx0DnVtAJXFcQIfMNHQbGtX37CDsM-GZjwQqwkIXK8gNvesrAgXdYNGCAwAkHMAGsSG-GcCD8OsWSY1j2JPH9jXo3jmLY7gGwlX0uJExixIE+CeFw7ibFE-iJJI2x5R4uT1NgABlAAVABRAAFfSAC4kAAXgAeQAOwAAjEHNU3s5NHILCRPJAeyAHM81TPMc0c5M80cnMJAAT18xyJHCqEpAAGmcvNEykRzYoAF0i4RU08-K8pzYQi1IAAfTA7KcvzmLTTyAHIAEvhGYrLUzANyssc1Muti1yxBAHM2oKiLotizBHIAMxAdLHKkYKRqKkrU3KngKCqiLUwLRN8qLDKJqkcAOqyjKBoW6acw6kKC3qgALVMAA8JD83z8pzRqAu24tSFgAA1ABJYyAHULK0mB4HgCg+HODwgA" },
+        { n: "Symétrique d'un point", e: 1, c: "HIewtg3ADNBlCMEAsA2G8AcMCCFr5igWTQhVICE9D8BaAZgDp4lYAmfeY+qGetmAGFqBCLXiMArAHZiKaUikd+METXFTpcRKj4C8omBpnb6EAM4BTAC7mAjgFcAhgCdLJPTBSM2GfLogVMh8-I0QiZWQIAGIATniEiEQueDMrW0dXSwAJAEsAE3caYsMxcIQzAGNwAAcnc3MPQP0mFiSYAKDWpCTScVMIarA6hqau5h74Uk79WigfXrCBoZHGmaN5jimO0iDNxbK4FAhJA7mF-ZhogDNr+N4IDiJUwdr68zzC0pL1cq0YU5mGgpMgtfSCADkajoEhksAAygAVACiAAV4QAuJAAXnhAE8wABL6wuXKWAAETgAHrknAAbCkY8kgAB25JJTkqFLpTnJNUsLn5LPyuUqDh5uTclIAbpZKuS6RDCY4BW4ADR8hy5czMtluGogFzWbm8umsgDmDksDhcMrlCopK3qjFgADUAJLIgDqGPCnHg0g4GCQsSAA" },
+        { n: "Cercle circonscrit à un triangle", e: 3, c: "HIewtg3ADNBlCMEDMUYFYBsMCCFr5gFp4A6DAdgQnNQjQCYYAhPGNiAFjPio4A4Y9DjADCrAhEJQylevh5zE9WHLlQESCAGNwABwCGAZ0PJamNiXp8IV0h1PosEUlGu2S94nAz5396VbOJK74AMQAZuEAnFG0ahraekYmKI4wLm58dg50TsSW5DZZHpKI6vCaOmAGxjnmpQVF2am5RNIchX6l3r7FnqT0hVIehTAR0bGCcBWJ1cl1ee2dfdRmjDYyTSVe5ZVJtTTo6-SbXYd066R8y9lePD5KKycUQdfOEOMxcdN7cwdr6RIbzOAMkJygN22ZQSVRqJnODCI4Mh9gR60IJ2BKzusAeW08yLBQMKiE+kxsP1mcIAEgBLAAmAFMJOxWfgdlQ0PAomRqEg0CQoj5xOx8mhRrwBCUkBwuFB7CL2aRxZSAE4AVwANozVXRubzyPzBT58i90PqfIaBUKGmbuupFNZuR9Il90s4Ehrtaq6UyWf7RdCZrD5miiFcfEIefRLaD8lBIxxoyboXio5YU0DMwmwlEAEZofORykh-5HcPBRPJ1blyRIDxKJMZ+0w-bwuP1jiN6thokYbvNjlppsxusNvtlD75wt54u7KmhuPPAej-iCYTQEhoTTp0cc4NtzgCGwb6Tbk-VtcntqNXcpj3Fu+b8-DQbvULTosU+elkxXoQ3m+T7-hu4JuCO94-oeIGCME4GXseAFBIET44o+EEbCEAxOlOBZfvEB5-IYvrMmyZFKtM1CDCQ8CdOQJz0HIioViq5ScAwQKaPw5AkOQ1jMQ0rGelqOpUTxtE2PRliqB41gwPR4l0QxMn8BRDrIGgyA+B+eGzu8PAzF6OokQGpn7pwUSkPR7E8YxEAAPICWKlCEXCFlWXIHDitJGwYJpMBJh5Nk+c8mn0LRW6aPuvxuYFvGed5dmhTYEXnnF1lebZch8IKO6pVFqacII+W+ZpOVRJo7AETFyQmeR5Ecp5bKIJOxCaWA+iqgA1sQKhFe87qtfA7WdT1Cj9Wo+lKiN3W9QAygAKgAogACnNABcGAALz2QAdgABDou2GAALhqtInftmr6PtYAAJf0rS+hnbSWiMvtTL7QA2tgTAALokIDAA+9BIFtgMkLo6q0oYV03fdj3Paqr3vZ9X1MCIAP7QAMoy6qqvttK7SdOqGIyWgnbSIAHYyp1Xe9b3E6qqPqodOpaNqh20qqR2GFoyMnSQQNdltuNs0z7205dd0AI7Q49p36MTH20-tSD7YY4BgIyJ2w+t+3U-tZ36G99NszznNaNzvP8xdJCwAAagAkktADq62TuktHZUmQA" },
+            { n: "Constructions au compas", r: [0, 1, 2, 5] },
+        ];
+    </script>
     <!-- La bibliothèque : les séances rangées dans le logiciel, avec leur
          vignette. Tout est local ; la collection s'exporte pour changer de poste
          ou la donner à un collègue. -->
@@ -23891,14 +23948,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const m = document.getElementById('biblioModal');
                 if (m) m.style.display = 'flex';
             }
+            /* Le code d'un exemple : soit il le porte, soit il renvoie à d'autres —
+               une séance de plusieurs pages n'a alors rien à stocker, elle assemble
+               des constructions déjà là. */
+            codeExemple(ex) {
+                const tous = window.GM_EXEMPLES || [];
+                if (ex.c) return ex.c;
+                if (Array.isArray(ex.r)) return ex.r.map(i => tous[i] && tous[i].c).filter(Boolean).join('~');
+                return '';
+            }
             majBiblio() {
                 const hote = document.getElementById('biblioListe');
                 if (!hote) return;
                 const liste = this.lireBiblio();
                 hote.innerHTML = '';
                 if (!liste.length) {
-                    hote.innerHTML = '<p style="color:#777; font-size:13px; text-align:center; margin:18px 0;">'
-                        + 'La bibliothèque est vide. « Ajouter la séance » y range le document ouvert.</p>';
+                    const vide = document.createElement('p');
+                    vide.style.cssText = 'color:#777; font-size:13px; text-align:center; margin:14px 0 4px; width:100%;';
+                    vide.textContent = 'Vos séances viendront ici : « Ajouter la séance » y range le document ouvert.';
+                    hote.appendChild(vide);
+                    this.ajouterExemplesBiblio(hote);
                     return;
                 }
                 liste.forEach((e, i) => {
@@ -23921,15 +23990,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         });
                     };
                     carte.appendChild(img); carte.appendChild(nom); carte.appendChild(sup);
-                    carte.onclick = () => {
-                        if (this.chargerDocument(e.c)) {
-                            this.projectTitle = e.n;
-                            const champ = document.getElementById('docTitleInput');
-                            if (champ) champ.value = e.n;
-                            document.getElementById('biblioModal').style.display = 'none';
-                            this.showToast(`📚 « ${e.n} » ouvert`);
-                        }
-                    };
+                    carte.onclick = () => this.ouvrirSeance(e.c, e.n);
+                    hote.appendChild(carte);
+                });
+                this.ajouterExemplesBiblio(hote);
+            }
+            ouvrirSeance(code, nom, exemple) {
+                if (!this.chargerDocument(code)) return;
+                this.projectTitle = nom;
+                const champ = document.getElementById('docTitleInput');
+                if (champ) champ.value = nom;
+                const modale = document.getElementById('biblioModal');
+                if (modale) modale.style.display = 'none';
+                this.showToast(exemple
+                    ? `📐 « ${nom} » — ▶ ou Page suiv. rejoue la construction`
+                    : `📚 « ${nom} » ouvert`);
+            }
+            /* Les exemples n'ont pas de vignette : la fabriquer coûterait plus cher
+               en octets que les neuf constructions réunies, et leur nom dit déjà de
+               quoi il s'agit. Ils ne se suppriment pas non plus — ils font partie du
+               logiciel, pas de la collection de l'utilisateur. */
+            ajouterExemplesBiblio(hote) {
+                const ex = window.GM_EXEMPLES;
+                if (!Array.isArray(ex) || !ex.length) return;
+                const titre = document.createElement('div');
+                titre.className = 'biblio-titre';
+                titre.textContent = 'Constructions d\'exemple — chacune se rejoue pas à pas';
+                hote.appendChild(titre);
+                ex.forEach(e => {
+                    const code = this.codeExemple(e);
+                    if (!code) return;
+                    const pages = code.split('~').length;
+                    const carte = document.createElement('div');
+                    carte.className = 'biblio-carte biblio-exemple';
+                    carte.title = e.n;
+                    const nom = document.createElement('span');
+                    nom.className = 'biblio-nom';
+                    nom.textContent = e.n;
+                    const det = document.createElement('span');
+                    det.className = 'biblio-detail';
+                    det.textContent = pages > 1 ? `${pages} pages` : `${e.e || 0} étapes`;
+                    carte.appendChild(nom); carte.appendChild(det);
+                    carte.onclick = () => this.ouvrirSeance(code, e.n, true);
                     hote.appendChild(carte);
                 });
             }

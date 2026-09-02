@@ -152,8 +152,51 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      && rouvre.pages === 2 && rouvre.page2 === 3, JSON.stringify(rouvre));
   ck('et referme la bibliothèque', rouvre.modale === 'none');
 
+  /* Une bibliothèque vide n'apprend rien. Les exemples sont fabriqués par les
+     bâtisseurs du logiciel : chacun doit donc porter de VRAIS instruments et de
+     vraies étapes, pas une figure posée à plat. */
+  console.log('\n=== les constructions d\'exemple ===');
+  const exemples = await page.evaluate(async () => {
+    const app = window.app;
+    const liste = window.GM_EXEMPLES || [];
+    const out = [];
+    for (const e of liste) {
+      const code = app.codeExemple(e);
+      if (!code) { out.push({ n: e.n, err: 'code vide' }); continue; }
+      app.ouvrirSeance(code, e.n, true);
+      await new Promise(r => setTimeout(r, 120));
+      const anims = app.entities.filter(x => x.constructor.name === 'ToolAnimation');
+      out.push({ n: e.n, objets: app.entities.length, pages: app.pagesDocument().length,
+                 etapes: app.bornesEtapes().length - 1,
+                 outils: [...new Set(anims.map(a => a.widgetType))].filter(t => !/Hide/.test(t)) });
+    }
+    return out;
+  });
+  exemples.forEach(e => console.log(`  ${e.n} — ${e.objets} objets, ${e.etapes} étapes, ${(e.outils||[]).join(' ')}`));
+  ck('la bibliothèque n\'est pas vide au premier lancement', exemples.length >= 8, String(exemples.length));
+  ck('chaque exemple s\'ouvre', exemples.every(e => !e.err && e.objets > 5), JSON.stringify(exemples.filter(e => e.err || e.objets <= 5)));
+  ck('chacun est une vraie construction aux instruments',
+     exemples.every(e => (e.outils || []).includes('compass')),
+     JSON.stringify(exemples.filter(e => !(e.outils || []).includes('compass')).map(e => e.n)));
+  ck('et se rejoue en plusieurs étapes', exemples.every(e => e.etapes >= 2),
+     JSON.stringify(exemples.map(e => e.etapes)));
+  ck('l\'une d\'elles est une séance de plusieurs pages',
+     exemples.some(e => e.pages > 1), JSON.stringify(exemples.map(e => e.pages)));
+  const cartes = await page.evaluate(() => {
+    localStorage.removeItem('gm_biblio');
+    window.app.ouvrirBiblio();
+    const c = [...document.querySelectorAll('#biblioListe .biblio-exemple')];
+    document.getElementById('biblioModal').style.display = 'none';
+    return { n: c.length, sansCroix: c.every(x => !x.querySelector('.biblio-sup')) };
+  });
+  ck('elles s\'affichent même quand la collection est vide', cartes.n === exemples.length, String(cartes.n));
+  ck('et ne se suppriment pas : elles font partie du logiciel', cartes.sansCroix === true);
+
   const collec = await page.evaluate(() => {
     const app = window.app;
+    // la collection a été vidée juste au-dessus : on y remet une séance
+    app.projectTitle = 'Séance à exporter';
+    app.enregistrerDansBiblio();
     let blob = null; const vrai = URL.createObjectURL;
     URL.createObjectURL = function (x) { if (x instanceof Blob) blob = x; return vrai.call(URL, x); };
     app.exporterBiblio(); URL.createObjectURL = vrai;
