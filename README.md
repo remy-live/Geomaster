@@ -49,6 +49,12 @@ rangés en grille — et comme ils s'appelaient tous *ABCD*, les points qui
 portaient déjà leur lettre sont **renommés** : ABCD, EFGH, IJKL… Les consignes
 des quatre constructions suivent, décalées : la feuille se rejoue en entier.
 
+Ou pas : une case **« Figures seules »** retire ce qui a servi *à faire* la
+figure — instruments, arcs de compas, objets masqués — et pose **une étape par
+figure**. La page passe de 136 objets à 54, et *Page suivante* découvre les
+quatre figures une par une devant la classe. Un cercle entier tracé au compas
+est un résultat, pas une trace : le cercle circonscrit reste.
+
 Les séances se rangent dans une **bibliothèque** locale, avec vignette, et la
 collection entière s'exporte en un fichier pour changer de poste ou la donner à
 un collègue.
@@ -130,7 +136,7 @@ libellés restent affichés là où l'infobulle n'existe pas — c'est-à-dire a
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les
-bibliothèques. **3,6 Mo, soit 906 Ko une fois compressé** — ce que télécharge
+bibliothèques. **3,6 Mo, soit 907 Ko une fois compressé** — ce que télécharge
 réellement le navigateur.
 
 Plus de la moitié de ce poids (1,8 Mo) est en `type="text/plain"` : présent dans

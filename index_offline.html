@@ -6134,7 +6134,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <b>plusieurs pages</b> : « ＋ » à côté du titre en ajoute une, ◀ ▶ les feuillette, et
                                 <b>cliquer sur le numéro</b> ouvre les vignettes — on y range les pages en les
                                 tirant, et l'on <b>fusionne</b> celles qu'on coche : les figures se rangent côte à
-                                côte sur une seule page, et les points qui portaient la même lettre sont renommés.
+                                côte sur une seule page, et les points qui portaient la même lettre sont renommés. La case
+                                <b>Figures seules</b> laisse de côté les tracés de construction et pose une étape
+                                par figure, pour les découvrir une à une.
                                 Elles sortent en un seul PDF et voyagent dans un seul lien. Au tableau, <b>Page suiv. / Page
                                 préc.</b> — les touches d'une télécommande de présentation — Espace et les flèches
                                 avancent la construction étape par étape.<br><strong>Recentrer</strong><br>Remet le zoom à 100% et ramène la
@@ -8183,6 +8185,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div id="pagesListe"
                 style="display:flex; flex-wrap:wrap; gap:10px; max-height:50vh; overflow:auto; padding:4px;">
             </div>
+            <!-- Une figure fusionnée arrive avec tout son historique de tracé : c'est
+                 ce qu'on veut pour rejouer, pas pour une feuille d'exercices. -->
+            <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:#444; text-align:left;">
+                <input type="checkbox" id="fusionFiguresSeules" style="width:16px; height:16px;">
+                <span><b>Figures seules</b> — sans les tracés de construction, et une étape par
+                    figure : « page suivante » les découvre une par une.</span>
+            </label>
             <div class="modal-buttons">
                 <button class="modal-btn modal-cancel"
                     onclick="document.getElementById('pagesModal').style.display='none'">Fermer</button>
@@ -24064,7 +24073,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                suivants prennent les premières libres. Les consignes d'étape suivent,
                décalées du nombre d'objets déjà posés — les constructions se rejouent
                donc l'une après l'autre sur la page fusionnée. */
-            fusionnerPages(indices) {
+            /* « Figures seules » : on retire ce qui a servi À FAIRE la figure, pas la
+               figure. Les tracés d'instruments s'en vont, les objets masqués aussi,
+               et les arcs de compas — mais seulement les ARCS : un cercle entier
+               tracé au compas est un résultat, pas une trace, et le cercle
+               circonscrit en est un. Garde-fou : si l'allègement ne laissait plus
+               rien à voir, c'est que la figure ÉTAIT faite d'arcs — une rosace, une
+               graine de vie — et l'on garde alors tout sauf les instruments. */
+            allegerLot(lot) {
+                const tour = Math.PI * 2 - 0.01;
+                const garde = lot.filter(e => {
+                    if (e instanceof ToolAnimation) return false;
+                    if (e.hidden === true) return false;
+                    if (e instanceof CompassArc && Math.abs(e.endAngle - e.startAngle) < tour) return false;
+                    return true;
+                });
+                const reste = garde.filter(e => !(e instanceof Point));
+                return reste.length ? garde : lot.filter(e => !(e instanceof ToolAnimation));
+            }
+            fusionnerPages(indices, figuresSeules) {
                 const p = this.synchroniserPage();
                 const choix = [...new Set(indices)].filter(i => i >= 0 && i < p.length && p[i]).sort((a, b) => a - b);
                 if (choix.length < 2) { this.showToast("Sélectionnez au moins deux pages."); return false; }
@@ -24072,7 +24099,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const lots = [];
                 for (const i of choix) {
                     this.loadFromCompressedString(p[i]);
-                    lots.push({ ents: this.entities, cons: Object.assign({}, this.stepInstructions) });
+                    lots.push({
+                        ents: figuresSeules ? this.allegerLot(this.entities) : this.entities,
+                        cons: Object.assign({}, this.stepInstructions),
+                    });
                 }
                 // grille : deux colonnes dès trois figures, côte à côte à deux
                 const n = lots.length;
@@ -24106,8 +24136,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     });
                     const decalage = fusion.length;
-                    Object.keys(l.cons).forEach(i => { consignes[Number(i) + decalage] = l.cons[i]; });
                     l.ents.forEach(e => fusion.push(e));
+                    /* Les consignes. Avec les constructions, chaque figure garde les
+                       siennes, décalées : les quatre tracés se rejouent l'un après
+                       l'autre. Figures seules, il n'y a plus rien à rejouer — on pose
+                       alors UNE étape par figure, à l'index où elle se termine, pour
+                       que « page suivante » les découvre une par une au tableau. */
+                    if (figuresSeules) {
+                        /* Pas la consigne d'origine : elle décrit une construction
+                           qu'on vient justement de retirer. « Étape 2 sur 4 » dit ce
+                           qui est vrai, et se réécrit dans le panneau des consignes. */
+                        consignes[fusion.length] = `Figure ${k + 1} sur ${n}`;
+                    } else {
+                        Object.keys(l.cons).forEach(i => { consignes[Number(i) + decalage] = l.cons[i]; });
+                    }
                 });
                 this.entities = fusion;
                 this.stepInstructions = consignes;
@@ -24124,7 +24166,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.vignettesPages = {};
                 this.majBarrePages();
                 this.render();
-                this.showToast(`🧩 ${choix.length} pages fusionnées — ${prises.size} points nommés`);
+                this.showToast(`🧩 ${choix.length} pages fusionnées — ${prises.size} points nommés`
+                    + (figuresSeules ? `, ${choix.length} étapes` : ''));
                 return true;
             }
 
@@ -24237,7 +24280,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             fusionnerChoix() {
                 const choix = [...(this.pagesChoisies || [])];
-                if (this.fusionnerPages(choix)) {
+                const seules = document.getElementById('fusionFiguresSeules');
+                if (this.fusionnerPages(choix, !!(seules && seules.checked))) {
                     this.pagesChoisies = new Set();
                     const m = document.getElementById('pagesModal');
                     if (m) m.style.display = 'none';

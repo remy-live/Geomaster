@@ -167,6 +167,71 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('les consignes des quatre constructions sont conservées', fusion.etapes >= 8, String(fusion.etapes));
   ck('la vue se recule pour tout montrer', fusion.zoom < 1, String(fusion.zoom));
 
+  console.log('\n=== fusionner « figures seules » ===');
+  /* Fusionner pour rejouer et fusionner pour composer une feuille ne demandent
+     pas la même chose. « Figures seules » retire ce qui a servi À FAIRE la
+     figure — instruments, arcs de compas, objets masqués — et pose UNE étape par
+     figure, pour les découvrir une par une au tableau. */
+  const seules = await page.evaluate(async () => {
+    const app = window.app, s = window.__s;
+    const attendre = (ms) => new Promise(r => setTimeout(r, ms));
+    const fini = async () => { await attendre(400); app.stopAnimation(); await attendre(150);
+      app.replayIndex = null; app.render(); };
+    const compte = () => { const c = {}; app.entities.forEach(e => c[e.constructor.name] = (c[e.constructor.name] || 0) + 1); return c; };
+    const monter = async () => {
+      s.neuf();
+      let sg = s.seg({x:200,y:500},{x:480,y:500}); app.buildSquare(sg, 340, 400); await fini();
+      app.ajouterPage(); sg = s.seg({x:200,y:500},{x:520,y:500}); app.buildRhombus(sg, 360, 420); await fini();
+      app.ajouterPage(); sg = s.seg({x:200,y:500},{x:460,y:500}); app.buildEquilateralTriangle(sg, 330, 400); await fini();
+      app.ajouterPage(); sg = s.seg({x:200,y:500},{x:440,y:500}); app.buildHexagon(sg, 320, 430); await fini();
+    };
+    await monter(); app.fusionnerPages([0,1,2,3], false); await attendre(150);
+    const avec = { objets: app.entities.length, types: compte(), etapes: app.bornesEtapes().length - 1 };
+    await monter(); app.fusionnerPages([0,1,2,3], true); await attendre(150);
+    const sans = { objets: app.entities.length, types: compte(), etapes: app.bornesEtapes().length - 1,
+                   consignes: Object.values(app.stepInstructions) };
+    const vus = [];
+    for (let i = 0; i < 4; i++) { app.allerEtape(1);
+      vus.push(app.entities.slice(0, app.replayIndex).filter(e => e.constructor.name === 'Point').length); }
+    return { avec, sans, vus };
+  });
+  console.log('  avec construction : ' + JSON.stringify(seules.avec));
+  console.log('  figures seules    : ' + JSON.stringify(seules.sans));
+  ck('les tracés d\'instruments s\'en vont', !seules.sans.types.ToolAnimation
+     && seules.avec.types.ToolAnimation > 20, JSON.stringify(seules.sans.types));
+  ck('les figures elles-mêmes restent entières',
+     seules.sans.types.Point === seules.avec.types.Point
+     && seules.sans.types.Segment === seules.avec.types.Segment,
+     `${seules.sans.types.Point}/${seules.sans.types.Segment}`);
+  ck('la page s\'allège nettement', seules.sans.objets < seules.avec.objets / 2,
+     `${seules.avec.objets} → ${seules.sans.objets}`);
+  ck('une étape par figure', seules.sans.etapes === 4, String(seules.sans.etapes));
+  ck('et elles se découvrent une par une',
+     JSON.stringify(seules.vus) === JSON.stringify([...seules.vus].sort((a, b) => a - b))
+     && seules.vus[0] < seules.vus[3], JSON.stringify(seules.vus));
+  ck('les consignes disent ce qui est vrai',
+     seules.sans.consignes.every(c => /^Figure \d+ sur 4$/.test(c)), JSON.stringify(seules.sans.consignes));
+
+  /* Un cercle entier tracé au compas est un RÉSULTAT, pas une trace : le cercle
+     circonscrit ne doit pas disparaître avec les arcs de construction. */
+  const rescape = await page.evaluate(async () => {
+    const app = window.app, s = window.__s;
+    const attendre = (ms) => new Promise(r => setTimeout(r, ms));
+    s.neuf();
+    const A = app.createPointAt(300, 560), B = app.createPointAt(700, 520), C = app.createPointAt(480, 240);
+    s.seg({x:300,y:560},{x:700,y:520}); s.seg({x:700,y:520},{x:480,y:240}); s.seg({x:480,y:240},{x:300,y:560});
+    app.buildCircumscribedCircle(A, B, C);
+    await attendre(400); app.stopAnimation(); await attendre(150); app.replayIndex = null;
+    app.ajouterPage(); const sg = s.seg({x:200,y:500},{x:480,y:500}); app.buildSquare(sg, 340, 400);
+    await attendre(400); app.stopAnimation(); await attendre(150); app.replayIndex = null;
+    app.fusionnerPages([0, 1], true); await attendre(150);
+    const arcs = app.entities.filter(e => e.constructor.name === 'CompassArc');
+    return arcs.map(a => +(Math.abs(a.endAngle - a.startAngle) / Math.PI).toFixed(2));
+  });
+  console.log('  arcs survivants (en demi-tours) : ' + JSON.stringify(rescape));
+  ck('le cercle circonscrit survit à l\'allègement',
+     rescape.length === 1 && rescape[0] > 1.99, JSON.stringify(rescape));
+
   console.log('\n=== le PDF sort en un seul document, dans l\'ordre ===');
   const pdf = await page.evaluate(async () => {
     const app = window.app, s = window.__s;
