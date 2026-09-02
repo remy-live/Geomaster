@@ -2452,6 +2452,95 @@
             min-width: 30px;
             justify-content: center;
             align-items: center;
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 3px 4px;
+        }
+
+        #barrePages #pageEtiquette:hover {
+            background: #f0f4f8;
+            color: #2980b9;
+        }
+
+        /* Vignettes de pages : on les tire pour les ranger, on les coche pour les
+           fusionner. La page ouverte se signale, la page cochée aussi — et pas de
+           la même façon, ce ne sont pas les mêmes choses. */
+        .page-carte {
+            position: relative;
+            width: 158px;
+            border: 2px solid #e3e6e8;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .page-carte.active {
+            border-color: #2980b9;
+        }
+
+        .page-carte.choisie {
+            border-color: #8e44ad;
+            box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.18);
+        }
+
+        .page-carte img {
+            display: block;
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            background: #fafbfc;
+            pointer-events: none;
+        }
+
+        .page-carte-bas {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px 5px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .page-num {
+            font: 600 12px 'Segoe UI', sans-serif;
+            color: #555;
+        }
+
+        .page-mini {
+            border: none;
+            background: transparent;
+            color: #8e99a4;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 3px 6px;
+            border-radius: 5px;
+        }
+
+        .page-mini:hover {
+            background: #eef3f8;
+            color: #2980b9;
+        }
+
+        .page-coche {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #b9c2ca;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #8e44ad;
+            font: 700 13px 'Segoe UI', sans-serif;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .page-carte.choisie .page-coche {
+            border-color: #8e44ad;
+            background: #f5eaf9;
         }
 
         #barrePages .page-btn {
@@ -6042,8 +6131,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <line x1="12" y1="22" x2="12" y2="18" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Pages &amp; rejeu</strong><br>Un document peut tenir
-                                <b>plusieurs pages</b> : « ＋ » à côté du titre en ajoute une, ◀ ▶ les feuillette. Elles
-                                sortent en un seul PDF et voyagent dans un seul lien. Au tableau, <b>Page suiv. / Page
+                                <b>plusieurs pages</b> : « ＋ » à côté du titre en ajoute une, ◀ ▶ les feuillette, et
+                                <b>cliquer sur le numéro</b> ouvre les vignettes — on y range les pages en les
+                                tirant, et l'on <b>fusionne</b> celles qu'on coche : les figures se rangent côte à
+                                côte sur une seule page, et les points qui portaient la même lettre sont renommés.
+                                Elles sortent en un seul PDF et voyagent dans un seul lien. Au tableau, <b>Page suiv. / Page
                                 préc.</b> — les touches d'une télécommande de présentation — Espace et les flèches
                                 avancent la construction étape par étape.<br><strong>Recentrer</strong><br>Remet le zoom à 100% et ramène la
                                 vue au centre du canevas.</div>
@@ -6553,7 +6645,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div id="barrePages">
             <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive - 1)"
                 aria-label="Page précédente" data-tooltip="Page précédente">◀</button>
-            <span id="pageEtiquette" class="page-multi">1/1</span>
+            <span id="pageEtiquette" class="page-multi" onclick="app.ouvrirPanneauPages()"
+                data-tooltip="Voir les pages : les ranger, en fusionner">1/1</span>
             <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive + 1)"
                 aria-label="Page suivante" data-tooltip="Page suivante">▶</button>
             <button class="page-btn" onclick="app.ajouterPage()" aria-label="Ajouter une page"
@@ -8075,6 +8168,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <!-- QR code du lien de partage. On réutilise .modal-overlay / .modal-box pour
          hériter de toute l'adaptation déjà faite : hauteur plafonnée, largeur bornée
          au viewport, contenu défilant, cibles tactiles. -->
+    <!-- Les pages en vignettes : on les range en les tirant, et l'on FUSIONNE
+         celles qu'on coche. Quatre quadrilatères construits séparément se
+         retrouvent alors sur une feuille, rangés en grille et renommés. -->
+    <div id="pagesModal" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box" style="width: 720px; max-width: 96%;">
+            <h3 style="margin-top:0; color:#2980b9;">Les pages de la séance</h3>
+            <p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">
+                Tirez une vignette pour la ranger ailleurs. Cochez-en plusieurs et
+                <b>fusionnez-les</b> : les figures se rangent côte à côte sur une seule page,
+                et les points qui portaient la même lettre sont renommés.
+            </p>
+            <div id="pagesListe"
+                style="display:flex; flex-wrap:wrap; gap:10px; max-height:50vh; overflow:auto; padding:4px;">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel"
+                    onclick="document.getElementById('pagesModal').style.display='none'">Fermer</button>
+                <button class="modal-btn modal-confirm"
+                    onclick="app.ajouterPage(); app.vignettesPages={}; app.construireVignettesPages(); app.majPanneauPages();">Ajouter une page</button>
+                <button class="modal-btn modal-confirm" id="btnFusionPages" style="background:#8e44ad;"
+                    onclick="app.fusionnerChoix()">Fusionner (cochez 2 pages)</button>
+            </div>
+        </div>
+    </div>
     <!-- SÉANCES D'EXEMPLE. Une bibliothèque vide n'apprend rien : on ne sait ni
          ce qu'on peut y ranger, ni à quoi ressemble une construction rejouable.
          Ces neuf-là sont fabriquées PAR LE LOGICIEL — chacune est la sortie
@@ -18029,6 +18147,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.view = { x: 0, y: 0, zoom: 1 };
                 this.render();
             }
+            /* Amener toute la figure sous les yeux. « Recentrer » remet le zoom à 1 et
+               la vue à l'origine, ce qui ne montre rien quand la figure est ailleurs
+               ou plus grande que l'écran — après une fusion, par exemple. */
+            cadrerSurFigure(marge = 70) {
+                const b = this.getSceneBounds(false);
+                if (!b || !isFinite(b.minX) || !isFinite(b.maxX)) return;
+                /* La taille utile est celle du CONTENEUR, pas celle du canevas : le
+                   canevas mesure 3000×2000, il déborde volontairement et c'est le
+                   conteneur qui le rogne. Se fier au canevas revenait à cadrer sur
+                   une feuille trois fois plus grande que l'écran — le zoom restait
+                   donc à 1 et la figure fusionnée sortait du cadre. */
+                const boite = (this.canvas.parentElement || this.canvas).getBoundingClientRect();
+                const dispoL = Math.max(120, boite.width - marge * 2);
+                const dispoH = Math.max(120, boite.height - marge * 2);
+                const l = Math.max(1, b.maxX - b.minX), h = Math.max(1, b.maxY - b.minY);
+                const zoom = Math.max(0.15, Math.min(dispoL / l, dispoH / h, 1));
+                this.view.zoom = zoom;
+                this.view.x = marge + (dispoL - l * zoom) / 2 - b.minX * zoom;
+                this.view.y = marge + (dispoH - h * zoom) / 2 - b.minY * zoom;
+                this.render();
+            }
             setSpeed(val) {
                 const min = 50;
                 const max = 1500;
@@ -23885,6 +24024,226 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.entities.filter(e => !(e instanceof ToolAnimation)).length === 0) faire();
                 else this.showModal(`Supprimer la page ${this.pageActive + 1} et tout ce qu'elle contient ?`, faire);
             }
+            /* DÉPLACER UNE FIGURE ENTIÈRE. Presque tout suit ses points : un segment,
+               un cercle, un polygone ne portent pas de coordonnées, ils renvoient aux
+               points. Restent ceux qui en portent en propre — les textes, le centre
+               d'un arc quand ce n'est pas un point, les états mémorisés des
+               instruments, et l'encre libre du stylo, qui n'est accrochée à rien.
+               Un même point servant à plusieurs objets, on ne le bouge qu'une fois. */
+            deplacerLot(lot, dx, dy) {
+                const vus = new Set();
+                const bouger = (o) => {
+                    if (!o || typeof o !== 'object' || vus.has(o)) return;
+                    if (typeof o.x !== 'number' || typeof o.y !== 'number') return;
+                    vus.add(o); o.x += dx; o.y += dy;
+                };
+                lot.forEach(e => {
+                    if (e instanceof ToolAnimation) { bouger(e.startState); bouger(e.endState); return; }
+                    bouger(e);
+                    bouger(e.center); bouger(e.p1); bouger(e.p2); bouger(e.p3);
+                    if (Array.isArray(e.points)) e.points.forEach(bouger);
+                    if (Array.isArray(e.parents)) e.parents.forEach(bouger);
+                    // encre du stylo posée dans le vide : ses points sont absolus
+                    if (e instanceof Annotation && (e.mode === 'libre' || !e.ancre) && Array.isArray(e.local)) {
+                        e.local.forEach(q => { q.u += dx; q.v += dy; });
+                    }
+                });
+            }
+            empriseLot(lot) {
+                const garde = this.entities;
+                this.entities = lot;
+                let b = null;
+                try { b = this.getSceneBounds(false); } finally { this.entities = garde; }
+                if (!b || !isFinite(b.minX)) return null;
+                return b;
+            }
+            /* FUSIONNER DES PAGES. Quatre quadrilatères construits séparément, chacun
+               nommé ABCD, doivent tenir sur une même feuille sans se marcher dessus
+               ni s'appeler pareil. On les range en grille, et l'on RENOMME les points
+               dont la lettre est déjà prise : le premier lot garde ses lettres, les
+               suivants prennent les premières libres. Les consignes d'étape suivent,
+               décalées du nombre d'objets déjà posés — les constructions se rejouent
+               donc l'une après l'autre sur la page fusionnée. */
+            fusionnerPages(indices) {
+                const p = this.synchroniserPage();
+                const choix = [...new Set(indices)].filter(i => i >= 0 && i < p.length && p[i]).sort((a, b) => a - b);
+                if (choix.length < 2) { this.showToast("Sélectionnez au moins deux pages."); return false; }
+                const retour = this.pageActive;
+                const lots = [];
+                for (const i of choix) {
+                    this.loadFromCompressedString(p[i]);
+                    lots.push({ ents: this.entities, cons: Object.assign({}, this.stepInstructions) });
+                }
+                // grille : deux colonnes dès trois figures, côte à côte à deux
+                const n = lots.length;
+                const cols = (n <= 2) ? n : 2;
+                const marge = 90;
+                const boites = lots.map(l => this.empriseLot(l.ents));
+                const largeurs = boites.map(b => b ? b.maxX - b.minX : 0);
+                const hauteurs = boites.map(b => b ? b.maxY - b.minY : 0);
+                const pasX = Math.max(...largeurs) + marge;
+                const pasY = Math.max(...hauteurs) + marge;
+                const lettres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                const prises = new Set();
+                const libre = () => {
+                    for (const c of lettres) if (!prises.has(c)) return c;
+                    for (const c of lettres) if (!prises.has(c + "'")) return c + "'";
+                    for (const c of lettres) if (!prises.has(c + "''")) return c + "''";
+                    return '';
+                };
+                const fusion = [];
+                const consignes = {};
+                lots.forEach((l, k) => {
+                    const b = boites[k];
+                    if (b) {
+                        const cx = (k % cols) * pasX, cy = Math.floor(k / cols) * pasY;
+                        this.deplacerLot(l.ents, cx - b.minX + 120, cy - b.minY + 120);
+                    }
+                    l.ents.forEach(e => {
+                        if (e instanceof Point && e.label) {
+                            if (prises.has(e.label)) e.label = libre();
+                            if (e.label) prises.add(e.label);
+                        }
+                    });
+                    const decalage = fusion.length;
+                    Object.keys(l.cons).forEach(i => { consignes[Number(i) + decalage] = l.cons[i]; });
+                    l.ents.forEach(e => fusion.push(e));
+                });
+                this.entities = fusion;
+                this.stepInstructions = consignes;
+                this.replayIndex = null;
+                this.historyPast = []; this.historyFuture = [];
+                this.saveState();
+                this.cadrerSurFigure();
+                const code = this.getCompressedString();
+                // la fusion prend la place de la première, les autres disparaissent
+                const gardee = choix[0];
+                p[gardee] = code;
+                for (let i = choix.length - 1; i >= 1; i--) p.splice(choix[i], 1);
+                this.pageActive = gardee;
+                this.vignettesPages = {};
+                this.majBarrePages();
+                this.render();
+                this.showToast(`🧩 ${choix.length} pages fusionnées — ${prises.size} points nommés`);
+                return true;
+            }
+
+            /* Vignettes des pages. Fabriquer l'image d'une page suppose de la
+               charger : on met donc l'état courant de côté et on le remet, et l'on ne
+               refait que les pages dont le code a changé. */
+            construireVignettesPages() {
+                const p = this.synchroniserPage();
+                const memo = this.vignettesPages || (this.vignettesPages = {});
+                const aFaire = p.map((c, i) => ({ c, i })).filter(o => o.c && memo[o.c] === undefined);
+                if (!aFaire.length) return;
+                const sauve = {
+                    ents: this.entities, hist: this.historyPast, fut: this.historyFuture,
+                    cons: this.stepInstructions, idx: this.replayIndex,
+                    w: Object.assign({}, this.activeWidgets),
+                };
+                try {
+                    aFaire.forEach(o => {
+                        this.loadFromCompressedString(o.c);
+                        this.replayIndex = null;
+                        this.render();
+                        memo[o.c] = this.vignetteCourante(150);
+                    });
+                } finally {
+                    this.entities = sauve.ents; this.historyPast = sauve.hist;
+                    this.historyFuture = sauve.fut; this.stepInstructions = sauve.cons;
+                    this.replayIndex = sauve.idx; this.activeWidgets = sauve.w;
+                    this.render();
+                }
+            }
+            ouvrirPanneauPages() {
+                const m = document.getElementById('pagesModal');
+                if (!m) return;
+                this.pagesChoisies = new Set();
+                this.construireVignettesPages();
+                this.majPanneauPages();
+                m.style.display = 'flex';
+            }
+            majPanneauPages() {
+                const hote = document.getElementById('pagesListe');
+                if (!hote) return;
+                const p = this.synchroniserPage();
+                const memo = this.vignettesPages || {};
+                hote.innerHTML = '';
+                p.forEach((code, i) => {
+                    const carte = document.createElement('div');
+                    carte.className = 'page-carte' + (i === this.pageActive ? ' active' : '')
+                        + (this.pagesChoisies.has(i) ? ' choisie' : '');
+                    carte.draggable = true;
+                    carte.dataset.rang = i;
+                    const img = document.createElement('img');
+                    img.src = memo[code] || ''; img.alt = '';
+                    const bas = document.createElement('div');
+                    bas.className = 'page-carte-bas';
+                    const g = document.createElement('button');
+                    g.className = 'page-mini'; g.textContent = '◀'; g.title = 'Reculer la page';
+                    g.onclick = (ev) => { ev.stopPropagation(); this.echangerPages(i, i - 1); };
+                    const d = document.createElement('button');
+                    d.className = 'page-mini'; d.textContent = '▶'; d.title = 'Avancer la page';
+                    d.onclick = (ev) => { ev.stopPropagation(); this.echangerPages(i, i + 1); };
+                    const num = document.createElement('span');
+                    num.className = 'page-num'; num.textContent = i + 1;
+                    bas.appendChild(g); bas.appendChild(num); bas.appendChild(d);
+                    const coche = document.createElement('button');
+                    coche.className = 'page-coche';
+                    coche.textContent = this.pagesChoisies.has(i) ? '✓' : '';
+                    coche.title = 'Sélectionner pour la fusion';
+                    coche.onclick = (ev) => {
+                        ev.stopPropagation();
+                        if (this.pagesChoisies.has(i)) this.pagesChoisies.delete(i);
+                        else this.pagesChoisies.add(i);
+                        this.majPanneauPages();
+                    };
+                    carte.appendChild(img); carte.appendChild(coche); carte.appendChild(bas);
+                    carte.onclick = () => { this.allerPage(i); this.majPanneauPages(); };
+                    carte.ondragstart = (ev) => { this.pageTiree = i; ev.dataTransfer.effectAllowed = 'move'; };
+                    carte.ondragover = (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; };
+                    carte.ondrop = (ev) => { ev.preventDefault(); this.deplacerPage(this.pageTiree, i); };
+                    hote.appendChild(carte);
+                });
+                const btn = document.getElementById('btnFusionPages');
+                if (btn) {
+                    btn.disabled = this.pagesChoisies.size < 2;
+                    btn.textContent = this.pagesChoisies.size < 2
+                        ? 'Fusionner (cochez 2 pages)'
+                        : `Fusionner les ${this.pagesChoisies.size} pages cochées`;
+                }
+            }
+            echangerPages(a, b2) {
+                const p = this.synchroniserPage();
+                if (a < 0 || b2 < 0 || a >= p.length || b2 >= p.length) return;
+                const t = p[a]; p[a] = p[b2]; p[b2] = t;
+                if (this.pageActive === a) this.pageActive = b2;
+                else if (this.pageActive === b2) this.pageActive = a;
+                this.pagesChoisies = new Set();
+                this.majBarrePages(); this.majPanneauPages();
+            }
+            deplacerPage(de, vers) {
+                const p = this.synchroniserPage();
+                if (de === null || de === undefined || de === vers) return;
+                if (de < 0 || vers < 0 || de >= p.length || vers >= p.length) return;
+                const code = p.splice(de, 1)[0];
+                p.splice(vers, 0, code);
+                // la page qu'on regardait reste celle qu'on regarde
+                if (this.pageActive === de) this.pageActive = vers;
+                else if (de < this.pageActive && vers >= this.pageActive) this.pageActive -= 1;
+                else if (de > this.pageActive && vers <= this.pageActive) this.pageActive += 1;
+                this.pagesChoisies = new Set();
+                this.majBarrePages(); this.majPanneauPages();
+            }
+            fusionnerChoix() {
+                const choix = [...(this.pagesChoisies || [])];
+                if (this.fusionnerPages(choix)) {
+                    this.pagesChoisies = new Set();
+                    const m = document.getElementById('pagesModal');
+                    if (m) m.style.display = 'none';
+                }
+            }
+
             /* La barre ne se montre qu'à partir de deux pages : tant qu'il n'y en a
                qu'une, le document est une figure et l'interface n'a pas à s'alourdir
                d'une pagination qui ne sert à rien. Seul le « + » reste. */

@@ -22,7 +22,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
           bubbles:true, cancelable:true })); },
       seg(a, c) { const app = window.app; app.setTool('segment'); this.ev('pointerdown', a, 1);
         for (let i=1;i<=8;i++) this.ev('pointermove',{x:a.x+(c.x-a.x)*i/8,y:a.y+(c.y-a.y)*i/8},1);
-        this.ev('pointerup', c, 0); app.setTool('select'); },
+        this.ev('pointerup', c, 0); app.setTool('select');
+        // le segment tracé : les bâtisseurs le prennent en base
+        return app.entities.filter(e => e.constructor.name === 'Segment').pop(); },
       neuf() { const app = window.app; app.pages = null; app.pageActive = 0;
         app.entities = []; app.historyPast = []; app.saveState(); app.majBarrePages(); },
     };`);
@@ -83,6 +85,87 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     return { tildes: (c.match(/~/g) || []).length, egal: c === app.getCompressedString() };
   });
   ck('un document d\'une page reste un code d\'autrefois', solo.tildes === 0 && solo.egal, JSON.stringify(solo));
+
+  console.log('\n=== le panneau des pages : ranger, cocher, fusionner ===');
+  const panneau = await page.evaluate(async () => {
+    const app = window.app, s = window.__s;
+    s.neuf();
+    s.seg({x:200,y:250},{x:600,y:250});
+    app.ajouterPage(); s.seg({x:200,y:300},{x:500,y:300}); s.seg({x:200,y:400},{x:500,y:400});
+    app.ajouterPage(); s.seg({x:300,y:300},{x:700,y:600});
+    app.allerPage(1);
+    /* Fabriquer les vignettes suppose de charger chaque page : l'état courant
+       est mis de côté et remis. Si ça ne marchait pas, on perdrait la figure
+       ouverte et son historique en ouvrant simplement le panneau. */
+    const avant = { objets: app.entities.length, page: app.pageActive, hist: app.historyPast.length };
+    app.ouvrirPanneauPages();
+    await new Promise(r => setTimeout(r, 300));
+    const cartes = [...document.querySelectorAll('#pagesListe .page-carte')];
+    return { avant, apres: { objets: app.entities.length, page: app.pageActive, hist: app.historyPast.length },
+             cartes: cartes.length,
+             vignettes: cartes.filter(c => /^data:image/.test(c.querySelector('img').src)).length,
+             active: cartes.findIndex(c => c.classList.contains('active')) };
+  });
+  console.log('  ' + JSON.stringify(panneau));
+  ck('une vignette par page', panneau.cartes === 3 && panneau.vignettes === 3, JSON.stringify(panneau));
+  ck('la page ouverte est signalée', panneau.active === 1, String(panneau.active));
+  ck('ouvrir le panneau ne touche pas au travail en cours',
+     panneau.apres.objets === panneau.avant.objets && panneau.apres.page === panneau.avant.page
+     && panneau.apres.hist === panneau.avant.hist, JSON.stringify(panneau));
+
+  const range = await page.evaluate(() => {
+    const app = window.app;
+    const tailles = app.pagesDocument().map(c => c.length);
+    document.querySelectorAll('#pagesListe .page-carte')[0].querySelectorAll('.page-mini')[1].click();
+    return { avant: tailles, apres: app.pagesDocument().map(c => c.length), page: app.pageActive };
+  });
+  console.log('  ' + JSON.stringify(range));
+  ck('« avancer » échange bien deux pages',
+     range.apres[0] === range.avant[1] && range.apres[1] === range.avant[0], JSON.stringify(range));
+  ck('et la page qu\'on regardait reste celle qu\'on regarde', range.page === 0, String(range.page));
+
+  console.log('\n=== fusionner : quatre quadrilatères sur une feuille ===');
+  /* Le cas demandé : parallélogramme, rectangle, losange, carré construits
+     chacun sur sa page, chacun nommé à partir de A. Réunis, ils ne doivent ni
+     se superposer, ni porter deux fois la même lettre. */
+  const fusion = await page.evaluate(async () => {
+    const app = window.app, s = window.__s;
+    const attendre = (ms) => new Promise(r => setTimeout(r, ms));
+    const fini = async () => { await attendre(400); app.stopAnimation(); await attendre(150);
+      app.replayIndex = null; app.render(); };
+    s.neuf();
+    let sg = s.seg({x:200,y:500},{x:480,y:500}); app.buildSquare(sg, 340, 400); await fini();
+    const nomsCarre = app.entities.filter(e => e.constructor.name === 'Point').map(p => p.label);
+    app.ajouterPage(); sg = s.seg({x:200,y:500},{x:520,y:500}); app.buildRhombus(sg, 360, 420); await fini();
+    app.ajouterPage(); sg = s.seg({x:200,y:500},{x:460,y:500}); app.buildEquilateralTriangle(sg, 330, 400); await fini();
+    app.ajouterPage(); sg = s.seg({x:200,y:500},{x:440,y:500}); app.buildHexagon(sg, 320, 430); await fini();
+    const avant = { pages: app.pagesDocument().length, nomsCarre,
+                    etapes: app.pagesDocument().length };
+    app.fusionnerPages([0, 1, 2, 3]);
+    await attendre(200);
+    const pts = app.entities.filter(e => e.constructor.name === 'Point');
+    const labels = pts.map(p => p.label).filter(Boolean);
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    return { avant, pages: app.pagesDocument().length, objets: app.entities.length,
+             points: pts.length, labels,
+             doublons: labels.filter((l, i) => labels.indexOf(l) !== i),
+             etapes: Object.keys(app.stepInstructions).length,
+             largeur: Math.round(Math.max(...xs) - Math.min(...xs)),
+             hauteur: Math.round(Math.max(...ys) - Math.min(...ys)),
+             zoom: +app.view.zoom.toFixed(2) };
+  });
+  console.log('  ' + JSON.stringify({ ...fusion, labels: fusion.labels.join('') }));
+  ck('les quatre pages n\'en font plus qu\'une', fusion.pages === 1, String(fusion.pages));
+  ck('les quatre figures sont toutes là', fusion.objets > 100 && fusion.points >= 16,
+     `${fusion.objets} objets, ${fusion.points} points`);
+  ck('AUCUN point ne porte deux fois la même lettre', fusion.doublons.length === 0,
+     JSON.stringify(fusion.doublons));
+  ck('le premier lot garde ses lettres', fusion.labels.slice(0, 4).join('') === fusion.avant.nomsCarre.join(''),
+     `${fusion.labels.slice(0, 4).join('')} vs ${fusion.avant.nomsCarre.join('')}`);
+  ck('les figures sont rangées en grille, pas empilées',
+     fusion.largeur > 400 && fusion.hauteur > 400, `${fusion.largeur}×${fusion.hauteur}`);
+  ck('les consignes des quatre constructions sont conservées', fusion.etapes >= 8, String(fusion.etapes));
+  ck('la vue se recule pour tout montrer', fusion.zoom < 1, String(fusion.zoom));
 
   console.log('\n=== le PDF sort en un seul document, dans l\'ordre ===');
   const pdf = await page.evaluate(async () => {

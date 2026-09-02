@@ -40,9 +40,18 @@ minuteur le décide. Une figure sans consignes se dévoile alors objet par objet
 Un document tient **plusieurs pages** : on les feuillette, elles sortent en un
 **seul PDF** — une feuille par page, chacune au format de sa figure — et elles
 voyagent dans **un seul lien**. La pagination ne s'affiche qu'à partir de deux
-pages. Les séances se rangent dans une **bibliothèque** locale, avec vignette,
-et la collection entière s'exporte en un fichier pour changer de poste ou la
-donner à un collègue.
+pages ; cliquer sur son numéro ouvre les **vignettes**, où l'on range les pages
+en les tirant.
+
+Et l'on peut en **fusionner** plusieurs. Un parallélogramme, un rectangle, un
+losange et un carré construits chacun sur sa page se retrouvent sur une seule,
+rangés en grille — et comme ils s'appelaient tous *ABCD*, les points qui
+portaient déjà leur lettre sont **renommés** : ABCD, EFGH, IJKL… Les consignes
+des quatre constructions suivent, décalées : la feuille se rejoue en entier.
+
+Les séances se rangent dans une **bibliothèque** locale, avec vignette, et la
+collection entière s'exporte en un fichier pour changer de poste ou la donner à
+un collègue.
 
 Elle n'est pas vide au premier lancement : neuf **constructions d'exemple** y
 attendent — médiatrice, bissectrice, triangle équilatéral, carré, losange,
@@ -121,7 +130,7 @@ libellés restent affichés là où l'infobulle n'existe pas — c'est-à-dire a
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les
-bibliothèques. **3,5 Mo, soit 902 Ko une fois compressé** — ce que télécharge
+bibliothèques. **3,6 Mo, soit 906 Ko une fois compressé** — ce que télécharge
 réellement le navigateur.
 
 Plus de la moitié de ce poids (1,8 Mo) est en `type="text/plain"` : présent dans
