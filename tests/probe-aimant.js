@@ -94,6 +94,40 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   console.log(`  origine ${co.org} | lâché à 8px -> [${Math.round(co.proche.x)},${Math.round(co.proche.y)}] | à 57px -> [${Math.round(co.loin.x)},${Math.round(co.loin.y)}]`);
   ck('pointe posée exactement sur l\'origine', Math.hypot(co.proche.x - co.org[0], co.proche.y - co.org[1]) < 1.5);
   ck('à 57px : pas de magnétisme forcé', Math.hypot(co.loin.x - co.org[0], co.loin.y - co.org[1]) > 20);
+  /* L'équerre lâchait la règle au moindre tremblement : il suffisait de s'écarter
+     de 10 px, la distance même qui sert à se coller. Deux seuils désormais — on
+     approche à 10 px pour prendre, on s'écarte de 26 pour lâcher. */
+  console.log('\n=== une fois collée, l\'équerre tient ===');
+  const hyst = await page.evaluate(() => {
+    const app = window.app, rc = app.canvas.getBoundingClientRect();
+    const ev = (t, s, bt) => { const X = s.x*app.view.zoom+app.view.x+rc.left, Y = s.y*app.view.zoom+app.view.y+rc.top;
+      (t==='pointerup'?window:app.canvas).dispatchEvent(new PointerEvent(t,{ pointerId:3, pointerType:'mouse',
+        isPrimary:true, button:0, buttons:bt, clientX:X, clientY:Y, bubbles:true, cancelable:true })); };
+    app.entities = []; app.historyPast = []; app.saveState(); app.setTool('select');
+    for (const w of ['ruler', 'setsquare']) if (!app.activeWidgets[w]) app.toggleWidget(w);
+    for (const w of ['compass', 'protractor']) if (app.activeWidgets[w]) app.toggleWidget(w);
+    const ru = app.rulerWidget, sq = app.setSquareWidget;
+    const essai = (derive) => {
+      ru.x = 200; ru.y = 500; ru.angle = 0;
+      sq.x = 400; sq.y = 494; sq.angle = 0.02;
+      const prise = sq.toGlobal(100, 100);
+      ev('pointerdown', prise, 1);
+      for (let i = 1; i <= 6; i++) ev('pointermove', { x: prise.x, y: prise.y + 6 * i / 6 }, 1);
+      const colle = (Math.abs(sq.y - 500) < 0.5 && Math.abs(sq.angle) < 1e-6);
+      for (let i = 1; i <= 10; i++) ev('pointermove', { x: prise.x, y: prise.y + 6 - derive * i / 10 }, 1);
+      const tient = Math.abs(sq.y - 500) < 0.5;
+      ev('pointerup', { x: prise.x, y: prise.y }, 0);
+      return { colle, tient, ecart: +Math.abs(sq.y - 500).toFixed(1) };
+    };
+    return { d5: essai(5), d15: essai(15), d24: essai(24), d40: essai(40) };
+  });
+  Object.entries(hyst).forEach(([k, v]) => console.log(`  écart de ${k.slice(1)} px : ${JSON.stringify(v)}`));
+  ck('elle se colle en approchant', hyst.d5.colle && hyst.d15.colle && hyst.d24.colle && hyst.d40.colle);
+  ck('elle tient quand on s\'écarte de 5 px', hyst.d5.tient);
+  ck('de 15 px aussi', hyst.d15.tient, String(hyst.d15.ecart));
+  ck('de 24 px encore', hyst.d24.tient, String(hyst.d24.ecart));
+  ck('mais elle lâche à 40 px : ce n\'est pas de la glu', !hyst.d40.tient, String(hyst.d40.ecart));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 2).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

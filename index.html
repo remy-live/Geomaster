@@ -1610,7 +1610,11 @@
         #instructionBox {
             position: absolute;
             top: 60px;
-            right: 20px;
+            /* À DROITE, elle s'ouvrait exactement sous la palette de style (elle
+               aussi ancrée à droite, et deux fois plus haute dans la pile) : la
+               croix des consignes était couverte par celle de la palette. Elles
+               s'ouvrent chacune de leur côté. */
+            left: 110px;
             width: 300px;
             background: #fff;
             border: 1px solid #ccc;
@@ -2358,8 +2362,10 @@
             display: block;
             width: 100%;
             height: 108px;
-            object-fit: cover;
-            background: #fafbfc;
+            /* la vignette est découpée sur la figure : elle n'a plus le format de
+               l'écran, et « cover » la recouperait. On la montre entière. */
+            object-fit: contain;
+            background: #fff;
         }
 
         .biblio-nom {
@@ -2431,11 +2437,20 @@
            n'ont de sens qu'à plusieurs pages restent cachées tant qu'il n'y en a
            qu'une, et la barre se réduit alors à un seul « + ». */
         #barrePages {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            z-index: 60;
             display: flex;
             align-items: center;
             gap: 2px;
-            margin-left: 6px;
-            flex-shrink: 0;
+            padding: 3px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 1px solid rgba(0, 0, 0, 0.07);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.09);
         }
 
         #barrePages .page-multi {
@@ -2488,8 +2503,8 @@
             display: block;
             width: 100%;
             height: 100px;
-            object-fit: cover;
-            background: #fafbfc;
+            object-fit: contain;
+            background: #fff;
             pointer-events: none;
         }
 
@@ -6641,21 +6656,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="logo">Géomaster</div>
         <input type="text" id="docTitleInput" value="Sans titre" placeholder="Nom du projet..."
             aria-label="Renommer le projet" data-tooltip="Renommer le projet">
-        <!-- Les pages d'une séance. Tant qu'il n'y en a qu'une, seul le « + » se
-             voit : le document est alors une figure, et une pagination n'aurait
-             rien à paginer. -->
-        <div id="barrePages">
-            <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive - 1)"
-                aria-label="Page précédente" data-tooltip="Page précédente">◀</button>
-            <span id="pageEtiquette" class="page-multi" onclick="app.ouvrirPanneauPages()"
-                data-tooltip="Voir les pages : les ranger, en fusionner">1/1</span>
-            <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive + 1)"
-                aria-label="Page suivante" data-tooltip="Page suivante">▶</button>
-            <button class="page-btn" onclick="app.ajouterPage()" aria-label="Ajouter une page"
-                data-tooltip="Ajouter une page à la séance">＋</button>
-            <button class="page-btn page-multi" onclick="app.supprimerPage()"
-                aria-label="Supprimer la page" data-tooltip="Supprimer cette page">✕</button>
-        </div>
         <div class="top-toolbar">
             <div class="toolbar-group">
                 <!-- La recherche est en TÊTE de barre : sur téléphone l'en-tête
@@ -7427,6 +7427,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </div>
         </div>
         <div class="canvas-container">
+            <!-- Les pages de la séance, en bas à gauche : le haut est déjà chargé, et
+                 c'est ici qu'on regarde quand on travaille. Tant qu'il n'y a qu'une
+                 page, seul le « + » se voit — une pagination n'aurait rien à paginer. -->
+            <div id="barrePages">
+                <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive - 1)"
+                    aria-label="Page précédente" data-tooltip="Page précédente">◀</button>
+                <span id="pageEtiquette" class="page-multi" onclick="app.ouvrirPanneauPages()"
+                    data-tooltip="Voir les pages : les ranger, en fusionner">1/1</span>
+                <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive + 1)"
+                    aria-label="Page suivante" data-tooltip="Page suivante">▶</button>
+                <button class="page-btn" onclick="app.ajouterPage()" aria-label="Ajouter une page"
+                    data-tooltip="Ajouter une page à la séance">＋</button>
+                <button class="page-btn page-multi" onclick="app.supprimerPage()"
+                    aria-label="Supprimer la page" data-tooltip="Supprimer cette page">✕</button>
+            </div>
             <div id="dragDropOverlay"
                 style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(41, 128, 185, 0.9); z-index:99999; justify-content:center; align-items:center; flex-direction:column; color:white; pointer-events:none; backdrop-filter:blur(4px);">
                 <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="2"
@@ -16918,6 +16933,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let isDragging = false;
                 let startX, startY, initLeft, initTop;
                 handle.addEventListener('pointerdown', (e) => {
+                    /* La croix vit DANS la poignée. Sans cette sortie, l'appui était
+                       capturé par la poignée — preventDefault + setPointerCapture —
+                       le relâchement lui revenait aussi, et le navigateur ne
+                       fabriquait donc jamais de « click » sur la croix : la fenêtre
+                       des consignes ne se fermait plus. La palette de style avait
+                       déjà ce garde-fou ; celle-ci l'avait perdu. */
+                    if (e.target.closest('.instr-close')) return;
                     isDragging = true;
                     startX = e.clientX;
                     startY = e.clientY;
@@ -22250,7 +22272,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     dy: l.y,
                                 };
                             }
-                            if (zone === 'move') { this.widgetOffset.x = mousePos.x - targetWidget.x; this.widgetOffset.y = mousePos.y - targetWidget.y; }
+                            if (zone === 'move') {
+                                this.widgetOffset.x = mousePos.x - targetWidget.x; this.widgetOffset.y = mousePos.y - targetWidget.y;
+                                // on repart libre : l'aimant devra reprendre pour tenir
+                                this.colleAuRail = false;
+                            }
                         }
                         this.render();
                         return;
@@ -22930,19 +22956,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.pendingSnap = null; this.canvas.style.cursor = 'move'; w.highlightSide = null; let snapSideShift = null;
                             if (this.isObjectMagnetActive) {
                                 const limitRad = 4 * (Math.PI / 180); const snapDist = 10;
+                                /* HYSTÉRÉSIS. Il faut approcher à 10 px pour se coller
+                                   au rail, mais s'en écarter de 26 pour s'en décoller.
+                                   Avec un seuil unique, l'équerre lâchait la règle au
+                                   moindre tremblement de la main : on la pose, on la
+                                   fait glisser, elle part. Un aimant qui prend de trop
+                                   loin agace ; un aimant qui lâche aussitôt ne sert à
+                                   rien. Deux seuils règlent les deux à la fois. */
+                                const seuilRail = this.colleAuRail ? 26 : snapDist;
                                 const normPi = (a) => { let r = a % Math.PI; if (r < 0) r += Math.PI; return r; };
                                 const getProj = (px, py, originX, originY, angle) => { const dx = Math.cos(angle); const dy = Math.sin(angle); const val = (px - originX) * dx + (py - originY) * dy; return { x: originX + val * dx, y: originY + val * dy }; };
                                 if (w instanceof RulerWidget && this.activeWidgets.setsquare && this.setSquareWidget) {
                                     const sq = this.setSquareWidget; let diffBase = Math.abs(normPi(w.angle) - normPi(sq.angle));
                                     if (diffBase > Math.PI / 2) diffBase = Math.abs(diffBase - Math.PI);
-                                    if (diffBase < limitRad) { const proj = getProj(targetX, targetY, sq.x, sq.y, sq.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < snapDist) { w.x = proj.x; w.y = proj.y; const a1 = sq.angle; const a2 = sq.angle + Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } }
-                                    if (!toolToToolSnap) { const vertAngle = sq.angle + Math.PI / 2; let diffVert = Math.abs(normPi(w.angle) - normPi(vertAngle)); if (diffVert > Math.PI / 2) diffVert = Math.abs(diffVert - Math.PI); if (diffVert < limitRad) { const proj = getProj(targetX, targetY, sq.x, sq.y, vertAngle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < snapDist) { w.x = proj.x; w.y = proj.y; const a1 = vertAngle; const a2 = vertAngle - Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } } }
+                                    if (diffBase < limitRad) { const proj = getProj(targetX, targetY, sq.x, sq.y, sq.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < seuilRail) { w.x = proj.x; w.y = proj.y; const a1 = sq.angle; const a2 = sq.angle + Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } }
+                                    if (!toolToToolSnap) { const vertAngle = sq.angle + Math.PI / 2; let diffVert = Math.abs(normPi(w.angle) - normPi(vertAngle)); if (diffVert > Math.PI / 2) diffVert = Math.abs(diffVert - Math.PI); if (diffVert < limitRad) { const proj = getProj(targetX, targetY, sq.x, sq.y, vertAngle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < seuilRail) { w.x = proj.x; w.y = proj.y; const a1 = vertAngle; const a2 = vertAngle - Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } } }
                                 }
                                 else if (w instanceof SetSquareWidget && this.activeWidgets.ruler && this.rulerWidget) {
                                     const rul = this.rulerWidget; let diffBase = Math.abs(normPi(w.angle) - normPi(rul.angle));
                                     if (diffBase > Math.PI / 2) diffBase = Math.abs(diffBase - Math.PI);
-                                    if (diffBase < limitRad) { const proj = getProj(targetX, targetY, rul.x, rul.y, rul.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < snapDist) { w.x = proj.x; w.y = proj.y; const a1 = rul.angle; const a2 = rul.angle + Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } }
-                                    if (!toolToToolSnap) { const targetSqAngle = rul.angle + Math.PI / 2; let diffVert = Math.abs(normPi(w.angle) - normPi(targetSqAngle)); if (diffVert > Math.PI / 2) diffVert = Math.abs(diffVert - Math.PI); if (diffVert < limitRad) { const proj = getProj(targetX, targetY, rul.x, rul.y, rul.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < snapDist) { w.x = proj.x; w.y = proj.y; const a1 = targetSqAngle; const a2 = targetSqAngle - Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } } }
+                                    if (diffBase < limitRad) { const proj = getProj(targetX, targetY, rul.x, rul.y, rul.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < seuilRail) { w.x = proj.x; w.y = proj.y; const a1 = rul.angle; const a2 = rul.angle + Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } }
+                                    if (!toolToToolSnap) { const targetSqAngle = rul.angle + Math.PI / 2; let diffVert = Math.abs(normPi(w.angle) - normPi(targetSqAngle)); if (diffVert > Math.PI / 2) diffVert = Math.abs(diffVert - Math.PI); if (diffVert < limitRad) { const proj = getProj(targetX, targetY, rul.x, rul.y, rul.angle); if (MathUtils.dist(targetX, targetY, proj.x, proj.y) < seuilRail) { w.x = proj.x; w.y = proj.y; const a1 = targetSqAngle; const a2 = targetSqAngle - Math.PI; const d1 = Math.abs(Math.atan2(Math.sin(w.angle - a1), Math.cos(w.angle - a1))); const d2 = Math.abs(Math.atan2(Math.sin(w.angle - a2), Math.cos(w.angle - a2))); w.angle = (d1 < d2) ? a1 : a2; toolToToolSnap = true; } } }
                                 }
                                 if (!toolToToolSnap) {
                                     snapPoint = this.entities.find(ent => (ent.visible !== false || this.showHidden) && ent instanceof Point && MathUtils.dist(targetX, targetY, ent.x, ent.y) < 15);
@@ -23004,6 +23038,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     });
                                 }
                             }
+                            // mémoire de l'aimant : c'est elle qui donne l'hystérésis
+                            this.colleAuRail = toolToToolSnap;
                             if (toolToToolSnap) { if (snapSideShift) { this.pendingSnap = { x: w.x + snapSideShift.dx, y: w.y + snapSideShift.dy }; this.canvas.style.cursor = 'crosshair'; } }
                             else if (snapPoint) { w.x = snapPoint.x; w.y = snapPoint.y; }
                             else if (snapLine && projLine) { w.x = projLine.x; w.y = projLine.y; if (snapSideShift) { this.pendingSnap = { x: projLine.x + snapSideShift.dx, y: projLine.y + snapSideShift.dy }; this.canvas.style.cursor = 'crosshair'; } }
@@ -24339,12 +24375,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             vignetteCourante(largeur = 170) {
                 const src = this.canvas;
                 if (!src || !src.width) return '';
-                const h = Math.max(1, Math.round(largeur * src.height / src.width));
+                /* On ne miniaturise pas la feuille : le canevas mesure 3000×2000 et
+                   la figure n'en occupe qu'un coin — la vignette ne montrait guère
+                   que du blanc. On découpe la ZONE UTILE, celle qui porte quelque
+                   chose, avec juste assez de marge pour ne pas raser les noms. */
+                let sx = 0, sy = 0, sl = src.width, sh = src.height;
+                const b = this.getSceneBounds(false);
+                const ratio = src.width / (src.getBoundingClientRect().width || src.width);
+                if (b && isFinite(b.minX) && b.maxX > b.minX && b.maxY > b.minY) {
+                    const z = this.view.zoom || 1, m = 40;
+                    const x0 = ((b.minX - m) * z + this.view.x) * ratio;
+                    const y0 = ((b.minY - m) * z + this.view.y) * ratio;
+                    const x1 = ((b.maxX + m) * z + this.view.x) * ratio;
+                    const y1 = ((b.maxY + m) * z + this.view.y) * ratio;
+                    const gx = Math.max(0, Math.min(x0, src.width - 2));
+                    const gy = Math.max(0, Math.min(y0, src.height - 2));
+                    const dx = Math.min(src.width, Math.max(x1, gx + 2));
+                    const dy = Math.min(src.height, Math.max(y1, gy + 2));
+                    if (dx - gx > 8 && dy - gy > 8) { sx = gx; sy = gy; sl = dx - gx; sh = dy - gy; }
+                }
+                const h = Math.max(1, Math.round(largeur * sh / sl));
                 const c = document.createElement('canvas');
                 c.width = largeur; c.height = h;
                 const x = c.getContext('2d');
                 x.fillStyle = '#fff'; x.fillRect(0, 0, largeur, h);
-                x.drawImage(src, 0, 0, largeur, h);
+                x.drawImage(src, sx, sy, sl, sh, 0, 0, largeur, h);
                 // JPEG : une vignette de figure se contente très bien de 0,6
                 try { return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
             }

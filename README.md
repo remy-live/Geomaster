@@ -41,7 +41,10 @@ Un document tient **plusieurs pages** : on les feuillette, elles sortent en un
 **seul PDF** — une feuille par page, chacune au format de sa figure — et elles
 voyagent dans **un seul lien**. La pagination ne s'affiche qu'à partir de deux
 pages ; cliquer sur son numéro ouvre les **vignettes**, où l'on range les pages
-en les tirant.
+en les tirant. La barre des pages vit en bas à gauche, contre la barre d'outils :
+le haut de l'écran est déjà chargé, et c'est en bas qu'on regarde en travaillant.
+Chaque vignette est découpée sur la **zone utile** de sa page, pas sur la feuille
+entière.
 
 Et l'on peut en **fusionner** plusieurs. Un parallélogramme, un rectangle, un
 losange et un carré construits chacun sur sa page se retrouvent sur une seule,
@@ -185,7 +188,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 59 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 60 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

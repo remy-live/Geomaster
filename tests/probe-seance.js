@@ -108,10 +108,6 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   });
   console.log('  ' + JSON.stringify(panneau));
   ck('une vignette par page', panneau.cartes === 3 && panneau.vignettes === 3, JSON.stringify(panneau));
-  ck('la page ouverte est signalée', panneau.active === 1, String(panneau.active));
-  ck('ouvrir le panneau ne touche pas au travail en cours',
-     panneau.apres.objets === panneau.avant.objets && panneau.apres.page === panneau.avant.page
-     && panneau.apres.hist === panneau.avant.hist, JSON.stringify(panneau));
 
   const range = await page.evaluate(() => {
     const app = window.app;
@@ -123,6 +119,37 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('« avancer » échange bien deux pages',
      range.apres[0] === range.avant[1] && range.apres[1] === range.avant[0], JSON.stringify(range));
   ck('et la page qu\'on regardait reste celle qu\'on regarde', range.page === 0, String(range.page));
+
+  /* La vignette découpe la ZONE UTILE. Le canevas mesure 3000×2000 et la figure
+     n'en occupe qu'un coin : sans découpe, toutes les vignettes auraient le même
+     format, celui de la feuille, et ne montreraient que du blanc. Deux figures de
+     formes opposées doivent donc donner deux vignettes de formes opposées. */
+  const cadrage = await page.evaluate(async () => {
+    const app = window.app, s = window.__s;
+    const forme = (v) => new Promise(res => {
+      const im = new Image();
+      im.onload = () => res(+(im.width / im.height).toFixed(2));
+      im.onerror = () => res(null);
+      im.src = v;
+    });
+    s.neuf(); s.seg({x:200,y:400},{x:900,y:430});          // très large et plat
+    app.render();
+    const large = await forme(app.vignetteCourante(150));
+    s.neuf(); s.seg({x:400,y:150},{x:430,y:800});          // haut et étroit
+    app.render();
+    const haut = await forme(app.vignetteCourante(150));
+    return { large, haut, feuille: +(app.canvas.width / app.canvas.height).toFixed(2) };
+  });
+  console.log('  ' + JSON.stringify(cadrage));
+  ck('la vignette d\'une figure large est large', cadrage.large > 1.6, String(cadrage.large));
+  ck('celle d\'une figure haute est haute', cadrage.haut < 0.9, String(cadrage.haut));
+  ck('aucune des deux n\'a le format de la feuille',
+     Math.abs(cadrage.large - cadrage.feuille) > 0.2 && Math.abs(cadrage.haut - cadrage.feuille) > 0.2,
+     JSON.stringify(cadrage));
+  ck('la page ouverte est signalée', panneau.active === 1, String(panneau.active));
+  ck('ouvrir le panneau ne touche pas au travail en cours',
+     panneau.apres.objets === panneau.avant.objets && panneau.apres.page === panneau.avant.page
+     && panneau.apres.hist === panneau.avant.hist, JSON.stringify(panneau));
 
   console.log('\n=== fusionner : quatre quadrilatères sur une feuille ===');
   /* Le cas demandé : parallélogramme, rectangle, losange, carré construits
