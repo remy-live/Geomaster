@@ -2338,6 +2338,109 @@
             right: 300px
         }
 
+        /* Cartes de la bibliothèque : une vignette, un nom, une croix. */
+        .biblio-carte {
+            position: relative;
+            width: 170px;
+            border: 1px solid #e3e6e8;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #fff;
+        }
+
+        .biblio-carte:hover {
+            border-color: #2980b9;
+            box-shadow: 0 4px 14px rgba(41, 128, 185, 0.18);
+        }
+
+        .biblio-carte img {
+            display: block;
+            width: 100%;
+            height: 108px;
+            object-fit: cover;
+            background: #fafbfc;
+        }
+
+        .biblio-nom {
+            display: block;
+            padding: 6px 8px;
+            font: 600 12px 'Segoe UI', sans-serif;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .biblio-sup {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            color: #d32f2f;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .biblio-sup:hover {
+            background: #d32f2f;
+            color: #fff;
+        }
+
+        /* Pagination de la séance. Discrète par construction : les commandes qui
+           n'ont de sens qu'à plusieurs pages restent cachées tant qu'il n'y en a
+           qu'une, et la barre se réduit alors à un seul « + ». */
+        #barrePages {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 6px;
+            flex-shrink: 0;
+        }
+
+        #barrePages .page-multi {
+            display: none;
+        }
+
+        #barrePages.multi .page-multi {
+            display: inline-flex;
+        }
+
+        #barrePages #pageEtiquette {
+            font: 600 12px 'Segoe UI', sans-serif;
+            color: #555;
+            min-width: 30px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #barrePages .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border: 1px solid #e2e6ea;
+            border-radius: 7px;
+            background: #fff;
+            color: #555;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        #barrePages .page-btn:hover {
+            background: #f0f4f8;
+            color: #2980b9;
+        }
+
         .obj-item {
             display: flex;
             align-items: center;
@@ -5904,7 +6007,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <line x1="12" y1="6" x2="12" y2="2" />
                                     <line x1="12" y1="22" x2="12" y2="18" />
                                 </svg></div>
-                            <div class="help-item-desc"><strong>Recentrer</strong><br>Remet le zoom à 100% et ramène la
+                            <div class="help-item-desc"><strong>Pages &amp; rejeu</strong><br>Un document peut tenir
+                                <b>plusieurs pages</b> : « ＋ » à côté du titre en ajoute une, ◀ ▶ les feuillette. Elles
+                                sortent en un seul PDF et voyagent dans un seul lien. Au tableau, <b>Page suiv. / Page
+                                préc.</b> — les touches d'une télécommande de présentation — Espace et les flèches
+                                avancent la construction étape par étape.<br><strong>Recentrer</strong><br>Remet le zoom à 100% et ramène la
                                 vue au centre du canevas.</div>
                         </div>
                         <div class="help-item-row">
@@ -5926,7 +6033,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Menu Fichiers</strong><br>Ouvrir, Sauvegarder, Image de
-                                fond, et Options d'Exportation (Élève, SVG, Vidéo, Écran).<br>
+                                fond, <b>Bibliothèque</b> (les séances rangées ici, avec leur vignette ; la collection
+                                s'exporte en un fichier), et Options d'Exportation (Élève, SVG, Vidéo, Écran).<br>
                                 <b>Partager :</b> le <b>lien</b> ou son <b>QR code</b> quand GéoMaster est en ligne ;
                                 le <b>code</b> de la figure quand il tourne depuis un fichier — un lien
                                 « file://… » désigne un emplacement de votre ordinateur et ne dit rien à personne
@@ -6403,6 +6511,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="logo">Géomaster</div>
         <input type="text" id="docTitleInput" value="Sans titre" placeholder="Nom du projet..."
             aria-label="Renommer le projet" data-tooltip="Renommer le projet">
+        <!-- Les pages d'une séance. Tant qu'il n'y en a qu'une, seul le « + » se
+             voit : le document est alors une figure, et une pagination n'aurait
+             rien à paginer. -->
+        <div id="barrePages">
+            <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive - 1)"
+                aria-label="Page précédente" data-tooltip="Page précédente">◀</button>
+            <span id="pageEtiquette" class="page-multi">1/1</span>
+            <button class="page-btn page-multi" onclick="app.allerPage(app.pageActive + 1)"
+                aria-label="Page suivante" data-tooltip="Page suivante">▶</button>
+            <button class="page-btn" onclick="app.ajouterPage()" aria-label="Ajouter une page"
+                data-tooltip="Ajouter une page à la séance">＋</button>
+            <button class="page-btn page-multi" onclick="app.supprimerPage()"
+                aria-label="Supprimer la page" data-tooltip="Supprimer cette page">✕</button>
+        </div>
         <div class="top-toolbar">
             <div class="toolbar-group">
                 <!-- La recherche est en TÊTE de barre : sur téléphone l'en-tête
@@ -6477,6 +6599,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 style="fill:none;">
                                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </div>
+                        <!-- Les séances rangées dans le logiciel : elles reviennent
+                             chaque année, elles n'ont pas à se chercher chaque fois. -->
+                        <div class="icon-btn" onclick="app.ouvrirBiblio()" aria-label="Bibliothèque de séances"
+                            data-libelle="Bibliothèque" data-tooltip="Bibliothèque : les séances rangées ici">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" style="fill:none;">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                             </svg>
                         </div>
                         <!-- Ouvrir une figure reçue sous forme de code, sans passer
@@ -6928,6 +7060,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <circle cx="10.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
                     <circle cx="14.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
                     <circle cx="18.5" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+            </button>
+            <!-- Vu du fond de la salle, un trait de 2 px et une lettre de 14 px
+                 n'existent pas. Ce bouton les épaissit à l'affichage seulement :
+                 ni la figure, ni le lien, ni le PDF n'en gardent trace. -->
+            <button class="top-btn" id="btn-projection" onclick="app.basculerProjection()"
+                aria-label="Mode projection" data-tooltip="Mode projection : traits et lettres épaissis"
+                style="margin-right: 10px; display:flex; align-items:center; justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="16" height="11" rx="2" />
+                    <path d="M18 10l4-3v10l-4-3" />
                 </svg>
             </button>
             <button class="top-btn" id="btn-fullscreen" onclick="app.toggleFullscreen()" aria-label="Plein Écran"
@@ -7442,7 +7586,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                         </svg>
                     </button>
+                    <!-- Avancer à la main : au tableau on passe à l'étape suivante
+                         quand on a fini d'expliquer, pas quand le minuteur le décide.
+                         Page suiv./préc. et les flèches font la même chose — ce sont
+                         les touches qu'envoie une télécommande de présentation. -->
+                    <button class="replay-btn" id="btnStepPrev" onclick="app.allerEtape(-1)"
+                        data-tooltip="Étape précédente (Page préc. ou ←)">⏴</button>
                     <button class="replay-btn" id="btnPlay" onclick="app.playFromStart()" data-tooltip="Lire">▶</button>
+                    <button class="replay-btn" id="btnStepNext" onclick="app.allerEtape(1)"
+                        data-tooltip="Étape suivante (Page suiv., Espace ou →)">⏵</button>
                     <button class="replay-btn" id="btnStop" onclick="app.stopAnimation()" data-tooltip="Stop">■</button>
                     <button class="replay-btn" id="btnLoop" onclick="app.toggleLoop()" data-tooltip="Boucle (OFF)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
@@ -7887,6 +8039,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <!-- QR code du lien de partage. On réutilise .modal-overlay / .modal-box pour
          hériter de toute l'adaptation déjà faite : hauteur plafonnée, largeur bornée
          au viewport, contenu défilant, cibles tactiles. -->
+    <!-- La bibliothèque : les séances rangées dans le logiciel, avec leur
+         vignette. Tout est local ; la collection s'exporte pour changer de poste
+         ou la donner à un collègue. -->
+    <div id="biblioModal" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-box" style="width: 620px; max-width: 96%;">
+            <h3 style="margin-top:0; color:#2980b9;">Bibliothèque</h3>
+            <div id="biblioListe"
+                style="display:flex; flex-wrap:wrap; gap:10px; max-height:52vh; overflow:auto; padding:4px; justify-content:flex-start;">
+            </div>
+            <input type="file" id="biblioFichier" accept="application/json,.json" style="display:none"
+                onchange="app.importerBiblio(this.files[0]); this.value='';">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel"
+                    onclick="document.getElementById('biblioModal').style.display='none'">Fermer</button>
+                <button class="modal-btn modal-confirm"
+                    onclick="document.getElementById('biblioFichier').click()">Importer une collection</button>
+                <button class="modal-btn modal-confirm" onclick="app.exporterBiblio()">Exporter la collection</button>
+                <button class="modal-btn modal-confirm" style="background:#27ae60;"
+                    onclick="app.enregistrerDansBiblio()">Ajouter la séance</button>
+            </div>
+        </div>
+    </div>
     <!-- Ouvrir une figure reçue sous forme de code. On accepte aussi un lien
          entier : on n'y prend que le fig=, pour que coller ce qu'on a sous la
          main marche dans tous les cas. -->
@@ -16446,6 +16621,57 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.render();
                 this.showToast(this.globalLabelsEnabled ? "🏷️ Noms affichés" : "🏷️ Noms masqués");
             }
+            /* MODE PROJECTION. Du fond d'une salle, un trait de 2 px et une lettre
+               de 14 px ne se voient pas. Plutôt que d'épaissir les objets — ce qui
+               partirait dans le lien, dans le PDF, et qu'il faudrait défaire ensuite
+               — on épaissit ce que le CONTEXTE reçoit, le temps du dessin.
+
+               On intercepte les deux propriétés qui portent la lisibilité,
+               `lineWidth` et `font`, et on les multiplie à l'écriture. Le lecteur,
+               lui, rend la valeur d'origine : un code qui relit l'épaisseur pour
+               calculer autre chose ne voit rien passer, et rien ne se compose. Au
+               retour, `delete` rend la propriété au prototype : il ne reste
+               strictement rien. Aucun objet n'est touché. */
+            basculerProjection(forcer) {
+                this.facteurProjection = (forcer === undefined
+                    ? (this.facteurProjection > 1 ? 1 : 2.2)
+                    : (forcer ? 2.2 : 1));
+                const btn = document.getElementById('btn-projection');
+                if (btn) btn.classList.toggle('active', this.facteurProjection > 1);
+                this.showToast(this.facteurProjection > 1
+                    ? "📽️ Mode projection : traits et lettres épaissis"
+                    : "Mode projection désactivé");
+                this.render();
+            }
+            ouvrirLoupeProjection() {
+                const f = this.facteurProjection || 1;
+                if (f <= 1) return false;
+                const ctx = this.ctx, proto = Object.getPrototypeOf(ctx);
+                const dL = Object.getOwnPropertyDescriptor(proto, 'lineWidth');
+                const dF = Object.getOwnPropertyDescriptor(proto, 'font');
+                if (!dL || !dF) return false;
+                let brutL = ctx.lineWidth, brutF = ctx.font;
+                Object.defineProperty(ctx, 'lineWidth', {
+                    configurable: true,
+                    get() { return brutL; },
+                    set(v) { brutL = v; dL.set.call(this, v * f); },
+                });
+                Object.defineProperty(ctx, 'font', {
+                    configurable: true,
+                    get() { return brutF; },
+                    // une police s'écrit « bold 14px Machin » : seul le nombre grossit
+                    set(v) {
+                        brutF = v;
+                        dF.set.call(this, String(v).replace(/(\d*\.?\d+)px/,
+                            (m, n) => (parseFloat(n) * f).toFixed(1) + 'px'));
+                    },
+                });
+                return true;
+            }
+            fermerLoupeProjection() {
+                delete this.ctx.lineWidth;
+                delete this.ctx.font;
+            }
             toggleFullscreen() {
                 const elem = document.documentElement;
                 if (!document.fullscreenElement) {
@@ -16777,6 +17003,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                         e.preventDefault();
                         this.redo();
+                    }
+                    /* Une télécommande de présentation n'envoie pas autre chose que
+                       Page suivante / Page précédente : les brancher met la
+                       construction sous le pouce, depuis le fond de la salle. Espace
+                       et les flèches font la même chose — ces dernières seulement
+                       quand rien n'est sélectionné, sinon elles déplacent l'objet. */
+                    if (e.key === 'PageDown' || e.key === ' ' || e.key === 'Spacebar'
+                        || (e.key === 'ArrowRight' && !this.selectedObject)) {
+                        e.preventDefault(); this.allerEtape(1); return;
+                    }
+                    if (e.key === 'PageUp' || (e.key === 'ArrowLeft' && !this.selectedObject)) {
+                        e.preventDefault(); this.allerEtape(-1); return;
                     }
                     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                         if (this.selectedObject && (this.selectedObject instanceof Point || this.selectedObject instanceof TextLabel)) {
@@ -17817,6 +18055,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.render();
                 this.animateLoop();
             }
+            /* PILOTER LE REJEU À LA MAIN. La barre ne proposait que « lire » et un
+               curseur de pause : la construction se déroulait au minuteur, et si un
+               élève posait une question elle continuait sans vous. Au tableau, on
+               avance quand ON a fini d'expliquer.
+
+               Les bornes d'étape sont les index où une consigne est attachée. Une
+               figure tracée à la main n'en a aucune : on avance alors objet par
+               objet, ce qui est exactement le geste voulu — dévoiler la figure pièce
+               à pièce. Les animations d'instruments ne comptent pas pour des étapes,
+               sinon on s'arrêterait sur des images vides. */
+            bornesEtapes() {
+                const n = this.entities.length;
+                const marques = Object.keys(this.stepInstructions || {})
+                    .map(Number).filter(i => i > 0 && i <= n);
+                if (marques.length) {
+                    const b = [0, ...marques, n];
+                    return [...new Set(b)].sort((x, y) => x - y);
+                }
+                const b = [0];
+                this.entities.forEach((e, i) => { if (!(e instanceof ToolAnimation)) b.push(i + 1); });
+                return [...new Set(b)].sort((x, y) => x - y);
+            }
+            allerEtape(sens) {
+                if (this.isPlaying) this.pauseAnimation();
+                const n = this.entities.length;
+                if (!n) return;
+                const bornes = this.bornesEtapes();
+                let cur = (this.replayIndex === null || this.replayIndex === undefined) ? n : this.replayIndex;
+                // figure terminée + « suivant » : on efface le tableau et on repart
+                if (sens > 0 && cur >= n) cur = 0;
+                let cible;
+                if (sens > 0) cible = bornes.find(i => i > cur);
+                else { const av = bornes.filter(i => i < cur); cible = av.length ? av[av.length - 1] : 0; }
+                if (cible === undefined) cible = n;
+                this.isToolAnimating = false;
+                this.waitEndTime = 0;
+                this.replayIndex = cible;
+                this.fastForward(cible);
+                this.render();
+                const rang = bornes.indexOf(cible);
+                const consigne = (this.stepInstructions || {})[cible];
+                this.showToast(`${rang < 0 ? '' : rang + '/' + (bornes.length - 1)}`
+                    + (consigne ? ' · ' + consigne : ''));
+            }
             pauseAnimation() {
                 this.isPlaying = false;
                 const btn = document.getElementById('btnPlay');
@@ -18680,6 +18962,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     chapters: this.chapters || [],
                     stepInstructions: this.stepInstructions || {},
                     background: this.serializeBackground(),
+                    // les autres pages de la séance, telles quelles
+                    pages: this.pagesDocument().slice(),
+                    pageActive: this.pageActive || 0,
                     timestamp: Date.now()
                 };
                 try {
@@ -18721,6 +19006,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.chapters = parsed.chapters || [];
                         this.stepInstructions = parsed.stepInstructions || {};
                         this.entities = this.deserialize(parsed.data);
+                        if (Array.isArray(parsed.pages) && parsed.pages.length) {
+                            this.pages = parsed.pages.slice();
+                            this.pageActive = Math.min(parsed.pageActive || 0, this.pages.length - 1);
+                            this.majBarrePages();
+                        }
                         this.restoreBackground(parsed.background);
                         this.historyPast = [];
                         this.saveState();
@@ -20677,7 +20967,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.ctx.restore();
                 }
             }
+            /* Le rendu passe par une enveloppe : en mode projection, elle épaissit
+               tout ce que le contexte reçoit le temps du dessin, et rend la main
+               ensuite quoi qu'il arrive. On ne grossit que pour l'ÉCRAN — un PDF
+               n'a pas besoin d'être lu du fond de la classe. */
             render(targetCtx = null) {
+                const grossi = (!targetCtx && !this.isExporting) ? this.ouvrirLoupeProjection() : false;
+                try { return this.dessinerTout(targetCtx); }
+                finally { if (grossi) this.fermerLoupeProjection(); }
+            }
+            dessinerTout(targetCtx = null) {
                 const ctx = targetCtx || this.ctx;
                 const view = (targetCtx) ? this.recordingView : this.view;
                 this.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -21497,8 +21796,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return;
                 }
 
+                /* Une séance sort dans l'ORDRE des pages, pas en commençant par celle
+                   qu'on regardait. On se place donc sur la première avant de composer
+                   quoi que ce soit, et l'on revient à la fin là où l'on était :
+                   exporter ne doit pas déplacer le travail. */
+                const pagesDoc = this.synchroniserPage();
+                const pageDepart = this.pageActive;
+                if (pagesDoc.length > 1 && pageDepart !== 0 && pagesDoc[0]) {
+                    this.pageActive = 0;
+                    this.loadFromCompressedString(pagesDoc[0]);
+                }
                 const svgContent = this.generateSVGString(includeTools, numbersMode);
-                if (!svgContent) return;
+                if (!svgContent) {
+                    if (this.pageActive !== pageDepart) {
+                        this.pageActive = pageDepart;
+                        if (pagesDoc[pageDepart]) this.loadFromCompressedString(pagesDoc[pageDepart]);
+                        this.render();
+                    }
+                    return;
+                }
 
                 try {
                     // On demande au navigateur de lire le texte SVG comme un vrai document
@@ -21531,8 +21847,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         height: height
                     });
 
+                    // les pages suivantes, chacune au format de sa propre figure
+                    for (let i = 1; i < pagesDoc.length; i++) {
+                        if (!pagesDoc[i]) continue;
+                        this.pageActive = i;
+                        this.loadFromCompressedString(pagesDoc[i]);
+                        const svgN = this.generateSVGString(includeTools, numbersMode);
+                        if (!svgN) continue;
+                        const docN = parser.parseFromString(svgN, "image/svg+xml").documentElement;
+                        const wN = parseFloat(docN.getAttribute('width'));
+                        const hN = parseFloat(docN.getAttribute('height'));
+                        pdf.addPage([wN, hN], wN > hN ? "landscape" : "portrait");
+                        await pdf.svg(docN, { x: 0, y: 0, width: wN, height: hN });
+                    }
+                    if (this.pageActive !== pageDepart) {
+                        this.pageActive = pageDepart;
+                        if (pagesDoc[pageDepart]) this.loadFromCompressedString(pagesDoc[pageDepart]);
+                        this.majBarrePages();
+                        this.render();
+                    }
+
                     pdf.save(this.getSafeFilename('pdf'));
-                    this.showToast("✅ PDF vectoriel exporté !");
+                    this.showToast(pagesDoc.length > 1
+                        ? `✅ PDF de ${pagesDoc.length} pages exporté !`
+                        : "✅ PDF vectoriel exporté !");
 
                 } catch (error) {
                     console.error("Erreur d'export PDF:", error);
@@ -23398,7 +23736,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.playFromStart();
             }
             shareCurrentView() {
-                const code = this.getCompressedString();
+                const code = this.codeDocument();
                 // le lien se fabrique en UN seul endroit, sans quoi celui du
                 // presse-papiers et celui du QR code finissent par différer
                 const url = this.lienDePartage('complet');
@@ -23417,8 +23755,214 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                modifiable : c'est le seul « mode=lecture » qui change tout. */
             lienDePartage(mode) {
                 const prefixe = (mode === 'lecture') ? "?mode=lecture&fig=" : "?fig=";
+                // le document entier, pages comprises — une séance tient dans un lien
                 return window.location.origin + window.location.pathname +
-                    prefixe + this.getCompressedString();
+                    prefixe + this.codeDocument();
+            }
+
+            /* LES PAGES. Une séance, ce n'est pas une figure : c'en est cinq, dans
+               un ordre. Le logiciel n'en connaissait qu'une — un fichier, un lien,
+               un écran — alors qu'on prépare une leçon comme on prépare une feuille.
+
+               Une page n'est rien d'autre qu'un code de figure. La page courante est
+               la figure vivante ; les autres attendent, compressées, et ne coûtent
+               que leur poids. Le séparateur « ~ » n'appartient pas à l'alphabet de
+               LZString et ne s'encode jamais dans une URL : un document d'une seule
+               page n'en contient donc aucun, et tous les liens déjà distribués
+               s'ouvrent sans rien savoir des pages. */
+            pagesDocument() {
+                if (!Array.isArray(this.pages) || !this.pages.length) {
+                    this.pages = ['']; this.pageActive = 0;
+                }
+                if (this.pageActive == null || this.pageActive < 0 || this.pageActive >= this.pages.length) this.pageActive = 0;
+                return this.pages;
+            }
+            synchroniserPage() {
+                const p = this.pagesDocument();
+                p[this.pageActive] = this.getCompressedString();
+                return p;
+            }
+            codeDocument() {
+                const p = this.synchroniserPage();
+                return p.length > 1 ? p.join('~') : p[0];
+            }
+            chargerDocument(code) {
+                const parts = String(code || '').split('~').filter(s => s.length);
+                if (!parts.length) return false;
+                this.pages = parts;
+                this.pageActive = 0;
+                this.loadFromCompressedString(parts[0]);
+                this.majBarrePages();
+                return true;
+            }
+            allerPage(i) {
+                const p = this.synchroniserPage();
+                if (i < 0 || i >= p.length || i === this.pageActive) return;
+                this.pageActive = i;
+                // une page neuve n'a pas de code : on repart d'une feuille blanche
+                if (p[i]) this.loadFromCompressedString(p[i]);
+                else { this.clearCanvas(); this.historyPast = []; this.saveState(); this.render(); }
+                this.majBarrePages();
+                this.showToast(`📄 Page ${i + 1} / ${p.length}`);
+            }
+            ajouterPage() {
+                const p = this.synchroniserPage();
+                p.splice(this.pageActive + 1, 0, '');
+                this.pageActive += 1;
+                this.clearCanvas(); this.historyPast = []; this.saveState(); this.render();
+                this.majBarrePages();
+                this.showToast(`📄 Page ${this.pageActive + 1} / ${p.length} — nouvelle`);
+            }
+            supprimerPage() {
+                const p = this.pagesDocument();
+                if (p.length < 2) { this.showToast("Le document n'a qu'une page."); return; }
+                const faire = () => {
+                    p.splice(this.pageActive, 1);
+                    if (this.pageActive >= p.length) this.pageActive = p.length - 1;
+                    if (p[this.pageActive]) this.loadFromCompressedString(p[this.pageActive]);
+                    else { this.clearCanvas(); this.historyPast = []; this.saveState(); this.render(); }
+                    this.majBarrePages();
+                    this.showToast(`📄 Page supprimée — ${p.length} restante(s)`);
+                };
+                // une page vide part sans qu'on demande ; une page dessinée, non
+                if (this.entities.filter(e => !(e instanceof ToolAnimation)).length === 0) faire();
+                else this.showModal(`Supprimer la page ${this.pageActive + 1} et tout ce qu'elle contient ?`, faire);
+            }
+            /* La barre ne se montre qu'à partir de deux pages : tant qu'il n'y en a
+               qu'une, le document est une figure et l'interface n'a pas à s'alourdir
+               d'une pagination qui ne sert à rien. Seul le « + » reste. */
+            majBarrePages() {
+                const p = this.pagesDocument();
+                const barre = document.getElementById('barrePages');
+                const etiq = document.getElementById('pageEtiquette');
+                if (!barre) return;
+                const multi = p.length > 1;
+                barre.classList.toggle('multi', multi);
+                if (etiq) etiq.textContent = `${this.pageActive + 1}/${p.length}`;
+            }
+
+            /* LA BIBLIOTHÈQUE. Les mêmes figures reviennent chaque année, et il
+               fallait retrouver le fichier ou avoir classé le lien quelque part.
+               Elles vivent maintenant DANS le logiciel : un nom, une vignette, le
+               code du document — pages comprises. Rien ne sort de la machine, et la
+               collection entière s'exporte en un fichier pour la passer à un
+               collègue ou la remettre sur un autre poste. */
+            lireBiblio() {
+                try { const b = JSON.parse(localStorage.getItem('gm_biblio') || '[]');
+                    return Array.isArray(b) ? b : []; } catch (e) { return []; }
+            }
+            ecrireBiblio(liste) {
+                try { localStorage.setItem('gm_biblio', JSON.stringify(liste)); return true; }
+                catch (e) {
+                    this.showToast("⚠️ Mémoire locale pleine : supprimez une séance, ou exportez la collection.");
+                    return false;
+                }
+            }
+            vignetteCourante(largeur = 170) {
+                const src = this.canvas;
+                if (!src || !src.width) return '';
+                const h = Math.max(1, Math.round(largeur * src.height / src.width));
+                const c = document.createElement('canvas');
+                c.width = largeur; c.height = h;
+                const x = c.getContext('2d');
+                x.fillStyle = '#fff'; x.fillRect(0, 0, largeur, h);
+                x.drawImage(src, 0, 0, largeur, h);
+                // JPEG : une vignette de figure se contente très bien de 0,6
+                try { return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
+            }
+            enregistrerDansBiblio() {
+                const nom = (this.projectTitle || '').trim() || 'Sans titre';
+                const liste = this.lireBiblio();
+                const item = { n: nom, c: this.codeDocument(), v: this.vignetteCourante(), d: Date.now(),
+                    p: this.pagesDocument().length };
+                const dejaLa = liste.findIndex(e => e.n === nom);
+                const poser = () => {
+                    if (dejaLa >= 0) liste[dejaLa] = item; else liste.unshift(item);
+                    if (this.ecrireBiblio(liste)) {
+                        this.showToast(`📚 « ${nom} » ${dejaLa >= 0 ? 'mis à jour' : 'ajouté'} à la bibliothèque`);
+                        this.majBiblio();
+                    }
+                };
+                if (dejaLa >= 0) this.showModal(`« ${nom} » existe déjà dans la bibliothèque. La remplacer ?`, poser);
+                else poser();
+            }
+            ouvrirBiblio() {
+                this.majBiblio();
+                const m = document.getElementById('biblioModal');
+                if (m) m.style.display = 'flex';
+            }
+            majBiblio() {
+                const hote = document.getElementById('biblioListe');
+                if (!hote) return;
+                const liste = this.lireBiblio();
+                hote.innerHTML = '';
+                if (!liste.length) {
+                    hote.innerHTML = '<p style="color:#777; font-size:13px; text-align:center; margin:18px 0;">'
+                        + 'La bibliothèque est vide. « Ajouter la séance » y range le document ouvert.</p>';
+                    return;
+                }
+                liste.forEach((e, i) => {
+                    const carte = document.createElement('div');
+                    carte.className = 'biblio-carte';
+                    carte.title = `${e.n} — ${e.p > 1 ? e.p + ' pages' : '1 page'}`;
+                    const img = document.createElement('img');
+                    img.src = e.v || ''; img.alt = '';
+                    const nom = document.createElement('span');
+                    nom.className = 'biblio-nom';
+                    nom.textContent = e.n + (e.p > 1 ? ` · ${e.p} p.` : '');
+                    const sup = document.createElement('button');
+                    sup.className = 'biblio-sup'; sup.textContent = '✕';
+                    sup.title = 'Retirer de la bibliothèque';
+                    sup.onclick = (ev) => {
+                        ev.stopPropagation();
+                        this.showModal(`Retirer « ${e.n} » de la bibliothèque ?`, () => {
+                            const l = this.lireBiblio(); l.splice(i, 1);
+                            if (this.ecrireBiblio(l)) this.majBiblio();
+                        });
+                    };
+                    carte.appendChild(img); carte.appendChild(nom); carte.appendChild(sup);
+                    carte.onclick = () => {
+                        if (this.chargerDocument(e.c)) {
+                            this.projectTitle = e.n;
+                            const champ = document.getElementById('docTitleInput');
+                            if (champ) champ.value = e.n;
+                            document.getElementById('biblioModal').style.display = 'none';
+                            this.showToast(`📚 « ${e.n} » ouvert`);
+                        }
+                    };
+                    hote.appendChild(carte);
+                });
+            }
+            exporterBiblio() {
+                const liste = this.lireBiblio();
+                if (!liste.length) { this.showToast("La bibliothèque est vide."); return; }
+                const blob = new Blob([JSON.stringify(liste)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'geomaster-bibliotheque.json';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast(`📚 ${liste.length} séance(s) exportée(s)`);
+            }
+            importerBiblio(fichier) {
+                if (!fichier) return;
+                const r = new FileReader();
+                r.onload = () => {
+                    let recu = null;
+                    try { recu = JSON.parse(r.result); } catch (e) { recu = null; }
+                    if (!Array.isArray(recu)) { this.showToast("Ce fichier n'est pas une bibliothèque GéoMaster."); return; }
+                    // on AJOUTE, on ne remplace pas : la collection de l'autre vient
+                    // compléter la sienne, et les noms déjà pris sont écartés
+                    const liste = this.lireBiblio();
+                    const noms = new Set(liste.map(e => e.n));
+                    let n = 0;
+                    recu.forEach(e => { if (e && e.c && !noms.has(e.n)) { liste.push(e); noms.add(e.n); n++; } });
+                    if (this.ecrireBiblio(liste)) {
+                        this.majBiblio();
+                        this.showToast(`📚 ${n} séance(s) ajoutée(s)` + (n < recu.length ? ` · ${recu.length - n} déjà présente(s)` : ''));
+                    }
+                };
+                r.readAsText(fichier);
             }
 
             /* LE CODE DE LA FIGURE, sans adresse devant.
@@ -23451,14 +23995,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    un copier-coller qui coupe les lignes ne doit pas effacer la figure
                    en cours pour la remplacer par rien. */
                 let lisible = null;
-                try { lisible = LZString.decompressFromEncodedURIComponent(code); } catch (e) { lisible = null; }
+                // un document à plusieurs pages est une suite de codes : on vérifie
+                // le premier, celui qu'on va effectivement afficher
+                const premier = code.split('~').filter(s => s.length)[0] || '';
+                try { lisible = LZString.decompressFromEncodedURIComponent(premier); } catch (e) { lisible = null; }
                 if (!lisible) { this.showToast("Code illisible — a-t-il été copié en entier ?"); return false; }
-                this.loadFromCompressedString(code);
+                this.chargerDocument(code);
                 this.showToast("📐 Figure ouverte (" + this.entities.length + " objets)");
                 return true;
             }
             copierCodeFigure() {
-                const code = this.getCompressedString();
+                const code = this.codeDocument();
                 if (!navigator.clipboard) { this.showToast("Le presse-papiers n'est pas disponible ici."); return; }
                 navigator.clipboard.writeText(code).then(() =>
                     this.showToast("🧩 Code copié (" + code.length + " car.) — il s'ouvre dans n'importe quel GéoMaster"));
@@ -24414,7 +24961,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const dataToLoad = figData || localStorage.getItem('geoPreviewData');
             if (dataToLoad) {
                 setTimeout(() => {
-                    app.loadFromCompressedString(dataToLoad);
+                    app.chargerDocument(dataToLoad);
                     requestAnimationFrame(() => app.syncViewWithTeacher());
                     const btn = document.getElementById('stdMainPlay');
                     if (btn) btn.innerHTML = "▶";
@@ -24422,8 +24969,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
         }
         else {
-            if (figData) setTimeout(() => app.loadFromCompressedString(figData), 100);
+            // une adresse peut porter plusieurs pages : on ouvre le document entier
+            if (figData) setTimeout(() => app.chargerDocument(figData), 100);
         }
+        app.majBarrePages();
 
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'updateShareCode') {

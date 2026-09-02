@@ -30,6 +30,25 @@ instruments se déplaçant tout seuls, avec une consigne attachée à chaque ét
 C'est le geste du tableau, qu'un élève peut revoir chez lui autant de fois qu'il
 veut.
 
+Au tableau, on avance **à la main** : *Page suivante* / *Page précédente* — les
+touches qu'envoie une **télécommande de présentation** — plus Espace et les
+flèches. On passe à l'étape suivante quand on a fini d'expliquer, pas quand le
+minuteur le décide. Une figure sans consignes se dévoile alors objet par objet.
+
+### Une séance, pas une figure
+
+Un document tient **plusieurs pages** : on les feuillette, elles sortent en un
+**seul PDF** — une feuille par page, chacune au format de sa figure — et elles
+voyagent dans **un seul lien**. La pagination ne s'affiche qu'à partir de deux
+pages. Les séances se rangent dans une **bibliothèque** locale, avec vignette,
+et la collection entière s'exporte en un fichier pour changer de poste ou la
+donner à un collègue.
+
+### Vu du fond de la salle
+
+Le **mode projection** épaissit traits et lettres d'un clic. Uniquement à
+l'affichage : ni les objets, ni le lien, ni le PDF n'en gardent trace.
+
 ### Le partage tient dans un lien
 
 La figure entière est encodée dans l'URL — une construction de 300 objets pèse
@@ -95,7 +114,7 @@ libellés restent affichés là où l'infobulle n'existe pas — c'est-à-dire a
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les
-bibliothèques. **3,3 Mo, soit 864 Ko une fois compressé** — ce que télécharge
+bibliothèques. **3,4 Mo, soit 894 Ko une fois compressé** — ce que télécharge
 réellement le navigateur.
 
 Plus de la moitié de ce poids (1,8 Mo) est en `type="text/plain"` : présent dans
@@ -144,7 +163,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 57 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 59 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

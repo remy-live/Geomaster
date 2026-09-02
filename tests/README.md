@@ -16,6 +16,8 @@ puis vérifie le résultat. Par exemple :
 | `probe-survol-liste.js` | survoler une ligne du tiroir allume l'objet sur la feuille |
 | `probe-hors-connexion.js` | tout marche réseau coupé, et `index_offline.html` est à jour |
 | `probe-code-figure.js` | le code d'une figure s'ouvre partout, même venu d'une autre machine |
+| `probe-tableau.js` | la construction s'avance à la télécommande, et le trait s'épaissit pour la salle |
+| `probe-seance.js` | plusieurs pages dans un document, un seul PDF, une bibliothèque de séances |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
