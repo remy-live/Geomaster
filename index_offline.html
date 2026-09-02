@@ -8882,6 +8882,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         function generateId() {
             return Math.random().toString(36).substr(2, 9);
         }
+        /* Facteur du mode projection. La loupe d'affichage grossit les traits et les
+           polices à l'écriture, mais elle ne peut rien pour les DISTANCES calculées
+           à l'avance : l'écart d'une lettre à son point, par exemple, restait celui
+           d'une lettre de 14 px alors qu'on en dessinait une de 31 — le nom venait
+           donc se coller sur la croix. Les rares endroits où la géométrie d'écran
+           dépend de la taille des lettres lisent ce facteur. L'export ne le lit
+           jamais : il n'a pas à être vu du fond de la classe. */
+        function gmGros() {
+            return (window.app && window.app.facteurProjection > 1) ? window.app.facteurProjection : 1;
+        }
         const UNIT = 50;
         const MathUtils = {
             getCentralSymmetry(pt, center) {
@@ -10219,7 +10229,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const width = ctx.measureText(this.label).width;
                 const height = fs;
                 const angle = (this.labelAngle !== undefined) ? this.labelAngle : -Math.PI / 2;
-                const dist = this.padding + fs / 2;
+                const dist = (this.padding + fs / 2) * gmGros();
                 const lx = this.x + Math.cos(angle) * dist;
                 const ly = this.y + Math.sin(angle) * dist;
                 const margin = 5;
@@ -10263,7 +10273,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const fs = (this.blinkState ? (this.fontSize || 14) + 4 : (this.fontSize || 14));
                     ctx.font = `bold ${fs}px ${window.GM_POLICE_PILE || "Arial"}`;
                     const angle = (this.labelAngle !== undefined) ? this.labelAngle : -Math.PI / 2;
-                    const dist = this.padding + fs / 2;
+                    // l'écart suit la taille RÉELLEMENT dessinée, mode projection compris
+                    const dist = (this.padding + fs / 2) * gmGros();
                     const lx = this.x + Math.cos(angle) * dist;
                     const ly = this.y + Math.sin(angle) * dist;
                     ctx.textAlign = "center";
@@ -11109,7 +11120,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const mx = (this.p1.x + this.p2.x) / 2;
                     const my = (this.p1.y + this.p2.y) / 2;
                     let angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
-                    let off = this.measureOffset;
+                    /* Mode projection : la longueur est écrite plus grand, elle doit
+                       donc s'écarter d'autant du trait, et son fond blanc grandir avec
+                       elle — sinon le nombre se pose sur la ligne, sans rien derrière. */
+                    const gros = gmGros();
+                    let off = this.measureOffset * gros;
                     if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
                         angle += Math.PI;
                         off = -off;
@@ -11120,7 +11135,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.font = "14px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
                     const w = ctx.measureText(val).width;
                     ctx.fillStyle = "rgba(255,255,255,0.7)";
-                    ctx.fillRect(-w / 2 - 2, off - 12, w + 4, 16);
+                    ctx.fillRect(-w / 2 - 2, off - 12 * gros, w + 4, 16 * gros);
                     ctx.fillStyle = this.color || "blue";
                     ctx.textAlign = "center";
                     /* Ancrage explicite. Il n'était pas posé : la longueur héritait
@@ -11403,14 +11418,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // Affichage de la valeur
                 if (this.showValue && !isRightAngle) {
                     const numArcs = this.arcCount || 1;
-                    const textDist = baseRadius + (numArcs - 1) * 5 + 15; // Pousser le texte s'il y a plusieurs arcs
+                    /* L'arc, lui, ne grossit pas : seul l'ÉCART grandit, juste assez
+                       pour que le nombre agrandi ne vienne pas s'asseoir dessus. */
+                    const grosAng = gmGros();
+                    const textDist = baseRadius + (numArcs - 1) * 5 + 15 * grosAng; // Pousser le texte s'il y a plusieurs arcs
                     const txtVal = Math.round(val) + "°";
                     const tx = this.p2.x + Math.cos(midAngle) * textDist;
                     const ty = this.p2.y + Math.sin(midAngle) * textDist;
                     ctx.font = "bold 12px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
                     const tw = ctx.measureText(txtVal).width;
                     ctx.fillStyle = "rgba(255,255,255,0.7)";
-                    ctx.fillRect(tx - tw / 2 - 2, ty - 8, tw + 4, 16);
+                    ctx.fillRect(tx - tw / 2 - 2, ty - 8 * grosAng, tw + 4, 16 * grosAng);
                     ctx.fillStyle = s;
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
@@ -15312,7 +15330,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.render();
                 const fs = point.fontSize || 14;
                 const angle = (point.labelAngle !== undefined) ? point.labelAngle : -Math.PI / 2;
-                const dist = point.padding + fs / 2;
+                const dist = (point.padding + fs / 2) * gmGros();
                 const labelX = point.x + Math.cos(angle) * dist;
                 const labelY = point.y + Math.sin(angle) * dist;
                 const zoom = this.view ? this.view.zoom : 1;

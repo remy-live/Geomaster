@@ -123,6 +123,57 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await page.evaluate(() => window.app.basculerProjection()); await page.waitForTimeout(150);
   ck('on revient exactement à l\'épaisseur d\'avant', (await mesure()) === fin, `${await mesure()} vs ${fin}`);
 
+  console.log('\n=== la lettre ne vient pas se coller sur la croix ===');
+  /* La loupe grossit les traits et les polices à l'écriture, mais elle ne peut
+     rien pour les distances calculées à l'avance : l'écart d'un nom à son point
+     restait celui d'une lettre de 14 px alors qu'on en dessinait une de 31. */
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState();
+    const p = app.createPointAt(500, 400);
+    p.label = 'A'; p.labelAngle = -Math.PI / 2;
+    app.render();
+  });
+  const ecart = () => page.evaluate(() => {
+    const app = window.app, c = app.canvas, ctx = c.getContext('2d');
+    const dpr = c.width / c.getBoundingClientRect().width;
+    const p = app.entities.find(e => e.constructor.name === 'Point');
+    const X = Math.round((p.x * app.view.zoom + app.view.x - 40) * dpr);
+    const Y0 = Math.round(((p.y - 90) * app.view.zoom + app.view.y) * dpr);
+    const W = Math.round(80 * app.view.zoom * dpr), H = Math.round(120 * app.view.zoom * dpr);
+    const d = ctx.getImageData(X, Y0, W, H).data;
+    // profil de lignes : la lettre forme un paquet, la croix un autre
+    const lignes = [];
+    for (let y = 0; y < H; y++) {
+      let plein = false;
+      for (let x = 0; x < W; x++) { const k = (y * W + x) * 4; if (d[k+3] > 40 && d[k] < 150) { plein = true; break; } }
+      if (plein) lignes.push(y / dpr);
+    }
+    const paquets = []; let cur = null;
+    lignes.forEach(v => { if (cur && v - cur.fin <= 2) cur.fin = v; else { cur = { deb: v, fin: v }; paquets.push(cur); } });
+    if (paquets.length < 2) return null;
+    return { lettre: +(paquets[0].fin - paquets[0].deb).toFixed(1),
+             blanc: +(paquets[1].deb - paquets[0].fin).toFixed(1) };
+  });
+  await page.waitForTimeout(120);
+  const av = await ecart();
+  await page.evaluate(() => window.app.basculerProjection()); await page.waitForTimeout(200);
+  const ap = await ecart();
+  console.log(`  normal : lettre ${av.lettre} px, blanc ${av.blanc} px`);
+  console.log(`  projeté : lettre ${ap.lettre} px, blanc ${ap.blanc} px`);
+  ck('la lettre grossit bien', ap.lettre > av.lettre * 1.8, `${av.lettre} → ${ap.lettre}`);
+  ck('et le blanc qui la sépare de la croix grossit AUSSI',
+     ap.blanc >= av.blanc * (ap.lettre / av.lettre) * 0.8, `${av.blanc} → ${ap.blanc}`);
+  ck('la lettre reste cliquable là où elle est dessinée', await page.evaluate(() => {
+    const app = window.app, p = app.entities.find(e => e.constructor.name === 'Point');
+    const d = (p.padding + (p.fontSize || 14) / 2) * app.facteurProjection;
+    return p.isLabelHit(app.ctx, p.x, p.y - d);
+  }));
+  await page.evaluate(() => window.app.basculerProjection()); await page.waitForTimeout(200);
+  const retour = await ecart();
+  ck('et le mode normal n\'a pas bougé d\'un pixel',
+     retour.lettre === av.lettre && retour.blanc === av.blanc, JSON.stringify(retour));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
