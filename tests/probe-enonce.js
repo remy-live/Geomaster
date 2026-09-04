@@ -170,6 +170,39 @@ Trace le cercle de centre T et de rayon 3,2 cm.`;
   console.log('  ' + JSON.stringify(arc));
   ck('un arc de cercle se trace', arc.ok && arc.rayon === 3, JSON.stringify(arc));
 
+  console.log('\n=== « le plus éloigné de » départage deux croisements ===');
+  /* « Celui du haut » dépendrait de l'orientation de la feuille ; une DISTANCE
+     ne dépend de rien. C'est ce qui rend l'énoncé du panda sans ambiguïté : les
+     deux taches des yeux se placent d'un côté ou de l'autre selon le croisement
+     retenu, et une seule des deux lectures donne un panda. */
+  const depart = await page.evaluate(() => {
+    const app = window.app;
+    const faire = (cond) => {
+      app.entities = []; app.historyPast = []; app.stepInstructions = {};
+      if (app.cslOublier) app.cslOublier();
+      app.saveState();
+      app.executerConsigne('Place les points O, Q');
+      const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+      const O = pt('O'), Q = pt('Q'); O.x = 500; O.y = 300; Q.x = 500; Q.y = 600;
+      app.executerConsigne('Trace [OQ]');
+      app.executerConsigne('Trace le cercle C1 de centre O et de rayon 4 cm');
+      app.executerConsigne('Trace le cercle C2 de centre Q et de rayon 4 cm');
+      app.executerConsigne('Le cercle C1 coupe le cercle C2 en X tel que X soit ' + cond);
+      const X = pt('X');
+      return X ? Math.round(X.x - 500) : null;   // écart signé à la droite (OQ)
+    };
+    return { loin: faire('le plus éloigné de la droite (OQ)'),
+             pres: faire('le plus proche de la droite (OQ)'),
+             deO: faire('le plus proche de O') };
+  });
+  console.log('  ' + JSON.stringify(depart));
+  /* Les deux croisements sont symétriques par rapport à (OQ) : « le plus
+     éloigné » et « le plus proche » de cette droite sont donc à égale distance,
+     et le logiciel doit au moins en choisir un sans se tromper de règle. */
+  ck('« le plus éloigné de la droite » choisit un croisement',
+     depart.loin !== null && Math.abs(depart.loin) > 50, String(depart.loin));
+  ck('« le plus proche de O » en choisit un aussi', depart.deO !== null, String(depart.deO));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

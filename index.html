@@ -5604,10 +5604,15 @@
                 z-index: 10100;
             }
 
+            /* LE MENU FICHIER RESTE SERRÉ. Ses icônes n'ont plus de libellé :
+               les étaler sur 320 px les éloignait les unes des autres de cent
+               pixels sans rien gagner. Trois cibles de 54 px et leurs écarts
+               tiennent dans 180. Le menu magique, lui, garde sa largeur : ses
+               vignettes en ont besoin. */
             .header-dropdown-content.grid-3-cols {
-                width: min(320px, calc(100vw - 16px));
-                min-width: 0;
-                grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+                width: 180px;
+                min-width: 180px;
+                grid-template-columns: repeat(3, 1fr);
             }
 
             .magic-grid {
@@ -28088,6 +28093,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                conviennent, l'énoncé dit lequel prendre. */
             cslFiltrerCroisements(pts, condition) {
                 if (!condition || pts.length < 2) return pts;
+                /* « … celui qui est le plus éloigné de la droite (OQ) » : quand
+                   deux croisements conviennent, un énoncé sérieux dit lequel
+                   prendre — et il le dit par une DISTANCE, pas par « celui du
+                   haut », qui dépendrait de l'orientation de la feuille. */
+                const loin = condition.match(/plus\s+(?:[ée]loign[ée]|loin)\w*\s+d[eu]\s*(?:la\s+|le\s+)?(.+)$/i);
+                const pres = condition.match(/plus\s+(?:proche|pr[èe]s)\w*\s+d[eu]\s*(?:la\s+|le\s+)?(.+)$/i);
+                if (loin || pres) {
+                    const cible = (loin || pres)[1];
+                    const paire = this.cslPaire(cible, null);
+                    let mesure = null;
+                    if (paire) {
+                        const u = this.cslPointNomme(paire.a), v = this.cslPointNomme(paire.b);
+                        if (u && v) {
+                            const dx = v.x - u.x, dy = v.y - u.y, L = Math.hypot(dx, dy) || 1;
+                            mesure = (q) => Math.abs((q.x - u.x) * dy - (q.y - u.y) * dx) / L;
+                        }
+                    }
+                    if (!mesure) {
+                        const n = (this.cslNoms(cible) || [])[0];
+                        const o = n && this.cslPointNomme(n);
+                        if (o) mesure = (q) => Math.hypot(q.x - o.x, q.y - o.y);
+                    }
+                    if (mesure) {
+                        const tries = pts.slice().sort((x, y) => mesure(x) - mesure(y));
+                        return [loin ? tries[tries.length - 1] : tries[0]];
+                    }
+                }
                 const p = this.cslPaire(condition, null);
                 if (!p) return pts;
                 const a = this.cslPointNomme(p.a), b = this.cslPointNomme(p.b);
@@ -28377,14 +28409,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     .forEach(m => { const i = iSommet[m[1]]; if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[2].replace(',', '.')); });
                 [...brut.matchAll(/(\d+(?:[.,]\d+)?)\s*°\s*(?:en|au sommet)\s+([A-Z]'{0,2})/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[1].replace(',', '.')); });
+                /* « EFG = 60° » : au tableau, on écrit l'angle avec son chapeau et
+                   sans le mot « angle ». Trois lettres et un degré ne peuvent rien
+                   désigner d'autre — une longueur en aurait deux et une unité. */
+                [...brut.matchAll(/(?:^|[^A-Za-z'])([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                    .forEach(m => {
+                        const i = iSommet[m[2]];
+                        if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[4].replace(',', '.'));
+                    });
 
                 // les mots : équilatéral, isocèle en X, rectangle en X
                 const equi = /[ée]quilat[ée]ral/.test(t);
                 const isoIn = (brut.match(/isoc[èe]le\s+(?:en|de\s+sommet)\s+([A-Z]'{0,2})/) || [])[1];
                 const droitIn = (brut.match(/rectangle\s+en\s+([A-Z]'{0,2})/) || [])[1];
                 const iso = /isoc[èe]le/.test(t), droit = /rectangle/.test(t);
-                const sommetIso = isoIn && iSommet[isoIn] !== undefined ? iSommet[isoIn] : (iso ? 0 : null);
-                const sommetDroit = droitIn && iSommet[droitIn] !== undefined ? iSommet[droitIn] : (droit ? 0 : null);
+                /* « RECTANGLE ISOCÈLE EN B » : le « en B » qui suit vaut pour les
+                   DEUX qualités. On ne cherchait « rectangle en X » que collé au
+                   mot ; dans cet ordre-là, l'angle droit tombait au premier sommet
+                   du nom au lieu de B, et le triangle n'était ni rectangle ni
+                   isocèle où l'énoncé le disait. */
+                const ensemble = brut.match(/(?:rectangle|isoc[èe]le)(?:\s+(?:et\s+)?(?:rectangle|isoc[èe]le))*\s+(?:en|de\s+sommet)\s+([A-Z]'{0,2})/);
+                const nomme = ensemble && iSommet[ensemble[1]] !== undefined ? iSommet[ensemble[1]] : null;
+                const parDefaut = nomme !== null ? nomme : 0;
+                const sommetIso = isoIn && iSommet[isoIn] !== undefined ? iSommet[isoIn] : (iso ? parDefaut : null);
+                const sommetDroit = droitIn && iSommet[droitIn] !== undefined ? iSommet[droitIn] : (droit ? parDefaut : null);
                 if (sommetDroit !== null) angles[sommetDroit] = 90;
 
                 // longueurs génériques : « de 4 cm de côté », « de base 3 cm »
