@@ -189,7 +189,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 60 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 61 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

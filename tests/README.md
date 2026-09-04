@@ -19,6 +19,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-tableau.js` | la construction s'avance à la télécommande, et le trait s'épaissit pour la salle |
 | `probe-seance.js` | plusieurs pages dans un document, un seul PDF, une bibliothèque de séances |
 | `probe-consigne-fermer.js` | la croix de la fenêtre des consignes la ferme vraiment |
+| `probe-equerre-repere.js` | le repère rouge de l'équerre tombe juste, et le rejeu la pose |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi

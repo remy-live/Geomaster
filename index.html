@@ -14628,10 +14628,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     
                     let l = new Segment(pTarget, pExt, {color: "#999999", dash: true, width: 1});
 
-                    // Le sommet de l'angle droit est en proj ; le bord tracé de l'équerre doit pointer
-                    // vers le symétrique pNew (et non vers pTarget), sinon l'équerre apparaît du mauvais côté.
+                    /* Le sommet de l'angle droit est en proj, sur l'axe, et le bord gradué
+                       pointe vers LE POINT qu'on symétrise : c'est le geste réel — on
+                       plaque l'équerre contre l'axe et on trace vers le point, l'équerre
+                       restant du côté où l'on travaille.
+
+                       Elle pointait jusqu'ici vers le symétrique, donc à l'opposé, et le
+                       triangle se posait de l'autre côté de la droite. Le commentaire
+                       d'alors disait le contraire ; il datait d'un temps où l'équerre
+                       n'était jamais placée du tout — fastForward la cherchait sous un
+                       nom qui n'existait pas — et où elle restait donc là où l'utilisateur
+                       l'avait laissée, ce qui rendait n'importe quelle règle vraie. */
                     let aTarget = Math.atan2(pTarget.y - proj.y, pTarget.x - proj.x);
-                    let tracedAngle = aTarget + Math.PI;
+                    let tracedAngle = aTarget;
                     let rStart = { x: proj.x, y: proj.y, angle: tracedAngle };
 
                     let animTrace = new ToolAnimation('trace', rStart, rStart);
@@ -16606,11 +16615,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (target) { target.x = ent.endState.x; target.y = ent.endState.y; target.update?.(); }
                         } else {
                             this.activeWidgets[ent.widgetType] = true;
-                            let w = this[ent.widgetType + 'Widget'];
-                            if (!w) {
+                            /* Le nom de l'instrument n'est pas son type suivi de « Widget » :
+                               l'équerre s'appelle setSquareWidget, avec un S majuscule, quand
+                               son type s'écrit « setsquare ». La concaténation cherchait donc
+                               « setsquareWidget », ne trouvait rien, et en CRÉAIT un sous ce
+                               nom-là. Résultat : pendant un rejeu, l'équerre n'était jamais
+                               placée — elle restait où l'utilisateur l'avait laissée, n'importe
+                               où sur la feuille. C'est ce qui la faisait apparaître du mauvais
+                               côté de la droite dans la symétrie axiale. */
+                            const nomInstrument = { compass: 'compassWidget', ruler: 'rulerWidget',
+                                setsquare: 'setSquareWidget', protractor: 'protractorWidget' }[ent.widgetType];
+                            let w = nomInstrument ? this[nomInstrument] : null;
+                            if (!w && nomInstrument) {
                                 if (ent.widgetType === 'compass') w = new CompassWidget(0, 0);
                                 else if (ent.widgetType === 'ruler') w = new RulerWidget(0, 0);
-                                this[ent.widgetType + 'Widget'] = w;
+                                else if (ent.widgetType === 'setsquare') w = new SetSquareWidget(0, 0);
+                                else if (ent.widgetType === 'protractor') w = new ProtractorWidget(0, 0);
+                                this[nomInstrument] = w;
                             }
                             if (w) {
                                 w.x = ent.endState.x;
@@ -22986,10 +23007,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                                 if (!snapPoint && (w instanceof SetSquareWidget || w instanceof RulerWidget)) {
                                     let bestSideDist = 15;
+                                    /* Coordonnées locales prises sur la position VISÉE, non sur
+                                       celle de l'image précédente. w.x n'est affecté qu'à la fin
+                                       du traitement : s'en servir ici décalait la détection — et
+                                       donc le trait fantôme — d'exactement un pas de souris.
+                                       Mesuré : le repère s'allumait quand le côté de l'équerre
+                                       avait déjà dépassé le point de 20 px, et d'autant plus loin
+                                       qu'on allait vite. */
+                                    const versLocal = (px, py) => {
+                                        const dx = px - targetX, dy = py - targetY;
+                                        const c = Math.cos(-w.angle), s2 = Math.sin(-w.angle);
+                                        return { x: dx * c - dy * s2, y: dx * s2 + dy * c };
+                                    };
                                     const isAngleAlignedWithAnyLine = (targetAngle) => { const norm = (a) => (a + Math.PI * 4) % Math.PI; return this.entities.some(e => { if (e.visible === false && !this.showHidden) return false; if (e instanceof Segment || e instanceof Line || e instanceof Ray) { let lineAngle = (e.p1 && e.p2) ? Math.atan2(e.p2.y - e.p1.y, e.p2.x - e.p1.x) : e.angle; const diff = Math.abs(norm(lineAngle) - norm(targetAngle)); if (diff > 0.05 && Math.abs(diff - Math.PI) > 0.05) return false; const proj = MathUtils.getProjectedPoint(w.x, w.y, e); return MathUtils.dist(w.x, w.y, proj.x, proj.y) < 15; } return false; }); };
                                     this.entities.forEach(ent => {
                                         if ((ent.visible !== false || this.showHidden) && ent instanceof Point) {
-                                            const l = w.toLocal(ent.x, ent.y);
+                                            const l = versLocal(ent.x, ent.y);
                                             if (Math.abs(l.y) < bestSideDist && l.x > -10 && l.x < w.width + 10) { const isVerticalOnRail = isAngleAlignedWithAnyLine(w.angle + Math.PI / 2); if (isVerticalOnRail) { bestSideDist = Math.abs(l.y); const dx = Math.cos(w.angle + Math.PI / 2) * l.y; const dy = Math.sin(w.angle + Math.PI / 2) * l.y; const angleGuide = w.angle; snapSideShift = { dx: dx, dy: dy }; const large = 3000; this.tempGuideLine = { p1: { x: ent.x - Math.cos(angleGuide) * large, y: ent.y - Math.sin(angleGuide) * large }, p2: { x: ent.x + Math.cos(angleGuide) * large, y: ent.y + Math.sin(angleGuide) * large } }; } }
                                             if (w instanceof SetSquareWidget) { if (Math.abs(l.x) < bestSideDist && l.y > -10 && l.y < w.height + 10) { const isHorizontalOnRail = toolToToolSnap || isAngleAlignedWithAnyLine(w.angle); if (isHorizontalOnRail) { bestSideDist = Math.abs(l.x); const dx = Math.cos(w.angle) * l.x; const dy = Math.sin(w.angle) * l.x; const angleGuide = w.angle + Math.PI / 2; snapSideShift = { dx: dx, dy: dy }; const large = 3000; this.tempGuideLine = { p1: { x: ent.x - Math.cos(angleGuide) * large, y: ent.y - Math.sin(angleGuide) * large }, p2: { x: ent.x + Math.cos(angleGuide) * large, y: ent.y + Math.sin(angleGuide) * large } }; } } }
                                         }
@@ -23489,9 +23522,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (local.y > 80) w.height = local.y;
                     }
                     this.render();
+                    /* Le repère se dessine dans le repère du MONDE : render() a déjà
+                       posé la transformation de vue et ne la défait pas. Une
+                       translation de plus l'y ajoutait une seconde fois — le trait
+                       tombait donc à côté dès que la feuille était décalée, et
+                       d'autant plus loin qu'on avait zoomé. */
                     const ctx = this.ctx;
                     ctx.save();
-                    if (this.view) ctx.translate(this.view.x, this.view.y);
                     if (this.tempGuideLine) {
                         ctx.strokeStyle = "red"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
                         ctx.beginPath(); ctx.moveTo(this.tempGuideLine.p1.x, this.tempGuideLine.p1.y); ctx.lineTo(this.tempGuideLine.p2.x, this.tempGuideLine.p2.y); ctx.stroke();
@@ -23571,7 +23608,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
                 else if (drawingTools.includes(this.currentTool)) { cursor = 'crosshair'; }
-                else if (this.currentTool === 'move') { const hoveredLabel = this.entities.find(ent => ent instanceof Point && ent.isLabelHit(this.ctx, rawMouse.x, rawMouse.y)); const hoveredEntity = this.hoveredEntities.length > 0; if (hoveredLabel || hoveredEntity) { cursor = 'pointer'; } }
+                /* Le nom d'un point se DÉPLACE : la main le dit. La flèche ne disait
+                   rien, et le pointeur — le même que pour n'importe quel objet — ne
+                   distinguait pas « je peux le prendre » de « je peux le choisir ». */
+                else if (this.currentTool === 'move') {
+                    const surNom = this.entities.some(ent => ent instanceof Point && ent.visible !== false
+                        && ent.isLabelHit && ent.isLabelHit(this.ctx, rawMouse.x, rawMouse.y));
+                    if (surNom) cursor = this.draggedLabelPoint ? 'grabbing' : 'grab';
+                    else if (this.hoveredEntities.length > 0) cursor = 'pointer';
+                }
                 this.canvas.style.cursor = cursor;
                 this.render();
             }
