@@ -191,8 +191,17 @@ Le document du cadre mesure vraiment 390 px de large : les règles d'affichage d
 logiciel s'y appliquent exactement comme sur l'appareil, et ce qu'on voit est ce
 que l'élève verra. Il est réduit pour tenir dans la fenêtre — la réduction ne
 change pas cette largeur — et le rapport est écrit à côté : « 820 × 1180 px ·
-affiché à 63 % ». Le lien est affiché en toutes lettres, et *Définir vue* fixe
-le cadrage que l'élève trouvera en ouvrant.
+affiché à 63 % ». Le lien est affiché en toutes lettres.
+
+Le cadrage envoyé est celui de votre écran, et sur un téléphone la figure arrive
+souvent minuscule — c'est précisément ce que l'aperçu sert à voir. **⤢ Cadrer**
+en propose alors un qui la fait tenir en grand sur l'appareil choisi : mesuré,
+une figure de 88 px de large sur les 390 d'un téléphone passe à 290, centrée.
+
+Mais **le professeur a le dernier mot** : ce cadrage n'est qu'une proposition.
+Il ne part dans le lien que si l'on appuie sur *Définir vue* — et l'on peut
+encore le déplacer à la main avant de trancher. La machine ajuste, l'humain
+décide.
 
 ### Dessiner à main levée, obtenir une vraie figure
 

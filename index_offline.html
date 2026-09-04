@@ -3299,6 +3299,16 @@
             background: #fff;
         }
 
+        #previewNote {
+            min-height: 17px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .75);
+            text-align: center;
+        }
+
+        #previewNote b { color: #7ee2a8; }
+
         #previewLien {
             width: min(560px, 80vw);
             font-size: 11.5px;
@@ -8964,6 +8974,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <button class="preview-appareil" data-l="820" data-h="1180">📲 Tablette</button>
             <button class="preview-appareil actif" data-l="1280" data-h="800">💻 Ordinateur</button>
             <button class="preview-appareil" id="previewRotation" data-tooltip="Pivoter">⟳ Pivoter</button>
+            <!-- Le cadrage automatique PROPOSE. Il ne part dans le lien que si le
+                 professeur appuie sur « Définir vue » : la machine ajuste, l'humain
+                 tranche. -->
+            <button class="preview-appareil" id="previewCadrer"
+                data-tooltip="Proposer un cadrage qui fait tenir la figure sur cet appareil">⤢ Cadrer</button>
             <span id="previewTaille"></span>
         </div>
         <div class="preview-scene">
@@ -8971,6 +8986,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <iframe id="previewFrame"></iframe>
             </div>
         </div>
+        <div id="previewNote"></div>
         <div class="preview-actions">
             <input type="text" id="previewLien" readonly onclick="this.select()">
             <button class="preview-btn btn-copy" onclick="copyStudentLink()">📋 Copier le lien</button>
@@ -8990,6 +9006,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (r) r.addEventListener('click', function () {
                 previewAppareil = { l: previewAppareil.h, h: previewAppareil.l };
                 appliquerAppareil();
+            });
+            var c = document.getElementById('previewCadrer');
+            if (c) c.addEventListener('click', function () {
+                var f = document.getElementById('previewFrame');
+                if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'gmCadrer' }, '*');
             });
         })();
     </script>
@@ -28075,6 +28096,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             document.body.appendChild(toolsDiv);
 
             if (isPreview) {
+                /* Le parent demande un cadrage : on le PROPOSE et on le dit. Rien
+                   n'est enregistré — « Définir vue » reste le seul geste qui pose
+                   le cadrage dans le lien de l'élève. */
+                window.addEventListener('message', (e) => {
+                    if (!e.data || e.data.type !== 'gmCadrer') return;
+                    const marge = Math.max(26, Math.min(70, window.innerWidth * 0.07));
+                    app.cadrerSurFigure(marge);
+                    window.parent.postMessage({ type: 'gmCadre', zoom: app.view.zoom }, '*');
+                });
                 const btnSave = document.getElementById('btnSaveView');
                 if (btnSave) {
                     btnSave.onclick = () => {
@@ -28152,17 +28182,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         app.majBarrePages();
 
+        function noteApercu(html) {
+            const n = document.getElementById('previewNote');
+            if (n) n.innerHTML = html || '';
+        }
         window.addEventListener('message', (event) => {
+            /* Le cadre a proposé un cadrage. Il ne part PAS dans le lien pour
+               autant : c'est « Définir vue » qui l'y met, et rien d'autre. Le
+               professeur peut encore le déplacer à la main avant de trancher. */
+            if (event.data && event.data.type === 'gmCadre') {
+                noteApercu('Cadrage proposé — déplacez-le encore si vous voulez, puis '
+                    + '<b>Définir vue</b> dans le cadre pour le garder dans le lien.');
+                return;
+            }
             if (event.data && event.data.type === 'updateShareCode') {
                 const frame = document.getElementById('previewFrame');
                 const newCode = event.data.code;
                 const baseUrl = window.location.href.split('?')[0].split('#')[0];
                 frame.dataset.shareUrl = baseUrl + "?mode=lecture&fig=" + encodeURIComponent(newCode);
                 if (typeof majLienApercu === 'function') majLienApercu();
+                noteApercu('<b>Cadrage enregistré dans le lien.</b> C\'est ce que l\'élève verra en l\'ouvrant.');
                 const btnCopy = document.querySelector('.btn-copy');
                 if (btnCopy) {
+                    /* Le libellé rendu était « Copier le lien pour les élèves »,
+                       que ce bouton n'a jamais porté : deux secondes après une mise
+                       à jour, il changeait de nom tout seul. */
                     btnCopy.innerHTML = "Lien mis à jour !";
-                    setTimeout(() => btnCopy.innerHTML = "Copier le lien pour les élèves", 2000);
+                    setTimeout(() => btnCopy.innerHTML = "📋 Copier le lien", 2000);
                 }
                 console.log("Vue mise à jour reçue de l'iframe !");
             }
@@ -28229,6 +28275,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             document.getElementById('previewModal').style.display = 'flex';
             majLienApercu();
             appliquerAppareil();
+            noteApercu('Le cadrage est celui de votre écran. « ⤢ Cadrer » en propose un '
+                + 'qui tient sur l\'appareil choisi.');
         }
         /* Le lien est ÉCRIT, pas seulement copiable : on voit qu'il commence par
            file:// quand on travaille sur une copie locale, et l'on comprend

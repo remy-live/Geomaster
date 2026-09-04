@@ -102,6 +102,55 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('mais son document fait toujours 820 px de large', tab.dedans.l === 820, String(tab.dedans.l));
   ck('et le rapport est écrit', /affiché à \d+ %/.test(tab.etiquette), tab.etiquette);
 
+  console.log('\n=== le cadrage automatique propose, le professeur tranche ===');
+  await page.click('.preview-appareil:has-text("Téléphone")');
+  await page.waitForTimeout(700);
+  const mesurer = async () => (cadre()).evaluate(() => {
+    const app = window.app, b = app.getSceneBounds(false), z = app.view.zoom;
+    const boite = app.canvas.parentElement.getBoundingClientRect();
+    return { zoom: +z.toFixed(3),
+             l: Math.round((b.maxX - b.minX) * z), h: Math.round((b.maxY - b.minY) * z),
+             x0: Math.round(b.minX * z + app.view.x), x1: Math.round(b.maxX * z + app.view.x),
+             y0: Math.round(b.minY * z + app.view.y), y1: Math.round(b.maxY * z + app.view.y),
+             ecranL: Math.round(boite.width), ecranH: Math.round(boite.height) };
+  });
+  const avant = await mesurer();
+  const lienAvant = await page.evaluate(() => document.getElementById('previewLien').value);
+  console.log('  avant : ' + JSON.stringify(avant));
+  /* Le cadrage recopié de l'écran du professeur laisse la figure minuscule sur un
+     téléphone : c'est précisément ce que l'aperçu sert à voir. */
+  ck('sans rien faire, la figure est petite sur le téléphone',
+     avant.l < avant.ecranL / 3, `${avant.l} px de large sur ${avant.ecranL}`);
+
+  await page.click('#previewCadrer');
+  await page.waitForTimeout(700);
+  const apres = await mesurer();
+  console.log('  après : ' + JSON.stringify(apres));
+  ck('le cadrage automatique la fait tenir en grand',
+     apres.l > avant.l * 2 && apres.l <= apres.ecranL && apres.h <= apres.ecranH,
+     `${apres.l}×${apres.h} dans ${apres.ecranL}×${apres.ecranH}`);
+  ck('elle est entièrement dans l\'écran',
+     apres.x0 >= 0 && apres.y0 >= 0 && apres.x1 <= apres.ecranL && apres.y1 <= apres.ecranH,
+     JSON.stringify([apres.x0, apres.y0, apres.x1, apres.y1]));
+  ck('et centrée',
+     Math.abs(apres.x0 - (apres.ecranL - apres.x1)) <= 2, `${apres.x0} / ${apres.ecranL - apres.x1}`);
+
+  /* LE PROFESSEUR A LE DERNIER MOT : le cadrage proposé ne part PAS dans le lien.
+     Il reste une proposition, qu'on peut encore déplacer, jusqu'à « Définir vue ». */
+  const noteProposee = await page.evaluate(() => document.getElementById('previewNote').textContent);
+  console.log('  note : ' + noteProposee);
+  ck('le lien n\'a pas bougé pour autant',
+     (await page.evaluate(() => document.getElementById('previewLien').value)) === lienAvant);
+  ck('et la note dit qui tranche', /Définir vue/.test(noteProposee), noteProposee);
+
+  await cadre().click('#btnSaveView');
+  await page.waitForTimeout(700);
+  const lienApres = await page.evaluate(() => document.getElementById('previewLien').value);
+  const noteFinale = await page.evaluate(() => document.getElementById('previewNote').textContent);
+  console.log('  note : ' + noteFinale);
+  ck('« Définir vue » met le cadrage dans le lien', lienApres !== lienAvant);
+  ck('et le dit', /enregistr/i.test(noteFinale), noteFinale);
+
   console.log('\n=== le fond s\'assombrit ===');
   const buf = await page.screenshot();
   const px = await page.evaluate(async (b64) => {
