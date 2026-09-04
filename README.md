@@ -27,15 +27,23 @@ elle gêne.
 
 Le **panneau des consignes** (`Ctrl+E`) est une **liste de lignes numérotées**.
 Une ligne, une consigne : on écrit la phrase comme dans un manuel — *« Trace le
-cercle de centre A passant par B »* — et **Valider**, ou **Entrée**. La réponse
-s'affiche **sous cette ligne-là** : trois consignes écrites, trois réponses
-lisibles en même temps. Chaque ligne porte sa case **« avec les instruments »** —
-on veut la figure seule pour le triangle de départ et la construction au compas
-pour la médiatrice, dans le même énoncé.
+cercle de centre A passant par B »* — et **Entrée**. La réponse s'affiche **sous
+cette ligne-là** : trois consignes écrites, trois réponses lisibles en même
+temps.
+
+La ligne ne montre que son numéro, son texte et une **roue** : une case, un
+bouton et une croix sur chacune, c'était trois commandes par consigne pour un
+énoncé qui en compte vingt. La roue d'une ligne porte ses options — *avec les
+instruments*, refaire, retirer ; la **roue du titre** porte les réglages de tout
+le panneau, dont **« dessiner à chaque retour à la ligne »** : décochée, Entrée
+ne fait que descendre, et l'on écrit tout l'énoncé avant de le lancer.
+
+**COLLEZ UN ÉNONCÉ ENTIER** — chaque ligne du texte devient une consigne, les
+intertitres « Étape 2 » compris. **▶ Tout faire** les exécute dans l'ordre.
 
 **Faite, une ligne porte un ✓ à la place de son numéro** et ne repart pas une
 seconde fois : deux fois la même ligne, ce seraient deux fois les mêmes objets.
-La modifier la remet en jeu. **▶ Tout faire** reprend l'énoncé là où il en est.
+La modifier la remet en jeu.
 
 Sous la ligne qu'on écrit, un **bandeau montre la phrase modèle** : *« Trace un
 carré de 3 cm »* ne dit pas quels sommets, et le logiciel en inventait en
@@ -72,6 +80,10 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 | **Croisements nommés** | `Appelle O le point d'intersection des médiatrices` · `des hauteurs` (l'orthocentre) · `des médianes` · `des bissectrices` |
 | **Couleur et style** | `Trace [AB] en bleu` · `en rouge et en pointillés` · `en gras` · `épaisseur 4` — pour cette ligne seulement |
+| **Objets nommés** | `Trace le cercle C1 de centre O et de rayon 6 cm` · puis `le cercle C1` · `ce segment` · `il`, `elle` |
+| **Croisements** | `il coupe le cercle C1 en deux points A et B` · `en deux points dont un est appelé C` · `elle coupe le cercle C3 en E` · `en S tel que S n'appartienne pas à [OQ]` |
+| **Sur un objet** | `place le point G sur ce segment tel que GQ = 5 cm` · `un point M sur [AB]` |
+| **Arcs** | `Trace l'arc de cercle de centre O et de rayon 3 cm de A à B` |
 
 Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
 [AB]` est exécuté, et la réponse ajoute qu'en géométrie on écrit plutôt
@@ -84,6 +96,11 @@ sur chaque moitié. Une médiatrice ajoute l'angle droit : sans lui et sans les
 marques, la figure ne montrait qu'une droite qui passe par là. Trois médiatrices
 donnent trois marques différentes, une par côté — les coder du même trait
 affirmerait que les six moitiés sont égales entre elles.
+
+Un milieu est un **porteur de codage comme un autre** : si la moitié d'un
+segment coupé en son milieu mesure autant qu'un autre segment de la figure, les
+deux reçoivent la même marque — c'est la même longueur, et une figure ne le dit
+pas de deux façons.
 
 Et le codage automatique qui suit une consigne **ne regarde que ce que cette
 consigne vient de construire** : appliqué à toute la feuille, « même longueur ⇒
@@ -101,6 +118,24 @@ aux instruments — [AB] à la règle, un arc de compas depuis chaque extrémit�
 leur croisement est le sommet. Même « une longueur et deux angles », qui ne
 donne pourtant aucune des deux autres longueurs, sort en 22 objets dont 12
 déplacements d'instruments et 2 arcs.
+
+**Un énoncé de devoir se colle tel quel.** Celui-ci — vingt-deux lignes,
+quatorze points, quatorze cercles — sort en entier, sans qu'une ligne soit
+retouchée :
+
+> *Trace un segment [OQ] de 6 cm de longueur, place le milieu P du segment [OQ]
+> et le milieu R du segment [OP]. Trace le cercle C1 de centre O et de rayon
+> 6 cm. Trace le cercle C2 de centre R et de rayon 7 cm, il coupe le cercle C1
+> en deux points A et B. […] La droite (OQ) coupe le cercle C3 en S tel que S
+> n'appartienne pas à [OQ].*
+
+Trois choses le rendent possible. Le logiciel **retient ses objets** — « le
+cercle C1 », « ce segment », « il » — sans quoi chaque phrase repartirait de
+zéro. Il sait **croiser** un cercle et un cercle, un trait et un cercle, et
+choisir entre deux croisements quand l'énoncé le dit. Et **la notation fait
+foi** : *« la droite (OQ) »* n'est pas le segment [OQ] même si c'est lui qui est
+tracé — une droite va plus loin, et c'est justement le croisement d'au-delà que
+l'énoncé vise.
 
 **On écrit vite, et en minuscules.** *« trace un triangle abc puis la médiatrice
 de [ab] »* est compris : les points sont remis en majuscules **là où la phrase

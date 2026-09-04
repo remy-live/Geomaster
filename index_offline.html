@@ -1681,7 +1681,10 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            min-height: 200px
+            min-height: 200px;
+            /* Un énoncé de vingt lignes ne doit pas pousser le panneau hors de
+               l'écran : c'est la liste qui défile, pas la fenêtre qui grandit. */
+            max-height: calc(100vh - 96px)
         }
 
         .instr-header {
@@ -2612,6 +2615,74 @@
         .csl-ligne.faite .csl-go { background: #fff; border-color: #dfe4e8; color: #90a4ae; font-weight: 400; }
         .csl-tete button.csl-suppr { border-color: transparent; color: #b0bec5; padding: 3px 4px; }
         .csl-tete button.csl-suppr:hover { color: #d32f2f; }
+
+        .csl-roue {
+            flex: 0 0 auto;
+            border: 1px solid transparent;
+            background: 0 0;
+            border-radius: 5px;
+            padding: 2px 5px;
+            font-size: 12px;
+            color: #b0bec5;
+            cursor: pointer;
+        }
+
+        .csl-ligne:hover .csl-roue, .csl-ligne:focus-within .csl-roue { color: #546e7a; }
+        .csl-roue:hover { background: #eceff1; border-color: #dfe4e8; }
+
+        .csl-menu {
+            position: fixed;
+            z-index: 12000;
+            background: #fff;
+            border: 1px solid #cfd8dc;
+            border-radius: 7px;
+            box-shadow: 0 6px 22px rgba(20, 32, 43, .18);
+            padding: 6px;
+            min-width: 190px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 12px;
+            color: #37474f;
+        }
+
+        .csl-menu b { padding: 2px 4px 4px; color: #78909c; font-size: 11px; }
+
+        .csl-menu label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .csl-menu label:hover { background: #f4f7f8; }
+
+        .csl-menu button {
+            text-align: left;
+            border: none;
+            background: 0 0;
+            padding: 5px 4px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #37474f;
+            cursor: pointer;
+        }
+
+        .csl-menu button:hover { background: #eceff1; }
+        .csl-menu button.danger:hover { background: #fdecea; color: #b71c1c; }
+
+        #btnConsigneReglages {
+            border: 1px solid #dfe4e8;
+            background: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #546e7a;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 17px;
+        }
 
         .csl-outils {
             display: flex;
@@ -7236,6 +7307,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="instr-header" id="instrDragHandle">
             <span>📝 Consignes</span>
             <span class="instr-actions">
+                <button id="btnConsigneReglages" onclick="app.menuReglagesConsignes(this);"
+                    data-tooltip="Réglages des consignes">⚙</button>
                 <button id="btnConsigneAide" onpointerdown="event.preventDefault(); app.basculerAideConsigne();"
                     data-tooltip="Ce que je sais faire">?</button>
                 <button class="instr-close" onclick="app.toggleInstructions()">✕</button>
@@ -7302,7 +7375,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         </div>
         <div id="consigneLignes"></div>
         <div class="csl-pied">
-            <button onclick="app.ajouterConsigne()" data-tooltip="Ajouter une ligne">＋ une consigne</button>
+            <button onclick="app.ajouterConsigne()" data-tooltip="Ajouter une ligne">＋</button>
             <button onclick="app.executerToutesConsignes()"
                 data-tooltip="Faire les lignes qui ne sont pas encore faites">▶ Tout faire</button>
             <button id="btnEnonceLibre" onclick="app.basculerEnonceLibre()"
@@ -18660,27 +18733,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const discret = Array.isArray(portee);
                 let hasChanges = false;
 
-                // --- 1. CODAGE AUTO DES SEGMENTS ---
-                // (Mets ici ta logique actuelle d'auto-codage des segments, je te donne un exemple standard)
-                const segments = champ.filter(e => e instanceof Segment);
+                /* --- 1. CODAGE AUTO DES LONGUEURS ÉGALES ---
+                   UN MILIEU EST UN PORTEUR DE CODAGE COMME UN AUTRE. Si la moitié
+                   d'un segment coupé en son milieu mesure autant qu'un autre
+                   segment de la figure, les deux doivent porter LA MÊME marque :
+                   c'est la même longueur, et une figure ne dit pas deux fois la
+                   même chose de deux façons. Le milieu entre donc dans les mêmes
+                   groupes que les segments, avec la demi-longueur pour mesure. */
+                const porteurs = [];
+                champ.filter(e => e instanceof Segment).forEach(seg => porteurs.push({
+                    len: MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y),
+                    lire: () => seg.coding,
+                    ecrire: (c) => { seg.coding = c; },
+                }));
+                champ.filter(e => e instanceof Point && e.codageMilieu).forEach(p => {
+                    const par = (p.parents || []).filter(q => q && typeof q.x === 'number');
+                    if (par.length !== 2) return;
+                    porteurs.push({
+                        len: MathUtils.dist(par[0].x, par[0].y, par[1].x, par[1].y) / 2,
+                        lire: () => p.codageMilieu,
+                        ecrire: (c) => { p.codageMilieu = c; },
+                    });
+                });
                 const segGroups = [];
-                segments.forEach(seg => {
-                    const len = MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y);
-                    let g = segGroups.find(g => Math.abs(g.len - len) < 2);
-                    if (g) g.items.push(seg);
-                    else segGroups.push({ len: len, items: [seg] });
+                porteurs.forEach(po => {
+                    let g = segGroups.find(g => Math.abs(g.len - po.len) < 2);
+                    if (g) g.items.push(po);
+                    else segGroups.push({ len: po.len, items: [po] });
                 });
                 const symbols = ['mark-1', 'mark-2', 'mark-3', 'mark-o', 'mark-x', 'mark-xx', 'mark-oo'];
                 let usedSymbols = new Set();
                 segGroups.forEach(g => {
-                    g.model = g.items.find(s => s.coding && s.coding !== 'mark-none');
-                    if (g.model) usedSymbols.add(g.model.coding);
+                    g.model = g.items.find(s => s.lire() && s.lire() !== 'mark-none');
+                    if (g.model) usedSymbols.add(g.model.lire());
                 });
                 segGroups.forEach(g => {
                     if (g.items.length > 1) {
-                        let code = g.model ? g.model.coding : (symbols.find(s => !usedSymbols.has(s)) || symbols[0]);
+                        let code = g.model ? g.model.lire() : (symbols.find(s => !usedSymbols.has(s)) || symbols[0]);
                         if (!g.model) usedSymbols.add(code);
-                        g.items.forEach(seg => { if (seg.coding !== code) { seg.coding = code; hasChanges = true; } });
+                        g.items.forEach(po => { if (po.lire() !== code) { po.ecrire(code); hasChanges = true; } });
                     }
                 });
 
@@ -19475,6 +19566,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        en face d'une feuille vide, c'est un compte-rendu faux : elles
                        décrivaient des objets qui n'existent plus. */
                     this._consignes = [];
+                    if (typeof this.cslOublier === 'function') this.cslOublier();
                     if (typeof this.majConsignes === 'function') this.majConsignes();
                     const zoneEnonce = document.getElementById('instrContent');
                     if (zoneEnonce) zoneEnonce.innerHTML = '';
@@ -26300,7 +26392,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslNettoyer(t) {
                 return String(t || '').replace(/[’‘]/g, "'").replace(/\s+/g, ' ')
                     .replace(/^\s*(?:\d+\s*[).°]|[-–—•*])\s*/, '')
-                    .replace(/\s*[.;]\s*$/, '').trim();
+                    .replace(/\s*[.;,]\s*$/, '').trim();
             }
             /* Les noms de points : une majuscule, éventuellement suivie d'un ou deux
                primes. Une majuscule suivie d'une minuscule commence un mot —
@@ -26600,7 +26692,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                On ne coupe que devant ce qui commence une construction. */
             cslDecouper(brut) {
                 const re = /\s+(?:et|puis|ensuite|,\s*puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)|le\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)|un\s+point|une\s+droite)\b)/i;
-                const bouts = brut.split(re).map(x => x.trim()).filter(Boolean);
+                /* LA VIRGULE AUSSI SÉPARE, quand un verbe la suit : « Trace un
+                   segment [OQ] de 6 cm, place le milieu P » en est deux. Elle ne
+                   sépare rien devant un nom de point (« A, B, C ») ni dans un
+                   nombre (« 6,5 cm ») : c'est le verbe qui décide. */
+                const reVirgule = /\s*,\s*(?=(?:il|elle|celui-ci|celle-ci)\s+(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire|marque|appelle|nomme|note|prends|soit)\b/i;
+                const bouts = brut.split(re).map(x => x.trim()).filter(Boolean)
+                    .reduce((acc, b) => acc.concat(b.split(reVirgule).map(x => x.trim()).filter(Boolean)), []);
                 return bouts.length > 1 ? bouts : [brut];
             }
             /* « ses médiatrices » : celles de la figure qu'on vient de tracer. */
@@ -26667,6 +26765,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!this.stepInstructions) this.stepInstructions = {};
                         this.stepInstructions[avant] = phraseEleve;
                     }
+                    // ce qui vient d'être tracé sert à la consigne suivante
+                    this.cslMemoriser(this.entities.slice(avant));
                     // le codage ne parle que de ce que CETTE consigne a construit
                     this.codageDeConstruction(avant);
                     this.saveState();
@@ -26693,6 +26793,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         && /m[ée]diatrices|hauteurs|m[ée]dianes|bissectrices/.test(t)) {
                         return this.cslCentreRemarquable(brut, t, fait, rate);
                     }
+                    /* « Étape 2 » : un titre dans l'énoncé, pas une construction.
+                       Coller un énoncé entier ne doit pas buter sur ses intertitres. */
+                    const etape = brut.match(/^[ée]tape\s*(\d+)\s*:?\s*$/i);
+                    if (etape) return { ok: true, message: `Étape ${etape[1]}`, cree: 0, astuce: '' };
+                    /* « il coupe le cercle C1 en deux points A et B ». On laisse
+                       « se coupent » et « intersection » à la règle du croisement
+                       de deux droites nommées, qui les traite déjà. */
+                    if (/\b(?:coupe|recoupe|rencontre)\b/.test(t) && /\ben\b/.test(t)
+                        && !/\bse\s+coupent\b|intersection/.test(t)) {
+                        return this.cslCoupe(brut, t, fait, rate);
+                    }
+                    if (/\barcs?\s+de\s+cercle\b/.test(t)) return this.cslArc(brut, t, fait, rate);
                     if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
@@ -26715,7 +26827,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/intersection|se\s+coupent|point\s+commun/.test(t)) {
                         return this.cslIntersection(brut, t, fait, rate);
                     }
-                    if (/\bsur\s+(la\s+droite|le\s+segment|le\s+cercle|\[|\()/.test(t)
+                    if (/\bsur\s+(la\s+droite|le\s+segment|le\s+cercle|ce\s+segment|ce\s+cercle|cette\s+droite|cette\s+demi-droite|\[|\()/.test(t)
                         && /^(place|placer|pose|poser|marque|marquer|soit|prends|prendre)\b/.test(t)) {
                         return this.cslPointSur(brut, t, fait, rate);
                     }
@@ -27031,27 +27143,69 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Un point posé SUR un objet : il y reste, parce qu'il en dépend. */
             cslPointSur(brut, t, fait, rate) {
-                const cercle = brut.match(/cercle\s+de\s+centre\s+([A-Z]'{0,2})/);
-                const paire = this.cslPaire(brut.replace(/^[^s]*\bsur\b/i, ''), null);
-                const noms = this.cslNoms(brut);
+                /* « Place le point G sur ce segment tel que GQ = 5 cm » : le
+                   support peut être désigné par un pronom, et la position par une
+                   distance à l'une de ses extrémités. On sépare donc les trois
+                   morceaux — le nom, le support, la condition — avant de placer. */
+                const apresSur = brut.replace(/^.*?\bsur\b/i, '');
+                const condition = (brut.match(/tel(?:le)?\s+que\s+(.+)$/i) || [])[1] || '';
+                const iTel = apresSur.toLowerCase().search(/\btel(?:le)?\s+que\b/);
+                const support = (condition && iTel >= 0) ? apresSur.slice(0, iTel) : apresSur;
+                const cercle = support.match(/cercle\s+de\s+centre\s+([A-Z]'{0,2})/);
+                const paire = this.cslPaire(support, null);
+                const objet = this.cslObjetDe(support);
+                const avantSur = brut.slice(0, brut.length - apresSur.length);
                 const utilises = paire ? [paire.a, paire.b] : [];
-                const nom = noms.find(n => !this.cslPointNomme(n) && !utilises.includes(n))
+                const nom = this.cslNoms(avantSur).find(n => !this.cslPointNomme(n) && !utilises.includes(n))
+                    || this.cslNoms(brut).find(n => !this.cslPointNomme(n) && !utilises.includes(n))
                     || this.cslNomLibre([]);
-                if (cercle) {
-                    const centre = this.cslPointNomme(cercle[1]);
-                    if (!centre) return rate(`Je ne connais pas ${cercle[1]}.`);
-                    const cer = this.entities.find(e => e instanceof Circle && e.p1 === centre);
-                    if (!cer) return rate(`Le cercle de centre ${cercle[1]} n'est pas tracé.`);
-                    const r = MathUtils.dist(cer.p1.x, cer.p1.y, cer.p2.x, cer.p2.y);
-                    this.addEntity(new Point(centre.x + Math.cos(-0.6) * r, centre.y + Math.sin(-0.6) * r, nom));
-                    return fait(`${nom} sur le cercle de centre ${cercle[1]}`);
+                if (cercle || (objet instanceof Circle)) {
+                    let cer = (objet instanceof Circle) ? objet : null;
+                    if (!cer) {
+                        const centre = this.cslPointNomme(cercle[1]);
+                        if (!centre) return rate(`Je ne connais pas ${cercle[1]}.`);
+                        cer = this.entities.find(e => e instanceof Circle && e.p1 === centre);
+                        if (!cer) return rate(`Le cercle de centre ${cercle[1]} n'est pas tracé.`);
+                    }
+                    const r = this.cslRayon(cer);
+                    this.addEntity(new Point(cer.p1.x + Math.cos(-0.6) * r, cer.p1.y + Math.sin(-0.6) * r, nom));
+                    return fait(`${nom} sur le cercle de centre ${cer.p1.label || '·'}`);
                 }
-                if (!paire) return rate("Sur quoi ? Écrivez « Place un point M sur [AB] » ou « sur (AB) ».");
-                const a = this.cslPointNomme(paire.a), b = this.cslPointNomme(paire.b);
-                if (!a || !b) return rate(`Je ne connais pas ${!a ? paire.a : paire.b}.`);
-                const k = 0.38;
+                /* Les deux bouts du trait qui porte le point : ceux de l'objet
+                   désigné, ou ceux de la notation écrite. */
+                let a = null, b = null, dit = '';
+                if (objet && objet.p1 && objet.p2) {
+                    a = objet.p1; b = objet.p2;
+                    dit = `${objet instanceof Segment ? '[' : '('}${a.label || '·'}${b.label || '·'}${objet instanceof Segment ? ']' : objet instanceof Ray ? ')' : ')'}`;
+                } else if (paire) {
+                    a = this.cslPointNomme(paire.a); b = this.cslPointNomme(paire.b);
+                    if (!a || !b) return rate(`Je ne connais pas ${!a ? paire.a : paire.b}.`);
+                    dit = this.cslNomNotation(paire.genre === 'nu' ? 'segment' : paire.genre, paire.a, paire.b);
+                }
+                if (!a || !b) return rate("Sur quoi ? Écrivez « Place un point M sur [AB] » ou « sur (AB) ».");
+                let k = 0.38, precision = '';
+                /* « tel que GQ = 5 cm » : la distance à l'une des extrémités. On
+                   part de celle qui est nommée, vers l'autre. */
+                const dist = condition.match(/([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(.+)$/);
+                if (dist) {
+                    const d = this.cslLongueurPx(dist[3]);
+                    const depuis = [dist[1], dist[2]].find(n => n !== nom);
+                    const origine = depuis === (a.label) ? a : depuis === (b.label) ? b : null;
+                    if (d === null) return rate("Quelle longueur ? Écrivez « … tel que GQ = 5 cm ».");
+                    if (!origine) return rate(`${depuis} n'est pas une extrémité de ${dit}.`);
+                    const L = MathUtils.dist(a.x, a.y, b.x, b.y);
+                    if (L < 1e-6) return rate("Ce trait est de longueur nulle.");
+                    if (d > L + 1e-6 && objet instanceof Segment) {
+                        return rate(`${dist[3].trim()} dépasse la longueur de ${dit}.`);
+                    }
+                    const vers = (origine === a) ? b : a;
+                    const q = { x: origine.x + (vers.x - origine.x) * d / L,
+                                y: origine.y + (vers.y - origine.y) * d / L };
+                    this.addEntity(new Point(q.x, q.y, nom));
+                    return fait(`${nom} sur ${dit}, à ${dist[3].trim()} de ${depuis}`);
+                }
                 this.addEntity(new Point(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, nom));
-                return fait(`${nom} sur ${this.cslNomNotation(paire.genre === 'nu' ? 'segment' : paire.genre, paire.a, paire.b)}`);
+                return fait(`${nom} sur ${dit}${precision}`);
             }
             cslPlacer(brut, t, fait, rate) {
                 let noms = this.cslNoms(brut);
@@ -27336,7 +27490,250 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(bord);
                 const c = this.cslPoserStyle(new Circle(centre, bord));
                 this.addEntity(c);
-                return fait(`Cercle de centre ${centre.label || '·'} ${dit}`.trim());
+                /* « Trace le cercle C1 de centre O » : le cercle porte un nom, et
+                   les phrases suivantes s'en servent — « il coupe le cercle C1 ». */
+                const nomCercle = this.cslNomDeCercle(brut);
+                if (nomCercle) this.cslMemoire().cercles[nomCercle] = c;
+                return fait(`Cercle ${nomCercle ? nomCercle + ' ' : ''}de centre ${centre.label || '·'} ${dit}`.trim());
+            }
+            /* ================================================================
+               LES OBJETS QU'ON NOMME, ET LEURS CROISEMENTS
+
+               Un énoncé de construction ne parle pas qu'en points : il parle de
+               SES OBJETS. « le cercle C1 », « ce segment », « il coupe le cercle
+               C2 en deux points A et B ». Sans mémoire de ce qui vient d'être
+               tracé, chaque phrase repart de zéro — et la moitié d'un énoncé de
+               manuel devient intraduisible.
+               ================================================================ */
+            cslMemoire() {
+                if (!this._cslMemoire) this._cslMemoire = { cercles: {} };
+                return this._cslMemoire;
+            }
+            cslOublier() { this._cslMemoire = { cercles: {} }; }
+            /* Ce que la consigne vient de tracer, retenu pour la suivante. */
+            cslMemoriser(neufs) {
+                const mem = this.cslMemoire();
+                const compte = (e) => e instanceof Circle || e instanceof Segment
+                    || e instanceof Line || e instanceof Ray
+                    || e instanceof PerpendicularLine || e instanceof ParallelLine;
+                for (const e of neufs) {
+                    if (!compte(e)) continue;
+                    mem.dernier = e;
+                    if (e instanceof Circle) mem.cercle = e;
+                    else if (e instanceof Segment) mem.segment = e;
+                    else mem.droite = e;
+                }
+            }
+            /* Le nom d'un cercle : « Trace le cercle C1 de centre O ». Il n'y a
+               qu'après le mot « cercle » qu'une majuscule seule désigne un cercle
+               et non un point — « le cercle de centre A » n'en nomme aucun. */
+            cslNomDeCercle(txt) {
+                const m = String(txt).match(/\bcercles?\s+([A-Z]'?\d*)\b/);
+                return m ? m[1] : null;
+            }
+            /* L'objet dont parle un bout de phrase : un cercle nommé, un cercle
+               de centre connu, une notation [AB] (AB) [AB), ou un pronom. */
+            cslObjetDe(txt) {
+                const mem = this.cslMemoire();
+                if (!txt) return null;
+                const t = String(txt).toLowerCase();
+                const nomC = this.cslNomDeCercle(txt);
+                if (nomC && mem.cercles[nomC]) return mem.cercles[nomC];
+                if (/\b(?:il|elle|celui-ci|celle-ci|le\s+pr[ée]c[ée]dent)\b/.test(t) && !/\bcercle|segment|droite/.test(t)) {
+                    return mem.dernier || null;
+                }
+                if (/\bce\s+cercle\b|\bcelui-ci\b/.test(t)) return mem.cercle || null;
+                if (/\bce\s+segment\b/.test(t)) return mem.segment || null;
+                if (/\bcette\s+droite\b|\bcette\s+demi-droite\b/.test(t)) return mem.droite || null;
+                const c = String(txt).match(/cercle\s+de\s+centre\s+([A-Z]'{0,2})/);
+                if (c) {
+                    const centre = this.cslPointNomme(c[1]);
+                    const r = this.cslLongueurPx(txt);
+                    const tous = this.entities.filter(e => e instanceof Circle && e.p1 === centre);
+                    if (r !== null) {
+                        const juste = tous.find(e => Math.abs(MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y) - r) < 1);
+                        if (juste) return juste;
+                    }
+                    if (tous.length) return tous[tous.length - 1];
+                }
+                const p = this.cslPaire(txt, null);
+                if (p) {
+                    const a = this.cslPointNomme(p.a), b = this.cslPointNomme(p.b);
+                    if (a && b) {
+                        /* LA NOTATION FAIT FOI. « La droite (OQ) coupe… » ne parle
+                           pas du segment [OQ] même s'il est le seul tracé : une
+                           droite va plus loin, et c'est justement le croisement
+                           d'au-delà que l'énoncé vise. Chercher « un trait entre O
+                           et Q » plaçait le point du mauvais côté. */
+                        const classe = p.genre === 'droite' ? Line
+                            : p.genre === 'demi' ? Ray
+                            : p.genre === 'segment' ? Segment : null;
+                        const lien = this.entities.filter(e => (e instanceof Segment || e instanceof Line || e instanceof Ray)
+                            && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
+                        const juste = classe ? lien.filter(e => e instanceof classe) : lien;
+                        if (juste.length) return juste[juste.length - 1];
+                        /* « il coupe [QS] en T » : [QS] n'a pas été tracé, mais
+                           l'énoncé s'y réfère comme à une portion de plan bien
+                           définie. On la fabrique sans la poser sur la feuille —
+                           elle sert à calculer, pas à être vue. */
+                        if (classe) return new classe(a, b);
+                        if (lien.length) return lien[lien.length - 1];
+                        return new Segment(a, b);
+                    }
+                }
+                if (/\bcercle\b/.test(t) && mem.cercle) return mem.cercle;
+                if (/\bsegment\b/.test(t) && mem.segment) return mem.segment;
+                if (/\bdroite\b/.test(t) && mem.droite) return mem.droite;
+                return null;
+            }
+            cslRayon(c) { return MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y); }
+            /* La direction d'un objet linéaire, et jusqu'où il va. Une
+               perpendiculaire et une parallèle n'ont pas de second point : leur
+               direction se déduit de la droite de référence. */
+            cslPorteeLineaire(o) {
+                if (o instanceof PerpendicularLine || o instanceof ParallelLine) {
+                    const r = o.refLine;
+                    if (!r || !r.p1 || !r.p2) return null;
+                    const dx = r.p2.x - r.p1.x, dy = r.p2.y - r.p1.y;
+                    const u = (o instanceof PerpendicularLine) ? { x: -dy, y: dx } : { x: dx, y: dy };
+                    return { p: o.p1, u, borne: 'droite' };
+                }
+                if (!o.p1 || !o.p2) return null;
+                const u = { x: o.p2.x - o.p1.x, y: o.p2.y - o.p1.y };
+                const borne = (o instanceof Segment) ? 'segment' : (o instanceof Ray) ? 'demi' : 'droite';
+                return { p: o.p1, u, borne };
+            }
+            cslDansLaPortee(k, borne) {
+                if (borne === 'segment') return k >= -1e-9 && k <= 1 + 1e-9;
+                if (borne === 'demi') return k >= -1e-9;
+                return true;
+            }
+            /* Les points où deux objets se croisent — cercle et cercle, trait et
+               cercle. Rendus dans un ordre stable (le plus haut d'abord), pour
+               que « en deux points A et B » nomme toujours de la même façon. */
+            cslCroisements(a, b) {
+                if (!a || !b) return [];
+                const estC = (o) => o instanceof Circle;
+                let pts = [];
+                if (estC(a) && estC(b)) {
+                    const r1 = this.cslRayon(a), r2 = this.cslRayon(b);
+                    const c1 = a.p1, c2 = b.p1;
+                    const d = MathUtils.dist(c1.x, c1.y, c2.x, c2.y);
+                    if (d < 1e-9 || d > r1 + r2 + 1e-6 || d < Math.abs(r1 - r2) - 1e-6) return [];
+                    const k = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+                    const h2 = r1 * r1 - k * k;
+                    const h = h2 > 0 ? Math.sqrt(h2) : 0;
+                    const mx = c1.x + k * (c2.x - c1.x) / d, my = c1.y + k * (c2.y - c1.y) / d;
+                    const ux = -(c2.y - c1.y) / d, uy = (c2.x - c1.x) / d;
+                    pts = h < 1e-6 ? [{ x: mx, y: my }]
+                        : [{ x: mx + h * ux, y: my + h * uy }, { x: mx - h * ux, y: my - h * uy }];
+                } else if (estC(a) || estC(b)) {
+                    const cer = estC(a) ? a : b, lin = estC(a) ? b : a;
+                    const po = this.cslPorteeLineaire(lin);
+                    if (!po) return [];
+                    const r = this.cslRayon(cer), c = cer.p1;
+                    const fx = po.p.x - c.x, fy = po.p.y - c.y;
+                    const A = po.u.x * po.u.x + po.u.y * po.u.y;
+                    if (A < 1e-12) return [];
+                    const B = 2 * (fx * po.u.x + fy * po.u.y);
+                    const C = fx * fx + fy * fy - r * r;
+                    const disc = B * B - 4 * A * C;
+                    if (disc < -1e-6) return [];
+                    const rac = Math.sqrt(Math.max(0, disc));
+                    [(-B - rac) / (2 * A), (-B + rac) / (2 * A)].forEach((k, i, arr) => {
+                        if (i === 1 && Math.abs(arr[0] - k) < 1e-9) return;
+                        if (!this.cslDansLaPortee(k, po.borne)) return;
+                        pts.push({ x: po.p.x + k * po.u.x, y: po.p.y + k * po.u.y });
+                    });
+                } else {
+                    const pa = this.cslPorteeLineaire(a), pb = this.cslPorteeLineaire(b);
+                    if (!pa || !pb) return [];
+                    const den = pa.u.x * pb.u.y - pa.u.y * pb.u.x;
+                    if (Math.abs(den) < 1e-9) return [];
+                    const k = ((pb.p.x - pa.p.x) * pb.u.y - (pb.p.y - pa.p.y) * pb.u.x) / den;
+                    const j = ((pb.p.x - pa.p.x) * pa.u.y - (pb.p.y - pa.p.y) * pa.u.x) / den;
+                    if (!this.cslDansLaPortee(k, pa.borne) || !this.cslDansLaPortee(j, pb.borne)) return [];
+                    pts = [{ x: pa.p.x + k * pa.u.x, y: pa.p.y + k * pa.u.y }];
+                }
+                return pts.sort((p, q) => (p.y - q.y) || (p.x - q.x));
+            }
+            /* « … tel que S n'appartienne pas à [OQ] » : quand deux croisements
+               conviennent, l'énoncé dit lequel prendre. */
+            cslFiltrerCroisements(pts, condition) {
+                if (!condition || pts.length < 2) return pts;
+                const p = this.cslPaire(condition, null);
+                if (!p) return pts;
+                const a = this.cslPointNomme(p.a), b = this.cslPointNomme(p.b);
+                if (!a || !b) return pts;
+                const dehors = /\bn['’]?\s*(?:appartien|est|se\s+trouve)|\bpas\b|hors\b/.test(condition.toLowerCase());
+                const sur = (q) => {
+                    const dx = b.x - a.x, dy = b.y - a.y;
+                    const L2 = dx * dx + dy * dy;
+                    if (L2 < 1e-9) return false;
+                    const k = ((q.x - a.x) * dx + (q.y - a.y) * dy) / L2;
+                    const d = Math.abs((q.x - a.x) * dy - (q.y - a.y) * dx) / Math.sqrt(L2);
+                    return d < 2 && k >= -0.02 && k <= 1.02;
+                };
+                const gardes = pts.filter(q => dehors ? !sur(q) : sur(q));
+                return gardes.length ? gardes : pts;
+            }
+            /* « il coupe le cercle C1 en deux points A et B », « La droite (OQ)
+               coupe le cercle C3 en S tel que S n'appartienne pas à [OQ] ». */
+            cslCoupe(brut, t, fait, rate) {
+                const m = brut.match(/^(.*?)\b(?:coupe|coupent|recoupe|rencontre)\b(.*)$/i);
+                if (!m) return rate("Qu'est-ce qui coupe quoi ?");
+                const gauche = m[1].trim(), reste = m[2].trim();
+                const coupeEn = reste.split(/\ben\s+/i);
+                const cible = coupeEn[0];
+                const suite = coupeEn.slice(1).join(' en ');
+                const A = this.cslObjetDe(gauche) || this.cslMemoire().dernier;
+                const B = this.cslObjetDe(cible);
+                if (!A) return rate("Je ne sais pas de quel objet vous parlez : tracez-le d'abord.");
+                if (!B) return rate(`Je ne trouve pas « ${cible.trim()} ».`);
+                if (A === B) return rate("Un objet ne se coupe pas lui-même.");
+                let pts = this.cslCroisements(A, B);
+                if (!pts.length) return rate("Ces deux objets ne se coupent pas.");
+                /* Les noms voulus : « en deux points A et B », « en E », « en deux
+                   points dont un est appelé C ». */
+                const condition = (suite.match(/tel(?:le)?\s+que\s+(.+)$/i) || [])[1] || '';
+                const zone = condition ? suite.slice(0, suite.toLowerCase().indexOf('tel')) : suite;
+                let noms = this.cslNoms(zone);
+                pts = this.cslFiltrerCroisements(pts, condition);
+                if (!noms.length) return rate("Comment s'appelle ce point ? Écrivez « … en E ».");
+                const poses = [];
+                noms.slice(0, pts.length).forEach((n, i) => {
+                    const deja = this.cslPointNomme(n);
+                    if (deja) { deja.x = pts[i].x; deja.y = pts[i].y; poses.push(n); return; }
+                    this.addEntity(new Point(pts[i].x, pts[i].y, n));
+                    poses.push(n);
+                });
+                if (noms.length > pts.length) {
+                    this.cslDire(`Ces objets ne se coupent qu'en ${pts.length} point`
+                        + `${pts.length > 1 ? 's' : ''} : ${poses.join(', ')} posé${poses.length > 1 ? 's' : ''}.`);
+                }
+                if (pts.length > noms.length && /dont\s+l['’]?un|dont\s+un/i.test(suite)) {
+                    this.cslDire(`Deux croisements conviennent : ${poses[0]} est celui du haut.`);
+                }
+                return fait(`${poses.join(' et ')} — croisement`);
+            }
+            /* « Trace l'arc de cercle de centre O et de rayon 3 cm de A à B ». */
+            cslArc(brut, t, fait, rate) {
+                const nomC = (brut.match(/centre\s+(?:le\s+point\s+)?([A-Z]'{0,2})/) || [])[1];
+                if (!nomC) return rate("De quel centre ? Écrivez « Trace l'arc de cercle de centre O… ».");
+                const centre = this.cslPoint(nomC);
+                const bouts = [...brut.matchAll(/\bd[eu]\s+([A-Z]'{0,2})\s+[àa]\s+([A-Z]'{0,2})\b/g)];
+                const de = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][1]) : null;
+                const a2 = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][2]) : null;
+                let r = this.cslLongueurPx((brut.match(/rayon\s*(?:de\s*)?(.+)$/i) || [])[1] || '');
+                if (r === null && de) r = MathUtils.dist(centre.x, centre.y, de.x, de.y);
+                if (r === null || !(r > 0)) return rate("Quel rayon ? Écrivez « … de rayon 3 cm ».");
+                const ang = (p) => p ? Math.atan2(p.y - centre.y, p.x - centre.x) : null;
+                const a1 = ang(de), af = ang(a2);
+                const arc = this.cslPoserStyle(new Arc(centre, r,
+                    a1 === null ? -Math.PI / 2 : a1, af === null ? Math.PI / 2 : af));
+                this.addEntity(arc);
+                return fait(`Arc de cercle de centre ${nomC}`
+                    + (de && a2 ? ` de ${de.label} à ${a2.label}` : ''));
             }
             cslAngle(brut, t, fait, rate) {
                 const noms = this.cslNoms(brut);
@@ -27803,8 +28200,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this._consignes;
             }
             consigneNeuve(texte = '') {
-                return { texte, instruments: false, faite: false, etat: null,
-                         message: '', astuce: '', signature: '' };
+                return { texte, instruments: !!this.reglagesConsignes().instruments,
+                         faite: false, etat: null, message: '', astuce: '', signature: '' };
             }
             ajouterConsigne(texte = '') {
                 const l = this.consignesListe();
@@ -27863,7 +28260,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 champ.addEventListener('input', () => {
                     c.texte = champ.value;
                     /* Modifier une ligne faite la remet en jeu : le ✓ retombe sur
-                       son numéro, et « Valider » redevient actif. */
+                       son numéro, et elle repartira au prochain Entrée. */
                     if (c.faite && champ.value.trim() !== c.signature) {
                         c.faite = false;
                         el.classList.remove('faite');
@@ -27874,32 +28271,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 champ.addEventListener('keydown', (e) => {
                     if (e.key !== 'Enter') return;
                     e.preventDefault();
-                    this.validerConsigne(i);
+                    /* « Dessiner à chaque retour à la ligne » : Entrée fait la
+                       consigne, puis descend. Sinon Entrée ne fait que descendre —
+                       on écrit tout l'énoncé, on le relit, et on le lance. */
+                    if (this.reglagesConsignes().auto) this.validerConsigne(i);
+                    else this.ligneSuivante(i);
                 });
                 champ.addEventListener('focus', () => this.bandeauConsigne(el, champ.value));
+                /* COLLER UN ÉNONCÉ ENTIER : chaque ligne du texte devient une
+                   consigne. Sans cela, un énoncé de manuel arrive tout entier
+                   dans une seule case, où il ne veut plus rien dire. */
+                champ.addEventListener('paste', (e) => {
+                    const texte = (e.clipboardData || window.clipboardData).getData('text') || '';
+                    if (!/[\r\n]/.test(texte)) return;
+                    e.preventDefault();
+                    this.collerEnonce(i, texte);
+                });
 
-                const go = document.createElement('button');
-                go.className = 'csl-go';
-                go.textContent = 'Valider';
-                go.addEventListener('click', () => this.validerConsigne(i));
+                const roue = document.createElement('button');
+                roue.className = 'csl-roue';
+                roue.textContent = '⚙';
+                roue.title = 'Options de cette ligne';
+                roue.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    this.menuLigneConsigne(i, roue);
+                });
 
-                const sup = document.createElement('button');
-                sup.className = 'csl-suppr';
-                sup.textContent = '✕';
-                sup.title = 'Retirer cette ligne';
-                sup.addEventListener('click', () => this.supprimerConsigne(i));
-
-                tete.append(num, champ, go, sup);
-
-                const outils = document.createElement('label');
-                outils.className = 'csl-outils';
-                const case1 = document.createElement('input');
-                case1.type = 'checkbox';
-                case1.checked = !!c.instruments;
-                case1.addEventListener('change', () => { c.instruments = case1.checked; });
-                const dit = document.createElement('span');
-                dit.textContent = 'avec les instruments';
-                outils.append(case1, dit);
+                tete.append(num, champ, roue);
 
                 const rep = document.createElement('div');
                 rep.className = 'csl-reponse' + (c.etat ? ' ' + c.etat : '');
@@ -27919,11 +28317,120 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const mod = document.createElement('div');
                 mod.className = 'csl-modeles';
 
-                el.append(tete, outils, rep, mod);
+                el.append(tete, rep, mod);
                 /* Une ligne faite n'a plus besoin qu'on lui montre le modèle :
                    le bandeau ne parle que tant qu'on cherche ses mots. */
                 if (c.texte && !c.faite) this.bandeauConsigne(el, c.texte);
                 return el;
+            }
+            /* Descendre d'une ligne, en en ouvrant une s'il n'y en a plus. */
+            ligneSuivante(i) {
+                const liste = this.consignesListe();
+                if (i >= liste.length - 1) liste.push(this.consigneNeuve());
+                this.majConsignes(i + 1);
+            }
+            collerEnonce(i, texte) {
+                const liste = this.consignesListe();
+                const lignes = texte.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+                if (!lignes.length) return;
+                const reste = liste.splice(i + 1);
+                liste[i] = Object.assign(this.consigneNeuve(lignes[0]),
+                    { instruments: this.reglagesConsignes().instruments });
+                lignes.slice(1).forEach(l => liste.push(Object.assign(this.consigneNeuve(l),
+                    { instruments: this.reglagesConsignes().instruments })));
+                reste.forEach(c => liste.push(c));
+                this.majConsignes(i + lignes.length - 1);
+                this.showToast(`${lignes.length} lignes collées — « ▶ Tout faire » les exécute`);
+            }
+            /* LES OPTIONS D'UNE LIGNE VIVENT DANS SA ROUE. Une case, un bouton
+               Valider et une croix sur chaque ligne, c'était trois commandes par
+               consigne pour un énoncé qui en compte vingt : le panneau pesait plus
+               que l'énoncé. La ligne ne montre plus que son numéro et son texte. */
+            menuLigneConsigne(i, ancre) {
+                this.fermerMenuConsigne();
+                const c = this.consignesListe()[i];
+                if (!c) return;
+                const m = document.createElement('div');
+                m.className = 'csl-menu';
+                m.id = 'cslMenuLigne';
+                const lab = document.createElement('label');
+                const ck = document.createElement('input');
+                ck.type = 'checkbox'; ck.checked = !!c.instruments;
+                ck.addEventListener('change', () => { c.instruments = ck.checked; });
+                lab.append(ck, document.createTextNode(' avec les instruments'));
+                const faire = document.createElement('button');
+                faire.textContent = c.faite ? 'Refaire cette ligne' : 'Faire cette ligne';
+                faire.addEventListener('click', () => {
+                    this.fermerMenuConsigne();
+                    if (c.faite) { c.faite = false; c.signature = ''; }
+                    this.validerConsigne(i);
+                });
+                const sup = document.createElement('button');
+                sup.className = 'danger';
+                sup.textContent = 'Retirer la ligne';
+                sup.addEventListener('click', () => { this.fermerMenuConsigne(); this.supprimerConsigne(i); });
+                m.append(lab, faire, sup);
+                document.body.appendChild(m);
+                const r = ancre.getBoundingClientRect();
+                m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 4) + 'px';
+                m.style.left = Math.max(6, Math.min(window.innerWidth - m.offsetWidth - 6, r.right - m.offsetWidth)) + 'px';
+                setTimeout(() => document.addEventListener('pointerdown', this._cslFermeMenu = (e) => {
+                    if (!m.contains(e.target)) this.fermerMenuConsigne();
+                }), 0);
+            }
+            fermerMenuConsigne() {
+                const m = document.getElementById('cslMenuLigne');
+                if (m) m.remove();
+                if (this._cslFermeMenu) {
+                    document.removeEventListener('pointerdown', this._cslFermeMenu);
+                    this._cslFermeMenu = null;
+                }
+            }
+            /* LES RÉGLAGES DE TOUT LE PANNEAU, retenus d'une fois sur l'autre. */
+            reglagesConsignes() {
+                if (!this._cslReglages) {
+                    let lu = null;
+                    try { lu = JSON.parse(localStorage.getItem('gmConsignes') || 'null'); }
+                    catch (e) { lu = null; }
+                    this._cslReglages = Object.assign(
+                        { auto: true, instruments: false, modeles: true }, lu || {});
+                }
+                return this._cslReglages;
+            }
+            ecrireReglagesConsignes() {
+                try { localStorage.setItem('gmConsignes', JSON.stringify(this.reglagesConsignes())); }
+                catch (e) { /* navigation privée : le réglage vaut pour la séance */ }
+            }
+            menuReglagesConsignes(ancre) {
+                this.fermerMenuConsigne();
+                const r = this.reglagesConsignes();
+                const m = document.createElement('div');
+                m.className = 'csl-menu';
+                m.id = 'cslMenuLigne';
+                const titre = document.createElement('b');
+                titre.textContent = 'Réglages';
+                m.appendChild(titre);
+                [['auto', 'Dessiner à chaque retour à la ligne'],
+                 ['instruments', 'Nouvelles lignes : avec les instruments'],
+                 ['modeles', 'Montrer les modèles sous la ligne']].forEach(([cle, texte]) => {
+                    const lab = document.createElement('label');
+                    const ck = document.createElement('input');
+                    ck.type = 'checkbox'; ck.checked = !!r[cle];
+                    ck.addEventListener('change', () => {
+                        r[cle] = ck.checked;
+                        this.ecrireReglagesConsignes();
+                        if (cle === 'modeles') this.majConsignes();
+                    });
+                    lab.append(ck, document.createTextNode(' ' + texte));
+                    m.appendChild(lab);
+                });
+                document.body.appendChild(m);
+                const b = ancre.getBoundingClientRect();
+                m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, b.bottom + 4) + 'px';
+                m.style.left = Math.max(6, Math.min(window.innerWidth - m.offsetWidth - 6, b.right - m.offsetWidth)) + 'px';
+                setTimeout(() => document.addEventListener('pointerdown', this._cslFermeMenu = (e) => {
+                    if (!m.contains(e.target)) this.fermerMenuConsigne();
+                }), 0);
             }
             /* LE BANDEAU. « Trace un carré de 3 cm » ne dit pas quels sommets ; le
                logiciel en invente alors, en silence. Plutôt que de deviner sans
@@ -27932,7 +28439,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             bandeauConsigne(el, texte) {
                 const mod = el.querySelector('.csl-modeles');
                 if (!mod) return;
-                const trouves = this.cslModeles(texte);
+                const trouves = this.reglagesConsignes().modeles ? this.cslModeles(texte) : [];
                 mod.innerHTML = '';
                 if (!trouves.length) { mod.style.display = 'none'; return; }
                 const t = document.createElement('b');
