@@ -3929,6 +3929,122 @@
             overflow: hidden;
         }
 
+        /* LA PALETTE SE REPLIE.
+
+           Sur ses 23 commandes, trois servent à chaque trait : la couleur, le
+           trait, l'épaisseur. Elles tenaient dans un panneau de 212 px ouvert en
+           permanence, au-dessus de la feuille. Repliée, la palette n'en montre
+           plus que 50 : ces trois-là, le mode peinture — qui est un mode, pas un
+           réglage, d'où le filet qui l'en sépare — et le chevron qui rouvre tout.
+           Dépliée, elle est exactement celle d'avant : rien n'y a changé. */
+        .style-palette.repliee {
+            width: 50px;
+            /* la rangée de couleurs sort du panneau : « overflow: hidden », posé
+               pour arrondir les coins du panneau déplié, la coupait net */
+            overflow: visible;
+        }
+
+        .style-palette.repliee .palette-content {
+            display: none;
+        }
+
+        /* la poignée reste : repliée, la palette se déplace toujours */
+        .style-palette.repliee .palette-drag-handle .drag-pill {
+            width: 20px;
+        }
+
+        .style-palette.repliee .palette-drag-handle {
+            padding: 8px 6px 2px;
+        }
+
+        .palette-compacte {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 7px 8px;
+        }
+
+        .style-palette.repliee .palette-compacte {
+            display: flex;
+        }
+
+        .puce-compacte {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, .08);
+            background: rgba(255, 255, 255, .7);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            padding: 0;
+            color: #333;
+            flex: 0 0 auto;
+        }
+
+        .puce-compacte:hover { border-color: #bae6fd; }
+        .puce-compacte.active { background: #e0f2fe; border-color: #bae6fd; color: #0284c7; }
+
+        .puce-rond { width: 24px; height: 24px; border-radius: 50%; }
+
+        .puce-epaisseur { display: flex; align-items: center; gap: 3px; }
+        .puce-epaisseur i { display: block; width: 15px; background: currentColor; border-radius: 2px; }
+        .puce-epaisseur b { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        .filet-compact {
+            width: 28px;
+            height: 1px;
+            background: rgba(0, 0, 0, .09);
+            margin: 1px 0;
+            flex: 0 0 auto;
+        }
+
+        .btn-pliage {
+            border: 0;
+            background: 0 0;
+            color: #90a4ae;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 3px 6px;
+            border-radius: 6px;
+        }
+
+        .btn-pliage:hover { color: #0284c7; }
+
+        /* le chevron qui replie vit dans la poignée, à gauche de la croix */
+        .palette-drag-handle .btn-pliage {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+        }
+
+        .style-palette.repliee .palette-drag-handle .btn-pliage { display: none; }
+
+        /* La rangée de couleurs, ouverte par un appui maintenu. Elle sort SUR LE
+           CÔTÉ, pas au-dessus : la palette est en haut à droite, et au-dessus
+           d'elle il y a la barre de l'en-tête, qui recouvrait les pastilles. */
+        .nuancier-compact {
+            position: absolute;
+            right: calc(100% + 9px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+            padding: 7px;
+            display: none;
+            gap: 6px;
+            z-index: 10;
+        }
+
+        .nuancier-compact.ouvert { display: flex; }
+
+        /* si la palette a été tirée contre le bord gauche, la rangée sort à droite */
+        .nuancier-compact.a-droite { right: auto; left: calc(100% + 9px); }
+
         .palette-drag-handle {
             background: transparent;
             padding: 12px;
@@ -9103,8 +9219,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          donc de primer sur la feuille de style. -->
     <div class="style-palette floating-window" id="stylePalettePanel" style="top: 60px; left: auto;">
         <div class="palette-drag-handle" id="paletteHandle">
+            <button class="btn-pliage" onclick="app.basculerPliagePalette()"
+                data-libelle="Replier la palette" data-tooltip="Replier la palette">&#8963;</button>
             <div class="drag-pill"></div>
             <button class="close-palette" onclick="app.toggleStylePalette()">&times;</button>
+        </div>
+        <!-- L'ESSENTIEL, QUAND ELLE EST REPLIÉE. Un clic sur la couleur passe à la
+             suivante ; un appui maintenu ouvre la rangée complète au-dessus. Même
+             chose pour le trait et l'épaisseur : on tape, ça tourne, on ne vise
+             pas. -->
+        <div class="palette-compacte" id="paletteCompacte">
+            <div style="position:relative">
+                <button class="puce-compacte" id="puceCouleur" data-libelle="Couleur"
+                    data-tooltip="Couleur — clic : la suivante · clic maintenu : choisir">
+                    <span class="puce-rond" id="puceCouleurRond"></span>
+                </button>
+                <div class="nuancier-compact" id="nuancierCompact"></div>
+            </div>
+            <button class="puce-compacte" id="puceTrait" data-libelle="Trait"
+                data-tooltip="Trait plein ou pointillés">
+                <svg width="22" height="22" viewBox="0 0 24 24">
+                    <line id="puceTraitApercu" x1="3" y1="12" x2="21" y2="12" stroke="currentColor"
+                        stroke-width="2.4" stroke-linecap="round" />
+                </svg>
+            </button>
+            <button class="puce-compacte" id="puceEpaisseur" data-libelle="Épaisseur"
+                data-tooltip="Épaisseur du trait">
+                <span class="puce-epaisseur"><i id="puceEpaisseurBarre"></i><b id="puceEpaisseurChiffre">2</b></span>
+            </button>
+            <div class="filet-compact"></div>
+            <button class="puce-compacte" id="pucePeinture" data-libelle="Mode peinture"
+                data-tooltip="Mode peinture" onclick="app.togglePaintMode()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" style="fill:none;">
+                    <path d="M12 3a9 9 0 0 0 0 18c1 0 1.6-.7 1.6-1.5 0-.4-.2-.8-.5-1.1-.3-.3-.4-.6-.4-1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z" />
+                    <circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+                    <circle cx="12" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
+                    <circle cx="16.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+                </svg>
+            </button>
+            <button class="btn-pliage" onclick="app.basculerPliagePalette()"
+                data-libelle="Déplier la palette" data-tooltip="Déplier : tout le reste">&#8964;</button>
         </div>
         <div class="palette-content">
             <div style="display: none;">
@@ -15651,6 +15806,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 const indicator = document.getElementById('colorIndicator');
                 if (indicator) indicator.style.backgroundColor = hex;
+                if (this.majPaletteCompacte) this.majPaletteCompacte();
                 if (this.selectedObject) {
                     this.selectedObject.color = hex;
                     if (this.selectedObject.style) this.selectedObject.style.color = hex;
@@ -15664,6 +15820,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const btnSolid = document.getElementById('btnStyleSolid');
                 if (btnDash) btnDash.classList.toggle('active', isDashed);
                 if (btnSolid) btnSolid.classList.toggle('active', !isDashed);
+                if (this.majPaletteCompacte) this.majPaletteCompacte();
                 if (this.selectedObject && this.selectedObject.style) {
                     this.selectedObject.style.dash = this.globalStyle.dash;
                     this.saveState();
@@ -15674,6 +15831,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.isPaintMode = !this.isPaintMode;
                 const btn = document.getElementById('btnPaint');
                 if (btn) btn.classList.toggle('active', this.isPaintMode);
+                if (this.majPaletteCompacte) this.majPaletteCompacte();
                 if (this.isPaintMode) {
                     this.setTool('move');
                     this.canvas.style.cursor = 'crosshair';
@@ -15682,6 +15840,140 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.canvas.style.cursor = 'default';
                     this.showToast("Mode Peinture Désactivé");
                 }
+            }
+            /* ---- LA PALETTE REPLIÉE -----------------------------------------
+               Elle est repliée au départ : 50 px au lieu de 212, soit 162 px de
+               feuille rendus en permanence. Le choix se garde d'une fois sur
+               l'autre — c'est une habitude de travail, pas un réglage à reprendre
+               à chaque ouverture. */
+            paletteEstRepliee() {
+                if (this._paletteRepliee === undefined) {
+                    let m = null;
+                    try { m = localStorage.getItem('gm_palette_repliee'); } catch (e) { m = null; }
+                    this._paletteRepliee = (m === null) ? true : (m === '1');
+                }
+                return this._paletteRepliee;
+            }
+            basculerPliagePalette(forcer) {
+                const p = document.getElementById('stylePalettePanel');
+                if (!p) return;
+                this._paletteRepliee = (forcer === undefined) ? !this.paletteEstRepliee() : !!forcer;
+                p.classList.toggle('repliee', this._paletteRepliee);
+                try { localStorage.setItem('gm_palette_repliee', this._paletteRepliee ? '1' : '0'); } catch (e) { }
+                this.fermerNuancierCompact();
+                this.majPaletteCompacte();
+            }
+            /* Les couleurs du raccourci sont LUES dans la palette : une couleur
+               ajoutée à la rangée entre d'elle-même dans le cycle, et il n'y a pas
+               deux listes à tenir d'accord. */
+            couleursRapides() {
+                return [...document.querySelectorAll('.quick-color-bar .color-swatch[data-color]')]
+                    .map(e => e.getAttribute('data-color'));
+            }
+            couleurSuivante() {
+                const l = this.couleursRapides();
+                if (!l.length) return;
+                const ici = l.findIndex(c => c.toLowerCase() === ((this.globalStyle || {}).color || '').toLowerCase());
+                this.setGlobalColor(l[(ici + 1) % l.length]);
+            }
+            traitSuivant() {
+                const gs = this.globalStyle || {};
+                this.setGlobalDash(!(gs.dash && gs.dash.length));
+                this.majPaletteCompacte();
+            }
+            epaisseurSuivante() {
+                const l = [1, 2, 3, 4, 6, 8];
+                const ici = l.indexOf(parseInt((this.globalStyle || {}).width, 10));
+                const v = l[(ici + 1) % l.length];
+                this.setGlobalWidth(v);
+                const curseur = document.getElementById('widthRange');
+                if (curseur) curseur.value = v;
+            }
+            /* La rangée complète, au-dessus de la pastille : quand on veut CHOISIR
+               au lieu de faire défiler. */
+            ouvrirNuancierCompact() {
+                const hote = document.getElementById('nuancierCompact');
+                if (!hote) return;
+                hote.innerHTML = '';
+                this.couleursRapides().forEach(c => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.style.cssText = 'width:24px;height:24px;border-radius:50%;padding:0;cursor:pointer;'
+                        + 'background:' + c + ';border:1px solid rgba(0,0,0,.12)';
+                    if (c.toLowerCase() === ((this.globalStyle || {}).color || '').toLowerCase()) {
+                        b.style.boxShadow = '0 0 0 2px #fff, 0 0 0 4px #2980b9';
+                    }
+                    b.onclick = (ev) => { ev.stopPropagation(); this.setGlobalColor(c); this.fermerNuancierCompact(); };
+                    hote.appendChild(b);
+                });
+                hote.classList.add('ouvert');
+                /* Elle sort à gauche, sauf s'il n'y a pas la place — la palette se
+                   déplace, elle peut se retrouver contre le bord. */
+                const p = document.getElementById('stylePalettePanel');
+                const large = 7 * this.couleursRapides().length + 20;
+                hote.classList.toggle('a-droite',
+                    !!p && p.getBoundingClientRect().left < large + 40);
+            }
+            fermerNuancierCompact() {
+                const h = document.getElementById('nuancierCompact');
+                if (h) h.classList.remove('ouvert');
+            }
+            majPaletteCompacte() {
+                const rond = document.getElementById('puceCouleurRond');
+                if (!rond) return;
+                /* Appelée aussi pendant l'installation, avant que le style global
+                   n'existe : on lit sur un objet vide plutôt que de casser le
+                   démarrage. */
+                const gs = this.globalStyle || {};
+                rond.style.background = gs.color || '#333333';
+                const trait = document.getElementById('puceTraitApercu');
+                const tirets = !!(gs.dash && gs.dash.length);
+                if (trait) trait.setAttribute('stroke-dasharray', tirets ? '3 3.4' : '');
+                const e = parseInt(gs.width, 10) || 2;
+                const barre = document.getElementById('puceEpaisseurBarre');
+                if (barre) barre.style.height = Math.min(8, e) + 'px';
+                const chiffre = document.getElementById('puceEpaisseurChiffre');
+                if (chiffre) chiffre.textContent = e;
+                const pe = document.getElementById('pucePeinture');
+                if (pe) pe.classList.toggle('active', !!this.isPaintMode);
+            }
+            /* Un clic passe à la couleur suivante ; un appui maintenu ouvre la
+               rangée. Le même geste vaut à la souris et au doigt — d'où pointerdown
+               plutôt que mousedown. */
+            armerPaletteCompacte() {
+                const puce = document.getElementById('puceCouleur');
+                if (!puce || puce.dataset.armee === '1') return;
+                puce.dataset.armee = '1';
+                let minuteur = null, longAppui = false;
+                puce.addEventListener('pointerdown', () => {
+                    longAppui = false;
+                    minuteur = setTimeout(() => { longAppui = true; this.ouvrirNuancierCompact(); }, 380);
+                });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(t =>
+                    puce.addEventListener(t, () => clearTimeout(minuteur)));
+                puce.addEventListener('click', () => {
+                    if (longAppui) { longAppui = false; return; }
+                    this.fermerNuancierCompact();
+                    this.couleurSuivante();
+                });
+                puce.addEventListener('contextmenu', (ev) => {
+                    ev.preventDefault();
+                    const h = document.getElementById('nuancierCompact');
+                    if (h && h.classList.contains('ouvert')) this.fermerNuancierCompact();
+                    else this.ouvrirNuancierCompact();
+                });
+                const t = document.getElementById('puceTrait');
+                if (t) t.addEventListener('click', () => this.traitSuivant());
+                const ep = document.getElementById('puceEpaisseur');
+                if (ep) ep.addEventListener('click', () => this.epaisseurSuivante());
+                document.addEventListener('pointerdown', (ev) => {
+                    if (!ev.target.closest('#nuancierCompact') && !ev.target.closest('#puceCouleur')) {
+                        this.fermerNuancierCompact();
+                    }
+                }, true);
+                const p = document.getElementById('stylePalettePanel');
+                if (p) p.classList.toggle('repliee', this.paletteEstRepliee());
+                this.majPaletteCompacte();
             }
             toggleStylePalette() {
                 if (document.body.classList.contains('mode-lecture')) return;
@@ -15699,7 +15991,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!panel || !header) return;
                 let isDragging = false, offsetX, offsetY;
                 header.onpointerdown = (e) => {
-                    if (e.target.closest('.close-palette')) return;
+                    /* La poignée capture l'appui et l'annule : tout bouton qui vit
+                       DANS elle doit être laissé passer, sinon le navigateur ne
+                       fabrique jamais de « click » dessus. C'est le défaut qui avait
+                       rendu la croix des consignes inopérante. */
+                    if (e.target.closest('.close-palette') || e.target.closest('.btn-pliage')) return;
                     isDragging = true;
                     offsetX = e.clientX - panel.offsetLeft;
                     offsetY = e.clientY - panel.offsetTop;
@@ -18600,6 +18896,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.isObjectMagnetActive = true;
                 this.isAutoLabelMode = true;
                 this.initStylePaletteDrag();
+                this.armerPaletteCompacte();
                 this.COLORS = {
                     'Noir': '#333333',
                     'Bleu': '#2980b9',
@@ -18976,6 +19273,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (line) line.setAttribute('stroke-width', val);
                 const numDisplay = document.getElementById('thicknessValue');
                 if (numDisplay) numDisplay.innerText = val;
+                if (this.majPaletteCompacte) this.majPaletteCompacte();
                 if (this.selectedObject) {
                     this.selectedObject.lineWidth = this.globalStyle.width;
                     if (this.selectedObject.style) {

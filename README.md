@@ -168,6 +168,23 @@ options.
 lui-même**, fabriqué puis relu par le lecteur de PDF déjà embarqué dans le
 fichier. Il ne peut donc pas mentir sur ce qui sortira.
 
+### La palette se replie
+
+Sur ses 23 commandes, **trois servent à chaque trait** : la couleur, le trait,
+l'épaisseur. Elles occupaient un panneau de 212 px ouvert en permanence sur le
+bord de la feuille. Repliée — et elle l'est au départ — la palette n'en montre
+plus que **50** : ces trois-là, le **mode peinture**, et le chevron qui rouvre
+tout.
+
+On ne vise pas, on tape : un clic sur la couleur passe à la suivante, un clic
+sur le trait fait plein ↔ pointillés, un clic sur l'épaisseur parcourt 1, 2, 3,
+4, 6, 8. Un **appui maintenu** sur la couleur ouvre la rangée complète à côté,
+pour choisir plutôt que faire défiler — et le cycle est lu dans la palette, donc
+une couleur ajoutée à la rangée y entre d'elle-même.
+
+Dépliée, c'est **exactement la palette d'avant** : rien n'en a été retiré. Le
+choix se retient d'une fois sur l'autre.
+
 ### Vu du fond de la salle
 
 Le **mode projection** épaissit traits et lettres d'un clic. Uniquement à
@@ -309,7 +326,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 66 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 67 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
