@@ -23,6 +23,38 @@ un sommet pose son zéro sur un côté de l'angle. L'aimantation trouve toute se
 les points, les intersections et les **milieux** — et se coupe d'un bouton quand
 elle gêne.
 
+### On écrit la consigne, le logiciel la fait
+
+Le bouton **Consigne** (ou `Ctrl+E`) ouvre une ligne où l'on écrit la phrase
+comme dans un énoncé — *« Trace le cercle de centre A passant par B »* — et
+**Entrée**. La figure se fait.
+
+Et la phrase reste : chaque consigne comprise devient la **consigne de
+l'étape**. Un programme de construction tapé ici donne d'un coup la figure, le
+rejeu narré avec vos mots, et la fiche — dont la disposition « texte seul » est
+ce programme même.
+
+Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
+
+| | |
+|---|---|
+| **Placer** | `Place 3 points A, B, C non alignés` · `alignés` · `Place le milieu I de [AB]` · `Soit I…` |
+| **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
+| **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de rayon [AC]` · `de diamètre [AB]` · `circonscrit au triangle ABC` |
+| **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` · `équilatéral` · `rectangle en A` · `isocèle en A` · `polygone ABCDE` |
+| **Droites remarquables** | `médiatrice de [AB]` · `perpendiculaire à (AB) passant par C` · `parallèle à…` · `bissectrice de l'angle ABC` · `hauteur issue de A` |
+| **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` |
+| **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
+
+Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
+la **construction à la règle et au compas** — arcs, instruments, étapes — celle
+des constructions magiques, bâtie d'un coup et rejouable ensuite avec ▶.
+
+Ce sont des règles, pas un modèle de langue : un fichier HTML sans réseau ne
+peut pas faire autrement. Il comprend donc les phrases d'un manuel, plusieurs
+formulations par consigne, et **dit quand il ne comprend pas** au lieu de
+deviner — la phrase reste alors dans le champ, pour être corrigée.
+
 ### Donner la mesure, pas seulement la tracer
 
 Un énoncé dit « ABC tel que AB = 5 cm et  = 60° ». On **double-clique sur le
@@ -228,7 +260,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 64 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 65 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
