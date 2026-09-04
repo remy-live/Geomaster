@@ -230,34 +230,148 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('elle ne se met pas à jouer toute seule',
      await page.evaluate(() => app.isPlaying === false));
 
-  console.log('\n=== la fenêtre ===');
-  const fen = await page.evaluate(async () => {
+  console.log('\n=== deux consignes dans une phrase ===');
+  /* « Trace un triangle ABC ET ses médiatrices » est une phrase qu'on écrit
+     naturellement : on la fait, et l'on dit comment on l'écrirait sans
+     ambiguïté. Comprendre d'abord, enseigner ensuite. */
+  const comp = await suite([
+    'Trace un triangle ABC et ses médiatrices',
+    'Trace un carré DEFG et ses diagonales',
+    'Trace un triangle HIJ et son cercle circonscrit',
+  ]);
+  comp.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}${o.a ? '\n      ✎ ' + o.a : ''}`));
+  ck('les trois phrases composées sont faites', comp.out.every(o => o.ok));
+  ck('chacune dit les deux choses faites',
+     comp.out.every(o => (o.m || '').includes(' · ')), comp.out.map(o => o.m).join(' | '));
+  ck('et la formulation sans ambiguïté est donnée',
+     /médiatrices des côtés du triangle ABC/.test(comp.out[0].a || ''), comp.out[0].a);
+  /* Une phrase du genre « AB = 5 cm et AC = 4 cm » décrit UNE figure : elle ne
+     doit surtout pas être coupée en deux. */
+  const uneSeule = await suite(['Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm']);
+  ck('« … et BC = 3 cm » n\'est pas coupé en deux consignes',
+     uneSeule.out[0].ok && !(uneSeule.out[0].m || '').includes(' · '), uneSeule.out[0].m);
+
+  console.log('\n=== le triangle, de toutes les façons qu\'un énoncé le donne ===');
+  const tri = (phrase) => page.evaluate((p) => {
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
-    app.ouvrirConsigne();
-    const champ = document.getElementById('consigneChamp');
-    champ.value = 'Place 3 points A, B, C non alignés';
-    app.validerConsigne();
-    const apresOk = champ.value;
-    champ.value = 'Trace la licorne';
-    app.validerConsigne();
-    const apresRate = champ.value;
-    return { ouvert: document.getElementById('consigneModal').style.display,
-             apresOk, apresRate,
-             lignes: [...document.querySelectorAll('#consigneJournal .consigne-ligne')]
-               .map(l => l.className.replace('consigne-ligne ', '')),
-             exemples: document.querySelectorAll('.consigne-aide a').length,
-             bouton: !!document.getElementById('btnConsigne') };
+    app.view = { x: 0, y: 0, zoom: 1 };
+    document.getElementById('consigneDetail').checked = false;
+    const r = app.executerConsigne(p);
+    const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const d = (x, y) => { const P = pt(x), Q = pt(y); return P && Q ? +(Math.hypot(P.x - Q.x, P.y - Q.y) / 50).toFixed(2) : null; };
+    const ang = (x, y, z) => { const P = pt(x), Q = pt(y), R = pt(z); if (!P || !Q || !R) return null;
+      const a1 = Math.atan2(P.y - Q.y, P.x - Q.x), a2 = Math.atan2(R.y - Q.y, R.x - Q.x);
+      let dd = a2 - a1; while (dd > Math.PI) dd -= 2 * Math.PI; while (dd < -Math.PI) dd += 2 * Math.PI;
+      return +(Math.abs(dd) * 180 / Math.PI).toFixed(1); };
+    return { ok: r.ok, m: r.message, AB: d('A', 'B'), AC: d('A', 'C'), BC: d('B', 'C'),
+             A: ang('B', 'A', 'C'), B: ang('A', 'B', 'C') };
+  }, phrase);
+
+  const cas = [
+    ['3 longueurs', 'Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm',
+      (r) => r.AB === 5 && r.AC === 4 && r.BC === 3],
+    ['2 longueurs et l\'angle entre elles', "Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et l'angle BAC = 60°",
+      // al-Kashi : BC² = 25 + 16 − 2·5·4·cos60 = 21
+      (r) => r.AB === 5 && r.AC === 4 && Math.abs(r.A - 60) < 0.2 && Math.abs(r.BC - Math.sqrt(21)) < 0.02],
+    ['1 longueur et 2 angles', "Trace un triangle ABC tel que AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°",
+      (r) => r.AB === 6 && Math.abs(r.A - 40) < 0.2 && Math.abs(r.B - 60) < 0.2],
+    ['équilatéral', 'Trace un triangle équilatéral ABC de 4 cm de côté',
+      (r) => r.AB === 4 && r.AC === 4 && r.BC === 4 && Math.abs(r.A - 60) < 0.2],
+    ['isocèle en A, côté et base', 'Trace un triangle ABC isocèle en A de côté 5 cm et de base 3 cm',
+      (r) => r.AB === 5 && r.AC === 5 && r.BC === 3],
+    ['isocèle sans mesure', 'Trace un triangle ABC isocèle en B',
+      (r) => Math.abs(r.AB - r.BC) < 0.02],
+    ['rectangle en A', 'Trace un triangle ABC rectangle en A tel que AB = 4 cm et AC = 3 cm',
+      // Pythagore : l'hypoténuse vaut 5
+      (r) => Math.abs(r.A - 90) < 0.2 && Math.abs(r.BC - 5) < 0.02],
+    ['isocèle rectangle en A', 'Trace un triangle ABC isocèle rectangle en A de côté 4 cm',
+      (r) => Math.abs(r.A - 90) < 0.2 && r.AB === 4 && r.AC === 4 && Math.abs(r.BC - 4 * Math.SQRT2) < 0.02],
+  ];
+  for (const [nom, phrase, verifie] of cas) {
+    const r = await tri(phrase);
+    console.log(`  ${r.ok ? '✓' : '✗'} ${nom} — AB=${r.AB} AC=${r.AC} BC=${r.BC} Â=${r.A} B̂=${r.B}`);
+    ck(`triangle : ${nom}`, r.ok && verifie(r), JSON.stringify(r));
+  }
+
+  console.log('\n=== tout est constructible aux instruments ===');
+  /* Tous les cas se ramènent aux TROIS LONGUEURS, et trois longueurs se
+     construisent à la règle et au compas : [AB] à la règle, un arc de chaque
+     extrémité, leur croisement est le sommet. La case le fait pour n'importe
+     quel énoncé — même « une longueur et deux angles », qui n'a pourtant aucune
+     longueur donnée pour les deux autres côtés. */
+  const auCompas = (phrase) => page.evaluate((p) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
+    document.getElementById('consigneDetail').checked = true;
+    const r = app.executerConsigne(p);
+    app.isPlaying = false; app.isLooping = false;
+    document.getElementById('consigneDetail').checked = false;
+    const c = (n) => app.entities.filter(e => e.constructor.name === n).length;
+    return { ok: r.ok, anims: c('ToolAnimation'), arcs: c('CompassArc'), objets: app.entities.length };
+  }, phrase);
+  for (const [nom, phrase] of [
+    ['trois longueurs', 'Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm'],
+    ['une longueur et deux angles', "Trace un triangle ABC tel que AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°"],
+    ['rectangle', 'Trace un rectangle ABCD de 5 cm sur 3 cm'],
+    ['parallélogramme', 'Trace un parallélogramme ABCD'],
+  ]) {
+    const r = await auCompas(phrase);
+    console.log(`  ${nom} : ${r.objets} objets, ${r.anims} animations, ${r.arcs} arcs`);
+    ck(`aux instruments : ${nom}`, r.ok && r.anims >= 8 && r.arcs >= 2, JSON.stringify(r));
+  }
+
+  console.log('\n=== dans le panneau des consignes ===');
+  /* La consigne intelligente vit DANS le panneau des consignes, pas dans une
+     fenêtre à elle qui couvrirait la feuille : la phrase écrite est déjà celle
+     de l'étape, et l'aperçu est la figure elle-même, autour. */
+  const pan = await page.evaluate(async () => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
+    const boite = document.getElementById('instructionBox');
+    if (boite.style.display === 'none' || !boite.style.display) app.toggleInstructions();
+    app.consigneAuto = false; app.basculerConsigneAuto();
+    const zone = document.getElementById('instrContent');
+    zone.innerHTML = '<p>1. Place 3 points A, B, C non alignés</p>';
+    const poser = (txt) => {
+      const p = document.createElement('p'); p.textContent = txt; zone.appendChild(p);
+      const sel = window.getSelection(), r = document.createRange();
+      r.selectNodeContents(p); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+      return app.consigneDepuisPanneau();
+    };
+    // la première ligne, curseur dedans
+    const sel = window.getSelection(), r0 = document.createRange();
+    r0.selectNodeContents(zone.firstChild); r0.collapse(false);
+    sel.removeAllRanges(); sel.addRange(r0);
+    const un = app.consigneDepuisPanneau();
+    const deux = poser('2. Trace [AB], [BC] et [CA]');
+    const trois = poser('3. Trace la licorne');
+    return { auto: app.consigneAuto,
+             bouton: document.getElementById('btnConsigneAuto').className,
+             un, deux, trois,
+             etat: document.getElementById('consigneEtat').className,
+             message: document.getElementById('consigneEtat').textContent,
+             objets: app.entities.length,
+             consignes: Object.values(app.stepInstructions),
+             texteGarde: zone.innerText.includes('Trace la licorne'),
+             sansFenetre: !document.getElementById('consigneModal'),
+             exemples: document.querySelectorAll('#consigneAide a').length,
+             aideCachee: document.getElementById('consigneAide').style.display };
   });
-  console.log('  ' + JSON.stringify(fen));
-  ck('elle s\'ouvre et le bouton existe', fen.ouvert === 'flex' && fen.bouton);
-  /* Comprise, la ligne s'efface — on enchaîne le programme. Incomprise, elle
-     RESTE : on la corrige au lieu de la retaper. */
-  ck('une consigne comprise vide le champ', fen.apresOk === '', fen.apresOk);
-  ck('une consigne refusée reste pour être corrigée', fen.apresRate === 'Trace la licorne', fen.apresRate);
-  ck('le journal dit ce qui est passé et ce qui a raté',
-     JSON.stringify(fen.lignes) === '["ok","rate"]', JSON.stringify(fen.lignes));
-  ck('la liste des formulations est là', fen.exemples >= 25, String(fen.exemples));
+  console.log('  ' + JSON.stringify(pan));
+  ck('il n\'y a plus de fenêtre séparée', pan.sansFenetre);
+  ck('l\'exécution s\'arme d\'un bouton', pan.auto === true && /actif/.test(pan.bouton), pan.bouton);
+  /* Le numéro d'un énoncé — « 1. » — ne fait pas partie de ce qu'il y a à faire. */
+  ck('les lignes numérotées sont exécutées', pan.un === true && pan.deux === true,
+     `${pan.un} / ${pan.deux}`);
+  ck('la figure est construite', pan.objets === 6, String(pan.objets));
+  ck('chaque ligne devient une consigne d\'étape', pan.consignes.length === 2,
+     JSON.stringify(pan.consignes));
+  ck('une ligne incomprise le dit', pan.trois === false && /rate/.test(pan.etat), pan.etat);
+  /* Elle reste écrite : c'est un texte de consignes, on ne le retape pas. */
+  ck('et reste écrite dans le panneau', pan.texteGarde);
+  ck('l\'aide est là, repliée', pan.aideCachee === 'none' && pan.exemples >= 40,
+     `${pan.exemples} exemples`);
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

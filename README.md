@@ -25,14 +25,20 @@ elle gêne.
 
 ### On écrit la consigne, le logiciel la fait
 
-Le bouton **Consigne** (ou `Ctrl+E`) ouvre une ligne où l'on écrit la phrase
-comme dans un énoncé — *« Trace le cercle de centre A passant par B »* — et
-**Entrée**. La figure se fait.
+Dans le **panneau des consignes** — celui où l'on écrit déjà l'énoncé — le
+bouton **✨ Auto** (ou `Ctrl+E`) arme l'exécution. On écrit alors la phrase comme
+dans un manuel — *« Trace le cercle de centre A passant par B »* — et **Entrée**.
+La figure se fait, et l'aperçu est la figure elle-même : le panneau est petit et
+se déplace si elle gêne.
 
-Et la phrase reste : chaque consigne comprise devient la **consigne de
-l'étape**. Un programme de construction tapé ici donne d'un coup la figure, le
-rejeu narré avec vos mots, et la fiche — dont la disposition « texte seul » est
-ce programme même.
+Rien d'autre ne s'ouvre, et la phrase reste écrite — c'est un texte de
+consignes, on ne le retape pas. Le numéro d'un énoncé (« 1. », « 2. ») ne fait
+pas partie de ce qu'il y a à faire. Le **?** de la barre déplie la liste de tout
+ce qui est compris ; il la replie ensuite.
+
+Chaque consigne comprise devient la **consigne de l'étape**. Un programme de
+construction tapé ici donne d'un coup la figure, le rejeu narré avec vos mots,
+et la fiche — dont la disposition « texte seul » est ce programme même.
 
 Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 
@@ -41,16 +47,31 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Placer** | `Place 3 points A, B, C non alignés` · `alignés` · `Place le milieu I de [AB]` · `Soit I…` |
 | **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de rayon [AC]` · `de diamètre [AB]` · `circonscrit au triangle ABC` |
-| **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` · `équilatéral` · `rectangle en A` · `isocèle en A` · `polygone ABCDE` |
+| **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `octogone` · `polygone régulier à 7 côtés` · `polygone ABCDE` · `les diagonales de ABCD` |
+| **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · `équilatéral` · `isocèle en A de côté 5 cm et de base 3 cm` · `rectangle en A` · `isocèle rectangle en A de côté 4 cm` |
 | **Droites remarquables** | `médiatrice de [AB]` · `perpendiculaire à (AB) passant par C` · `parallèle à…` · `bissectrice de l'angle ABC` |
-| **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A` |
+| **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A` · `les milieux des côtés` |
+| **Deux d'un coup** | `Trace un triangle ABC et ses médiatrices` · `et ses diagonales` · `et son cercle circonscrit` |
 | **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
 | **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
-la **construction à la règle et au compas** — arcs, instruments, étapes — celle
-des constructions magiques, bâtie d'un coup et rejouable ensuite avec ▶.
+la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
+d'un coup et rejouable ensuite avec ▶.
+
+Et **tout y passe**, quelle que soit la façon dont l'énoncé donne le triangle :
+les cinq cas se ramènent aux trois longueurs, et trois longueurs se construisent
+aux instruments — [AB] à la règle, un arc de compas depuis chaque extrémité,
+leur croisement est le sommet. Même « une longueur et deux angles », qui ne
+donne pourtant aucune des deux autres longueurs, sort en 22 objets dont 12
+déplacements d'instruments et 2 arcs.
+
+**Et il comprend les phrases composées.** *« Trace un triangle ABC et ses
+médiatrices »* fait les deux — puis explique comment l'écrire sans ambiguïté :
+« ses médiatrices » est compris comme « les médiatrices des côtés du triangle
+ABC ». En revanche *« … AB = 5 cm et AC = 4 cm »* décrit **une** figure et n'est
+pas coupé en deux.
 
 **Et il enseigne la notation.** Oublier les crochets n'est pas une faute de
 frappe, c'est le point qu'on travaille en classe. *« Trace la médiatrice de

@@ -1672,7 +1672,7 @@
                croix des consignes était couverte par celle de la palette. Elles
                s'ouvrent chacune de leur côté. */
             left: 110px;
-            width: 300px;
+            width: 340px;
             background: #fff;
             border: 1px solid #ccc;
             border-radius: 8px;
@@ -2537,114 +2537,72 @@
         /* Vignettes de pages : on les tire pour les ranger, on les coche pour les
            fusionner. La page ouverte se signale, la page cochée aussi — et pas de
            la même façon, ce ne sont pas les mêmes choses. */
-        /* --- LA CONSIGNE INTELLIGENTE ---------------------------------------- */
-        .consigne-box {
-            width: 620px;
-            max-width: 96vw;
-            text-align: left;
+        /* --- LA CONSIGNE INTELLIGENTE, DANS LE PANNEAU DES CONSIGNES -------
+           Elle avait sa fenêtre à elle, qui couvrait la feuille : on ne voyait
+           pas ce qu'on construisait. Elle vit maintenant dans le panneau des
+           consignes, petit et déplaçable — et l'aperçu est la figure elle-même,
+           autour. */
+        #btnConsigneAuto.actif {
+            background: #e0f2fe;
+            color: #0284c7;
+            border-color: #bae6fd;
+            font-weight: 700;
         }
 
-        .consigne-saisie {
-            display: flex;
-            gap: 8px;
+        .consigne-etat {
+            display: none;
+            font-size: 11.5px;
+            line-height: 1.35;
+            padding: 5px 10px;
+            border-bottom: 1px solid #eee;
         }
 
-        .consigne-saisie input {
-            flex: 1;
-            font-family: inherit;
-            font-size: 15px;
-            padding: 9px 11px;
-            border: 1px solid #cfd8dc;
-            border-radius: 8px;
-            outline: none;
-        }
-
-        .consigne-saisie input:focus {
-            border-color: #2980b9;
-            box-shadow: 0 0 0 3px rgba(41, 128, 185, .12);
-        }
+        .consigne-etat.ok { display: block; color: #1b5e20; background: #edf7ee; }
+        .consigne-etat.rate { display: block; color: #b71c1c; background: #fdecea; }
+        .consigne-etat .note { display: block; color: #8d6e00; margin-top: 2px; }
 
         .consigne-detail {
             display: flex;
             align-items: flex-start;
-            gap: 7px;
-            font-size: 12.5px;
+            gap: 6px;
+            font-size: 11.5px;
             color: #546e7a;
-            margin: 9px 2px 0;
+            padding: 6px 10px;
+            border-bottom: 1px solid #eee;
             cursor: pointer;
         }
 
-        .consigne-detail input {
-            margin-top: 2px;
-            flex: 0 0 auto;
-        }
-
-        .consigne-journal {
-            max-height: 108px;
-            overflow: auto;
-            margin: 9px 0 0;
-        }
-
-        .consigne-journal:empty {
-            display: none;
-        }
-
-        .consigne-ligne {
-            font-size: 12.5px;
-            padding: 3px 8px;
-            border-radius: 5px;
-            margin-bottom: 3px;
-        }
-
-        .consigne-ligne.ok {
-            color: #1b5e20;
-            background: #edf7ee;
-        }
-
-        .consigne-ligne.rate {
-            color: #b71c1c;
-            background: #fdecea;
-        }
-
-        .consigne-ligne.astuce {
-            color: #8d6e00;
-            background: #fff8e1;
-        }
+        .consigne-detail input { margin-top: 2px; flex: 0 0 auto; }
 
         .consigne-aide {
-            max-height: 34vh;
+            max-height: 190px;
             overflow: auto;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid #eee;
+            padding: 4px 8px 8px;
+            border-bottom: 1px solid #eee;
+            background: #fafbfc;
         }
 
         .consigne-groupe {
-            font-size: 9.5px;
+            font-size: 9px;
             font-weight: 700;
-            letter-spacing: .6px;
+            letter-spacing: .5px;
             text-transform: uppercase;
             color: #94a3b8;
-            margin: 9px 0 3px;
+            margin: 8px 0 2px;
         }
 
-        .consigne-groupe:first-child {
-            margin-top: 0;
-        }
+        .consigne-groupe:first-child { margin-top: 2px; }
 
         .consigne-aide a {
             display: block;
-            font-size: 12.5px;
+            font-size: 11.5px;
             color: #37474f;
-            padding: 3px 8px;
-            border-radius: 5px;
+            padding: 2px 6px;
+            border-radius: 4px;
             cursor: pointer;
         }
 
-        .consigne-aide a:hover {
-            background: #e3f2fd;
-            color: #1565c0;
-        }
+        .consigne-aide a:hover { background: #e3f2fd; color: #1565c0; }
 
         /* --- LE COMPOSEUR DE FICHE ------------------------------------------ */
         .fiche-box {
@@ -6908,6 +6866,81 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 data-tooltip="Titre">Titre</button>
             <button onpointerdown="event.preventDefault(); document.execCommand('removeFormat', false, null);"
                 data-tooltip="Effacer style">🧹</button>
+            <div class="instr-sep"></div>
+            <!-- LA CONSIGNE INTELLIGENTE, ICI PLUTÔT QU'AILLEURS.
+                 Elle vivait dans une fenêtre à elle, qui couvrait la feuille : on
+                 ne voyait pas ce qu'on construisait. Elle est maintenant DANS le
+                 panneau des consignes — petit, flottant, déplaçable — où la
+                 phrase qu'on écrit est déjà celle de l'étape. On la lit, on
+                 appuie sur Entrée, et l'aperçu est la figure elle-même, autour. -->
+            <button id="btnConsigneAuto" onpointerdown="event.preventDefault(); app.basculerConsigneAuto();"
+                data-tooltip="Exécuter les consignes écrites ici (Entrée)">✨ Auto</button>
+            <button id="btnConsigneAide" onpointerdown="event.preventDefault(); app.basculerAideConsigne();"
+                data-tooltip="Ce que je sais faire">?</button>
+        </div>
+        <div id="consigneEtat" class="consigne-etat"></div>
+        <label id="consigneDetailLigne" class="consigne-detail" style="display:none;">
+            <input type="checkbox" id="consigneDetail">
+            <span><b>Construction détaillée</b> — règle et compas, rejouable avec ▶</span>
+        </label>
+        <div id="consigneAide" class="consigne-aide" style="display:none;">
+            <div class="consigne-groupe">Placer</div>
+            <a onclick="app.exempleConsigne('Place 3 points A, B, C non alignés')">Place 3 points A, B, C non alignés</a>
+            <a onclick="app.exempleConsigne('Place les points A, B, C alignés')">Place les points A, B, C alignés</a>
+            <a onclick="app.exempleConsigne('Place le milieu I de [AB]')">Place le milieu I de [AB]</a>
+            <div class="consigne-groupe">Traits</div>
+            <a onclick="app.exempleConsigne('Trace [AB]')">Trace [AB] · [AB) · (AB)</a>
+            <a onclick="app.exempleConsigne('Trace le segment [AB] de 5 cm')">Trace le segment [AB] de 5 cm</a>
+            <a onclick="app.exempleConsigne('Trace [AB], [BC] et [CA]')">Trace [AB], [BC] et [CA]</a>
+            <a onclick="app.exempleConsigne('Trace une droite')">Trace une droite</a>
+            <a onclick="app.exempleConsigne('Relie A à B')">Relie A à B</a>
+            <div class="consigne-groupe">Cercles</div>
+            <a onclick="app.exempleConsigne('Trace le cercle de centre A passant par B')">…de centre A passant par B</a>
+            <a onclick="app.exempleConsigne('Trace le cercle de centre A et de rayon 3 cm')">…de centre A et de rayon 3 cm</a>
+            <a onclick="app.exempleConsigne('Trace le cercle de centre A de rayon [AC]')">…de rayon [AC]</a>
+            <a onclick="app.exempleConsigne('Trace le cercle de diamètre [AB]')">…de diamètre [AB]</a>
+            <a onclick="app.exempleConsigne('Trace le cercle circonscrit au triangle ABC')">…circonscrit au triangle ABC</a>
+            <div class="consigne-groupe">Figures</div>
+            <a onclick="app.exempleConsigne('Trace un carré ABCD de 3 cm de côté')">Carré ABCD de 3 cm de côté</a>
+            <a onclick="app.exempleConsigne('Trace un rectangle ABCD de 5 cm sur 3 cm')">Rectangle ABCD de 5 cm sur 3 cm</a>
+            <a onclick="app.exempleConsigne('Trace un losange ABCD de 4 cm de côté')">Losange · parallélogramme</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm')">Triangle : 3 longueurs</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et l\'angle BAC = 60°')">Triangle : 2 longueurs et l'angle entre elles</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC tel que AB = 6 cm, l\'angle BAC = 40° et l\'angle ABC = 60°')">Triangle : 1 longueur et 2 angles</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC isocèle en A de côté 5 cm et de base 3 cm')">Triangle isocèle en A, côté 5 cm, base 3 cm</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC isocèle rectangle en A de côté 4 cm')">Triangle isocèle rectangle en A</a>
+            <a onclick="app.exempleConsigne('Trace un polygone régulier à 7 côtés')">Polygone régulier à 7 côtés</a>
+            <a onclick="app.exempleConsigne('Trace un triangle ABC et ses médiatrices')">Deux consignes d'un coup : « … et ses médiatrices »</a>
+            <a onclick="app.exempleConsigne('Trace un carré ABCD et ses diagonales')">« … et ses diagonales »</a>
+            <a onclick="app.exempleConsigne('Place les milieux des côtés du triangle ABC')">Les milieux des côtés du triangle ABC</a>
+            <a onclick="app.exempleConsigne('Trace un triangle équilatéral ABC de 4 cm de côté')">Triangle équilatéral · rectangle en A · isocèle en A</a>
+            <a onclick="app.exempleConsigne('Trace un hexagone ABCDEF de 3 cm de côté')">Pentagone · hexagone réguliers</a>
+            <a onclick="app.exempleConsigne('Trace le polygone ABCDE')">Trace le polygone ABCDE</a>
+            <div class="consigne-groupe">Droites remarquables</div>
+            <a onclick="app.exempleConsigne('Trace la médiatrice de [AB]')">Médiatrice de [AB]</a>
+            <a onclick="app.exempleConsigne('Trace la perpendiculaire à (AB) passant par C')">Perpendiculaire à (AB) passant par C</a>
+            <a onclick="app.exempleConsigne('Trace la parallèle à (AB) passant par C')">Parallèle à (AB) passant par C</a>
+            <a onclick="app.exempleConsigne('Trace la bissectrice de l\'angle ABC')">Bissectrice de l'angle ABC</a>
+            <a onclick="app.exempleConsigne('Trace la hauteur issue de A dans le triangle ABC')">Hauteur issue de A</a>
+            <a onclick="app.exempleConsigne('Trace les médiatrices du triangle ABC')">Les 3 médiatrices du triangle ABC</a>
+            <a onclick="app.exempleConsigne('Trace les bissectrices du triangle ABC')">Les 3 bissectrices · hauteurs · médianes</a>
+            <a onclick="app.exempleConsigne('Trace la médiane issue de A dans le triangle ABC')">Médiane issue de A</a>
+            <div class="consigne-groupe">Points remarquables</div>
+            <a onclick="app.exempleConsigne('Place le centre de gravité G du triangle ABC')">Centre de gravité G du triangle ABC</a>
+            <a onclick="app.exempleConsigne('Place l\'orthocentre H du triangle ABC')">Orthocentre H</a>
+            <a onclick="app.exempleConsigne('Place le centre du cercle circonscrit O au triangle ABC')">Centre du cercle circonscrit</a>
+            <a onclick="app.exempleConsigne('Trace le cercle inscrit dans le triangle ABC')">Cercle inscrit dans le triangle ABC</a>
+            <a onclick="app.exempleConsigne('Place le point I intersection de (AB) et (CD)')">I intersection de (AB) et (CD)</a>
+            <a onclick="app.exempleConsigne('Place un point M sur [AB]')">Un point M sur [AB] · sur (AB) · sur le cercle</a>
+            <div class="consigne-groupe">Symétries</div>
+            <a onclick="app.exempleConsigne('Trace A\', B\', C\' symétriques de A, B, C par rapport à O')">A', B', C' symétriques de A, B, C par rapport à O</a>
+            <a onclick="app.exempleConsigne('Trace le symétrique de A par rapport à (EF)')">Symétrique de A par rapport à (EF)</a>
+            <div class="consigne-groupe">Mesures et codages</div>
+            <a onclick="app.exempleConsigne('AB = 5 cm')">AB = 5 cm</a>
+            <a onclick="app.exempleConsigne('Marque l\'angle ABC')">Marque l'angle ABC</a>
+            <a onclick="app.exempleConsigne('L\'angle ABC mesure 60°')">L'angle ABC mesure 60°</a>
+            <a onclick="app.exempleConsigne('Affiche la longueur de [AB]')">Affiche la longueur de [AB]</a>
+            <a onclick="app.exempleConsigne('Code les longueurs égales')">Code les longueurs égales</a>
         </div>
         <div id="instrContent" contenteditable="true" placeholder="Écrivez vos consignes ici...">
             <h3>Exercice :</h3>
@@ -6956,18 +6989,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle cx="11" cy="11" r="7" />
                         <line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round" />
-                    </svg>
-                </button>
-                <!-- La consigne écrite. Voisine de la loupe parce que c'est le même
-                     geste : on dit ce qu'on veut, au lieu de le chercher. -->
-                <button class="top-btn" id="btnConsigne" onclick="app.ouvrirConsigne()"
-                    aria-label="Écrire une consigne" data-tooltip="Écrire une consigne : « Trace le cercle de centre A passant par B » (Ctrl+E)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M4 6h11" />
-                        <path d="M4 11h7" />
-                        <path d="M4 16h5" />
-                        <path d="M20.5 8.5l-6.6 6.6-2.9.8.8-2.9 6.6-6.6a1.5 1.5 0 0 1 2.1 2.1z" />
                     </svg>
                 </button>
                 <button class="top-btn" id="btnPan" onclick="app.togglePanMode()"
@@ -8688,98 +8709,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     onclick="document.getElementById('codeModal').style.display='none'">Annuler</button>
                 <button class="modal-btn modal-confirm" id="btnCodeOuvrir"
                     onclick="app.validerModaleCode()">Ouvrir la figure</button>
-            </div>
-        </div>
-    </div>
-    <!-- ======================================================================
-         LA CONSIGNE INTELLIGENTE
-         On tape la phrase du manuel, Entrée, et le logiciel la fait. Elle reste
-         comme consigne de l'étape : le programme de construction saisi ici
-         devient la figure, le rejeu, et la fiche.
-         ====================================================================== -->
-    <div id="consigneModal" class="modal-overlay" style="display:none;"
-        onclick="if(event.target === this) app.fermerConsigne()">
-        <div class="modal-box consigne-box">
-            <h3 style="margin:0 0 6px; color:#2980b9;">Consigne</h3>
-            <p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">
-                Écrivez la phrase comme dans un énoncé, puis <b>Entrée</b>. Chaque
-                consigne comprise devient aussi la <b>consigne de l'étape</b> : le
-                programme tapé ici se rejoue et s'imprime en fiche.
-            </p>
-            <div class="consigne-saisie">
-                <input type="text" id="consigneChamp" autocomplete="off" spellcheck="false"
-                    placeholder="Trace le cercle de centre A passant par B"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();app.validerConsigne();}
-                               if(event.key==='Escape'){event.preventDefault();app.fermerConsigne();}">
-                <button class="modal-btn modal-confirm" onclick="app.validerConsigne()">Faire</button>
-            </div>
-            <label class="consigne-detail">
-                <input type="checkbox" id="consigneDetail">
-                <span><b>Construction détaillée</b> — à la règle et au compas, avec les
-                    instruments et les arcs, rejouable avec ▶. Sans la case, la figure
-                    seule.</span>
-            </label>
-            <div class="consigne-journal" id="consigneJournal"></div>
-            <div class="consigne-aide">
-                <div class="consigne-groupe">Placer</div>
-                <a onclick="app.exempleConsigne('Place 3 points A, B, C non alignés')">Place 3 points A, B, C non alignés</a>
-                <a onclick="app.exempleConsigne('Place les points A, B, C alignés')">Place les points A, B, C alignés</a>
-                <a onclick="app.exempleConsigne('Place le milieu I de [AB]')">Place le milieu I de [AB]</a>
-
-                <div class="consigne-groupe">Traits</div>
-                <a onclick="app.exempleConsigne('Trace [AB]')">Trace [AB] · [AB) · (AB)</a>
-                <a onclick="app.exempleConsigne('Trace le segment [AB] de 5 cm')">Trace le segment [AB] de 5 cm</a>
-                <a onclick="app.exempleConsigne('Trace [AB], [BC] et [CA]')">Trace [AB], [BC] et [CA]</a>
-                <a onclick="app.exempleConsigne('Trace une droite')">Trace une droite</a>
-                <a onclick="app.exempleConsigne('Relie A à B')">Relie A à B</a>
-
-                <div class="consigne-groupe">Cercles</div>
-                <a onclick="app.exempleConsigne('Trace le cercle de centre A passant par B')">…de centre A passant par B</a>
-                <a onclick="app.exempleConsigne('Trace le cercle de centre A et de rayon 3 cm')">…de centre A et de rayon 3 cm</a>
-                <a onclick="app.exempleConsigne('Trace le cercle de centre A de rayon [AC]')">…de rayon [AC]</a>
-                <a onclick="app.exempleConsigne('Trace le cercle de diamètre [AB]')">…de diamètre [AB]</a>
-                <a onclick="app.exempleConsigne('Trace le cercle circonscrit au triangle ABC')">…circonscrit au triangle ABC</a>
-
-                <div class="consigne-groupe">Figures</div>
-                <a onclick="app.exempleConsigne('Trace un carré ABCD de 3 cm de côté')">Carré ABCD de 3 cm de côté</a>
-                <a onclick="app.exempleConsigne('Trace un rectangle ABCD de 5 cm sur 3 cm')">Rectangle ABCD de 5 cm sur 3 cm</a>
-                <a onclick="app.exempleConsigne('Trace un losange ABCD de 4 cm de côté')">Losange · parallélogramme</a>
-                <a onclick="app.exempleConsigne('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm')">Triangle ABC tel que AB = 5 cm, AC = 4 cm, BC = 3 cm</a>
-                <a onclick="app.exempleConsigne('Trace un triangle équilatéral ABC de 4 cm de côté')">Triangle équilatéral · rectangle en A · isocèle en A</a>
-                <a onclick="app.exempleConsigne('Trace un hexagone ABCDEF de 3 cm de côté')">Pentagone · hexagone réguliers</a>
-                <a onclick="app.exempleConsigne('Trace le polygone ABCDE')">Trace le polygone ABCDE</a>
-
-                <div class="consigne-groupe">Droites remarquables</div>
-                <a onclick="app.exempleConsigne('Trace la médiatrice de [AB]')">Médiatrice de [AB]</a>
-                <a onclick="app.exempleConsigne('Trace la perpendiculaire à (AB) passant par C')">Perpendiculaire à (AB) passant par C</a>
-                <a onclick="app.exempleConsigne('Trace la parallèle à (AB) passant par C')">Parallèle à (AB) passant par C</a>
-                <a onclick="app.exempleConsigne('Trace la bissectrice de l\'angle ABC')">Bissectrice de l'angle ABC</a>
-                <a onclick="app.exempleConsigne('Trace la hauteur issue de A dans le triangle ABC')">Hauteur issue de A</a>
-                <a onclick="app.exempleConsigne('Trace les médiatrices du triangle ABC')">Les 3 médiatrices du triangle ABC</a>
-                <a onclick="app.exempleConsigne('Trace les bissectrices du triangle ABC')">Les 3 bissectrices · hauteurs · médianes</a>
-                <a onclick="app.exempleConsigne('Trace la médiane issue de A dans le triangle ABC')">Médiane issue de A</a>
-
-                <div class="consigne-groupe">Points remarquables</div>
-                <a onclick="app.exempleConsigne('Place le centre de gravité G du triangle ABC')">Centre de gravité G du triangle ABC</a>
-                <a onclick="app.exempleConsigne('Place l\'orthocentre H du triangle ABC')">Orthocentre H</a>
-                <a onclick="app.exempleConsigne('Place le centre du cercle circonscrit O au triangle ABC')">Centre du cercle circonscrit</a>
-                <a onclick="app.exempleConsigne('Trace le cercle inscrit dans le triangle ABC')">Cercle inscrit dans le triangle ABC</a>
-                <a onclick="app.exempleConsigne('Place le point I intersection de (AB) et (CD)')">I intersection de (AB) et (CD)</a>
-                <a onclick="app.exempleConsigne('Place un point M sur [AB]')">Un point M sur [AB] · sur (AB) · sur le cercle</a>
-
-                <div class="consigne-groupe">Symétries</div>
-                <a onclick="app.exempleConsigne('Trace A\', B\', C\' symétriques de A, B, C par rapport à O')">A', B', C' symétriques de A, B, C par rapport à O</a>
-                <a onclick="app.exempleConsigne('Trace le symétrique de A par rapport à (EF)')">Symétrique de A par rapport à (EF)</a>
-
-                <div class="consigne-groupe">Mesures et codages</div>
-                <a onclick="app.exempleConsigne('AB = 5 cm')">AB = 5 cm</a>
-                <a onclick="app.exempleConsigne('Marque l\'angle ABC')">Marque l'angle ABC</a>
-                <a onclick="app.exempleConsigne('L\'angle ABC mesure 60°')">L'angle ABC mesure 60°</a>
-                <a onclick="app.exempleConsigne('Affiche la longueur de [AB]')">Affiche la longueur de [AB]</a>
-                <a onclick="app.exempleConsigne('Code les longueurs égales')">Code les longueurs égales</a>
-            </div>
-            <div class="modal-buttons">
-                <button class="modal-btn modal-cancel" onclick="app.fermerConsigne()">Fermer</button>
             </div>
         </div>
     </div>
@@ -13219,6 +13148,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (box && (box.style.display === 'none' || box.style.display === '')) {
                     box.style.display = 'flex';
                     if (typeof this.initInstructionDrag === 'function') this.initInstructionDrag();
+                    if (typeof this.armerConsignePanneau === 'function') this.armerConsignePanneau();
                     if (btnToggle) btnToggle.classList.add('active');
                 } else {
                     if (box) box.style.display = 'none';
@@ -17642,6 +17572,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.toastTimeout = setTimeout(() => {
                     toast.className = toast.className.replace("show", "");
                 }, 3000);
+            }
+            /* L'Entrée du panneau : on exécute la ligne AVANT que le navigateur ne
+               passe à la suivante, pour lire celle qu'on vient d'écrire. Une seule
+               écoute, posée à la première ouverture. */
+            armerConsignePanneau() {
+                const zone = document.getElementById('instrContent');
+                if (!zone || zone.dataset.consigneArmee === '1') return;
+                zone.dataset.consigneArmee = '1';
+                zone.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter' || e.shiftKey) return;
+                    if (!this.consigneAuto) return;
+                    this.consigneDepuisPanneau();
+                    // on laisse le retour à la ligne se faire : la consigne reste écrite
+                });
             }
             initInstructionDrag() {
                 const box = document.getElementById('instructionBox');
@@ -25666,8 +25610,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                ses arcs et ses instruments — celle des constructions magiques,
                bâtie d'un coup et rejouable ensuite avec ▶.
                ============================================================ */
+            /* Une consigne écrite dans un énoncé porte son numéro ou sa puce :
+               « 1. Trace [AB] », « • Place le point O ». Ni l'un ni l'autre ne fait
+               partie de ce qu'il y a à faire. */
             cslNettoyer(t) {
                 return String(t || '').replace(/[’‘]/g, "'").replace(/\s+/g, ' ')
+                    .replace(/^\s*(?:\d+\s*[).°]|[-–—•*])\s*/, '')
                     .replace(/\s*[.;]\s*$/, '').trim();
             }
             /* Les noms de points : une majuscule, éventuellement suivie d'un ou deux
@@ -25776,7 +25724,65 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Le cœur : une phrase, une figure. Renvoie ce qu'il a compris, ou
                pourquoi il n'a pas compris — jamais un à-peu-près. */
+            /* ---- LES CONSIGNES COMPOSÉES -------------------------------------
+               « Trace un triangle ABC ET ses médiatrices » est une phrase que l'on
+               écrit naturellement. On la coupe en deux consignes, on les fait dans
+               l'ordre — et l'on dit au passage comment on l'écrirait sans
+               ambiguïté : « les médiatrices de ses côtés ». Comprendre d'abord,
+               enseigner ensuite ; refuser n'apprend rien.
+
+               La coupure est prudente : « AB = 5 cm et AC = 4 cm » ou « de longueur
+               6 cm et de largeur 3 cm » décrivent UNE figure et ne se coupent pas.
+               On ne coupe que devant ce qui commence une construction. */
+            cslDecouper(brut) {
+                const re = /\s+(?:et|puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales)|le\s+(?:milieu|cercle|centre)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane))\b)/i;
+                const bouts = brut.split(re).map(x => x.trim()).filter(Boolean);
+                return bouts.length > 1 ? bouts : [brut];
+            }
+            /* « ses médiatrices » : celles de la figure qu'on vient de tracer. */
+            cslResoudrePossessif(bout) {
+                const sujet = this._cslSujet;
+                if (!sujet || !sujet.length) return bout;
+                const nom = sujet.join('');
+                if (!/\b(ses|sa|son|leurs?)\b/i.test(bout)) return bout;
+                const clair = bout
+                    .replace(/\b(?:ses|leurs)\s+(m[ée]diatrices?)\b/i, `les médiatrices des côtés du triangle ${nom}`)
+                    .replace(/\b(?:ses|leurs)\s+(hauteurs?)\b/i, `les hauteurs du triangle ${nom}`)
+                    .replace(/\b(?:ses|leurs)\s+(bissectrices?)\b/i, `les bissectrices du triangle ${nom}`)
+                    .replace(/\b(?:ses|leurs)\s+(m[ée]dianes?)\b/i, `les médianes du triangle ${nom}`)
+                    .replace(/\b(?:ses|leurs)\s+milieux\b/i, `les milieux des côtés du triangle ${nom}`)
+                    .replace(/\b(?:son|leur)\s+cercle\s+circonscrit\b/i, `le cercle circonscrit au triangle ${nom}`)
+                    .replace(/\b(?:son|leur)\s+cercle\s+inscrit\b/i, `le cercle inscrit dans le triangle ${nom}`)
+                    .replace(/\b(?:son|leur)\s+centre\s+de\s+gravit[ée]\b/i, `le centre de gravité du triangle ${nom}`)
+                    .replace(/\b(?:son|leur)\s+orthocentre\b/i, `l'orthocentre du triangle ${nom}`)
+                    .replace(/\b(?:ses|leurs)\s+diagonales\b/i, `les diagonales de ${nom}`);
+                if (clair !== bout) {
+                    this.cslDire(`Formulation : « ${bout} » est compris comme « ${clair} ».`);
+                }
+                return clair;
+            }
             executerConsigne(phrase) {
+                const bouts = this.cslDecouper(this.cslNettoyer(phrase));
+                if (bouts.length < 2) return this.executerConsigneSimple(phrase);
+                const dits = [], notes = [];
+                for (let i = 0; i < bouts.length; i++) {
+                    /* La reformulation parle AVANT l'exécution, qui remet le carnet
+                       d'astuces à zéro : on met de côté ce qu'elle a dit. */
+                    this._cslAstuces = [];
+                    const clair = this.cslResoudrePossessif(bouts[i]);
+                    const dites = this._cslAstuces.slice();
+                    const r = this.executerConsigneSimple(clair);
+                    if (r.astuce) dites.push(r.astuce);
+                    dites.forEach(x => { if (!notes.includes(x)) notes.push(x); });
+                    if (!r.ok) {
+                        return { ok: false, message: `« ${bouts[i]} » : ${r.message}`,
+                                 astuce: notes.join(' ') };
+                    }
+                    dits.push(r.message);
+                }
+                return { ok: true, message: dits.join(' · '), astuce: notes.join(' ') };
+            }
+            executerConsigneSimple(phrase) {
                 const brut = this.cslNettoyer(phrase);
                 if (!brut) return { ok: false, message: "Écrivez une consigne." };
                 const t = brut.toLowerCase();
@@ -25797,6 +25803,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const rate = (m) => ({ ok: false, message: m, astuce: this._cslAstuces.join(' ') });
 
                 try {
+                    if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
+                        return this.cslTriangleRemarquable(brut, t, fait, rate);
+                    }
                     if (/milieu/.test(t)) return this.cslMilieu(brut, t, fait, rate);
                     if (/sym[ée]trique|image\s+de/.test(t)) return this.cslSymetrique(brut, t, fait, rate);
                     /* Les droites remarquables D'UN TRIANGLE, au pluriel comme au
@@ -25804,6 +25813,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        issue de A ». Elles passent avant la règle générale, qui ne
                        sait traiter qu'un segment. */
                     if (/m[ée]dianes?|orthocentre|centre\s+de\s+gravit|isobarycentre|inscrit/.test(t)
+                        || /milieux\s+des\s+c[ôo]t[ée]s/.test(t)
                         || /centre\s+du\s+cercle\s+circonscrit/.test(t)
                         || (/m[ée]diatrices|bissectrices|hauteurs/.test(t))
                         || (/triangle/.test(t) && /m[ée]diatrice|bissectrice|hauteur/.test(t))) {
@@ -25819,8 +25829,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         && /^(place|placer|pose|poser|marque|marquer|soit|prends|prendre)\b/.test(t)) {
                         return this.cslPointSur(brut, t, fait, rate);
                     }
-                    if (/\bcercles?\b/.test(t)) return this.cslCercle(brut, t, fait, rate);
-                    if (/\bangles?\b/.test(t)) return this.cslAngle(brut, t, fait, rate);
+                    /* Une figure nommée l'emporte : « un triangle ABC tel que
+                       l'angle BAC = 60° » décrit un TRIANGLE, pas un angle. */
+                    const figure = /carr[ée]|rectangle|losange|parall[ée]logramme|triangle|quadrilat[èe]re|pentagone|hexagone|heptagone|octogone|enn[ée]agone|d[ée]cagone|dod[ée]cagone|polygone/.exec(t);
+                    if (/\bcercles?\b/.test(t) && !figure) return this.cslCercle(brut, t, fait, rate);
+                    if (/\bangles?\b/.test(t) && !figure) return this.cslAngle(brut, t, fait, rate);
+                    if (/\bcercles?\b/.test(t) && /circonscrit|inscrit/.test(t)) {
+                        return this.cslCercle(brut, t, fait, rate);
+                    }
+                    if (/diagonales?/.test(t)) return this.cslDiagonales(brut, t, fait, rate);
                     if (/^(place|placer|pose|poser|marque|marquer|soit|soient|nomme|prends|prendre)\b/.test(t)
                         && !/segment|droite|cercle|carr|triangle|rectangle|losange|parall|pentagone|hexagone|polygone/.test(t)) {
                         return this.cslPlacer(brut, t, fait, rate);
@@ -25828,9 +25845,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/^(relie|relier|joins|joindre|trace\s+les\s+segments)\b/.test(t)) {
                         return this.cslRelier(brut, t, fait, rate);
                     }
-                    const poly = /carr[ée]|rectangle|losange|parall[ée]logramme|triangle|quadrilat[èe]re|pentagone|hexagone|octogone|polygone/.exec(t);
-                    if (poly && !/perpendiculaire|parall[èe]le\s+[àa]/.test(t)) {
-                        return this.cslPolygone(brut, t, poly[0], fait, rate);
+                    if (figure && !/perpendiculaire|parall[èe]le\s+[àa]/.test(t)) {
+                        return this.cslPolygone(brut, t, figure[0], fait, rate);
                     }
                     if (/affiche|montre|indique/.test(t) && /longueur|mesure/.test(t)) {
                         return this.cslAfficherLongueur(brut, t, fait, rate);
@@ -25845,7 +25861,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const mes = this.cslMesure(brut, t, fait, rate);
                     if (mes) return mes;
 
-                    return rate("Je n'ai pas compris. La liste de ce que je sais faire est juste en dessous.");
+                    return rate("Je n'ai pas compris. Le « ? » de la barre donne la liste de ce que je sais faire.");
                 } catch (err) {
                     console.error('Consigne :', err);
                     return rate("Je n'ai pas su faire ça.");
@@ -26003,6 +26019,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     choisis.forEach(([s, p, q]) => droite(s, p, q));
                     return fait(choisis.length > 1 ? `Les 3 hauteurs de ${nom3}` : `Hauteur issue de ${issue}`);
                 }
+                if (/milieux/.test(t)) {
+                    const poses = [[A, B], [B, C], [C, A]].map(([p, q]) => {
+                        const nom = this.cslNomLibre([]);
+                        this.addEntity(new Point((p.x + q.x) / 2, (p.y + q.y) / 2, nom, [p, q]));
+                        return nom;
+                    });
+                    return fait(`Milieux des côtés de ${nom3} : ${poses.join(', ')}`);
+                }
                 if (/m[ée]diane/.test(t)) {
                     choisis.forEach(([s, p, q]) => {
                         const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2,
@@ -26013,6 +26037,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(choisis.length > 1 ? `Les 3 médianes de ${nom3}` : `Médiane issue de ${issue}`);
                 }
                 return rate("Je n'ai pas compris ce qu'il faut tracer dans ce triangle.");
+            }
+            /* Les diagonales d'un quadrilatère — « et ses diagonales ». */
+            cslDiagonales(brut, t, fait, rate) {
+                let noms = this.cslNoms(brut);
+                if (noms.length < 4 && this._cslSujet) noms = this._cslSujet;
+                const pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                if (pts.length < 4) return rate("De quelle figure ? Écrivez « les diagonales du carré ABCD ».");
+                const n = pts.length;
+                let combien = 0;
+                for (let i = 0; i < n; i++) {
+                    for (let j = i + 2; j < n; j++) {
+                        if (i === 0 && j === n - 1) continue;   // ce serait un côté
+                        this.cslSegment(pts[i], pts[j]); combien++;
+                    }
+                }
+                return fait(`${combien} diagonale${combien > 1 ? 's' : ''} de ${pts.map(p => p.label).join('')}`);
             }
             /* Le point où deux droites se croisent. */
             cslIntersection(brut, t, fait, rate) {
@@ -26380,9 +26420,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return fait(`[${m[1]}${m[2]}] mesure ${m[3]}`);
             }
             cslPolygone(brut, t, quoi, fait, rate) {
-                const sommets = { 'carré': 4, 'carre': 4, 'rectangle': 4, 'losange': 4,
-                                  'parallélogramme': 4, 'parallelogramme': 4, 'triangle': 3,
-                                  'pentagone': 5, 'hexagone': 6, 'polygone': 0 }[quoi] || 4;
+                let sommets = { 'carré': 4, 'carre': 4, 'rectangle': 4, 'losange': 4,
+                                'parallélogramme': 4, 'parallelogramme': 4, 'triangle': 3,
+                                'quadrilatère': 4, 'quadrilatere': 4,
+                                'pentagone': 5, 'hexagone': 6, 'heptagone': 7, 'octogone': 8,
+                                'ennéagone': 9, 'enneagone': 9, 'décagone': 10, 'decagone': 10,
+                                'dodécagone': 12, 'dodecagone': 12, 'polygone': 0 }[quoi] || 4;
+                /* « un polygone régulier à 7 côtés » : le nombre est dans la phrase
+                   plutôt que dans le nom. */
+                const combien = (brut.match(/(?:[àa]|de|avec)\s+(\d+)\s*c[ôo]t[ée]s/i) || [])[1];
+                if (quoi === 'polygone' && /r[ée]gulier/.test(t) && combien) {
+                    sommets = Math.max(3, Math.min(20, Number(combien)));
+                    quoi = `polygone régulier à ${sommets} côtés`;
+                }
                 let noms = this.cslNoms(brut);
 
                 // « polygone ABCDE » : on relie des points qu'on a déjà
@@ -26399,11 +26449,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
                 const L = cote || 150;
 
-                // « triangle ABC tel que AB = 5 cm, BC = 4 cm et AC = 3 cm »
-                const trois = [...brut.matchAll(/([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/g)];
-                if (quoi === 'triangle' && trois.length >= 3) {
-                    return this.cslTriangleTroisCotes(brut, trois, fait, rate);
-                }
+                // le triangle a son propre solveur : trois longueurs, deux
+                // longueurs et un angle, une longueur et deux angles, isocèle,
+                // rectangle, équilatéral — et leurs combinaisons
+                if (quoi === 'triangle') return this.cslTriangle(brut, t, fait, rate);
 
                 while (noms.length < sommets) { const n = this.cslNomLibre(noms); if (!n) break; noms.push(n); }
                 noms = noms.slice(0, sommets);
@@ -26415,6 +26464,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     'pentagone': (s) => this.buildRegularPentagon(s),
                     'hexagone': (s) => this.buildHexagon(s)
                 }[quoi] : null;
+                /* Le rectangle et le parallélogramme se bâtissent sur TROIS points :
+                   deux côtés donnés, le quatrième sommet se déduit — c'est la
+                   signature de leurs bâtisseurs. */
+                if (this.cslDetaille() && (quoi === 'rectangle' || quoi === 'parallélogramme'
+                        || quoi === 'parallelogramme')) {
+                    const o3 = this.cslPlaceLibre(0, 0);
+                    const l1 = deux ? this.cslLongueurPx(deux[1]) : L;
+                    const l2 = deux ? this.cslLongueurPx(deux[2]) : L * 0.62;
+                    const mk = (i, x, y) => {
+                        const d0 = this.cslPointNomme(noms[i]);
+                        if (d0) return d0;
+                        const p = new Point(x, y, noms[i]); this.addEntity(p); return p;
+                    };
+                    const p1 = mk(0, o3.x - l1 / 2, o3.y + l2 / 2);
+                    const p2 = mk(1, p1.x + l1, p1.y);
+                    const p3 = mk(2, p2.x + (quoi === 'rectangle' ? 0 : l2 * 0.4), p2.y - l2);
+                    this.cslBatir(noms.slice(3), () => (quoi === 'rectangle'
+                        ? this.buildRectangle(p1, p2, p3) : this.buildParallelogram(p1, p2, p3)));
+                    this._cslSujet = noms.slice();
+                    return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
+                }
                 if (batisseur || (this.cslDetaille() && quoi === 'triangle' && /[ée]quilat[ée]ral/.test(t))) {
                     const o = this.cslPlaceLibre(0, 0);
                     const pA = this.cslPointNomme(noms[0]) || new Point(o.x - L / 2, o.y + L / 2, noms[0]);
@@ -26476,41 +26546,207 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
                 this.addEntity(new Polygon([...pts]));
+                this._cslSujet = noms.slice();
                 return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}`);
             }
-            /* « Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm » :
-               l'énoncé le plus courant de tous. Le troisième sommet est à
-               l'intersection de deux cercles — la construction au compas, faite d'un
-               coup, avec l'inégalité triangulaire vérifiée avant de commencer. */
-            cslTriangleTroisCotes(brut, trois, fait, rate) {
-                const noms = this.cslNoms(brut).slice(0, 3);
-                if (noms.length < 3) return rate("Il faut trois sommets, comme « triangle ABC ».");
+            /* ============================================================
+               LE TRIANGLE
+
+               Un énoncé le donne de bien des façons : trois longueurs, deux
+               longueurs et l'angle entre elles, une longueur et deux angles,
+               équilatéral, isocèle en un sommet, rectangle en un sommet, et les
+               combinaisons — « isocèle rectangle en A de côté 4 cm ».
+
+               Tout est ramené aux TROIS LONGUEURS, puis placé une seule fois :
+               A à gauche, B à sa droite, C à l'intersection des deux cercles.
+               Ce qui manque est dit, et l'inégalité triangulaire est vérifiée
+               avant de tracer quoi que ce soit.
+               ============================================================ */
+            cslTriangle(brut, t, fait, rate) {
+                let noms = this.cslNoms(brut).slice(0, 3);
+                while (noms.length < 3) noms.push(this.cslNomLibre(noms));
                 const [A, B, C] = noms;
-                const val = {};
-                trois.forEach(m => {
-                    const px = this.cslLongueurPx(m[3]);
-                    if (px !== null) { val[m[1] + m[2]] = px; val[m[2] + m[1]] = px; }
-                });
-                const c = val[A + B], b = val[A + C], a = val[B + C];
-                if (!c || !b || !a) return rate("Il me manque une longueur : donnez les trois côtés.");
+                const iSommet = { [A]: 0, [B]: 1, [C]: 2 };
+
+                // côtés : a = BC (opposé à A), b = CA, c = AB
+                const cotes = [null, null, null];
+                const angles = [null, null, null];
+                const poser = (x, y, v) => {
+                    const i = iSommet[x], j = iSommet[y];
+                    if (i === undefined || j === undefined || i === j) return;
+                    cotes[3 - i - j] = v;                     // le côté opposé au 3e sommet
+                };
+                [...brut.matchAll(/([A-Z]'{0,2})([A-Z]'{0,2})\s*=?\s*(?:mesure\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/g)]
+                    .forEach(m => { const v = this.cslLongueurPx(m[3]); if (v) poser(m[1], m[2], v); });
+
+                // angles : « l'angle BAC = 60° », « l'angle en A mesure 60° », « 60° en A »
+                [...brut.matchAll(/angle\s+([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°?/g)]
+                    .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[4].replace(',', '.')); });
+                [...brut.matchAll(/angle\s+(?:en\s+)?([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                    .forEach(m => { const i = iSommet[m[1]]; if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[2].replace(',', '.')); });
+                [...brut.matchAll(/(\d+(?:[.,]\d+)?)\s*°\s*(?:en|au sommet)\s+([A-Z]'{0,2})/g)]
+                    .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[1].replace(',', '.')); });
+
+                // les mots : équilatéral, isocèle en X, rectangle en X
+                const equi = /[ée]quilat[ée]ral/.test(t);
+                const isoIn = (brut.match(/isoc[èe]le\s+(?:en|de\s+sommet)\s+([A-Z]'{0,2})/) || [])[1];
+                const droitIn = (brut.match(/rectangle\s+en\s+([A-Z]'{0,2})/) || [])[1];
+                const iso = /isoc[èe]le/.test(t), droit = /rectangle/.test(t);
+                const sommetIso = isoIn && iSommet[isoIn] !== undefined ? iSommet[isoIn] : (iso ? 0 : null);
+                const sommetDroit = droitIn && iSommet[droitIn] !== undefined ? iSommet[droitIn] : (droit ? 0 : null);
+                if (sommetDroit !== null) angles[sommetDroit] = 90;
+
+                // longueurs génériques : « de 4 cm de côté », « de base 3 cm »
+                const cote = this.cslLongueurPx((brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))\s*(?:de\s+c[ôo]t[ée])/i)
+                    || brut.match(/c[ôo]t[ée]\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i) || [])[1] || '');
+                const base = this.cslLongueurPx((brut.match(/base\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i) || [])[1] || '');
+                const seul = this.cslLongueurPx((brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/) || [])[1] || '');
+
+                if (equi) {
+                    const L = cote || seul || 160;
+                    cotes[0] = cotes[1] = cotes[2] = L;
+                } else if (sommetIso !== null) {
+                    // isocèle en X : les deux côtés issus de X sont égaux
+                    const j = (sommetIso + 1) % 3, k = (sommetIso + 2) % 3;
+                    const L = cote || cotes[j] || cotes[k] || seul || 170;
+                    cotes[j] = cotes[k] = L;
+                    if (base) cotes[sommetIso] = base;
+                    /* Isocèle sans autre mesure : la base reste libre, on en choisit
+                       une qui donne un triangle franchement isocèle — sauf s'il est
+                       aussi rectangle, où l'angle droit la fixe. */
+                    else if (cotes[sommetIso] === null && angles[sommetIso] === null) {
+                        cotes[sommetIso] = L * 0.72;
+                    }
+                }
+
+                // somme des angles
+                const nAng = angles.filter(x => x !== null).length;
+                if (nAng === 2) {
+                    const i = angles.findIndex(x => x === null);
+                    angles[i] = 180 - angles.reduce((s2, x) => s2 + (x || 0), 0);
+                    if (angles[i] <= 0) return rate("La somme des angles d'un triangle vaut 180°.");
+                }
+                if (sommetIso !== null && nAng === 1) {
+                    // isocèle : les deux angles de la base sont égaux
+                    const i = angles.findIndex(x => x !== null);
+                    if (i === sommetIso) {
+                        const reste = (180 - angles[i]) / 2;
+                        angles[(i + 1) % 3] = angles[(i + 2) % 3] = reste;
+                    } else {
+                        const autre = [0, 1, 2].find(k => k !== i && k !== sommetIso);
+                        angles[autre] = angles[i];
+                        angles[sommetIso] = 180 - 2 * angles[i];
+                    }
+                }
+
+                const rad = (d) => d * Math.PI / 180;
+                const connus = cotes.filter(x => x).length;
+                if (connus < 3) {
+                    const angConnus = angles.filter(x => x !== null).length;
+                    if (connus === 2) {
+                        // deux côtés : l'angle entre eux ferme le triangle (al-Kashi)
+                        const manque = cotes.findIndex(x => !x);
+                        if (angles[manque] !== null) {
+                            const u = cotes[(manque + 1) % 3], v = cotes[(manque + 2) % 3];
+                            cotes[manque] = Math.sqrt(u * u + v * v - 2 * u * v * Math.cos(rad(angles[manque])));
+                        } else {
+                            return rate("Avec deux longueurs, il me faut l'angle entre elles — "
+                                + `« l'angle ${noms[(manque + 1) % 3]}${noms[manque]}${noms[(manque + 2) % 3]} = 60° ».`);
+                        }
+                    } else if (connus === 1 && angConnus >= 2) {
+                        // une longueur et deux angles : loi des sinus
+                        const i = cotes.findIndex(x => x);
+                        const k = cotes[i] / Math.sin(rad(angles[i]));
+                        for (let j = 0; j < 3; j++) if (!cotes[j]) cotes[j] = k * Math.sin(rad(angles[j]));
+                    } else if (sommetDroit !== null && connus <= 1) {
+                        /* Rectangle sans les deux jambes : l'angle droit fixe la
+                           forme, les longueurs manquantes sont au jugé — et
+                           l'hypoténuse, elle, est calculée (Pythagore). */
+                        const j = (sommetDroit + 1) % 3, k = (sommetDroit + 2) % 3;
+                        if (!cotes[j]) cotes[j] = cotes[k] ? cotes[k] * 0.72 : 190;
+                        if (!cotes[k]) cotes[k] = cotes[j] * 0.72;
+                        cotes[sommetDroit] = Math.hypot(cotes[j], cotes[k]);
+                    } else if (connus === 0 && !equi && sommetIso === null) {
+                        // rien d'imposé : un triangle quelconque, honnête
+                        cotes[0] = 210; cotes[1] = 180; cotes[2] = 150;
+                    } else {
+                        return rate("Il me manque des mesures : trois longueurs, ou deux longueurs "
+                            + "et l'angle entre elles, ou une longueur et deux angles.");
+                    }
+                }
+                if (cotes.some(x => !x || !isFinite(x) || x <= 0)) {
+                    return rate("Ces mesures ne donnent pas de triangle.");
+                }
+                const [a, b, c] = cotes;   // a = BC, b = CA, c = AB
                 if (a + b <= c || a + c <= b || b + c <= a) {
                     return rate("Ce triangle n'existe pas : un côté dépasse la somme des deux autres.");
                 }
+                return this.cslPoserTriangle(noms, a, b, c, fait);
+            }
+            /* Le placement, une fois les trois longueurs connues. Tous les cas —
+               trois longueurs, deux longueurs et un angle, une longueur et deux
+               angles, isocèle, rectangle — y arrivent : c'est ce qui rend la figure
+               CONSTRUCTIBLE aux instruments dans tous les cas, puisque trois
+               longueurs se construisent à la règle et au compas. */
+            cslPoserTriangle(noms, a, b, c, fait) {
+                const [A, B, C] = noms;
                 const o = this.cslPlaceLibre(0, 0);
                 const pA = this.cslPointNomme(A) || new Point(o.x - c / 2, o.y + b / 3, A);
                 if (!this.cslPointNomme(A)) this.addEntity(pA);
                 const pB = this.cslPointNomme(B) || new Point(pA.x + c, pA.y, B);
                 if (!this.cslPointNomme(B)) this.addEntity(pB);
                 const d = MathUtils.dist(pA.x, pA.y, pB.x, pB.y) || c;
-                const x = (b * b - a * a + d * d) / (2 * d);
+                const x = (c * c + b * b - a * a) / (2 * d);
                 const h = Math.sqrt(Math.max(0, b * b - x * x));
                 const ux = (pB.x - pA.x) / d, uy = (pB.y - pA.y) / d;
                 const pC = this.cslPointNomme(C)
                     || new Point(pA.x + ux * x + uy * h, pA.y + uy * x - ux * h, C);
                 if (!this.cslPointNomme(C)) this.addEntity(pC);
+                this._cslSujet = [A, B, C];
+                if (this.cslDetaille()) {
+                    this.cslTriangleAuCompas(pA, pB, pC, a, b);
+                    return fait(`Triangle ${A}${B}${C} — construction au compas`);
+                }
                 this.cslSegment(pA, pB); this.cslSegment(pB, pC); this.cslSegment(pC, pA);
                 this.addEntity(new Polygon([pA, pB, pC]));
                 return fait(`Triangle ${A}${B}${C}`);
+            }
+            /* LE GESTE RÉEL, quand la case « construction détaillée » est cochée :
+               on trace [AB] à la règle, on ouvre le compas à la longueur du
+               deuxième côté et l'on trace un arc depuis A, puis un autre depuis B
+               avec le troisième — leur croisement est le sommet — et l'on ferme à
+               la règle. C'est la construction du manuel, et elle se rejoue. */
+            cslTriangleAuCompas(pA, pB, pC, a, b) {
+                const regle = (p, q) => {
+                    const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                    const pose = { x: p.x, y: p.y, angle: ang };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.cslSegment(p, q);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                };
+                const arc = (centre, r, vers) => {
+                    const cible = Math.atan2(vers.y - centre.y, vers.x - centre.x);
+                    const dep = cible - 0.45, fin = cible + 0.45;
+                    const pose = (ang, ray) => ({ x: centre.x, y: centre.y, angle: ang, radius: ray });
+                    const ouvrir = new ToolAnimation('move', pose(dep, 10), pose(dep, r));
+                    ouvrir.widgetType = 'compass';
+                    this.addEntity(ouvrir);
+                    const tracer = new ToolAnimation('trace', pose(dep, r), pose(fin, r));
+                    tracer.widgetType = 'compass';
+                    const trait = new CompassArc(centre, r, dep, fin, false);
+                    trait.color = '#ff9900';
+                    this.addEntity(tracer); this.addEntity(trait);
+                    this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                };
+                regle(pA, pB);
+                arc(pA, b, pC);   // le côté [AC]
+                arc(pB, a, pC);   // le côté [BC] : les deux arcs se croisent en C
+                this.addEntity(pC);
+                regle(pA, pC);
+                regle(pB, pC);
+                this.addEntity(new Polygon([pA, pB, pC]));
             }
             cslLineaire(brut, t, fait, rate) {
                 // plusieurs d'un coup : « Trace [AB], [BC] et [CA] »
@@ -26585,53 +26821,88 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return fait(genre === 'droite' ? `Droite (${nom})` : `Demi-droite [${nom})`);
             }
 
-            /* ---- la fenêtre ---- */
-            ouvrirConsigne() {
-                const m = document.getElementById('consigneModal');
-                if (!m) return;
-                m.style.display = 'flex';
-                const champ = document.getElementById('consigneChamp');
-                if (champ) { champ.value = ''; setTimeout(() => champ.focus(), 60); }
-            }
-            fermerConsigne() {
-                const m = document.getElementById('consigneModal');
-                if (m) m.style.display = 'none';
-            }
-            validerConsigne() {
-                const champ = document.getElementById('consigneChamp');
-                if (!champ) return;
-                const phrase = champ.value;
-                const r = this.executerConsigne(phrase);
-                this.journalConsigne(phrase, r);
-                /* Comprise, la ligne s'efface : on enchaîne le programme de
-                   construction. Incomprise, elle RESTE — on la corrige au lieu de la
-                   retaper. */
-                if (r.ok) champ.value = '';
-                champ.focus();
-            }
-            journalConsigne(phrase, r) {
-                const hote = document.getElementById('consigneJournal');
-                if (!hote) return;
-                const l = document.createElement('div');
-                l.className = 'consigne-ligne ' + (r.ok ? 'ok' : 'rate');
-                l.textContent = (r.ok ? '✓ ' : '✗ ') + r.message;
-                hote.appendChild(l);
-                /* La notation est un point de cours, pas une faute de frappe :
-                   [AB] le segment, (AB) la droite, [AB) la demi-droite. La
-                   consigne est faite quand même, et la bonne écriture rappelée. */
-                if (r.astuce) {
-                    const n = document.createElement('div');
-                    n.className = 'consigne-ligne astuce';
-                    n.textContent = '✎ ' + r.astuce;
-                    hote.appendChild(n);
+            /* ---- LE PANNEAU DES CONSIGNES EXÉCUTE CE QU'ON Y ÉCRIT ----------
+               Pas de fenêtre en plus : la phrase qu'on écrit dans le panneau des
+               consignes EST la consigne de l'étape, et c'est elle qu'on exécute.
+               On écrit, Entrée, et l'aperçu est la figure elle-même — le panneau
+               est petit, flottant, et se déplace si elle gêne.
+
+               L'exécution s'arme d'un bouton : on doit pouvoir écrire un énoncé
+               sans que chaque ligne parte se construire. */
+            basculerConsigneAuto() {
+                this.consigneAuto = !this.consigneAuto;
+                const b = document.getElementById('btnConsigneAuto');
+                if (b) b.classList.toggle('actif', this.consigneAuto);
+                const d = document.getElementById('consigneDetailLigne');
+                if (d) d.style.display = this.consigneAuto ? 'flex' : 'none';
+                this.direConsigne(this.consigneAuto
+                    ? { ok: true, message: 'Écrivez une consigne, puis Entrée.' }
+                    : null);
+                if (this.consigneAuto) {
+                    const z = document.getElementById('instrContent');
+                    if (z) z.focus();
                 }
-                hote.scrollTop = hote.scrollHeight;
+            }
+            basculerAideConsigne() {
+                const a = document.getElementById('consigneAide');
+                if (!a) return;
+                a.style.display = (a.style.display === 'none' || !a.style.display) ? 'block' : 'none';
+            }
+            direConsigne(r) {
+                const e = document.getElementById('consigneEtat');
+                if (!e) return;
+                if (!r) { e.className = 'consigne-etat'; e.textContent = ''; return; }
+                e.className = 'consigne-etat ' + (r.ok ? 'ok' : 'rate');
+                e.textContent = (r.ok ? '✓ ' : '✗ ') + r.message;
+                /* La notation est un point de cours, pas une faute de frappe :
+                   [AB] le segment, (AB) la droite, [AB) la demi-droite. La consigne
+                   est faite quand même, et la bonne écriture rappelée en dessous. */
+                if (r.astuce) {
+                    const n = document.createElement('span');
+                    n.className = 'note';
+                    n.textContent = '✎ ' + r.astuce;
+                    e.appendChild(n);
+                }
+            }
+            /* La ligne où se trouve le curseur, dans le texte enrichi du panneau. */
+            ligneConsigneCourante() {
+                const zone = document.getElementById('instrContent');
+                const sel = window.getSelection();
+                if (!zone) return '';
+                if (!sel || !sel.anchorNode || !zone.contains(sel.anchorNode)) {
+                    const t = (zone.innerText || '').trim().split('\n');
+                    return t[t.length - 1] || '';
+                }
+                let n = sel.anchorNode;
+                while (n && n.parentNode && n.parentNode !== zone) n = n.parentNode;
+                if (!n || n === zone) {
+                    const t = (zone.innerText || '').trim().split('\n');
+                    return t[t.length - 1] || '';
+                }
+                return (n.innerText || n.textContent || '').trim();
+            }
+            /* Appelée à chaque Entrée dans le panneau : si l'exécution est armée,
+               la ligne qu'on vient d'écrire est faite. Elle RESTE écrite — c'est la
+               consigne de l'étape, on ne la retape pas. */
+            consigneDepuisPanneau() {
+                if (!this.consigneAuto) return false;
+                const ligne = this.ligneConsigneCourante();
+                if (!ligne.trim()) return false;
+                const r = this.executerConsigne(ligne);
+                this.direConsigne(r);
+                return r.ok;
             }
             exempleConsigne(txt) {
-                const champ = document.getElementById('consigneChamp');
-                if (!champ) return;
-                champ.value = txt;
-                champ.focus();
+                const zone = document.getElementById('instrContent');
+                if (!zone) return;
+                const p = document.createElement('p');
+                p.textContent = txt;
+                zone.appendChild(p);
+                zone.focus();
+                // le curseur à la fin de la ligne posée, prêt pour Entrée
+                const sel = window.getSelection(), r = document.createRange();
+                r.selectNodeContents(p); r.collapse(false);
+                sel.removeAllRanges(); sel.addRange(r);
             }
             enregistrerDansBiblio() {
                 const nom = (this.projectTitle || '').trim() || 'Sans titre';
@@ -30694,12 +30965,17 @@ var qrcode = function() {
                         else app.ouvrirRecherche();
                         return;
                     }
-                    // Ctrl+E : écrire une consigne, voisin de Ctrl+K
+                    /* Ctrl+E : le panneau des consignes, prêt à exécuter. Voisin de
+                       Ctrl+K parce que c'est le même geste — dire ce qu'on veut. */
                     if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')) {
                         e.preventDefault();
-                        var fen = document.getElementById('consigneModal');
-                        if (fen && fen.style.display === 'flex') app.fermerConsigne();
-                        else app.ouvrirConsigne();
+                        var boite = document.getElementById('instructionBox');
+                        if (!boite || boite.style.display === 'none' || boite.style.display === '') {
+                            app.toggleInstructions();
+                        }
+                        if (!app.consigneAuto) app.basculerConsigneAuto();
+                        var z = document.getElementById('instrContent');
+                        if (z) z.focus();
                         return;
                     }
                     if (!voile.classList.contains('ouvert')) return;
