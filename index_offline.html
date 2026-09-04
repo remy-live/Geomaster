@@ -711,8 +711,9 @@
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, .15);
             padding: 8px;
-            width: 200px;
-            /* Augmenté pour faire tenir les éléments */
+            /* 200 px pour cinq pastilles de couleur et quatre codages par ligne ;
+               176 suffit aux mêmes rangées et rend 24 px à la feuille. */
+            width: 176px;
             flex-direction: column;
             gap: 8px;
             animation: popIn .15s ease-out
@@ -854,6 +855,13 @@
         /* Le curseur (épaisseur, opacité) */
         .compact-slider {
             flex: 1;
+            /* Un élément flexible ne rétrécit pas sous la largeur de son contenu
+               sans « min-width: 0 » — et un curseur a une largeur propre d'une
+               centaine de pixels. Il dépassait donc du menu contextuel par la
+               droite. La marge, elle, garde la pastille dedans : elle est centrée
+               sur les extrémités de la glissière et déborde de sa moitié. */
+            min-width: 0;
+            margin: 0 9px;
             height: 4px;
             border-radius: 2px;
             appearance: none;
