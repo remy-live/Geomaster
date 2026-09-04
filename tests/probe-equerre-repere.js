@@ -100,22 +100,43 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const M = app.createPointAt(400, 320); M.label = 'M';
     app.buildSymAxiale([M], axe);
     await new Promise(r => setTimeout(r, 400));
-    const idx = app.entities.findIndex(e => e.constructor.name === 'ToolAnimation' && e.widgetType === 'setsquare');
     app.isPlaying = false; app.isToolAnimating = false;
-    app.replayIndex = idx + 1; app.fastForward(idx + 1); app.render();
-    const sq = app.setSquareWidget;
-    if (!sq) return { err: 'aucune équerre' };
-    const bout = sq.toGlobal(sq.width, 0);
-    return { idx, x: Math.round(sq.x), y: Math.round(sq.y),
-             boutX: Math.round(bout.x), pointX: M.x, axeX: 640 };
+    /* Les gestes de l'équerre, dans l'ordre où le rejeu les joue. */
+    const gestes = app.entities.map((e, i) => ({ i, w: e.widgetType, t: e.originalType }))
+      .filter(o => o.w === 'setsquare');
+    // pour chaque POSE, où pointe le bord gradué et quel trait elle accompagne
+    const poses = [];
+    for (const g of gestes.filter(o => o.t === 'trace')) {
+      app.replayIndex = g.i + 1; app.fastForward(g.i + 1); app.render();
+      const sq = app.setSquareWidget;
+      if (!sq) return { err: 'aucune équerre' };
+      const bout = sq.toGlobal(sq.width, 0), suiv = app.entities[g.i + 1];
+      poses.push({ x: Math.round(sq.x), y: Math.round(sq.y), boutX: Math.round(bout.x),
+                   trait: suiv && suiv.p1 ? [Math.round(suiv.p1.x), Math.round(suiv.p2.x)] : null });
+    }
+    return { gestes: gestes.map(o => o.t), poses, pointX: M.x, axeX: 640, symX: 880 };
   });
   console.log('  ' + JSON.stringify(rejeu));
   ck('l\'équerre existe et n\'est plus au fond de la feuille',
-     !rejeu.err && rejeu.x === 640 && rejeu.y === 320, JSON.stringify(rejeu));
+     !rejeu.err && rejeu.poses.length && rejeu.poses.every(p => p.x === 640 && p.y === 320),
+     JSON.stringify(rejeu.poses));
   /* Le geste réel : on plaque l'équerre contre l'axe et l'on trace VERS le point.
      Son bord gradué doit donc partir du côté du point, pas de l'autre. */
   ck('elle est posée du côté du point, pas de l\'autre',
-     rejeu.boutX < rejeu.axeX, `bord vers x=${rejeu.boutX}, axe à ${rejeu.axeX}, point à ${rejeu.pointX}`);
+     rejeu.poses[0] && rejeu.poses[0].boutX < rejeu.axeX,
+     `bord vers x=${rejeu.poses[0] && rejeu.poses[0].boutX}, axe à ${rejeu.axeX}, point à ${rejeu.pointX}`);
+  /* Aucune équerre ne couvre la perpendiculaire entière : on trace jusqu'à l'axe,
+     puis ON BOUGE L'ÉQUERRE pour prolonger de l'autre côté. */
+  ck('trois gestes : tracer, bouger, prolonger',
+     JSON.stringify(rejeu.gestes) === JSON.stringify(['trace', 'move', 'trace']),
+     JSON.stringify(rejeu.gestes));
+  ck('le premier trait descend du point jusqu\'à l\'axe',
+     rejeu.poses[0] && JSON.stringify(rejeu.poses[0].trait) === JSON.stringify([rejeu.pointX, rejeu.axeX]),
+     JSON.stringify(rejeu.poses[0] && rejeu.poses[0].trait));
+  ck('après le déplacement, elle prolonge au-delà du symétrique',
+     rejeu.poses[1] && rejeu.poses[1].boutX > rejeu.axeX
+       && rejeu.poses[1].trait[0] === rejeu.axeX && rejeu.poses[1].trait[1] > rejeu.symX,
+     JSON.stringify(rejeu.poses[1]));
 
   console.log('\n=== le nom d\'un point annonce qu\'il se déplace ===');
   const curseur = await page.evaluate(() => {

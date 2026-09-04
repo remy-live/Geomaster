@@ -28,7 +28,8 @@ elle gêne.
 Chaque figure garde la trace de sa construction. On la rejoue **pas à pas**, les
 instruments se déplaçant tout seuls, avec une consigne attachée à chaque étape.
 C'est le geste du tableau, qu'un élève peut revoir chez lui autant de fois qu'il
-veut.
+veut — jusqu'au détail : aucune équerre ne couvre une perpendiculaire entière,
+alors elle **se déplace** pour prolonger le trait de l'autre côté de l'axe.
 
 Au tableau, on avance **à la main** : *Page suivante* / *Page précédente* — les
 touches qu'envoie une **télécommande de présentation** — plus Espace et les
@@ -189,7 +190,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 61 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 62 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

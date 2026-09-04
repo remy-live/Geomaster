@@ -13210,9 +13210,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let s1 = new Segment(pA, ptMid, {color: segAB.color, width: segAB.lineWidth}); this.addEntity(s1);
                 let s2 = new Segment(ptMid, pB, {color: segAB.color, width: segAB.lineWidth}); this.addEntity(s2);
                 
-                if (typeof this.autoCodeAll === 'function') {
-                    this.autoCodeAll();
-                }
+                this.codageDeConstruction();
                 
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
@@ -13691,7 +13689,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(animSide); this.addEntity(s); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 }
                 
-                if (typeof this.autoCodeAll === 'function') this.autoCodeAll();
+                this.codageDeConstruction();
                 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -13836,7 +13834,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
-                if (typeof this.autoCodeAll === 'function') this.autoCodeAll();
+                this.codageDeConstruction();
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -13948,7 +13946,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
-                if (typeof this.autoCodeAll === 'function') this.autoCodeAll();
+                this.codageDeConstruction();
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -14101,7 +14099,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     currentPt = nextPt;
                 }
                 
-                if (typeof this.autoCodeAll === 'function') this.autoCodeAll();
+                this.codageDeConstruction();
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -14588,7 +14586,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 let s1 = new Segment(pTarget, pCenter, {color: "#999999", width: 1}); this.addEntity(s1);
                 let s2 = new Segment(pCenter, pNew, {color: "#999999", width: 1}); this.addEntity(s2);
-                if (typeof this.autoCodeAll === 'function') this.autoCodeAll();
+                this.codageDeConstruction();
                 
                 this.addEntity(pNew);
                 
@@ -14626,8 +14624,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     pExt.visible = false;
                     this.addEntity(pExt);
                     
-                    let l = new Segment(pTarget, pExt, {color: "#999999", dash: true, width: 1});
-
                     /* Le sommet de l'angle droit est en proj, sur l'axe, et le bord gradué
                        pointe vers LE POINT qu'on symétrise : c'est le geste réel — on
                        plaque l'équerre contre l'axe et on trace vers le point, l'équerre
@@ -14638,15 +14634,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        d'alors disait le contraire ; il datait d'un temps où l'équerre
                        n'était jamais placée du tout — fastForward la cherchait sous un
                        nom qui n'existait pas — et où elle restait donc là où l'utilisateur
-                       l'avait laissée, ce qui rendait n'importe quelle règle vraie. */
-                    let aTarget = Math.atan2(pTarget.y - proj.y, pTarget.x - proj.x);
-                    let tracedAngle = aTarget;
-                    let rStart = { x: proj.x, y: proj.y, angle: tracedAngle };
+                       l'avait laissée, ce qui rendait n'importe quelle règle vraie.
 
-                    let animTrace = new ToolAnimation('trace', rStart, rStart);
+                       Et la perpendiculaire se trace en DEUX morceaux, parce que c'est
+                       en deux gestes qu'on la trace vraiment : on descend du point
+                       jusqu'à l'axe, puis, POUR PROLONGER de l'autre côté, ON BOUGE
+                       L'ÉQUERRE — elle bascule autour du pied et le trait continue.
+                       D'un seul trait, on demandait à l'équerre de couvrir toute la
+                       longueur sans bouger, ce qu'aucune équerre ne fait. */
+                    let aTarget = Math.atan2(pTarget.y - proj.y, pTarget.x - proj.x);
+                    let poseVersPoint = { x: proj.x, y: proj.y, angle: aTarget };
+                    let poseVersSym = { x: proj.x, y: proj.y, angle: aTarget + Math.PI };
+
+                    let l1 = new Segment(pTarget, proj, {color: "#999999", dash: true, width: 1});
+                    let l2 = new Segment(proj, pExt, {color: "#999999", dash: true, width: 1});
+
+                    let animTrace = new ToolAnimation('trace', poseVersPoint, poseVersPoint);
                     animTrace.widgetType = 'setsquare';
-                    
-                    this.addEntity(proj); this.addEntity(animTrace); this.addEntity(l);
+                    let animBouge = new ToolAnimation('move', poseVersPoint, poseVersSym);
+                    animBouge.widgetType = 'setsquare';
+                    let animProlonge = new ToolAnimation('trace', poseVersSym, poseVersSym);
+                    animProlonge.widgetType = 'setsquare';
+
+                    this.addEntity(proj);
+                    this.addEntity(animTrace); this.addEntity(l1);
+                    this.addEntity(animBouge);
+                    this.addEntity(animProlonge); this.addEntity(l2);
                     this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
                     
                     let radius = Math.hypot(pTarget.x - proj.x, pTarget.y - proj.y);
@@ -17355,6 +17368,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     btn.classList.add('active');
                 }
             }
+            /* Le codage automatique enregistre son propre état dans l'historique —
+               c'est ce qu'il faut quand on appuie sur son bouton. Appelé DEPUIS un
+               bâtisseur, il coupait la construction en deux : une première
+               annulation ne retirait que les codages, et il en fallait une seconde
+               pour défaire la figure. Une construction magique est un seul geste,
+               donc une seule annulation. */
+            codageDeConstruction() {
+                if (typeof this.autoCodeAll !== 'function') return;
+                const avant = this.historyPast.length;
+                this.autoCodeAll();
+                while (this.historyPast.length > avant) this.historyPast.pop();
+            }
             autoCodeAll() {
                 let hasChanges = false;
 
@@ -19308,22 +19333,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.updateButtons();
                 this.saveToLocalStorage();
             }
+            /* ANNULER PENDANT UN REJEU.
+
+               Une construction magique se rejoue en boucle : animateLoop avance
+               replayIndex jusqu'à loopEndIndex, la fin de la construction. Annuler
+               remplaçait les objets par ceux d'avant — bien moins nombreux — sans
+               rien dire à la boucle, qui continuait de compter jusqu'à une fin qui
+               n'existait plus. replayIndex montait dans le vide, entities[i] ne
+               renvoyait plus rien, la lecture ne s'arrêtait jamais et le ▶ ne
+               revenait pas : de l'extérieur, le logiciel était planté.
+
+               Le rejeu s'arrête donc AVANT que l'historique ne change. C'est aussi
+               ce qu'on attend en appuyant sur Ctrl+Z pendant une animation : on
+               veut l'interrompre, pas la regarder finir. */
+            arreterRejeuPourHistorique() {
+                if (!this.isPlaying && !this.isToolAnimating && !this.isLooping) return false;
+                this.isPlaying = false;
+                this.isToolAnimating = false;
+                this.isLooping = false;
+                this.isMagicConstructing = false;
+                this.waitEndTime = 0;
+                this.loopStartIndex = 0;
+                this.loopEndIndex = 0;
+                const btnLoop = document.getElementById('btnLoop');
+                if (btnLoop) btnLoop.classList.remove('active');
+                const btnPlay = document.getElementById('btnPlay');
+                if (btnPlay) {
+                    btnPlay.innerHTML = "▶";
+                    btnPlay.onclick = () => this.playFromStart();
+                }
+                this.lockInterface(false);
+                return true;
+            }
             undo() {
                 if (this.historyPast.length <= 1) return;
+                const rejeuCoupe = this.arreterRejeuPourHistorique();
                 this.historyFuture.push(this.serialize());
                 this.historyPast.pop();
                 this.entities = this.deserialize(this.historyPast[this.historyPast.length - 1]);
                 this.resetInteraction();
                 this.replayIndex = this.entities.length;
+                /* Les instruments que le rejeu avait sortis restaient sur la feuille,
+                   posés au milieu d'une construction qui n'existait plus : le geste
+                   suivant les attrapait au lieu de tracer. fastForward les remet dans
+                   l'état qu'ils ont à la fin de la figure restaurée. On ne le fait que
+                   si l'on vient d'interrompre un rejeu : autrement, une règle sortie
+                   à la main disparaîtrait à chaque annulation. */
+                if (rejeuCoupe) this.fastForward(this.replayIndex);
                 this.render();
                 this.updateButtons();
             }
             redo() {
                 if (this.historyFuture.length === 0) return;
+                const rejeuCoupe = this.arreterRejeuPourHistorique();
                 const next = this.historyFuture.pop();
                 this.historyPast.push(next);
                 this.entities = this.deserialize(next);
                 this.replayIndex = this.entities.length;
+                if (rejeuCoupe) this.fastForward(this.replayIndex);
                 this.render();
                 this.updateButtons();
             }
