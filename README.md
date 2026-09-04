@@ -77,6 +77,20 @@ Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
 [AB]` est exécuté, et la réponse ajoute qu'en géométrie on écrit plutôt
 « Trace… » — comme pour les crochets oubliés.
 
+**Le codage dit ce que la construction affirme, et rien de plus.** Un milieu
+porte ses deux traits — un sur chaque moitié — et le segment n'est pas coupé en
+deux pour autant : au tableau, on trace `[AB]` une fois et l'on pose une marque
+sur chaque moitié. Une médiatrice ajoute l'angle droit : sans lui et sans les
+marques, la figure ne montrait qu'une droite qui passe par là. Trois médiatrices
+donnent trois marques différentes, une par côté — les coder du même trait
+affirmerait que les six moitiés sont égales entre elles.
+
+Et le codage automatique qui suit une consigne **ne regarde que ce que cette
+consigne vient de construire** : appliqué à toute la feuille, « même longueur ⇒
+même marque » affirmait l'égalité de deux traits sans aucun rapport. Le bouton
+**Codage auto**, lui, garde toute la feuille pour champ — là, c'est vous qui le
+demandez.
+
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
 d'un coup et rejouable ensuite avec ▶.

@@ -1,0 +1,209 @@
+// Le codage d'un milieu : deux traits, un sur chaque moitié — portés par le
+// milieu lui-même, et ne disant que ce qu'ils doivent dire.
+const { chromium } = require('playwright');
+const path = require('path');
+// La page testée est celle du dépôt, quel que soit l'endroit où il est cloné.
+const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
+// Le navigateur : celui que Playwright a installé, sauf indication contraire.
+const NAVIGATEUR = process.env.GM_CHROME || undefined;
+(async () => {
+  const b = await chromium.launch({ executablePath: NAVIGATEUR });
+  let fail = 0;
+  const ck = (l, ok, d) => { console.log(`  ${ok ? '✓' : '✗'} ${l}${d ? ' — ' + d : ''}`); if (!ok) fail++; };
+  const page = await (await b.newContext({ viewport: { width: 1400, height: 1000 } })).newPage();
+  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.goto(PAGE); await page.waitForTimeout(1400);
+
+  /* A et B posés à la main, horizontalement : les marques doivent alors tomber
+     exactement au quart et aux trois quarts, et cela se lit en pixels. */
+  const figure = (phrases, instruments) => page.evaluate(([ph, ins]) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {}; app._cslSujet = null;
+    app.view = { x: 0, y: 0, zoom: 1 }; app.saveState();
+    ph.forEach(p => app.executerConsigneAvec(p, !!ins));
+    app.isPlaying = false; app.isLooping = false; app.isToolAnimating = false;
+    app.render();
+    const nom = (p) => (p && p.label) ? p.label : '·';
+    return {
+      segs: app.entities.filter(e => e.constructor.name === 'Segment').map(s => ({
+        n: '[' + nom(s.p1) + nom(s.p2) + ']',
+        L: +(Math.hypot(s.p1.x - s.p2.x, s.p1.y - s.p2.y) / 50).toFixed(2),
+        c: s.coding || null })),
+      milieux: app.entities.filter(e => e.constructor.name === 'Point' && e.codageMilieu)
+        .map(p => ({ n: nom(p), c: p.codageMilieu,
+                     entre: (p.parents || []).map(nom).join('') })),
+      angles: app.entities.filter(e => e.constructor.name === 'Angle')
+        .map(a => Math.round(a.getAngleValue())),
+      objets: app.entities.length,
+    };
+  }, [phrases, instruments]);
+
+  const poser = () => page.evaluate(() => {
+    const app = window.app;
+    const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const A = pt('A'), B = pt('B');
+    A.x = 300; A.y = 400; B.x = 700; B.y = 400;
+  });
+
+  console.log('\n=== « Place le milieu I de [AB] » : le milieu est codé ===');
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState(); app.view = { x: 0, y: 0, zoom: 1 };
+    app.executerConsigne('Place les points A, B');
+  });
+  await poser();
+  const mil = await page.evaluate(() => {
+    const app = window.app;
+    app.executerConsigne('Trace [AB]');
+    app.executerConsigne('Place le milieu I de [AB]');
+    app.render();
+    const I = app.entities.find(e => e.constructor.name === 'Point' && e.label === 'I');
+    return { code: I.codageMilieu || null,
+             segs: app.entities.filter(e => e.constructor.name === 'Segment').length };
+  });
+  console.log('  ' + JSON.stringify(mil));
+  ck('le milieu porte le codage', mil.code === 'mark-1', String(mil.code));
+  /* ON NE COUPE PAS LE SEGMENT EN DEUX. Au tableau, le professeur trace [AB]
+     une fois et pose un trait sur chaque moitié. Deux segments posés l'un
+     contre l'autre, c'est l'encre tracée deux fois et trois objets à
+     sélectionner là où il y en a un. */
+  ck('et [AB] reste UN seul segment', mil.segs === 1, `${mil.segs} segments`);
+
+  console.log('\n=== les deux traits tombent au quart et aux trois quarts ===');
+  const px = await page.evaluate(() => {
+    const x = document.getElementById('geoCanvas').getContext('2d');
+    // combien de pixels encrés sur la verticale, autour du trait
+    const colonne = (px) => {
+      let n = 0;
+      for (let y = 390; y <= 410; y++) {
+        const d = x.getImageData(px, y, 1, 1).data;
+        if (d[3] > 0 && d[0] < 200) n++;
+      }
+      return n;
+    };
+    return { quart: colonne(400), troisQuarts: colonne(600),
+             ailleurs1: colonne(350), ailleurs2: colonne(650) };
+  });
+  console.log('  pixels encrés sur 21 lignes : ' + JSON.stringify(px));
+  ck('un trait au quart', px.quart >= 10, String(px.quart));
+  ck('un trait aux trois quarts', px.troisQuarts >= 10, String(px.troisQuarts));
+  ck('et rien entre les deux', px.ailleurs1 <= 3 && px.ailleurs2 <= 3,
+     `${px.ailleurs1} / ${px.ailleurs2}`);
+
+  console.log('\n=== sans trait tracé, rien à coder ===');
+  /* Deux marques flottant dans le vide ne voudraient rien dire. */
+  const sansTrait = await figure(['Place les points A, B', 'Place le milieu I de [AB]']);
+  console.log('  ' + JSON.stringify(sansTrait));
+  ck('le milieu existe mais n\'est pas codé', sansTrait.milieux.length === 0);
+
+  console.log('\n=== la médiatrice dit ce qu\'elle est ===');
+  /* Une médiatrice DIT deux choses : elle coupe [AB] en son milieu, et elle lui
+     est perpendiculaire. Sans les marques ni l'angle droit, la figure ne montre
+     qu'une droite qui passe par là. */
+  const med = await figure(['Place les points A, B', 'Trace [AB]', 'Trace la médiatrice de [AB]']);
+  console.log('  ' + JSON.stringify(med));
+  ck('elle code le milieu', med.milieux.length === 1 && med.milieux[0].c === 'mark-1',
+     JSON.stringify(med.milieux));
+  ck('et pose l\'angle droit', med.angles.filter(a => a === 90).length === 1,
+     JSON.stringify(med.angles));
+  ck('sans couper [AB]', med.segs.length === 1, JSON.stringify(med.segs));
+
+  console.log('\n=== aux instruments non plus, [AB] n\'est pas doublé ===');
+  const medi = await figure(['Place les points A, B', 'Trace [AB]', 'Trace la médiatrice de [AB]'], true);
+  console.log('  ' + JSON.stringify(medi.segs) + ' — ' + JSON.stringify(medi.milieux));
+  ck('un seul segment, pas trois', medi.segs.length === 1, JSON.stringify(medi.segs));
+  ck('et le milieu porte les marques', medi.milieux.length === 1, JSON.stringify(medi.milieux));
+
+  console.log('\n=== trois médiatrices : une marque par côté ===');
+  /* Coder les trois milieux d'un même trait dirait que les six moitiés sont
+     égales entre elles : c'est faux dès que le triangle n'est pas équilatéral. */
+  const trois = await figure(['Trace un triangle ABC', 'Trace les médiatrices du triangle ABC']);
+  console.log('  ' + JSON.stringify(trois.milieux));
+  ck('les trois côtés sont codés', trois.milieux.length === 3, String(trois.milieux.length));
+  ck('chacun avec SA marque',
+     new Set(trois.milieux.map(m => m.c)).size === 3, trois.milieux.map(m => m.c).join(' '));
+
+  console.log('\n=== et les milieux des côtés, de même ===');
+  const mils = await figure(['Trace un triangle ABC', 'Place les milieux des côtés du triangle ABC']);
+  console.log('  ' + JSON.stringify(mils.milieux));
+  ck('trois milieux nommés et codés',
+     mils.milieux.length === 3 && new Set(mils.milieux.map(m => m.c)).size === 3,
+     JSON.stringify(mils.milieux.map(m => m.n + ':' + m.c)));
+
+  console.log('\n=== LE CODAGE NE PARLE QUE DE CE QU\'ON VIENT DE CONSTRUIRE ===');
+  /* La règle « même longueur ⇒ même marque » est vraie d'une figure qu'on vient
+     de bâtir. Appliquée à toute la feuille, elle affirmait l'égalité de deux
+     traits sans rapport : un [CD] posé ailleurs recevait la marque des moitiés
+     d'un segment coupé par sa médiatrice. */
+  const etranger = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState(); app.view = { x: 0, y: 0, zoom: 1 };
+    app.executerConsigne('Place les points A, B');
+    const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const A = pt('A'), B = pt('B'); A.x = 100; A.y = 400; B.x = 310; B.y = 400;
+    app.executerConsigne('Trace [AB]');
+    app.executerConsigne('Place les points C, D');
+    const C = pt('C'), D = pt('D');
+    // [CD] fait exactement la moitié de [AB] — et n'a aucun rapport avec elle
+    C.x = 700; C.y = 700; D.x = 805; D.y = 700;
+    app.executerConsigne('Trace [CD]');
+    app.executerConsigneAvec('Trace la médiatrice de [AB]', true);
+    app.isPlaying = false; app.isLooping = false;
+    return app.entities.filter(e => e.constructor.name === 'Segment').map(s => ({
+      n: '[' + (s.p1.label || '·') + (s.p2.label || '·') + ']',
+      L: +(Math.hypot(s.p1.x - s.p2.x, s.p1.y - s.p2.y) / 50).toFixed(2),
+      c: s.coding || null }));
+  });
+  console.log('  ' + JSON.stringify(etranger));
+  const cd = etranger.find(s => s.n === '[CD]');
+  ck('un segment étranger de même longueur n\'est pas codé', cd && cd.c === null,
+     JSON.stringify(cd));
+
+  console.log('\n=== mais ce qu\'une construction affirme reste codé ===');
+  /* Les côtés d'un carré sont égaux PAR CONSTRUCTION : là, le codage est vrai. */
+  const carre = await figure(['Trace un carré ABCD de 3 cm de côté']);
+  console.log('  ' + JSON.stringify(carre.segs));
+  ck('les quatre côtés du carré portent la même marque',
+     carre.segs.length === 4 && carre.segs.every(s => s.c === 'mark-1'),
+     JSON.stringify(carre.segs.map(s => s.c)));
+
+  console.log('\n=== le codage voyage : sauvegarde, export, fichier d\'avant ===');
+  const voyage = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState(); app.view = { x: 0, y: 0, zoom: 1 };
+    app.executerConsigne('Place les points A, B');
+    const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const A = pt('A'), B = pt('B'); A.x = 300; A.y = 400; B.x = 700; B.y = 400;
+    app.executerConsigne('Trace [AB]');
+    app.executerConsigne('Trace la médiatrice de [AB]');
+    const code = app.serialize();
+    const relu = app.deserialize(code);
+    const m = relu.find(e => e.constructor.name === 'Point' && e.codageMilieu);
+    const svg = app.generateSVGString(false, 'none');
+    /* Un fichier écrit AVANT ce codage n'a pas le champ : il doit s'ouvrir
+       sans rien casser, et sans marque. */
+    const vieux = JSON.parse(code).map(o => { delete o.codageMilieu; return o; });
+    const ancien = app.deserialize(JSON.stringify(vieux));
+    return { relu: m ? m.codageMilieu : null,
+             parents: m ? (m.parents || []).length : 0,
+             marquesSVG: (svg.match(/M 0 -6 L 0 6/g) || []).length,
+             posesSVG: [...svg.matchAll(/translate\((\d+(?:\.\d+)?),\d/g)].map(x => x[1]),
+             ancienOK: ancien.length === relu.length,
+             ancienCode: ancien.some(e => e.codageMilieu) };
+  });
+  console.log('  ' + JSON.stringify(voyage));
+  ck('la sauvegarde garde le codage et ses deux parents',
+     voyage.relu === 'mark-1' && voyage.parents === 2, JSON.stringify(voyage.relu));
+  ck('l\'export SVG porte les deux traits', voyage.marquesSVG === 2, String(voyage.marquesSVG));
+  ck('posés au quart et aux trois quarts',
+     voyage.posesSVG.includes('400') && voyage.posesSVG.includes('600'),
+     JSON.stringify(voyage.posesSVG));
+  ck('un fichier d\'avant s\'ouvre, simplement sans marque',
+     voyage.ancienOK && voyage.ancienCode === false,
+     `${voyage.ancienOK} / ${voyage.ancienCode}`);
+
+  ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
+  await b.close();
+  console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
+  process.exit(fail ? 1 : 0);
+})();

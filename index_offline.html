@@ -11010,6 +11010,59 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.isCropping = false;
             }
         }
+        /* Le glyphe d'un codage — un trait, deux traits, trois, une croix, un rond.
+           Il était recopié dans le segment et dans l'angle ; le milieu en a besoin
+           à son tour. Le repère est déjà translaté et tourné quand on l'appelle :
+           il ne reste qu'à tracer, dans un chemin déjà ouvert. */
+        function gmTracerMarque(ctx, coding, h) {
+            if (coding === 'mark-1') {
+                ctx.moveTo(0, -h); ctx.lineTo(0, h);
+            } else if (coding === 'mark-2') {
+                ctx.moveTo(-2, -h); ctx.lineTo(-2, h);
+                ctx.moveTo(2, -h); ctx.lineTo(2, h);
+            } else if (coding === 'mark-3') {
+                ctx.moveTo(-4, -h); ctx.lineTo(-4, h);
+                ctx.moveTo(0, -h); ctx.lineTo(0, h);
+                ctx.moveTo(4, -h); ctx.lineTo(4, h);
+            } else if (coding === 'mark-x') {
+                ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
+                ctx.moveTo(-4, 4); ctx.lineTo(4, -4);
+            } else if (coding === 'mark-xx') {
+                ctx.translate(-5, 0);
+                ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
+                ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
+                ctx.translate(10, 0);
+                ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
+                ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
+            } else if (coding === 'mark-o') {
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            } else if (coding === 'mark-oo') {
+                ctx.beginPath(); ctx.arc(-5, 0, 3, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(5, 0, 3, 0, Math.PI * 2);
+            }
+        }
+        /* Le même glyphe, en SVG — pour l'export et le PDF. Le segment et le
+           milieu le partagent : deux écritures d'un même codage divergeraient. */
+        function gmMarqueSVG(coding, color, x, y, angleDeg) {
+            if (!coding || coding === 'mark-none') return '';
+            const h = 6;
+            const pose = `transform="translate(${x},${y}) rotate(${angleDeg})"`;
+            let d = '';
+            if (coding === 'mark-1') d = `M 0 -${h} L 0 ${h}`;
+            else if (coding === 'mark-2') d = `M -2 -${h} L -2 ${h} M 2 -${h} L 2 ${h}`;
+            else if (coding === 'mark-3') d = `M -4 -${h} L -4 ${h} M 0 -${h} L 0 ${h} M 4 -${h} L 4 ${h}`;
+            else if (coding === 'mark-x') d = `M -4 -4 L 4 4 M -4 4 L 4 -4`;
+            else if (coding === 'mark-xx') d = `M -8 -3 L -2 3 M -8 3 L -2 -3 M 2 -3 L 8 3 M 2 3 L 8 -3`;
+            if (d) return `<path d="${d}" stroke="${color}" stroke-width="2" fill="none" ${pose} />`;
+            if (coding === 'mark-o') {
+                return `<circle cx="0" cy="0" r="4" stroke="${color}" stroke-width="2" fill="none" transform="translate(${x},${y})" />`;
+            }
+            if (coding === 'mark-oo') {
+                return `<g ${pose}><circle cx="-5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/>`
+                    + `<circle cx="5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/></g>`;
+            }
+            return '';
+        }
         class GeometryObject {
             constructor(p1, p2, id = null) {
                 // Certains appels passent un objet de style ({color, width, dash}) à la place
@@ -11150,7 +11203,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const bottom = ly + height / 2 + margin;
                 return (mx >= left && mx <= right && my >= top && my <= bottom);
             }
+            /* LE CODAGE D'UN MILIEU EST PORTÉ PAR LE MILIEU, pas par deux segments.
+               Sur le tableau, le professeur trace [AB] une fois et pose un trait
+               sur chaque moitié — il ne dessine pas deux segments l'un contre
+               l'autre. Les deux marques sont donc tracées ici, au milieu de [AI]
+               et au milieu de [IB], perpendiculaires au trait : elles suivent A et
+               B quand on les déplace, sans objet supplémentaire à tenir d'accord.
+
+               Elles se dessinent AVANT le renvoi qui masque un point invisible :
+               la médiatrice cache son milieu, et c'est justement là qu'il faut
+               dire que le trait coupe le segment en deux parts égales. */
+            dessinerCodageMilieu(ctx, couleur) {
+                if (!this.codageMilieu || this.codageMilieu === 'mark-none') return;
+                const par = (this.parents || []).filter(p => p && typeof p.x === 'number');
+                if (par.length !== 2) return;
+                const [a, b] = par;
+                const angle = Math.atan2(b.y - a.y, b.x - a.x);
+                [[a, this], [this, b]].forEach(([p, q]) => {
+                    ctx.save();
+                    ctx.translate((p.x + q.x) / 2, (p.y + q.y) / 2);
+                    ctx.rotate(angle);
+                    ctx.strokeStyle = couleur;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    gmTracerMarque(ctx, this.codageMilieu, 6);
+                    ctx.stroke();
+                    ctx.restore();
+                });
+            }
             draw(ctx, opts) {
+                this.dessinerCodageMilieu(ctx, this.color || '#333');
                 if (this.visible === false) return;
                 if (!this.visible && !opts.isSelected) return;
                 ctx.beginPath();
@@ -12026,32 +12109,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.strokeStyle = s.color;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    const h = 6;
-                    if (this.coding === 'mark-1') {
-                        ctx.moveTo(0, -h); ctx.lineTo(0, h);
-                    } else if (this.coding === 'mark-2') {
-                        ctx.moveTo(-2, -h); ctx.lineTo(-2, h);
-                        ctx.moveTo(2, -h); ctx.lineTo(2, h);
-                    } else if (this.coding === 'mark-3') {
-                        ctx.moveTo(-4, -h); ctx.lineTo(-4, h);
-                        ctx.moveTo(0, -h); ctx.lineTo(0, h);
-                        ctx.moveTo(4, -h); ctx.lineTo(4, h);
-                    } else if (this.coding === 'mark-x') {
-                        ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
-                        ctx.moveTo(-4, 4); ctx.lineTo(4, -4);
-                    } else if (this.coding === 'mark-xx') {
-                        ctx.translate(-5, 0);
-                        ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                        ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
-                        ctx.translate(10, 0);
-                        ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                        ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
-                    } else if (this.coding === 'mark-o') {
-                        ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                    } else if (this.coding === 'mark-oo') {
-                        ctx.beginPath(); ctx.arc(-5, 0, 3, 0, Math.PI * 2); ctx.stroke();
-                        ctx.beginPath(); ctx.arc(5, 0, 3, 0, Math.PI * 2);
-                    }
+                    gmTracerMarque(ctx, this.coding, 6);
                     ctx.stroke();
                     ctx.restore();
                 }
@@ -12353,32 +12411,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ctx.lineWidth = 2;
                         ctx.beginPath();
 
-                        const h = 5;
-                        if (this.coding === 'mark-1') {
-                            ctx.moveTo(0, -h); ctx.lineTo(0, h);
-                        } else if (this.coding === 'mark-2') {
-                            ctx.moveTo(-2, -h); ctx.lineTo(-2, h);
-                            ctx.moveTo(2, -h); ctx.lineTo(2, h);
-                        } else if (this.coding === 'mark-3') {
-                            ctx.moveTo(-4, -h); ctx.lineTo(-4, h);
-                            ctx.moveTo(0, -h); ctx.lineTo(0, h);
-                            ctx.moveTo(4, -h); ctx.lineTo(4, h);
-                        } else if (this.coding === 'mark-x') {
-                            ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
-                            ctx.moveTo(-4, 4); ctx.lineTo(4, -4);
-                        } else if (this.coding === 'mark-xx') {
-                            ctx.translate(-5, 0);
-                            ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                            ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
-                            ctx.translate(10, 0);
-                            ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                            ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
-                        } else if (this.coding === 'mark-o') {
-                            ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                        } else if (this.coding === 'mark-oo') {
-                            ctx.beginPath(); ctx.arc(-5, 0, 3, 0, Math.PI * 2); ctx.stroke();
-                            ctx.beginPath(); ctx.arc(5, 0, 3, 0, Math.PI * 2);
-                        }
+                        gmTracerMarque(ctx, this.coding, 5);
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -14158,13 +14191,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
                 this.stepInstructions[this.entities.length] = "La médiatrice est perpendiculaire au segment en son milieu.";
-                let ptMid = new Point(midX, midY, ""); ptMid.visible = false; this.addEntity(ptMid);
+                /* Le milieu porte son codage LUI-MÊME. On posait ici deux segments
+                   [A·] et [·B] par-dessus [AB], uniquement pour avoir où accrocher
+                   les marques : l'encre était tracée deux fois, la figure comptait
+                   trois segments là où le professeur en avait tracé un, et le
+                   codage venait de la règle « même longueur ⇒ même marque », qui
+                   embarquait au passage n'importe quel segment de 2,1 cm ailleurs
+                   sur la feuille. Les deux traits sont maintenant portés par le
+                   milieu, et ne disent que ce qu'ils doivent dire : AI = IB. */
+                let ptMid = new Point(midX, midY, "", [pA, pB]); ptMid.visible = false;
+                ptMid.codageMilieu = 'mark-1';
+                this.addEntity(ptMid);
                 let angMark = new Angle(pB, ptMid, pC); this.addEntity(angMark);
-                
-                let s1 = new Segment(pA, ptMid, {color: segAB.color, width: segAB.lineWidth}); this.addEntity(s1);
-                let s2 = new Segment(ptMid, pB, {color: segAB.color, width: segAB.lineWidth}); this.addEntity(s2);
-                
-                this.codageDeConstruction();
                 
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
@@ -14643,7 +14681,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(animSide); this.addEntity(s); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 }
                 
-                this.codageDeConstruction();
+                this.codageDeConstruction(startIndex);
                 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -14788,7 +14826,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
-                this.codageDeConstruction();
+                this.codageDeConstruction(startIndex);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -14900,7 +14938,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
-                this.codageDeConstruction();
+                this.codageDeConstruction(startIndex);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -15053,7 +15091,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     currentPt = nextPt;
                 }
                 
-                this.codageDeConstruction();
+                this.codageDeConstruction(startIndex);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -15540,7 +15578,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 let s1 = new Segment(pTarget, pCenter, {color: "#999999", width: 1}); this.addEntity(s1);
                 let s2 = new Segment(pCenter, pNew, {color: "#999999", width: 1}); this.addEntity(s2);
-                this.codageDeConstruction();
+                this.codageDeConstruction(startIndex);
                 
                 this.addEntity(pNew);
                 
@@ -18602,18 +18640,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                annulation ne retirait que les codages, et il en fallait une seconde
                pour défaire la figure. Une construction magique est un seul geste,
                donc une seule annulation. */
-            codageDeConstruction() {
+            /* ET IL NE PARLE QUE DE CE QU'ON VIENT DE CONSTRUIRE. « Même longueur ⇒
+               même marque » est vrai d'une figure qu'on vient de bâtir — les côtés
+               d'un carré sont égaux PAR CONSTRUCTION. Appliquée à toute la feuille,
+               la règle affirme en revanche l'égalité de deux traits qui n'ont rien
+               à voir : mesuré, un [CD] de 2,1 cm posé ailleurs recevait la marque
+               des deux moitiés d'un segment coupé par sa médiatrice. La figure
+               disait alors quelque chose de faux, sans que personne l'ait demandé.
+               Le bouton « Codage auto », lui, garde toute la feuille pour champ :
+               là, c'est le professeur qui le demande. */
+            codageDeConstruction(depuis = 0) {
                 if (typeof this.autoCodeAll !== 'function') return;
                 const avant = this.historyPast.length;
-                this.autoCodeAll();
+                this.autoCodeAll(this.entities.slice(depuis));
                 while (this.historyPast.length > avant) this.historyPast.pop();
             }
-            autoCodeAll() {
+            autoCodeAll(portee) {
+                const champ = Array.isArray(portee) ? portee : this.entities;
+                const discret = Array.isArray(portee);
                 let hasChanges = false;
 
                 // --- 1. CODAGE AUTO DES SEGMENTS ---
                 // (Mets ici ta logique actuelle d'auto-codage des segments, je te donne un exemple standard)
-                const segments = this.entities.filter(e => e instanceof Segment);
+                const segments = champ.filter(e => e instanceof Segment);
                 const segGroups = [];
                 segments.forEach(seg => {
                     const len = MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y);
@@ -18636,7 +18685,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
 
                 // --- 2. CODAGE AUTO DES ANGLES (STRATÉGIE B) ---
-                const angles = this.entities.filter(e => e instanceof Angle);
+                const angles = champ.filter(e => e instanceof Angle);
                 const angGroups = [];
                 angles.forEach(ang => {
                     const val = ang.getAngleValue();
@@ -18661,8 +18710,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (hasChanges) {
                     this.saveState();
                     this.render();
-                    this.showToast("Codage auto des longueurs et angles terminé !");
-                } else {
+                    if (!discret) this.showToast("Codage auto des longueurs et angles terminé !");
+                } else if (!discret) {
+                    /* Après une consigne, « Rien de nouveau à coder » n'apprend rien
+                       à personne : c'est le bouton qui mérite une réponse. */
                     this.showToast("Rien de nouveau à coder.");
                 }
             }
@@ -20249,6 +20300,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.labelAngle = e.labelAngle;
                         data.fontSize = e.fontSize;
                         data.visible = e.visible;
+                        // le codage que porte un milieu ; absent des fichiers d'avant
+                        if (e.codageMilieu) data.codageMilieu = e.codageMilieu;
                         data.parentIds = e.parents.filter(p => p).map(p => {
                             if (Array.isArray(p)) return [p[0]?.id, p[1]?.id];
                             return p.id;
@@ -20425,6 +20478,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (Array.isArray(pid)) return [idMap.get(pid[0]), idMap.get(pid[1])];
                             return idMap.get(pid);
                         }).filter(p => p);
+                        // absent d'un fichier d'avant : le milieu n'est simplement pas codé
+                        if (data.codageMilieu) obj.codageMilieu = data.codageMilieu;
                         obj.update();
                     } else if (data.type === 'Angle') {
                         obj.p1 = idMap.get(data.p1Id);
@@ -22653,7 +22708,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 for (const entity of toDraw) {
                     if (entity instanceof ToolAnimation) continue;
-                    if (entity.visible === false) continue;
+                    /* Un milieu caché QUI PORTE UN CODAGE a tout de même son mot à
+                       dire : la médiatrice cache son milieu, et ce sont ses deux
+                       traits qui disent qu'elle coupe le segment en parts égales.
+                       Le point lui-même reste invisible — son dessin s'arrête après
+                       les marques. */
+                    if (entity.visible === false
+                        && !(entity instanceof Point && entity.codageMilieu)) continue;
                     let shouldDraw = true;
                     let isGhostMode = false;
                     if (entity.hidden === true) {
@@ -23062,6 +23123,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 toExport.forEach(e => {
                     if (e instanceof ToolAnimation) return;
+                    /* Le codage d'un milieu s'exporte MÊME si le point est caché :
+                       la médiatrice cache son milieu, et c'est là qu'il faut dire
+                       qu'elle coupe le segment en deux parts égales. */
+                    if (e instanceof Point && e.codageMilieu && e.codageMilieu !== 'mark-none') {
+                        const par = (e.parents || []).filter(q => q && typeof q.x === 'number');
+                        if (par.length === 2) {
+                            const [pa, pb] = par;
+                            const deg = Math.atan2(pb.y - pa.y, pb.x - pa.x) * 180 / Math.PI;
+                            const enc = e.color || '#333333';
+                            [[pa, e], [e, pb]].forEach(([u, v]) => {
+                                svgContent += gmMarqueSVG(e.codageMilieu, enc,
+                                    (u.x + v.x) / 2, (u.y + v.y) / 2, deg);
+                            });
+                        }
+                    }
                     if (!e.visible && e instanceof Point) return;
                     const color = getHex(e.color || 'black');
                     const strokeW = e.lineWidth || 2;
@@ -23207,18 +23283,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 const mx = (c.p1.x + c.p2.x) / 2;
                                 const my = (c.p1.y + c.p2.y) / 2;
                                 const angleDeg = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x) * 180 / Math.PI;
-                                if (e.coding && e.coding !== 'mark-none') {
-                                    let pathData = "";
-                                    const h = 6;
-                                    if (e.coding === 'mark-1') pathData = `M 0 -${h} L 0 ${h}`;
-                                    else if (e.coding === 'mark-2') pathData = `M -2 -${h} L -2 ${h} M 2 -${h} L 2 ${h}`;
-                                    else if (e.coding === 'mark-3') pathData = `M -4 -${h} L -4 ${h} M 0 -${h} L 0 ${h} M 4 -${h} L 4 ${h}`;
-                                    else if (e.coding === 'mark-x') pathData = `M -4 -4 L 4 4 M -4 4 L 4 -4`;
-                                    else if (e.coding === 'mark-xx') pathData = `M -8 -3 L -2 3 M -8 3 L -2 -3 M 2 -3 L 8 3 M 2 3 L 8 -3`;
-                                    if (pathData) svgContent += `<path d="${pathData}" stroke="${color}" stroke-width="2" fill="none" transform="translate(${mx},${my}) rotate(${angleDeg})" />`;
-                                    if (e.coding === 'mark-o') svgContent += `<circle cx="0" cy="0" r="4" stroke="${color}" stroke-width="2" fill="none" transform="translate(${mx},${my})" />`;
-                                    else if (e.coding === 'mark-oo') svgContent += `<g transform="translate(${mx},${my}) rotate(${angleDeg})"><circle cx="-5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/><circle cx="5" cy="0" r="3" stroke="${color}" stroke-width="2" fill="none"/></g>`;
-                                }
+                                svgContent += gmMarqueSVG(e.coding, color, mx, my, angleDeg);
                                 if (e.showLength) {
                                     // Même texte que le canevas, unité comprise.
                                     const val = e.texteLongueur ? e.texteLongueur() : (MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y) / UNIT).toFixed(1);
@@ -26471,6 +26536,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 obj.dash = st.dash ? [5, 5] : [];
                 return obj;
             }
+            /* Y a-t-il un trait entre ces deux points — segment, droite ou
+               demi-droite ? C'est ce qui décide si un codage de milieu a un
+               support où se poser. */
+            cslTraitEntre(a, b) {
+                return this.entities.find(e => (e instanceof Segment || e instanceof Line || e instanceof Ray)
+                    && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
+            }
             cslSegment(a, b) {
                 const deja = this.entities.find(e => e instanceof Segment
                     && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
@@ -26595,7 +26667,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!this.stepInstructions) this.stepInstructions = {};
                         this.stepInstructions[avant] = phraseEleve;
                     }
-                    this.codageDeConstruction();
+                    // le codage ne parle que de ce que CETTE consigne a construit
+                    this.codageDeConstruction(avant);
                     this.saveState();
                     this.render();
                     return { ok: true, message: quoi + (lu.dit ? ' — ' + lu.dit : ''),
@@ -26790,9 +26863,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(d);
                     return d;
                 };
-                const milieu = (p, q) => {
+                /* Chaque côté a SA marque. Coder les trois milieux d'un même trait
+                   dirait que les six moitiés sont égales entre elles : c'est faux
+                   dès que le triangle n'est pas équilatéral. Un trait pour [AB],
+                   deux pour [BC], trois pour [CA] — comme au tableau. */
+                const milieu = (p, q, marque) => {
                     const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2, '', [p, q]);
-                    m.visible = false; this.addEntity(m);
+                    m.visible = false;
+                    if (marque && this.cslTraitEntre(p, q)) m.codageMilieu = marque;
+                    this.addEntity(m);
                     return m;
                 };
                 const bissectrice = (p, s, q) => {   // sommet s
@@ -26875,7 +26954,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/m[ée]diatrice/.test(t)) {
                     const cotes = relatif ? [[this.cslPointNomme(relatif[1]), this.cslPointNomme(relatif[2])]]
                                           : [[A, B], [B, C], [C, A]];
-                    cotes.forEach(([p, q]) => { if (p && q) droite(milieu(p, q), p, q); });
+                    const marques = ['mark-1', 'mark-2', 'mark-3'];
+                    cotes.forEach(([p, q], i) => { if (p && q) droite(milieu(p, q, marques[i]), p, q); });
                     return fait(cotes.length > 1 ? `Les 3 médiatrices de ${nom3}` : `Médiatrice d'un côté de ${nom3}`);
                 }
                 if (/bissectrice/.test(t)) {
@@ -26888,17 +26968,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(choisis.length > 1 ? `Les 3 hauteurs de ${nom3}` : `Hauteur issue de ${issue}`);
                 }
                 if (/milieux/.test(t)) {
-                    const poses = [[A, B], [B, C], [C, A]].map(([p, q]) => {
+                    const marques = ['mark-1', 'mark-2', 'mark-3'];
+                    const poses = [[A, B], [B, C], [C, A]].map(([p, q], i) => {
                         const nom = this.cslNomLibre([]);
-                        this.addEntity(new Point((p.x + q.x) / 2, (p.y + q.y) / 2, nom, [p, q]));
+                        const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2, nom, [p, q]);
+                        // un trait sur chaque moitié, et une marque par côté
+                        if (this.cslTraitEntre(p, q)) m.codageMilieu = marques[i];
+                        this.addEntity(m);
                         return nom;
                     });
                     return fait(`Milieux des côtés de ${nom3} : ${poses.join(', ')}`);
                 }
                 if (/m[ée]diane/.test(t)) {
-                    choisis.forEach(([s, p, q]) => {
+                    const marquesMed = ['mark-1', 'mark-2', 'mark-3'];
+                    choisis.forEach(([s, p, q], i) => {
                         const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2,
                             this.cslNomLibre([]), [p, q]);
+                        /* Une médiane joint un sommet AU MILIEU du côté opposé :
+                           c'est ce milieu qu'il faut coder, sinon rien sur la
+                           figure ne distingue une médiane d'une cévienne. */
+                        if (this.cslTraitEntre(p, q)) m.codageMilieu = marquesMed[i];
                         this.addEntity(m);
                         this.cslSegment(s, m);
                     });
@@ -27017,6 +27106,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const autres = this.cslNoms(brut).filter(n => n !== s[1] && n !== s[2]);
                 const nom = autres[0] || this.cslNomLibre([]);
                 const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, nom, [a, b]);
+                /* Un milieu se CODE : un trait sur chaque moitié. On ne le pose que
+                   si le trait existe — deux marques flottant dans le vide ne
+                   voudraient rien dire. */
+                if (this.cslTraitEntre(a, b)) m.codageMilieu = 'mark-1';
                 this.addEntity(m);
                 return fait(`${nom} est le milieu de [${s[1]}${s[2]}]`);
             }
@@ -27160,11 +27253,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             || this.cslSegment(a, b);
                         this.cslBatir(null, () => this.buildMediatrice(s, (a.x + b.x) / 2, (a.y + b.y) / 2, a, b));
                     } else {
+                        /* Une médiatrice DIT deux choses : elle coupe [AB] en son
+                           milieu, et elle lui est perpendiculaire. Sans les deux
+                           marques et l'angle droit, la figure ne montre qu'une
+                           droite qui passe par là — rien ne dit pourquoi. */
                         const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, '', [a, b]);
                         m.visible = false;
+                        m.codageMilieu = 'mark-1';
                         this.addEntity(m);
                         const d = this.cslPoserStyle(new PerpendicularLine(m, { p1: a, p2: b }));
                         this.addEntity(d);
+                        // un repère sur la médiatrice, pour poser l'équerre de l'angle droit
+                        const dir = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
+                        const haut = new Point(m.x + Math.cos(dir) * 60, m.y + Math.sin(dir) * 60, '', [m]);
+                        haut.visible = false;
+                        this.addEntity(haut);
+                        this.addEntity(new Angle(b, m, haut));
                     }
                     return fait(`Médiatrice de [${seg[1]}${seg[2]}]`);
                 }
