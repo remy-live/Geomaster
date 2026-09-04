@@ -23,6 +23,17 @@ un sommet pose son zéro sur un côté de l'angle. L'aimantation trouve toute se
 les points, les intersections et les **milieux** — et se coupe d'un bouton quand
 elle gêne.
 
+**Et toute la figure tourne.** Un énoncé ne dit jamais dans quel sens la poser :
+on la construit comme elle vient, et l'on s'aperçoit après coup qu'elle serait
+plus lisible d'un quart de tour. **Appui long sur la main**, puis on tourne —
+l'angle s'affiche pendant le geste et se colle aux angles ronds à 3° près, Échap
+annule, et une rotation ne compte que pour une annulation. Partir tout de suite
+déplace la feuille comme avant : c'est l'immobilité qui demande la rotation.
+
+Ce sont les **objets** qui tournent, pas la vue : les instruments, l'export, le
+lien élève et le rejeu continuent de parler de la même figure — et les longueurs
+sont conservées au millième près, sans quoi ce ne serait pas une rotation.
+
 ### On écrit la consigne, le logiciel la fait
 
 Le **panneau des consignes** (`Ctrl+E`) est une **liste de lignes numérotées**.
