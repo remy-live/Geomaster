@@ -383,6 +383,47 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   });
   ck('la collection s\'exporte en un fichier', collec > 100, collec + ' octets');
 
+  console.log('\n=== dupliquer une page ===');
+  /* Le « + » crée une page VIDE : pour trois variantes du même triangle il
+     fallait tout retracer. La copie se pose juste après son original, et l'on
+     reste où l'on est. */
+  const copie = await page.evaluate(() => {
+    const app = window.app, s = window.__s;
+    s.neuf();
+    s.seg({x:200,y:250},{x:600,y:250});                    // page 1 : un segment
+    app.ajouterPage(); s.seg({x:200,y:300},{x:500,y:300});
+    s.seg({x:200,y:400},{x:500,y:400});                    // page 2 : deux segments
+    app.ajouterPage(); s.seg({x:300,y:300},{x:700,y:600});  // page 3
+    app.allerPage(1);
+    const avant = app.pagesDocument().slice();
+    app.pagesChoisies = new Set();
+    app.dupliquerChoix();                                   // sans case cochée : la page ouverte
+    const apres = app.pagesDocument().slice();
+    const surPlace = { page: app.pageActive, objets: app.entities.length };
+    // deux pages cochées à la fois
+    app.pagesChoisies = new Set([0, 3]);
+    app.dupliquerChoix();
+    const enfin = app.pagesDocument().slice();
+    return { avant: avant.length, apres: apres.length, enfin: enfin.length,
+             copieJusteApres: apres[2] === avant[1],
+             originauxIntacts: apres[0] === avant[0] && apres[3] === avant[2],
+             surPlace,
+             pairs: [enfin[0] === enfin[1], enfin[4] === enfin[5]],
+             pageApres: app.pageActive };
+  });
+  console.log('  ' + JSON.stringify(copie));
+  ck('une page de plus', copie.apres === copie.avant + 1, `${copie.avant} → ${copie.apres}`);
+  ck('la copie se pose juste après son original', copie.copieJusteApres);
+  ck('les autres pages ne bougent pas', copie.originauxIntacts);
+  ck('on reste sur sa page, avec sa figure',
+     copie.surPlace.page === 1 && copie.surPlace.objets === 6, JSON.stringify(copie.surPlace));
+  ck('deux pages cochées font deux copies', copie.enfin === copie.apres + 2,
+     `${copie.apres} → ${copie.enfin}`);
+  ck('chacune est bien collée à la sienne', copie.pairs[0] && copie.pairs[1], JSON.stringify(copie.pairs));
+  /* La page ouverte était la 2e ; une copie s'est insérée avant elle, son rang
+     doit suivre — sinon on se retrouverait à travailler sur une autre page. */
+  ck('le rang de la page ouverte a suivi le décalage', copie.pageApres === 2, String(copie.pageApres));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

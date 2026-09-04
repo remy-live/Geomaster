@@ -70,6 +70,10 @@ figure**. La page passe de 136 objets à 54, et *Page suivante* découvre les
 quatre figures une par une devant la classe. Un cercle entier tracé au compas
 est un résultat, pas une trace : le cercle circonscrit reste.
 
+Le « + » crée une page vide ; **« Dupliquer »** en fait une copie, posée juste
+après son original — le même triangle de base, trois questions différentes,
+sans le retracer trois fois.
+
 Les séances se rangent dans une **bibliothèque** locale, avec vignette, et la
 collection entière s'exporte en un fichier pour changer de poste ou la donner à
 un collègue.
@@ -80,6 +84,15 @@ hexagone, symétrique d'un point, cercle circonscrit, et une séance de quatre
 pages. Chacune est la sortie exacte du bâtisseur du logiciel, instruments et
 consignes comprises : on l'ouvre, on appuie sur ▶ ou sur *Page suivante*, et la
 construction se refait sous les yeux de la classe.
+
+### La fiche qu'on colle dans le cahier
+
+Une figure qui porte des consignes d'étape sort aussi en **fiche de
+construction** : une feuille A4 avec la figure terminée en haut — on sait où
+l'on va — puis les étapes numérotées, chacune avec son texte et **l'image de la
+figure à cette étape-là**, instruments compris. La feuille se tourne toute
+seule quand il y a beaucoup d'étapes. Le quadrillage n'y est pas : c'est une
+aide à l'écran, pas un élément de la figure.
 
 ### Vu du fond de la salle
 
@@ -200,7 +213,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 63 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 64 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.

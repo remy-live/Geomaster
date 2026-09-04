@@ -6817,6 +6817,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     font-weight="bold" fill="currentColor" stroke="none">PDF</text>
                             </svg>
                         </div>
+                        <!-- Le papier qu'on colle dans le cahier : les étapes
+                             numérotées, chacune avec sa consigne et l'image de la
+                             figure à cette étape-là. Une sortie de plus, dans la
+                             grille des exports qui existe déjà. -->
+                        <div class="icon-btn" onclick="app.ficheConstruction()" aria-label="Fiche de construction"
+                            data-libelle="Fiche"
+                            data-tooltip="Fiche de construction (PDF : une étape par ligne)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="3" width="16" height="18" rx="2" />
+                                <line x1="8" y1="8" x2="11" y2="8" />
+                                <line x1="8" y1="12" x2="11" y2="12" />
+                                <line x1="8" y1="16" x2="11" y2="16" />
+                                <rect x="13.5" y="6.5" width="4" height="3.5" />
+                                <rect x="13.5" y="14" width="4" height="3.5" />
+                            </svg>
+                        </div>
 
                         <div class="sep-h" style="grid-column: 1 / -1; margin: 2px 0;"></div>
 
@@ -8230,6 +8247,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     onclick="document.getElementById('pagesModal').style.display='none'">Fermer</button>
                 <button class="modal-btn modal-confirm"
                     onclick="app.ajouterPage(); app.vignettesPages={}; app.construireVignettesPages(); app.majPanneauPages();">Ajouter une page</button>
+                <!-- Le « + » crée une page vide ; on veut souvent la même figure de
+                     base pour en tirer plusieurs variantes. -->
+                <button class="modal-btn modal-confirm" id="btnDupliquerPage" style="background:#16a085;"
+                    data-libelle="Dupliquer la page" onclick="app.dupliquerChoix()">Dupliquer</button>
                 <button class="modal-btn modal-confirm" id="btnFusionPages" style="background:#8e44ad;"
                     onclick="app.fusionnerChoix()">Fusionner (cochez 2 pages)</button>
             </div>
@@ -24662,6 +24683,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.pagesChoisies = new Set();
                 this.majBarrePages(); this.majPanneauPages();
             }
+            /* DUPLIQUER. Le « + » crée une page VIDE, alors qu'on veut souvent la
+               même figure de base pour en tirer deux ou trois variantes — le même
+               triangle, trois questions. La copie se pose juste après son original,
+               et l'on reste où l'on est : dupliquer range la feuille, ça ne
+               déménage pas le travail. Sans case cochée, c'est la page ouverte. */
+            dupliquerChoix() {
+                const p = this.synchroniserPage();
+                const choix = [...(this.pagesChoisies || [])]
+                    .filter(i => i >= 0 && i < p.length && p[i]).sort((a, b) => a - b);
+                const cibles = choix.length ? choix : [this.pageActive];
+                let actif = this.pageActive;
+                // de la fin vers le début : insérer ne décale pas les rangs restants
+                for (let i = cibles.length - 1; i >= 0; i--) {
+                    const k = cibles[i];
+                    if (!p[k]) continue;
+                    p.splice(k + 1, 0, p[k]);
+                    if (k < actif) actif++;
+                }
+                this.pageActive = actif;
+                this.pagesChoisies = new Set();
+                this.vignettesPages = {};
+                this.construireVignettesPages();
+                this.majPanneauPages();
+                this.majBarrePages();
+                this.showToast(cibles.length > 1
+                    ? `⧉ ${cibles.length} pages dupliquées`
+                    : `⧉ Page ${cibles[0] + 1} dupliquée`);
+            }
             fusionnerChoix() {
                 const choix = [...(this.pagesChoisies || [])];
                 const seules = document.getElementById('fusionFiguresSeules');
@@ -24702,7 +24751,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return false;
                 }
             }
-            vignetteCourante(largeur = 170) {
+            vignetteCourante(largeur = 170, qualite = 0.6) {
                 const src = this.canvas;
                 if (!src || !src.width) return '';
                 /* On ne miniaturise pas la feuille : le canevas mesure 3000×2000 et
@@ -24730,8 +24779,135 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const x = c.getContext('2d');
                 x.fillStyle = '#fff'; x.fillRect(0, 0, largeur, h);
                 x.drawImage(src, sx, sy, sl, sh, 0, 0, largeur, h);
-                // JPEG : une vignette de figure se contente très bien de 0,6
-                try { return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
+                // JPEG : une vignette de figure se contente très bien de 0,6 —
+                // sauf quand elle part à l'imprimante, d'où le réglage.
+                try { return c.toDataURL('image/jpeg', qualite); } catch (e) { return ''; }
+            }
+            /* ============================================================
+               LA FICHE DE CONSTRUCTION
+
+               Le papier qu'on colle dans le cahier : les étapes numérotées,
+               chacune avec sa consigne et l'image de la figure À CETTE ÉTAPE-LÀ.
+               Tout existait déjà séparément — les consignes, le rejeu qui sait se
+               placer à une étape, la vignette découpée sur la zone utile, jsPDF.
+               Il ne manquait que l'assemblage.
+
+               Le cadrage est celui de la figure ENTIÈRE, identique d'une image à
+               l'autre : la construction pousse dans un cadre fixe au lieu de
+               sauter d'une vignette à la suivante.
+               ============================================================ */
+            async ficheConstruction() {
+                const cles = Object.keys(this.stepInstructions || {}).map(Number).sort((a, b) => a - b);
+                if (!cles.length) {
+                    this.showToast("Cette figure n'a pas de consignes — posez-en avec « 💡 Étape »");
+                    return;
+                }
+                try { window.gmEnsurePdfLibs(); }
+                catch (e) { this.showToast("❌ Bibliothèques PDF indisponibles."); return; }
+                this.showToast("⏳ Fiche de construction…");
+
+                const taille = (url) => new Promise(r => {
+                    const im = new Image();
+                    im.onload = () => r({ w: im.width, h: im.height });
+                    im.onerror = () => r(null);
+                    im.src = url;
+                });
+
+                const memoIdx = this.replayIndex, memoW = Object.assign({}, this.activeWidgets);
+                /* Feuille blanche pendant la prise de vue : le quadrillage est une
+                   aide à l'écran, pas un élément de la figure — les exports PNG,
+                   SVG et PDF ne le montrent pas non plus. Le mode 3 est le fond
+                   uni, déjà là. */
+                const memoGrille = this.gridMode;
+                this.gridMode = 3;
+                const etapes = [];
+                let finale = '';
+                try {
+                    for (let j = 0; j < cles.length; j++) {
+                        // la consigne de l'étape j vaut jusqu'à la suivante : l'image
+                        // montre donc la figure une fois cette étape FAITE
+                        const fin = (j + 1 < cles.length) ? cles[j + 1] : this.entities.length;
+                        this.replayIndex = fin; this.fastForward(fin); this.render();
+                        etapes.push({ texte: String(this.stepInstructions[cles[j]] || '').trim(),
+                                      img: this.vignetteCourante(520, 0.85) });
+                    }
+                    this.replayIndex = this.entities.length;
+                    this.fastForward(this.replayIndex); this.render();
+                    finale = this.vignetteCourante(760, 0.9);
+                } finally {
+                    this.gridMode = memoGrille;
+                    this.replayIndex = memoIdx;
+                    this.fastForward(memoIdx);
+                    this.activeWidgets = memoW;
+                    this.render();
+                }
+
+                try {
+                    const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+                    const gs = window.gmEnregistrerPolice ? window.gmEnregistrerPolice(pdf) : false;
+                    const police = gs ? 'GeoSans' : 'helvetica';
+                    const L = 595.28, H = 841.89, marge = 42, bas = H - 46;
+                    const largeurTexte = 262, xImage = marge + 282, largeurImage = 212;
+                    let y = 0;
+
+                    const entete = () => {
+                        pdf.setFont(police, 'bold'); pdf.setFontSize(16); pdf.setTextColor(30, 30, 30);
+                        pdf.text('Fiche de construction', marge, 58);
+                        const titre = (this.projectTitle || '').trim();
+                        pdf.setFont(police, 'normal'); pdf.setFontSize(11); pdf.setTextColor(110, 110, 110);
+                        if (titre) pdf.text(titre, marge, 76);
+                        y = titre ? 96 : 82;
+                    };
+                    entete();
+
+                    // Ce qu'on obtient, d'abord : on sait où l'on va avant de partir.
+                    if (finale) {
+                        const t = await taille(finale);
+                        if (t) {
+                            const lm = 300, hm = 176;
+                            let w = lm, h = lm * t.h / t.w;
+                            if (h > hm) { h = hm; w = hm * t.w / t.h; }
+                            pdf.addImage(finale, 'JPEG', (L - w) / 2, y, w, h);
+                            pdf.setFont(police, 'normal'); pdf.setFontSize(9); pdf.setTextColor(130, 130, 130);
+                            pdf.text('la figure terminée', L / 2, y + h + 12, { align: 'center' });
+                            y += h + 28;
+                        }
+                    }
+
+                    for (let j = 0; j < etapes.length; j++) {
+                        const e = etapes[j];
+                        pdf.setFont(police, 'normal'); pdf.setFontSize(11);
+                        const lignes = pdf.splitTextToSize(e.texte || '…', largeurTexte);
+                        const hTexte = lignes.length * 14 + 4;
+                        let w = 0, h = 0;
+                        if (e.img) {
+                            const t = await taille(e.img);
+                            if (t) {
+                                w = largeurImage; h = largeurImage * t.h / t.w;
+                                if (h > 132) { h = 132; w = 132 * t.w / t.h; }
+                            }
+                        }
+                        const hRangee = Math.max(hTexte, h) + 18;
+                        // le filet SÉPARE deux étapes : en haut d'une feuille il ne
+                        // sépare rien, il souligne le titre
+                        let neuve = false;
+                        if (y + hRangee > bas) { pdf.addPage(); entete(); neuve = true; }
+                        pdf.setDrawColor(224, 224, 224); pdf.setLineWidth(0.5);
+                        if (j > 0 && !neuve) pdf.line(marge, y - 9, L - marge, y - 9);
+                        pdf.setFont(police, 'bold'); pdf.setFontSize(12); pdf.setTextColor(41, 128, 185);
+                        pdf.text(String(j + 1) + '.', marge, y + 12);
+                        pdf.setFont(police, 'normal'); pdf.setFontSize(11); pdf.setTextColor(40, 40, 40);
+                        pdf.text(lignes, marge + 18, y + 12);
+                        if (w) pdf.addImage(e.img, 'JPEG', xImage + (largeurImage - w) / 2, y, w, h);
+                        y += hRangee;
+                    }
+
+                    pdf.save(this.getSafeFilename('pdf').replace(/\.pdf$/i, '') + '-fiche.pdf');
+                    this.showToast(`✅ Fiche de ${etapes.length} étape${etapes.length > 1 ? 's' : ''} exportée !`);
+                } catch (err) {
+                    console.error('Fiche de construction :', err);
+                    this.showToast("❌ Erreur lors de la création de la fiche.");
+                }
             }
             enregistrerDansBiblio() {
                 const nom = (this.projectTitle || '').trim() || 'Sans titre';
