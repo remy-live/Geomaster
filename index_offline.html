@@ -149,12 +149,13 @@
 
         .header-dropdown-content.grid-3-cols {
             grid-template-columns: repeat(3, 1fr);
-            /* Sans les libellés, trois icônes tiennent dans 168 px : la largeur
-               de 208 px servait à écrire « Bibliothèque » sous une icône. */
-            width: 168px;
-            min-width: 168px;
-            padding: 5px;
-            gap: 2px
+            /* Sans les libellés, trois icônes tiennent dans 152 px : la largeur
+               de 208 px servait à écrire « Bibliothèque » sous une icône, et les
+               168 px qui ont suivi gardaient encore les marges de ce texte. */
+            width: 152px;
+            min-width: 152px;
+            padding: 4px;
+            gap: 1px
         }
 
         .header-dropdown:hover .header-dropdown-content.grid-3-cols {
@@ -301,10 +302,18 @@
             background-color: #eee
         }
 
+        /* LA CIBLE, RIEN QUE LA CIBLE. Ces boutons se mesuraient 54 × 50 alors
+           qu'ils se déclaraient 44 × 40 : la bordure transparente d'.icon-btn et
+           le padding hérité des libellés s'ajoutaient par-dessus, faute de
+           box-sizing. Cinq rangées gagnaient ainsi cinquante pixels de haut pour
+           rien. On borde ici la boîte, et l'écart entre deux icônes redevient
+           l'écart, pas la somme de quatre marges invisibles. */
         .header-dropdown-content.grid-3-cols .icon-btn {
-            width: 44px;
+            box-sizing: border-box;
+            width: 48px;
             height: 40px;
             min-height: 40px;
+            padding: 0;
             margin: 0 auto
         }
 
@@ -326,20 +335,16 @@
            tout. Les icônes se reconnaissent, et le nom se lit au survol comme
            partout ailleurs dans le logiciel — les intitulés de section, eux,
            restent : ce sont eux qui disent où chercher. */
-        .header-dropdown-content .icon-btn[data-libelle] {
-            height: 40px;
-            padding: 4px;
-        }
-
         .header-dropdown-content.grid-3-cols .menu-titre {
             grid-column: span 3;
-            font-size: 9.5px;
+            font-size: 9px;
+            line-height: 12px;
             font-weight: 700;
-            letter-spacing: .6px;
+            letter-spacing: .5px;
             text-transform: uppercase;
             color: #94a3b8;
-            padding: 8px 2px 2px;
-            margin-top: 2px;
+            padding: 4px 2px 1px;
+            margin-top: 1px;
             border-top: 1px solid #eee;
             text-align: left;
         }
@@ -347,7 +352,7 @@
         .header-dropdown-content.grid-3-cols .menu-titre:first-child {
             border-top: none;
             margin-top: 0;
-            padding-top: 2px;
+            padding-top: 1px;
         }
 
         .logo {
@@ -5029,13 +5034,6 @@
                 right: 1px;
             }
 
-            /* Les libellés sous les icônes du menu fichier ne sont plus réservés
-               au doigt : ils sont affichés partout (voir « LE MENU FICHIER DIT CE
-               QU'IL FAIT »). Ne reste ici que la cible tactile. */
-            .header-dropdown-content .icon-btn[data-libelle] {
-                min-height: 44px;
-            }
-
             .tool-btn {
                 height: 48px;
             }
@@ -5633,12 +5631,10 @@
 
             /* LE MENU FICHIER RESTE SERRÉ. Ses icônes n'ont plus de libellé :
                les étaler sur 320 px les éloignait les unes des autres de cent
-               pixels sans rien gagner. Trois cibles de 54 px et leurs écarts
-               tiennent dans 180. Le menu magique, lui, garde sa largeur : ses
-               vignettes en ont besoin. */
+               pixels sans rien gagner. Le menu magique, lui, garde sa largeur :
+               ses vignettes en ont besoin. La largeur serrée est désormais celle
+               de la règle générale ; on ne la répète plus ici. */
             .header-dropdown-content.grid-3-cols {
-                width: 180px;
-                min-width: 180px;
                 grid-template-columns: repeat(3, 1fr);
             }
 
@@ -12296,9 +12292,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.drawInfinite(ctx, 0, 1, s);
                 if (!this.p1 || !this.p2) return;
                 if (this.coding && this.coding !== 'mark-none') {
-                    const mx = (this.p1.x + this.p2.x) / 2;
-                    const my = (this.p1.y + this.p2.y) / 2;
+                    let mx = (this.p1.x + this.p2.x) / 2;
+                    let my = (this.p1.y + this.p2.y) / 2;
                     const angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
+                    /* LA MARQUE DU SEGMENT S'ÉCARTE DU MILIEU QUAND IL Y EN A UN.
+                       Elle se pose au centre du trait — exactement là où se tient
+                       le point milieu et son étiquette : la marque disparaissait
+                       sous la croix du point, et les deux codages, celui du
+                       segment entier et celui des deux moitiés, ne pouvaient pas
+                       se lire ensemble. La position d'une marque le long d'un
+                       trait ne dit rien ; seul son symbole parle. On la décale
+                       donc, sans jamais atteindre le quart où se pose la marque
+                       de la moitié. */
+                    const mil = (typeof app !== 'undefined' && app && app.milieuCodeDe)
+                        ? app.milieuCodeDe(this) : null;
+                    if (mil) {
+                        const L = MathUtils.dist(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
+                        const d = Math.min(16, L / 8);
+                        mx += Math.cos(angle) * d;
+                        my += Math.sin(angle) * d;
+                    }
                     ctx.save();
                     ctx.translate(mx, my);
                     ctx.rotate(angle);
@@ -18906,6 +18919,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this.entities.find(e => (e instanceof Segment || e instanceof Line || e instanceof Ray)
                     && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
             }
+            /* Un point construit sur DEUX points est un milieu — c'est la seule
+               chose que Point.update() sache faire de deux parents. Les points
+               d'intersection, eux, ont pour parents des droites ou des cercles,
+               qui n'ont pas de x. */
+            estMilieu(e) {
+                return e instanceof Point
+                    && (e.parents || []).filter(q => q && typeof q.x === 'number').length === 2;
+            }
+            /* Le milieu codé porté par ce trait, s'il existe : c'est lui qui fait
+               reculer la marque du segment (voir Segment.draw). */
+            milieuCodeDe(seg) {
+                if (!seg || !seg.p1 || !seg.p2) return null;
+                return this.entities.find(e => this.estMilieu(e)
+                    && e.codageMilieu && e.codageMilieu !== 'mark-none'
+                    && ((e.parents[0] === seg.p1 && e.parents[1] === seg.p2)
+                        || (e.parents[0] === seg.p2 && e.parents[1] === seg.p1))) || null;
+            }
             /* POSER UN MILIEU, D'OÙ QU'ON VIENNE. L'outil milieu fabriquait un
                point nu : deux clics donnaient un point sans marques, là où la
                phrase « Place le milieu I de [AB] » donnait les deux traits. Le
@@ -20486,10 +20516,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
 
-                // --- NOUVEAU : Symboles d'égalité (Segments ET Angles) ---
+                /* --- Symboles d'égalité (Segments, Angles ET MILIEUX) ---
+                   LE CODAGE DU MILIEU ET CELUI DU SEGMENT SONT DEUX CHOSES.
+                   Sur [AB] muni de son milieu I, le premier dit « AI = IB », le
+                   second dit « [AB] est égal à tel autre trait » : rien n'oblige
+                   à choisir. Mais la rangée de marques ne s'ouvrait que pour un
+                   segment ; un milieu sélectionné n'avait aucune rangée, et sa
+                   marque restait celle que le logiciel avait posée seul — donc
+                   pas moyen d'avoir les deux à la main. Le milieu écrit dans
+                   codageMilieu, le segment dans coding : ils ne se marchent
+                   pas dessus. */
                 else if (action.startsWith('mark-')) {
                     if (this.selectedObject instanceof Segment || this.selectedObject instanceof Angle) {
                         this.selectedObject.coding = action;
+                    } else if (this.estMilieu(this.selectedObject)) {
+                        this.selectedObject.codageMilieu = (action === 'mark-none') ? null : action;
                     }
                 }
 
@@ -20627,8 +20668,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const isSegment = this.selectedObject instanceof Segment;
                 const isAngle = this.selectedObject instanceof Angle;
 
-                // --- CODAGE DES LONGUEURS (Segments uniquement : les angles ont déjà leur propre codage via le nombre d'arcs) ---
-                if (isSegment) {
+                // --- CODAGE DES LONGUEURS (Segments et milieux : les angles ont déjà leur propre codage via le nombre d'arcs) ---
+                const estMil = this.estMilieu(this.selectedObject);
+                if (isSegment || estMil) {
                     const rC = document.getElementById('rowCoding');
                     if (rC) {
                         // On ne fixe plus ici que l'affichage. Le nombre de
@@ -20638,7 +20680,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // grille restait à 4 colonnes sur deux rangées.
                         rC.style.cssText = 'display: grid !important; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #eee;';
 
-                        const currentCode = this.selectedObject.coding || 'mark-none';
+                        const currentCode = (estMil ? this.selectedObject.codageMilieu
+                                                    : this.selectedObject.coding) || 'mark-none';
                         const btnCode = document.querySelector(`#rowCoding .mark-btn[onclick*="${currentCode}"]`);
 
                         // Réinitialisation des styles visuels des boutons mark-btn
@@ -23782,9 +23825,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             }
                             svgContent += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeW}" ${dash} stroke-linecap="round" />`;
                             if (e instanceof Segment) {
-                                const mx = (c.p1.x + c.p2.x) / 2;
-                                const my = (c.p1.y + c.p2.y) / 2;
-                                const angleDeg = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x) * 180 / Math.PI;
+                                let mx = (c.p1.x + c.p2.x) / 2;
+                                let my = (c.p1.y + c.p2.y) / 2;
+                                const angleRadM = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x);
+                                const angleDeg = angleRadM * 180 / Math.PI;
+                                /* Le même écart qu'au canevas quand le trait porte
+                                   un milieu codé : l'export doit montrer la figure
+                                   qu'on voit à l'écran, marques comprises. */
+                                if (this.milieuCodeDe && this.milieuCodeDe(e)) {
+                                    const L = MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y);
+                                    const d = Math.min(16, L / 8);
+                                    mx += Math.cos(angleRadM) * d;
+                                    my += Math.sin(angleRadM) * d;
+                                }
                                 svgContent += gmMarqueSVG(e.coding, color, mx, my, angleDeg);
                                 if (e.showLength) {
                                     // Même texte que le canevas, unité comprise.

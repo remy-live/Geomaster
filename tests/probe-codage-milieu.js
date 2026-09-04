@@ -268,6 +268,69 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      voyage.ancienOK && voyage.ancienCode === false,
      `${voyage.ancienOK} / ${voyage.ancienCode}`);
 
+  /* LE CODAGE DU MILIEU ET CELUI DU SEGMENT COEXISTENT. Le premier dit
+     AI = IB, le second dit que [AB] égale un autre trait : ce sont deux
+     affirmations, et la rangée de marques doit s'ouvrir pour l'un comme pour
+     l'autre. Elle ne s'ouvrait que pour les segments. */
+  console.log('\n=== le milieu ET le segment, chacun sa marque ===');
+  const duo = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {};
+    app.view = { x: 0, y: 0, zoom: 1 };
+    const A = new Point(200, 200, 'A'), B = new Point(500, 200, 'B');
+    app.addEntity(A); app.addEntity(B);
+    const s = new Segment(A, B); app.addEntity(s);
+    const I = app.poserMilieu(A, B);
+    // un second trait de même longueur, pour que le segment ait de quoi parler
+    const C = new Point(200, 320, 'C'), D = new Point(500, 320, 'D');
+    app.addEntity(C); app.addEntity(D);
+    app.addEntity(new Segment(C, D));
+
+    // le milieu est-il reconnu comme porteur, et la rangée s'ouvre-t-elle ?
+    app.selectedObject = I; app.updateContextMenuUI();
+    const rangee = getComputedStyle(document.getElementById('rowCoding')).display;
+    const actifAvant = document.querySelector('#rowCoding .mark-btn.active');
+    app.styleObject('mark-3');
+    const milApres = I.codageMilieu;
+
+    // et le segment garde la sienne, choisie séparément
+    app.selectedObject = s; app.updateContextMenuUI();
+    app.styleObject('mark-o');
+    app.selectedObject = null; app.render();
+
+    // effacer la marque du milieu ne doit pas toucher celle du segment
+    app.selectedObject = I; app.styleObject('mark-none');
+    const milVide = I.codageMilieu, segRestant = s.coding;
+    I.codageMilieu = 'mark-3'; app.selectedObject = null;
+
+    // où tombent les trois marques dans l'export ?
+    const svg = app.generateSVGString(false, 'none');
+    const cercles = [...svg.matchAll(/<circle[^>]*translate\(([-\d.]+),/g)].map(m => +m[1]);
+    const traits = [...svg.matchAll(/<path[^>]*translate\(([-\d.]+),/g)].map(m => +m[1]);
+    return { rangee, actifAvant: actifAvant && actifAvant.getAttribute('onclick'),
+             milApres, seg: s.coding, milVide, segRestant, cercles, traits,
+             estMilieu: app.estMilieu(I), estPoint: app.estMilieu(A) };
+  });
+  console.log('  ' + JSON.stringify(duo));
+  ck('un point construit sur deux points est un milieu',
+     duo.estMilieu === true && duo.estPoint === false,
+     `${duo.estMilieu} / ${duo.estPoint}`);
+  ck('la rangée de marques s\'ouvre pour un milieu', duo.rangee === 'grid', duo.rangee);
+  ck('elle montre la marque qu\'il porte déjà',
+     /mark-1/.test(duo.actifAvant || ''), String(duo.actifAvant));
+  ck('on lui en choisit une autre', duo.milApres === 'mark-3', String(duo.milApres));
+  ck('et le segment garde la sienne', duo.seg === 'mark-o', String(duo.seg));
+  ck('effacer celle du milieu laisse celle du segment',
+     duo.milVide === null && duo.segRestant === 'mark-o',
+     `${duo.milVide} / ${duo.segRestant}`);
+  /* Les deux moitiés au quart (275) et aux trois quarts (425) ; la marque du
+     segment décalée du centre (350) pour ne pas se cacher sous le point. */
+  ck('les moitiés restent au quart et aux trois quarts',
+     duo.traits.includes(275) && duo.traits.includes(425), JSON.stringify(duo.traits));
+  ck('la marque du segment s\'écarte du milieu',
+     duo.cercles.length === 1 && Math.abs(duo.cercles[0] - 350) >= 12,
+     JSON.stringify(duo.cercles));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

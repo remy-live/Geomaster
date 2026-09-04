@@ -137,6 +137,16 @@ dans le vide : un carré de 3,8 cm posé sur un segment dont le milieu portait
 déjà le trait simple recevait le même trait pour ses côtés, et la figure
 affirmait que 1,9 cm valait 3,8 cm.
 
+**Le codage du milieu et celui du segment sont deux choses**, et rien n'oblige à
+choisir : sur `[AB]` muni de son milieu `I`, le premier dit *AI = IB*, le second
+dit *`[AB]` est égal à tel autre trait*. Sélectionnez le milieu, la rangée de
+marques s'ouvre pour lui comme elle s'ouvre pour un segment — elle ne s'ouvrait
+jusqu'ici que pour les segments, et la marque d'un milieu restait celle que le
+logiciel avait posée seul. Quand les deux coexistent, la marque du segment
+s'écarte du centre : elle s'y posait exactement sous le point milieu, où on ne la
+voyait pas. La position d'une marque le long d'un trait ne dit rien ; seul son
+symbole parle.
+
 Et le codage automatique qui suit une consigne **ne regarde que ce que cette
 consigne vient de construire** : appliqué à toute la feuille, « même longueur ⇒
 même marque » affirmait l'égalité de deux traits sans aucun rapport. Le bouton
@@ -399,8 +409,11 @@ des angles droits, mesures affichées, mode enregistrement d'écran.
 ## Sur tablette et téléphone
 
 Pensé pour le doigt autant que pour la souris : cibles dimensionnées, loupe de
-précision au toucher, gestes à deux doigts, panneaux qui se replient. Les
-libellés restent affichés là où l'infobulle n'existe pas — c'est-à-dire au doigt.
+précision au toucher, gestes à deux doigts, panneaux qui se replient. Le nom
+d'une icône se lit au survol ; écrit sous chacune d'elles, il faisait du menu
+fichier un panneau plus haut que large. Ce menu tient aujourd'hui en
+**162 × 310 pixels**, quelle que soit la largeur de l'écran, avec quinze cibles
+de 48 × 40.
 
 ---
 
