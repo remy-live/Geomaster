@@ -190,6 +190,60 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('les parenthèses oubliées sont nommées',
      /parenth[èe]ses/.test(nota.out[4].a), nota.out[4].a);
 
+  console.log('\n=== le verbe : on fait, et on rappelle le mot du cours ===');
+  /* « Trace 3 points » vaut « Place 3 points » : c'est le mot POINT qui décide,
+     pas le verbe. Et « Dessine » est exécuté, avec le mot juste rappelé —
+     comme les crochets oubliés, on ne bloque personne. */
+  const verbe = await suite([
+    'Trace 3 points A, B, C non alignés',
+    'Trace le point O',
+    'Dessine [AB]',
+    'Dessine un carré DEFG de 3 cm de côté',
+  ]);
+  verbe.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}${o.a ? '\n      ✎ ' + o.a : ''}`));
+  ck('« Trace » place les points comme « Place »', verbe.out[0].ok && verbe.out[1].ok,
+     verbe.out.slice(0, 2).map(o => o.m).join(' | '));
+  ck('les trois points portent leur nom',
+     ['A', 'B', 'C', 'O'].every(n => verbe.points.includes(n)), verbe.points.join(','));
+  ck('« Dessine » est fait quand même', verbe.out[2].ok && verbe.out[3].ok,
+     verbe.out.slice(2).map(o => o.m).join(' | '));
+  ck('et « Trace » est proposé à chaque fois',
+     verbe.out.slice(2).every(o => /Trace/.test(o.a || '') && /Dessine/.test(o.a || '')),
+     verbe.out.slice(2).map(o => o.a || '(rien)').join(' | '));
+  /* Le mot « point » ne doit pas voler les consignes qui le contiennent pour
+     dire autre chose : le croisement de deux droites reste un croisement. */
+  const pasVole = await suite([
+    'Trace un carré ABCD de 4 cm de côté',
+    'Place le point I intersection de (AC) et (BD)',
+    'Place un point M sur [AB]',
+  ]);
+  ck('« le point d\'intersection » n\'est pas volé au passage',
+     pasVole.out.every(o => o.ok) && pasVole.points.includes('I') && pasVole.points.includes('M'),
+     pasVole.out.map(o => (o.ok ? '' : '✗ ') + o.m).join(' | '));
+
+  console.log('\n=== chaque ligne choisit ses instruments ===');
+  /* La case du panneau donne le réglage général ; une ligne peut en décider
+     autrement — la figure de départ sans instruments, la médiatrice au compas. */
+  const parLigne = await page.evaluate(() => {
+    const app = window.app;
+    const c = document.getElementById('consigneDetail');
+    if (c) c.checked = false;
+    const compte = () => app.entities.filter(e => e.constructor.name === 'ToolAnimation').length;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
+    app.executerConsigneAvec('Place 2 points A et B', false);
+    app.executerConsigneAvec('Trace la médiatrice de [AB]', false);
+    const sans = compte();
+    app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
+    app.executerConsigneAvec('Place 2 points A et B', false);
+    app.executerConsigneAvec('Trace la médiatrice de [AB]', true);
+    return { sans, avec: compte(), caseGlobale: !!(c && c.checked) };
+  });
+  console.log('  ' + JSON.stringify(parLigne));
+  ck('la case du panneau reste décochée', parLigne.caseGlobale === false);
+  ck('sans instruments : aucun geste', parLigne.sans === 0, String(parLigne.sans));
+  ck('avec instruments sur la seule ligne voulue : les gestes sont là',
+     parLigne.avec > 0, String(parLigne.avec));
+
   console.log('\n=== encore d\'autres façons de le dire ===');
   tous(await suite([
     'Place 3 points A, B, O',

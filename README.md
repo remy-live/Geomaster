@@ -44,7 +44,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 
 | | |
 |---|---|
-| **Placer** | `Place 3 points A, B, C non alignés` · `alignés` · `Place le milieu I de [AB]` · `Soit I…` |
+| **Placer** | `Place 3 points A, B, C non alignés` · `Trace 3 points A, B, C` · `alignés` · `Place le milieu I de [AB]` · `Soit I…` |
 | **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de rayon [AC]` · `de diamètre [AB]` · `circonscrit au triangle ABC` |
 | **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `octogone` · `polygone régulier à 7 côtés` · `polygone ABCDE` · `les diagonales de ABCD` |
@@ -55,6 +55,10 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
 | **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
+
+Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
+[AB]` est exécuté, et la réponse ajoute qu'en géométrie on écrit plutôt
+« Trace… » — comme pour les crochets oubliés.
 
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie

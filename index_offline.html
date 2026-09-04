@@ -26130,9 +26130,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(s);
                 return s;
             }
+            /* « Avec les instruments » se décide LIGNE PAR LIGNE : on veut la
+               construction au compas pour la médiatrice et la figure seule pour le
+               triangle de départ. Quand rien n'est imposé pour la ligne en cours,
+               c'est la case du panneau qui parle. */
             cslDetaille() {
+                if (this._cslDetailleForce !== undefined && this._cslDetailleForce !== null) {
+                    return !!this._cslDetailleForce;
+                }
                 const c = document.getElementById('consigneDetail');
                 return !!(c && c.checked);
+            }
+            executerConsigneAvec(phrase, avecInstruments) {
+                this._cslDetailleForce = avecInstruments;
+                try { return this.executerConsigne(phrase); }
+                finally { this._cslDetailleForce = null; }
             }
             /* Passer par un BÂTISSEUR — celui des constructions magiques — pour
                obtenir la construction complète : arcs de compas, instruments qui se
@@ -26238,6 +26250,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const rate = (m) => ({ ok: false, message: m, astuce: this._cslAstuces.join(' ') });
 
                 try {
+                    /* « Dessine » se comprend, mais ce n'est pas le mot du cours :
+                       en géométrie on TRACE. On le fait, et on le dit — comme pour
+                       les crochets oubliés. */
+                    if (/^dessine[rz]?\b/.test(t)) {
+                        this.cslDire('Formulation : en géométrie on écrit plutôt « Trace… » que « Dessine… ».');
+                    }
                     if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
@@ -26273,7 +26291,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return this.cslCercle(brut, t, fait, rate);
                     }
                     if (/diagonales?/.test(t)) return this.cslDiagonales(brut, t, fait, rate);
-                    if (/^(place|placer|pose|poser|marque|marquer|soit|soient|nomme|prends|prendre)\b/.test(t)
+                    /* « Trace 3 points A, B, C » se dit autant que « Place » : c'est
+                       le mot POINT qui décide, pas le verbe. On n'y vient qu'après
+                       les figures et les points remarquables, pour ne pas voler « le
+                       point d'intersection » ni « un point sur [AB] ». */
+                    const versPlacer = /^(place|placer|pose|poser|marque|marquer|soit|soient|nomme|prends|prendre)\b/.test(t)
+                        || /\bpoints?\b/.test(t);
+                    if (versPlacer
                         && !/segment|droite|cercle|carr|triangle|rectangle|losange|parall|pentagone|hexagone|polygone/.test(t)) {
                         return this.cslPlacer(brut, t, fait, rate);
                     }
