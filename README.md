@@ -25,16 +25,31 @@ elle gêne.
 
 ### On écrit la consigne, le logiciel la fait
 
-Dans le **panneau des consignes** — celui où l'on écrit déjà l'énoncé — le
-bouton **✨ Auto** (ou `Ctrl+E`) arme l'exécution. On écrit alors la phrase comme
-dans un manuel — *« Trace le cercle de centre A passant par B »* — et **Entrée**.
-La figure se fait, et l'aperçu est la figure elle-même : le panneau est petit et
-se déplace si elle gêne.
+Le **panneau des consignes** (`Ctrl+E`) est une **liste de lignes numérotées**.
+Une ligne, une consigne : on écrit la phrase comme dans un manuel — *« Trace le
+cercle de centre A passant par B »* — et **Valider**, ou **Entrée**. La réponse
+s'affiche **sous cette ligne-là** : trois consignes écrites, trois réponses
+lisibles en même temps. Chaque ligne porte sa case **« avec les instruments »** —
+on veut la figure seule pour le triangle de départ et la construction au compas
+pour la médiatrice, dans le même énoncé.
 
-Rien d'autre ne s'ouvre, et la phrase reste écrite — c'est un texte de
-consignes, on ne le retape pas. Le numéro d'un énoncé (« 1. », « 2. ») ne fait
-pas partie de ce qu'il y a à faire. Le **?** de la barre déplie la liste de tout
-ce qui est compris ; il la replie ensuite.
+**Faite, une ligne porte un ✓ à la place de son numéro** et ne repart pas une
+seconde fois : deux fois la même ligne, ce seraient deux fois les mêmes objets.
+La modifier la remet en jeu. **▶ Tout faire** reprend l'énoncé là où il en est.
+
+Sous la ligne qu'on écrit, un **bandeau montre la phrase modèle** : *« Trace un
+carré de 3 cm »* ne dit pas quels sommets, et le logiciel en inventait en
+silence — il montre maintenant `Trace un carré ABCD de 3 cm de côté`, qu'un clic
+recopie. Le **?** du titre déplie la liste complète de ce qui est compris.
+
+**Au téléphone, l'écran se partage en deux** : les consignes en bas, la figure
+au-dessus — et la feuille est vraiment raccourcie, pas seulement recouverte. Une
+fenêtre flottante de 340 px sur un écran de 390, c'était écrire une consigne
+sans voir ce qu'elle construit. Sur grand écran, elle flotte comme avant.
+
+Le texte libre de l'énoncé — gras, italique, listes — est toujours là, replié
+sous la liste. Et **« Tout effacer » efface aussi l'énoncé** : des consignes
+cochées « faites » devant une feuille vide, ce serait un compte-rendu faux.
 
 Chaque consigne comprise devient la **consigne de l'étape**. Un programme de
 construction tapé ici donne d'un coup la figure, le rejeu narré avec vos mots,
@@ -55,6 +70,8 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
 | **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
+| **Croisements nommés** | `Appelle O le point d'intersection des médiatrices` · `des hauteurs` (l'orthocentre) · `des médianes` · `des bissectrices` |
+| **Couleur et style** | `Trace [AB] en bleu` · `en rouge et en pointillés` · `en gras` · `épaisseur 4` — pour cette ligne seulement |
 
 Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
 [AB]` est exécuté, et la réponse ajoute qu'en géométrie on écrit plutôt
@@ -70,6 +87,13 @@ aux instruments — [AB] à la règle, un arc de compas depuis chaque extrémit�
 leur croisement est le sommet. Même « une longueur et deux angles », qui ne
 donne pourtant aucune des deux autres longueurs, sort en 22 objets dont 12
 déplacements d'instruments et 2 arcs.
+
+**On écrit vite, et en minuscules.** *« trace un triangle abc puis la médiatrice
+de [ab] »* est compris : les points sont remis en majuscules **là où la phrase
+désigne un point** — après « triangle », dans les crochets, dans une énumération
+— et nulle part ailleurs, sans quoi « et » deviendrait un nom. La correction est
+faite, puis dite : c'est une notation de cours. **« puis »** lie deux consignes
+aussi bien que **« et »**.
 
 **Et il comprend les phrases composées.** *« Trace un triangle ABC et ses
 médiatrices »* fait les deux — puis explique comment l'écrire sans ambiguïté :

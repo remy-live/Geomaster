@@ -19,9 +19,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
     app.view = { x: 0, y: 0, zoom: 1 };
-    const c = document.getElementById('consigneDetail');
-    if (c) c.checked = !!det;
-    const out = ph.map(p => { const r = app.executerConsigne(p); return { p, ok: r.ok, m: r.message, a: r.astuce }; });
+    /* « Avec les instruments » se demande maintenant ligne par ligne : chaque
+       consigne du panneau porte sa case, il n'y a plus de réglage global. */
+    const out = ph.map(p => {
+      const r = app.executerConsigneAvec(p, !!det);
+      return { p, ok: r.ok, m: r.message, a: r.astuce };
+    });
     app.isPlaying = false; app.isLooping = false; app.isToolAnimating = false;
     return { out,
              points: app.entities.filter(e => e.constructor.name === 'Point' && e.label).map(e => e.label),
@@ -222,12 +225,10 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      pasVole.out.map(o => (o.ok ? '' : '✗ ') + o.m).join(' | '));
 
   console.log('\n=== chaque ligne choisit ses instruments ===');
-  /* La case du panneau donne le réglage général ; une ligne peut en décider
-     autrement — la figure de départ sans instruments, la médiatrice au compas. */
+  /* Chaque ligne décide seule : la figure de départ sans instruments, la
+     médiatrice au compas — dans le même énoncé. */
   const parLigne = await page.evaluate(() => {
     const app = window.app;
-    const c = document.getElementById('consigneDetail');
-    if (c) c.checked = false;
     const compte = () => app.entities.filter(e => e.constructor.name === 'ToolAnimation').length;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
     app.executerConsigneAvec('Place 2 points A et B', false);
@@ -236,10 +237,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
     app.executerConsigneAvec('Place 2 points A et B', false);
     app.executerConsigneAvec('Trace la médiatrice de [AB]', true);
-    return { sans, avec: compte(), caseGlobale: !!(c && c.checked) };
+    return { sans, avec: compte() };
   });
   console.log('  ' + JSON.stringify(parLigne));
-  ck('la case du panneau reste décochée', parLigne.caseGlobale === false);
   ck('sans instruments : aucun geste', parLigne.sans === 0, String(parLigne.sans));
   ck('avec instruments sur la seule ligne voulue : les gestes sont là',
      parLigne.avec > 0, String(parLigne.avec));
@@ -310,8 +310,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
     app.view = { x: 0, y: 0, zoom: 1 };
-    document.getElementById('consigneDetail').checked = false;
-    const r = app.executerConsigne(p);
+    const r = app.executerConsigneAvec(p, false);
     const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
     const d = (x, y) => { const P = pt(x), Q = pt(y); return P && Q ? +(Math.hypot(P.x - Q.x, P.y - Q.y) / 50).toFixed(2) : null; };
     const ang = (x, y, z) => { const P = pt(x), Q = pt(y), R = pt(z); if (!P || !Q || !R) return null;
@@ -357,10 +356,8 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const auCompas = (phrase) => page.evaluate((p) => {
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
-    document.getElementById('consigneDetail').checked = true;
-    const r = app.executerConsigne(p);
+    const r = app.executerConsigneAvec(p, true);
     app.isPlaying = false; app.isLooping = false;
-    document.getElementById('consigneDetail').checked = false;
     const c = (n) => app.entities.filter(e => e.constructor.name === n).length;
     return { ok: r.ok, anims: c('ToolAnimation'), arcs: c('CompassArc'), objets: app.entities.length };
   }, phrase);
@@ -375,57 +372,214 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     ck(`aux instruments : ${nom}`, r.ok && r.anims >= 8 && r.arcs >= 2, JSON.stringify(r));
   }
 
-  console.log('\n=== dans le panneau des consignes ===');
-  /* La consigne intelligente vit DANS le panneau des consignes, pas dans une
-     fenêtre à elle qui couvrirait la feuille : la phrase écrite est déjà celle
-     de l'étape, et l'aperçu est la figure elle-même, autour. */
-  const pan = await page.evaluate(async () => {
+  console.log('\n=== on écrit vite, et en minuscules ===');
+  /* Personne n'appuie sur Majuscule six fois en tapant au tableau. Les points
+     sont remis en majuscules là où la phrase désigne un point — et la notation
+     de cours est rappelée, comme pour les crochets oubliés. */
+  const mini = await suite([
+    'trace un triangle abc puis la médiatrice de [ab]',
+  ]);
+  mini.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}${o.a ? '\n      ✎ ' + o.a : ''}`));
+  ck('« abc » en minuscules donne bien le triangle ABC',
+     mini.out[0].ok && ['A', 'B', 'C'].every(n => mini.points.includes(n)), mini.points.join(','));
+  /* « PUIS » lie deux consignes aussi bien que « et ». */
+  ck('« puis » enchaîne les deux consignes',
+     (mini.out[0].m || '').includes(' · '), mini.out[0].m);
+  ck('et la majuscule est enseignée', /MAJUSCULE/.test(mini.out[0].a || ''), mini.out[0].a);
+  const mini2 = await suite(['place 3 points a, b, c non alignés', 'trace le segment [ab]']);
+  mini2.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}`));
+  ck('l\'énumération entière passe en majuscules', mini2.out.every(o => o.ok)
+     && ['A', 'B', 'C'].every(n => mini2.points.includes(n)), mini2.points.join(','));
+
+  console.log('\n=== la consigne dit aussi de quelle couleur, et dans quel style ===');
+  const style = await page.evaluate(() => {
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
+    const avantCouleur = app.globalStyle.color;
+    const r1 = app.executerConsigne('Place 2 points A et B');
+    const r2 = app.executerConsigne('Trace [AB] en bleu');
+    const r3 = app.executerConsigne('Trace la médiatrice de [AB] en rouge et en pointillés');
+    const r4 = app.executerConsigne('Trace le cercle de centre A et de rayon 3 cm en vert');
+    const seg = app.entities.find(e => e.constructor.name === 'Segment');
+    const perp = app.entities.find(e => e.constructor.name === 'PerpendicularLine');
+    const cer = app.entities.find(e => e.constructor.name === 'Circle');
+    return { m2: r2.message, m3: r3.message, m4: r4.message,
+             seg: seg && { c: seg.color, d: seg.dash.length },
+             perp: perp && { c: perp.color, d: perp.dash.length },
+             cer: cer && { c: cer.color },
+             avantCouleur, apresCouleur: app.globalStyle.color };
+  });
+  console.log('  ' + JSON.stringify(style));
+  ck('« en bleu » colore le segment', style.seg && style.seg.c === '#1e88e5', JSON.stringify(style.seg));
+  ck('« en rouge et en pointillés » fait les deux',
+     style.perp && style.perp.c === '#e53935' && style.perp.d > 0, JSON.stringify(style.perp));
+  ck('le cercle aussi', style.cer && style.cer.c === '#43a047', JSON.stringify(style.cer));
+  ck('la réponse dit ce qui a été appliqué',
+     / en bleu/.test(style.m2) && /rouge/.test(style.m3) && /pointill/.test(style.m3),
+     `${style.m2} | ${style.m3}`);
+  /* Le style est retiré de la phrase ANALYSÉE : le cercle ne se décrit pas
+     lui-même comme « … de rayon 3 cm en vert — en vert ». */
+  ck('et ne se répète pas dans la description de l\'objet',
+     (style.m4.match(/en vert/g) || []).length === 1, style.m4);
+  /* Le style demandé vaut pour CETTE ligne : la palette du professeur n'a pas
+     bougé, et la consigne suivante repart de sa couleur. */
+  ck('la palette du professeur n\'est pas touchée',
+     style.apresCouleur === style.avantCouleur, `${style.avantCouleur} → ${style.apresCouleur}`);
+
+  console.log('\n=== « Appelle O le point d\'intersection des médiatrices » ===');
+  /* Ce croisement porte un nom, et c'est ce nom qu'on apprend : on pose le
+     point, et l'on dit lequel c'est. */
+  const croise = await suite([
+    'Trace un triangle ABC',
+    "Appelle O le point d'intersection des médiatrices",
+    "Appelle H le point d'intersection des hauteurs",
+    "Appelle G le point d'intersection des médianes",
+  ]);
+  croise.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}${o.a ? '\n      ✎ ' + o.a : ''}`));
+  ck('les trois croisements sont compris', croise.out.every(o => o.ok),
+     croise.out.filter(o => !o.ok).map(o => o.m).join(' | '));
+  ck('ils portent le nom demandé', ['O', 'H', 'G'].every(n => croise.points.includes(n)),
+     croise.points.join(','));
+  ck('et le vocabulaire est donné',
+     /centre du cercle circonscrit/.test(croise.out[1].a || '')
+     && /orthocentre/.test(croise.out[2].a || '')
+     && /centre de gravité/.test(croise.out[3].a || ''),
+     [croise.out[1].a, croise.out[2].a].join(' | '));
+  /* Le triangle n'est pas nommé dans la phrase : c'est celui qu'on vient de
+     tracer. Et la géométrie doit être juste — Euler : OH = 3·OG. */
+  const euler = await page.evaluate(() => {
+    const p = (n) => window.app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const [O, G, H] = ['O', 'G', 'H'].map(p);
+    if (!O || !G || !H) return null;
+    return { og: Math.round(Math.hypot(G.x - O.x, G.y - O.y)),
+             oh: Math.round(Math.hypot(H.x - O.x, H.y - O.y)) };
+  });
+  console.log('  ' + JSON.stringify(euler));
+  ck('la droite d\'Euler est respectée : OH = 3·OG',
+     euler && Math.abs(euler.oh - 3 * euler.og) <= 2, JSON.stringify(euler));
+
+  console.log('\n=== le bandeau dit ce que le logiciel reconnaît ===');
+  const band = await page.evaluate(() => ({
+    carre: app.cslModeles('trace un carré de 3 cm'),
+    mediatrice: app.cslModeles('trace la médiatrice'),
+    rien: app.cslModeles('tr'),
+    dejaJuste: app.cslModeles('Trace la médiatrice de [AB]'),
+  }));
+  console.log('  ' + JSON.stringify(band, null, 1));
+  /* « Trace un carré de 3 cm » ne dit pas quels sommets : le logiciel en
+     inventait en silence. Le modèle est montré sous la ligne. */
+  ck('« un carré de 3 cm » appelle le modèle nommé',
+     band.carre.length === 1 && /ABCD/.test(band.carre[0]), JSON.stringify(band.carre));
+  ck('« la médiatrice » propose les deux écritures',
+     band.mediatrice.length === 2 && /\[AB\]/.test(band.mediatrice[0]), JSON.stringify(band.mediatrice));
+  ck('trois lettres ne suffisent pas à proposer quoi que ce soit', band.rien.length === 0);
+  ck('une phrase déjà juste ne se voit pas proposer elle-même',
+     !band.dejaJuste.includes('Trace la médiatrice de [AB]'), JSON.stringify(band.dejaJuste));
+
+  console.log('\n=== le panneau : une ligne, une consigne ===');
+  /* Un titre, puis des lignes numérotées. Chacune porte sa case « avec les
+     instruments », son bouton Valider, sa réponse en dessous — trois consignes
+     écrites, trois réponses lisibles en même temps. */
+  const pan = await page.evaluate(async () => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {};
+    app._consignes = []; app.saveState();
     const boite = document.getElementById('instructionBox');
     if (boite.style.display === 'none' || !boite.style.display) app.toggleInstructions();
-    app.consigneAuto = false; app.basculerConsigneAuto();
-    const zone = document.getElementById('instrContent');
-    zone.innerHTML = '<p>1. Place 3 points A, B, C non alignés</p>';
-    const poser = (txt) => {
-      const p = document.createElement('p'); p.textContent = txt; zone.appendChild(p);
-      const sel = window.getSelection(), r = document.createRange();
-      r.selectNodeContents(p); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
-      return app.consigneDepuisPanneau();
+    app.majConsignes();
+    const ecrire = (i, txt, outils) => {
+      const l = app.consignesListe();
+      while (l.length <= i) l.push(app.consigneNeuve());
+      l[i].texte = txt; l[i].instruments = !!outils;
+      app.majConsignes();
+      return app.validerConsigne(i);
     };
-    // la première ligne, curseur dedans
-    const sel = window.getSelection(), r0 = document.createRange();
-    r0.selectNodeContents(zone.firstChild); r0.collapse(false);
-    sel.removeAllRanges(); sel.addRange(r0);
-    const un = app.consigneDepuisPanneau();
-    const deux = poser('2. Trace [AB], [BC] et [CA]');
-    const trois = poser('3. Trace la licorne');
-    return { auto: app.consigneAuto,
-             bouton: document.getElementById('btnConsigneAuto').className,
-             un, deux, trois,
-             etat: document.getElementById('consigneEtat').className,
-             message: document.getElementById('consigneEtat').textContent,
+    const un = ecrire(0, '1. Place 3 points A, B, C non alignés');
+    const deux = ecrire(1, '2. Trace [AB], [BC] et [CA]');
+    const trois = ecrire(2, '3. Trace la licorne');
+    const lignes = [...document.querySelectorAll('.csl-ligne')].map(l => ({
+      num: l.querySelector('.csl-num').textContent,
+      txt: l.querySelector('.csl-champ').value,
+      faite: l.classList.contains('faite'),
+      rep: (l.querySelector('.csl-reponse').textContent || ''),
+      etat: l.querySelector('.csl-reponse').className,
+      bandeau: getComputedStyle(l.querySelector('.csl-modeles')).display !== 'none',
+      bandeauTxt: (l.querySelector('.csl-modeles').textContent || ''),
+    }));
+    return { un, deux, trois, lignes,
              objets: app.entities.length,
              consignes: Object.values(app.stepInstructions),
-             texteGarde: zone.innerText.includes('Trace la licorne'),
              sansFenetre: !document.getElementById('consigneModal'),
+             sansCaseGlobale: !document.getElementById('consigneDetail'),
              exemples: document.querySelectorAll('#consigneAide a').length,
-             aideCachee: document.getElementById('consigneAide').style.display };
+             aideCachee: document.getElementById('consigneAide').style.display,
+             enonceReplie: document.getElementById('enonceLibre').style.display };
   });
-  console.log('  ' + JSON.stringify(pan));
+  console.log('  ' + JSON.stringify(pan.lignes, null, 1));
   ck('il n\'y a plus de fenêtre séparée', pan.sansFenetre);
-  ck('l\'exécution s\'arme d\'un bouton', pan.auto === true && /actif/.test(pan.bouton), pan.bouton);
+  ck('ni de case globale : chaque ligne décide', pan.sansCaseGlobale);
   /* Le numéro d'un énoncé — « 1. » — ne fait pas partie de ce qu'il y a à faire. */
   ck('les lignes numérotées sont exécutées', pan.un === true && pan.deux === true,
      `${pan.un} / ${pan.deux}`);
   ck('la figure est construite', pan.objets === 6, String(pan.objets));
   ck('chaque ligne devient une consigne d\'étape', pan.consignes.length === 2,
      JSON.stringify(pan.consignes));
-  ck('une ligne incomprise le dit', pan.trois === false && /rate/.test(pan.etat), pan.etat);
+  /* NUMÉROTÉES : on sait où l'on en est. Faite, la ligne porte un ✓ à la place
+     de son numéro — c'est ce qui empêche de la rejouer sans y penser. */
+  ck('une ligne faite porte un ✓, une ligne en attente son numéro',
+     pan.lignes[0].num === '✓' && pan.lignes[1].num === '✓' && pan.lignes[2].num === '3',
+     pan.lignes.map(l => l.num).join(' '));
+  ck('une ligne incomprise le dit, sur sa propre ligne',
+     pan.trois === false && /rate/.test(pan.lignes[2].etat), pan.lignes[2].etat);
+  /* Chaque réponse est SOUS SA LIGNE : trois consignes, trois réponses. */
+  ck('chaque réponse est sous sa ligne',
+     /points? plac/i.test(pan.lignes[0].rep) && /trac/i.test(pan.lignes[1].rep)
+     && /pas compris/.test(pan.lignes[2].rep),
+     pan.lignes.map(l => l.rep.slice(0, 30)).join(' | '));
   /* Elle reste écrite : c'est un texte de consignes, on ne le retape pas. */
-  ck('et reste écrite dans le panneau', pan.texteGarde);
+  ck('et reste écrite dans le panneau', pan.lignes[2].txt.includes('licorne'));
+  /* LE BANDEAU : ce que le logiciel reconnaît. Il parle tant qu'on cherche ses
+     mots, et se tait quand la ligne est faite. */
+  ck('le bandeau se tait sur une ligne faite', !pan.lignes[0].bandeau && !pan.lignes[1].bandeau,
+     JSON.stringify([pan.lignes[0].bandeau, pan.lignes[1].bandeau]));
   ck('l\'aide est là, repliée', pan.aideCachee === 'none' && pan.exemples >= 40,
      `${pan.exemples} exemples`);
+  ck('le texte libre de l\'énoncé est replié, pas supprimé',
+     pan.enonceReplie === 'none' && !!(await page.$('#instrContent')), pan.enonceReplie);
+
+  console.log('\n=== on ne rejoue pas deux fois la même ligne ===');
+  const rejeu = await page.evaluate(() => {
+    const app = window.app;
+    const avant = app.entities.length;
+    const r = app.validerConsigne(0);
+    return { avant, apres: app.entities.length, r,
+             dit: document.querySelector('.csl-ligne .csl-reponse').textContent };
+  });
+  console.log('  ' + JSON.stringify(rejeu));
+  ck('revalider une ligne inchangée ne refait rien',
+     rejeu.apres === rejeu.avant && rejeu.r === false, `${rejeu.avant} → ${rejeu.apres}`);
+  ck('et le dit', /déjà faite/.test(rejeu.dit), rejeu.dit);
+
+  console.log('\n=== « Tout effacer » efface aussi l\'énoncé ===');
+  const efface = await page.evaluate(async () => {
+    const app = window.app;
+    app.clearAll();
+    await new Promise(r => setTimeout(r, 120));
+    const b = [...document.querySelectorAll('.modal-box button, .modal button')]
+      .find(x => /oui|confirmer|valider|ok/i.test(x.textContent));
+    if (b) b.click();
+    await new Promise(r => setTimeout(r, 250));
+    return { objets: app.entities.length,
+             lignes: [...document.querySelectorAll('.csl-champ')].map(c => c.value),
+             enonce: (document.getElementById('instrContent').innerText || '').trim() };
+  });
+  console.log('  ' + JSON.stringify(efface));
+  ck('la figure est vide', efface.objets === 0, String(efface.objets));
+  /* Des consignes cochées « faites » devant une feuille vide, c'est un
+     compte-rendu faux : elles décrivaient des objets qui n'existent plus. */
+  ck('et les consignes sont parties avec elle',
+     efface.lignes.length === 1 && efface.lignes[0] === '' && efface.enonce === '',
+     JSON.stringify(efface.lignes));
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

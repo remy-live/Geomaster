@@ -2542,37 +2542,211 @@
            pas ce qu'on construisait. Elle vit maintenant dans le panneau des
            consignes, petit et déplaçable — et l'aperçu est la figure elle-même,
            autour. */
-        #btnConsigneAuto.actif {
-            background: #e0f2fe;
-            color: #0284c7;
-            border-color: #bae6fd;
+        /* --- UNE LIGNE, UNE CONSIGNE ---------------------------------------
+           Numérotée, pour qu'on sache où l'on en est et qu'on ne rejoue pas
+           deux fois la même. Faite, elle porte un ✓ et se tait : c'est en la
+           modifiant qu'on la remet en jeu. */
+        #consigneLignes {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 6px 8px 2px;
+            min-height: 60px;
+        }
+
+        .csl-ligne {
+            border: 1px solid #e3e8ec;
+            border-radius: 7px;
+            padding: 5px 6px 4px;
+            margin-bottom: 6px;
+            background: #fff;
+        }
+
+        .csl-ligne.faite { background: #f6faf6; border-color: #cfe4cf; }
+        .csl-ligne.active { border-color: #90caf9; box-shadow: 0 0 0 2px #e3f2fd; }
+
+        .csl-tete { display: flex; align-items: center; gap: 5px; }
+
+        .csl-num {
+            flex: 0 0 auto;
+            min-width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: #eceff1;
+            color: #607d8b;
+            font-size: 10.5px;
             font-weight: 700;
-        }
-
-        .consigne-etat {
-            display: none;
-            font-size: 11.5px;
-            line-height: 1.35;
-            padding: 5px 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .consigne-etat.ok { display: block; color: #1b5e20; background: #edf7ee; }
-        .consigne-etat.rate { display: block; color: #b71c1c; background: #fdecea; }
-        .consigne-etat .note { display: block; color: #8d6e00; margin-top: 2px; }
-
-        .consigne-detail {
             display: flex;
-            align-items: flex-start;
-            gap: 6px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .csl-ligne.faite .csl-num { background: #1b5e20; color: #fff; }
+
+        .csl-champ {
+            flex: 1 1 auto;
+            min-width: 0;
+            border: 1px solid #dfe4e8;
+            border-radius: 5px;
+            padding: 4px 6px;
+            font-size: 12.5px;
+            font-family: inherit;
+            color: #263238;
+            outline: 0;
+        }
+
+        .csl-champ:focus { border-color: #90caf9; }
+
+        .csl-tete button {
+            flex: 0 0 auto;
+            border: 1px solid #dfe4e8;
+            background: #fff;
+            border-radius: 5px;
+            padding: 3px 7px;
             font-size: 11.5px;
-            color: #546e7a;
-            padding: 6px 10px;
-            border-bottom: 1px solid #eee;
+            color: #37474f;
             cursor: pointer;
         }
 
-        .consigne-detail input { margin-top: 2px; flex: 0 0 auto; }
+        .csl-tete button.csl-go { background: #e3f2fd; border-color: #bbdefb; color: #1565c0; font-weight: 600; }
+        .csl-tete button.csl-go:hover { background: #bbdefb; }
+        .csl-ligne.faite .csl-go { background: #fff; border-color: #dfe4e8; color: #90a4ae; font-weight: 400; }
+        .csl-tete button.csl-suppr { border-color: transparent; color: #b0bec5; padding: 3px 4px; }
+        .csl-tete button.csl-suppr:hover { color: #d32f2f; }
+
+        .csl-outils {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #78909c;
+            padding: 3px 0 0 24px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .csl-outils input { margin: 0; flex: 0 0 auto; }
+
+        .csl-reponse {
+            display: none;
+            font-size: 11.5px;
+            line-height: 1.35;
+            margin: 4px 0 0 24px;
+            padding: 4px 7px;
+            border-radius: 5px;
+        }
+
+        .csl-reponse.ok { display: block; color: #1b5e20; background: #edf7ee; }
+        .csl-reponse.rate { display: block; color: #b71c1c; background: #fdecea; }
+        .csl-reponse .note { display: block; color: #8d6e00; margin-top: 2px; }
+
+        /* LE BANDEAU : ce que le logiciel reconnaît, pendant qu'on écrit.
+           « Trace un carré de 3 cm » n'est pas assez précis pour dire quels
+           sommets ; plutôt que de le deviner en silence, on montre la phrase
+           modèle — et un clic la recopie. */
+        .csl-modeles {
+            display: none;
+            margin: 4px 0 0 24px;
+            padding: 4px 6px;
+            background: #fffdf3;
+            border: 1px solid #f2e8c9;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #8d6e00;
+        }
+
+        .csl-modeles b { font-weight: 700; letter-spacing: .2px; }
+
+        .csl-modeles a {
+            display: block;
+            color: #5d4c00;
+            padding: 1px 3px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .csl-modeles a:hover { background: #f6edd0; }
+
+        .csl-pied {
+            display: flex;
+            gap: 5px;
+            padding: 4px 8px 6px;
+            border-top: 1px solid #eee;
+            flex: 0 0 auto;
+        }
+
+        .csl-pied button {
+            border: 1px solid #dfe4e8;
+            background: #fff;
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 11.5px;
+            color: #455a64;
+            cursor: pointer;
+        }
+
+        .csl-pied button:hover { background: #f5f7f8; }
+        #btnEnonceLibre { margin-left: auto; }
+
+        .instr-actions { display: flex; align-items: center; gap: 6px; }
+
+        /* AU TÉLÉPHONE, ON PARTAGE L'ÉCRAN EN DEUX.
+           Une fenêtre flottante de 340 px sur un écran de 390 px, c'est la
+           feuille entièrement couverte : on écrit une consigne sans voir ce
+           qu'elle construit. Le panneau devient donc la moitié basse de
+           l'écran, et la figure garde l'autre moitié — pour de bon, la feuille
+           est raccourcie d'autant, elle n'est pas seulement recouverte. */
+        @media (max-width: 700px) {
+            /* « body » n'est pas décoratif : un palier plus bas dans la feuille
+               de style donne aux panneaux flottants une largeur de min(94vw,
+               400px), et il vient APRÈS. Le sélecteur doit donc peser plus. */
+            body #instructionBox {
+                position: fixed;
+                top: auto;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                max-width: none;
+                height: var(--consignes-h, 46vh);
+                min-height: 0;
+                border: none;
+                border-top: 2px solid #cfd8dc;
+                border-radius: 12px 12px 0 0;
+                box-shadow: 0 -4px 18px rgba(0, 0, 0, .18);
+            }
+
+            /* La feuille est un élément flexible qui s'étire : lui donner une
+               hauteur ne suffit pas, il faut d'abord qu'elle cesse de grandir. */
+            body.consignes-partage .main-container {
+                flex: 0 0 auto;
+                height: calc(100% - 50px - var(--consignes-h, 46vh));
+            }
+
+            /* On ne déplace plus un demi-écran : la poignée redevient un titre. */
+            .instr-header { cursor: default; }
+
+            /* La loupe et le bouton de lecture sont calés sur le bas de l'écran :
+               ils tombaient donc AU MILIEU des consignes. On les remonte de la
+               hauteur du panneau. « translate » plutôt que « transform » : le
+               bouton de lecture se centre déjà avec un transform, qu'il faut
+               laisser en place. */
+            body.consignes-partage #zoomWidget,
+            body.consignes-partage #gm-player-fab {
+                translate: 0 calc(-1 * var(--consignes-h, 46vh));
+            }
+        }
+
+        .instr-actions #btnConsigneAide {
+            border: 1px solid #dfe4e8;
+            background: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #546e7a;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 17px;
+        }
 
         .consigne-aide {
             max-height: 190px;
@@ -7047,47 +7221,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div class="help-footer">GéoMaster v1.1</div>
         </div>
     </div>
+    <!-- ======================================================================
+         L'ÉNONCÉ MAGIQUE : UN TITRE, PUIS DES LIGNES.
+         La consigne intelligente tenait dans la barre d'outils du texte riche —
+         un bouton « ✨ Auto » à armer, une case globale, un bandeau d'état
+         commun à tout le panneau. Trois consignes écrites, une seule réponse
+         lisible. Le panneau est maintenant une LISTE DE LIGNES NUMÉROTÉES :
+         chacune a sa case « avec les instruments », son bouton Valider, sa
+         réponse en dessous, et son bandeau qui dit ce que le logiciel
+         reconnaît. Le texte libre de l'énoncé — gras, italique, listes — est
+         toujours là, replié sous la liste.
+         ====================================================================== -->
     <div id="instructionBox" style="display:none;">
         <div class="instr-header" id="instrDragHandle">
             <span>📝 Consignes</span>
-            <button class="instr-close" onclick="app.toggleInstructions()">✕</button>
+            <span class="instr-actions">
+                <button id="btnConsigneAide" onpointerdown="event.preventDefault(); app.basculerAideConsigne();"
+                    data-tooltip="Ce que je sais faire">?</button>
+                <button class="instr-close" onclick="app.toggleInstructions()">✕</button>
+            </span>
         </div>
-        <div class="instr-toolbar">
-            <button onpointerdown="event.preventDefault(); document.execCommand('bold', false, null);"
-                data-tooltip="Gras"><b>B</b></button>
-            <button onpointerdown="event.preventDefault(); document.execCommand('italic', false, null);"
-                data-tooltip="Italique"><i>I</i></button>
-            <button onpointerdown="event.preventDefault(); document.execCommand('underline', false, null);"
-                data-tooltip="Souligné"><u>U</u></button>
-            <div class="instr-sep"></div>
-            <button onpointerdown="event.preventDefault(); app.toggleStepInstruction();"
-                data-tooltip="Ajouter une consigne à cette étape"
-                style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd; font-weight: bold;">
-                💡 Étape
-            </button>
-            <button onpointerdown="event.preventDefault(); document.execCommand('insertUnorderedList', false, null);"
-                data-tooltip="Liste à puces">• Liste</button>
-            <button onpointerdown="event.preventDefault(); document.execCommand('formatBlock', false, '<h3>');"
-                data-tooltip="Titre">Titre</button>
-            <button onpointerdown="event.preventDefault(); document.execCommand('removeFormat', false, null);"
-                data-tooltip="Effacer style">🧹</button>
-            <div class="instr-sep"></div>
-            <!-- LA CONSIGNE INTELLIGENTE, ICI PLUTÔT QU'AILLEURS.
-                 Elle vivait dans une fenêtre à elle, qui couvrait la feuille : on
-                 ne voyait pas ce qu'on construisait. Elle est maintenant DANS le
-                 panneau des consignes — petit, flottant, déplaçable — où la
-                 phrase qu'on écrit est déjà celle de l'étape. On la lit, on
-                 appuie sur Entrée, et l'aperçu est la figure elle-même, autour. -->
-            <button id="btnConsigneAuto" onpointerdown="event.preventDefault(); app.basculerConsigneAuto();"
-                data-tooltip="Exécuter les consignes écrites ici (Entrée)">✨ Auto</button>
-            <button id="btnConsigneAide" onpointerdown="event.preventDefault(); app.basculerAideConsigne();"
-                data-tooltip="Ce que je sais faire">?</button>
-        </div>
-        <div id="consigneEtat" class="consigne-etat"></div>
-        <label id="consigneDetailLigne" class="consigne-detail" style="display:none;">
-            <input type="checkbox" id="consigneDetail">
-            <span><b>Construction détaillée</b> — règle et compas, rejouable avec ▶</span>
-        </label>
         <div id="consigneAide" class="consigne-aide" style="display:none;">
             <div class="consigne-groupe">Placer</div>
             <a onclick="app.exempleConsigne('Place 3 points A, B, C non alignés')">Place 3 points A, B, C non alignés</a>
@@ -7147,9 +7300,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Affiche la longueur de [AB]')">Affiche la longueur de [AB]</a>
             <a onclick="app.exempleConsigne('Code les longueurs égales')">Code les longueurs égales</a>
         </div>
-        <div id="instrContent" contenteditable="true" placeholder="Écrivez vos consignes ici...">
-            <h3>Exercice :</h3>
-            <p>1. Tracez un triangle...</p>
+        <div id="consigneLignes"></div>
+        <div class="csl-pied">
+            <button onclick="app.ajouterConsigne()" data-tooltip="Ajouter une ligne">＋ une consigne</button>
+            <button onclick="app.executerToutesConsignes()"
+                data-tooltip="Faire les lignes qui ne sont pas encore faites">▶ Tout faire</button>
+            <button id="btnEnonceLibre" onclick="app.basculerEnonceLibre()"
+                data-tooltip="Le texte libre de l'énoncé">Énoncé libre ▾</button>
+        </div>
+        <div id="enonceLibre" style="display:none;">
+            <div class="instr-toolbar">
+                <button onpointerdown="event.preventDefault(); document.execCommand('bold', false, null);"
+                    data-tooltip="Gras"><b>B</b></button>
+                <button onpointerdown="event.preventDefault(); document.execCommand('italic', false, null);"
+                    data-tooltip="Italique"><i>I</i></button>
+                <button onpointerdown="event.preventDefault(); document.execCommand('underline', false, null);"
+                    data-tooltip="Souligné"><u>U</u></button>
+                <div class="instr-sep"></div>
+                <button onpointerdown="event.preventDefault(); app.toggleStepInstruction();"
+                    data-tooltip="Ajouter une consigne à cette étape"
+                    style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd; font-weight: bold;">
+                    💡 Étape
+                </button>
+                <button onpointerdown="event.preventDefault(); document.execCommand('insertUnorderedList', false, null);"
+                    data-tooltip="Liste à puces">• Liste</button>
+                <button onpointerdown="event.preventDefault(); document.execCommand('formatBlock', false, '<h3>');"
+                    data-tooltip="Titre">Titre</button>
+                <button onpointerdown="event.preventDefault(); document.execCommand('removeFormat', false, null);"
+                    data-tooltip="Effacer style">🧹</button>
+            </div>
+            <div id="instrContent" contenteditable="true" placeholder="Écrivez vos consignes ici...">
+                <h3>Exercice :</h3>
+                <p>1. Tracez un triangle...</p>
+            </div>
         </div>
     </div>
     <!-- ======================================================================
@@ -13438,6 +13621,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (box) box.style.display = 'none';
                     if (btnToggle) btnToggle.classList.remove('active');
                 }
+                if (typeof this.majPartageConsignes === 'function') this.majPartageConsignes();
                 this.refreshStepInstructionUI();
             }
             /* Le bouton « 💡 Étape » de la barre des consignes n'avait jamais eu de
@@ -17246,6 +17430,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const box = document.getElementById('instructionBox');
                         if (box) {
                             if (vis) { box.style.display = 'flex'; if (typeof this.initInstructionDrag === 'function') this.initInstructionDrag(); } else { box.style.display = 'none'; }
+                            if (typeof this.majPartageConsignes === 'function') this.majPartageConsignes();
                         }
                     }
                     const viewBlock = parts.find(p => p.startsWith("VIEW:"));
@@ -17998,19 +18183,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     toast.className = toast.className.replace("show", "");
                 }, 3000);
             }
-            /* L'Entrée du panneau : on exécute la ligne AVANT que le navigateur ne
-               passe à la suivante, pour lire celle qu'on vient d'écrire. Une seule
-               écoute, posée à la première ouverture. */
+            /* À l'ouverture : la liste des lignes est dessinée, et l'écran se
+               partage en deux si l'on est au téléphone. */
             armerConsignePanneau() {
-                const zone = document.getElementById('instrContent');
-                if (!zone || zone.dataset.consigneArmee === '1') return;
-                zone.dataset.consigneArmee = '1';
-                zone.addEventListener('keydown', (e) => {
-                    if (e.key !== 'Enter' || e.shiftKey) return;
-                    if (!this.consigneAuto) return;
-                    this.consigneDepuisPanneau();
-                    // on laisse le retour à la ligne se faire : la consigne reste écrite
-                });
+                this.majConsignes();
+                this.majPartageConsignes();
             }
             initInstructionDrag() {
                 const box = document.getElementById('instructionBox');
@@ -19243,6 +19420,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.loopStartIndex = 0;
                     this.loopEndIndex = 0;
                     this.resetInteraction();
+                    /* L'ÉNONCÉ PART AVEC LA FIGURE. Des consignes cochées « faites »
+                       en face d'une feuille vide, c'est un compte-rendu faux : elles
+                       décrivaient des objets qui n'existent plus. */
+                    this._consignes = [];
+                    if (typeof this.majConsignes === 'function') this.majConsignes();
+                    const zoneEnonce = document.getElementById('instrContent');
+                    if (zoneEnonce) zoneEnonce.innerHTML = '';
                     this.saveState();
                     if (typeof this.refreshStepInstructionUI === 'function') this.refreshStepInstructionUI();
                     if (typeof this.updateScenarioSliderUI === 'function') this.updateScenarioSliderUI();
@@ -26066,6 +26250,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 m.forEach(n => { if (!sortie.includes(n)) sortie.push(n); });
                 return sortie;
             }
+            /* ---- ON ÉCRIT VITE, ET EN MINUSCULES -----------------------------
+               « trace un triangle abc puis la médiatrice de [ab] » : personne
+               n'appuie sur Majuscule six fois en tapant au tableau. Les points
+               sont remis en majuscules LÀ OÙ LA PHRASE DÉSIGNE UN POINT — après
+               « triangle », dans les crochets, dans une énumération de points —
+               et nulle part ailleurs, sans quoi « et » deviendrait un nom.
+               La correction est faite, puis dite : c'est une notation de cours. */
+            cslMajuscules(t) {
+                const HAUT = (s) => s.toUpperCase();
+                let s = String(t);
+                // [ab] (ab) [ab) — les notations, quoi qu'elles contiennent
+                s = s.replace(/([\[\(])\s*([a-zA-Z])('{0,2})\s*([a-zA-Z])('{0,2})\s*([\]\)])/g,
+                    (m, o, a, pa, b, pb, f) => o + HAUT(a) + pa + HAUT(b) + pb + f);
+                /* Après le mot qui annonce l'objet : « triangle abc », « le point o »,
+                   « l'angle bac ». Les mots de la langue qui peuvent suivre sont
+                   écartés — « le cercle de centre… » ne nomme pas un point « de ». */
+                const MOTS = 'de|du|des|d|en|et|est|qui|que|dont|sur|par|pour|la|le|les|un|une|il'
+                    + '|elle|se|ce|cette|son|sa|ses|leur|leurs|au|aux|tel|telle|tels|telles'
+                    + '|quelconque|isoc|rectangle|passant|centre|milieu|milieux|inscrit'
+                    + '|circonscrit|cm|mm|dm|m|rouge|bleu|vert|noir|jaune|orange|violet|rose'
+                    + '|gris|marron|blanc|gras|fin|mince|pointill';
+                const garde = new RegExp('^(?:' + MOTS + ')', 'i');
+                s = s.replace(/\b(triangles?|carr[ée]s?|rectangles?|losanges?|parall[ée]logrammes?|quadrilat[èe]res?|pentagones?|hexagones?|heptagones?|octogones?|polygones?|segments?|droites?|demi-droites?|cercles?|angles?|points?|sommets?|milieux?)\s+([a-z]{1,6})('{0,2})\b/g,
+                    (m, mot, nom, pr) => (garde.test(nom) ? m : mot + ' ' + HAUT(nom) + pr));
+                // « de centre a », « passant par b », « issue de a », « isocèle en a »
+                s = s.replace(/\b(de\s+centre|passant\s+par|issue\s+d[eu]|par\s+rapport\s+[àa]|appelle|appeler|nomme|nommer|note|noter|soit|soient|en|sur)\s+([a-z])('{0,2})(?=[\s,;.]|$)/g,
+                    (m, av, nom, pr) => av + ' ' + HAUT(nom) + pr);
+                // une énumération de points : « place 3 points a, b, c »
+                if (/\bpoints?\b/i.test(s)) {
+                    // « a, b » : la lettre qui ANNONCE une virgule…
+                    s = s.replace(/(^|[\s,;])([a-z])('{0,2})(?=\s*(?:,|;|\bet\b|$))/g,
+                        (m, av, nom, pr) => av + HAUT(nom) + pr);
+                    // …et celle qui la SUIT, car la dernière de la liste, elle, est
+                    // suivie du reste de la phrase : « a, b, c non alignés ».
+                    s = s.replace(/([,;]\s*|\bet\s+)([a-z])('{0,2})(?![a-z])/g,
+                        (m, av, nom, pr) => av + HAUT(nom) + pr);
+                }
+                // une mesure : « ab = 5 cm », « l'angle bac = 60° »
+                s = s.replace(/\b([a-z])([a-z])([a-z]?)\s*=\s*(?=\d)/g,
+                    (m, a, b, c) => HAUT(a) + HAUT(b) + HAUT(c) + ' = ');
+                return s;
+            }
             cslPointNomme(nom) {
                 return this.entities.find(e => e instanceof Point && e.label === nom) || null;
             }
@@ -26119,8 +26345,131 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const cm = parseFloat(n[1].replace(',', '.')) / info.facteur;
                 return cm * UNIT / (this.cmScale || 1);
             }
+            /* ---- LA CONSIGNE DIT AUSSI COMMENT TRACER ------------------------
+               « Trace [AB] en bleu », « la médiatrice en pointillés » : dans un
+               énoncé, la couleur et le style font partie de la consigne — c'est
+               ainsi qu'on distingue les données de la construction. Ce style ne
+               vaut que pour CETTE ligne : la palette n'est pas touchée, la
+               consigne suivante repart de la couleur courante. */
+            cslCouleursNommees() {
+                return {
+                    rouge: '#e53935', rouges: '#e53935',
+                    bleu: '#1e88e5', bleue: '#1e88e5', bleus: '#1e88e5', bleues: '#1e88e5',
+                    vert: '#43a047', verte: '#43a047', verts: '#43a047', vertes: '#43a047',
+                    noir: '#000000', noire: '#000000', noirs: '#000000', noires: '#000000',
+                    jaune: '#f9a825', jaunes: '#f9a825',
+                    orange: '#fb8c00', oranges: '#fb8c00',
+                    violet: '#8e24aa', violette: '#8e24aa', violets: '#8e24aa',
+                    rose: '#ec407a', roses: '#ec407a',
+                    gris: '#757575', grise: '#757575', grises: '#757575',
+                    marron: '#6d4c41', turquoise: '#00acc1', turquoises: '#00acc1',
+                    blanc: '#ffffff', blanche: '#ffffff',
+                };
+            }
+            cslLireStyle(t) {
+                const st = {}, dits = [];
+                const couleurs = this.cslCouleursNommees();
+                const noms = Object.keys(couleurs).sort((a, b) => b.length - a.length).join('|');
+                const c = t.match(new RegExp('\\ben\\s+(' + noms + ')\\b'))
+                       || t.match(new RegExp('\\bde\\s+couleur\\s+(' + noms + ')\\b'));
+                if (c) { st.color = couleurs[c[1]]; dits.push('en ' + c[1]); }
+                if (/\ben\s+(?:traits?\s+)?pointill|\bpointill[ée]s?\b|\ben\s+tirets?\b/.test(t)) {
+                    st.dash = [5, 5]; dits.push('en pointillés');
+                }
+                const e = t.match(/[ée]paisseur\s+(?:de\s+)?(\d+)/);
+                if (e) { st.width = Math.max(1, Math.min(12, Number(e[1]))); dits.push('épaisseur ' + st.width); }
+                else if (/\ben\s+(?:gras|[ée]pais)\b/.test(t)) { st.width = 4; dits.push('en gras'); }
+                else if (/\ben\s+(?:fin|mince)\b/.test(t)) { st.width = 1; dits.push('en trait fin'); }
+                return { style: st, dit: dits.join(', ') };
+            }
+            /* Une fois lu, le style est RETIRÉ de la phrase analysée : sans quoi
+               « le cercle de rayon 3 cm en vert » se décrirait lui-même comme
+               « … de rayon 3 cm en vert — en vert ». La phrase de l'élève, elle,
+               reste entière : c'est elle qui devient la consigne de l'étape. */
+            cslSansStyle(s) {
+                const noms = Object.keys(this.cslCouleursNommees())
+                    .sort((a, b) => b.length - a.length).join('|');
+                return s
+                    .replace(new RegExp('\\s*(?:et\\s+)?\\b(?:en|de\\s+couleur)\\s+(?:' + noms + ')\\b', 'gi'), '')
+                    .replace(/\s*(?:et\s+)?\ben\s+(?:traits?\s+)?pointill[ée]{1,2}s?\b/gi, '')
+                    .replace(/\s*(?:et\s+)?\ben\s+tirets?\b/gi, '')
+                    .replace(/\s*(?:et\s+)?\ben\s+(?:gras|[ée]pais|fin|mince)\b/gi, '')
+                    .replace(/\s*(?:et\s+)?\b[ée]paisseur\s+(?:de\s+)?\d+\b/gi, '')
+                    .replace(/\s+et\s*$/i, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim();
+            }
             cslStyle() {
-                return { color: this.globalStyle.color, width: this.globalStyle.width };
+                const g = this.globalStyle;
+                const base = { color: g.color, width: g.width,
+                               dash: (g.dash && g.dash.length) ? [5, 5] : null };
+                return Object.assign(base, this._cslStyleLigne || {});
+            }
+            /* ---- CE QUE LE LOGICIEL RECONNAÎT, PENDANT QU'ON ÉCRIT -----------
+               « Trace un carré de 3 cm » ne dit pas quels sommets : le logiciel
+               en invente alors, en silence, et l'élève ne saura jamais qu'il
+               manquait quelque chose. Le bandeau montre la phrase modèle sous la
+               ligne, pendant la frappe — un clic la recopie. */
+            cslModeles(texte) {
+                const t = this.cslNettoyer(texte || '').toLowerCase();
+                if (t.length < 3) return [];
+                const table = [
+                    [/carr[ée]/, ['Trace un carré ABCD de 3 cm de côté']],
+                    [/rectangle/, ['Trace un rectangle ABCD de 5 cm sur 3 cm',
+                                   'Trace un triangle ABC rectangle en A']],
+                    [/losange/, ['Trace un losange ABCD de 4 cm de côté']],
+                    [/parall[ée]logramme/, ['Trace un parallélogramme ABCD']],
+                    [/[ée]quilat/, ['Trace un triangle équilatéral ABC de 4 cm de côté']],
+                    [/isoc[èe]le/, ['Trace un triangle ABC isocèle en A de côté 5 cm et de base 3 cm']],
+                    [/triangle/, ['Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm',
+                                  'Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et l\'angle BAC = 60°',
+                                  'Trace un triangle ABC tel que AB = 6 cm, l\'angle BAC = 40° et l\'angle ABC = 60°']],
+                    [/pentagone|hexagone|octogone|r[ée]gulier/, ['Trace un hexagone ABCDEF de 3 cm de côté',
+                                                                'Trace un polygone régulier à 7 côtés']],
+                    [/polygone/, ['Trace le polygone ABCDE']],
+                    [/cercle/, ['Trace le cercle de centre A passant par B',
+                                'Trace le cercle de centre A et de rayon 3 cm',
+                                'Trace le cercle circonscrit au triangle ABC']],
+                    [/m[ée]diatrice/, ['Trace la médiatrice de [AB]',
+                                       'Trace les médiatrices du triangle ABC']],
+                    [/bissectrice/, ['Trace la bissectrice de l\'angle ABC',
+                                     'Trace les bissectrices du triangle ABC']],
+                    [/hauteur/, ['Trace la hauteur issue de A dans le triangle ABC']],
+                    [/m[ée]diane/, ['Trace la médiane issue de A dans le triangle ABC']],
+                    [/perpendiculaire/, ['Trace la perpendiculaire à (AB) passant par C']],
+                    [/parall[èe]le/, ['Trace la parallèle à (AB) passant par C']],
+                    [/milieu/, ['Place le milieu I de [AB]']],
+                    [/sym[ée]tri|image/, ['Trace le symétrique de A par rapport à O',
+                                          'Trace le symétrique de A par rapport à (EF)']],
+                    [/intersection|se\s+coupent/, ['Place le point I intersection de (AB) et (CD)',
+                                                   'Appelle O le point d\'intersection des médiatrices']],
+                    [/orthocentre|gravit[ée]|circonscrit|inscrit/, ['Place l\'orthocentre H du triangle ABC',
+                                                                   'Place le centre de gravité G du triangle ABC']],
+                    [/diagonale/, ['Trace les diagonales du carré ABCD']],
+                    [/\bangle/, ['Marque l\'angle ABC', 'L\'angle ABC mesure 60°']],
+                    [/longueur|mesure/, ['Affiche la longueur de [AB]', 'AB = 5 cm']],
+                    [/\bpoints?\b|^place|^pose|^marque/, ['Place 3 points A, B, C non alignés',
+                                                          'Place un point M sur [AB]']],
+                    [/segment|\bdroite|demi-droite|\brelie/, ['Trace [AB]  ·  [AB)  ·  (AB)',
+                                                              'Trace le segment [AB] de 5 cm']],
+                ];
+                const sortie = [];
+                for (const [re, phrases] of table) {
+                    if (!re.test(t)) continue;
+                    phrases.forEach(p => {
+                        if (p.toLowerCase() !== t && !sortie.includes(p)) sortie.push(p);
+                    });
+                }
+                return sortie.slice(0, 3);
+            }
+            /* Les objets bâtis autrement qu'avec un style en argument — les
+               perpendiculaires, les parallèles, les cercles — reçoivent le même. */
+            cslPoserStyle(obj) {
+                const st = this.cslStyle();
+                obj.color = st.color;
+                obj.lineWidth = st.width;
+                obj.dash = st.dash ? [5, 5] : [];
+                return obj;
             }
             cslSegment(a, b) {
                 const deja = this.entities.find(e => e instanceof Segment
@@ -26130,16 +26479,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(s);
                 return s;
             }
-            /* « Avec les instruments » se décide LIGNE PAR LIGNE : on veut la
-               construction au compas pour la médiatrice et la figure seule pour le
-               triangle de départ. Quand rien n'est imposé pour la ligne en cours,
-               c'est la case du panneau qui parle. */
+            /* « Avec les instruments » se décide LIGNE PAR LIGNE — chaque consigne
+               du panneau porte sa case : on veut la construction au compas pour la
+               médiatrice et la figure seule pour le triangle de départ. Sans rien
+               demander, c'est la figure seule. */
             cslDetaille() {
-                if (this._cslDetailleForce !== undefined && this._cslDetailleForce !== null) {
-                    return !!this._cslDetailleForce;
-                }
-                const c = document.getElementById('consigneDetail');
-                return !!(c && c.checked);
+                return !!this._cslDetailleForce;
             }
             executerConsigneAvec(phrase, avecInstruments) {
                 this._cslDetailleForce = avecInstruments;
@@ -26182,7 +26527,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                6 cm et de largeur 3 cm » décrivent UNE figure et ne se coupent pas.
                On ne coupe que devant ce qui commence une construction. */
             cslDecouper(brut) {
-                const re = /\s+(?:et|puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales)|le\s+(?:milieu|cercle|centre)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane))\b)/i;
+                const re = /\s+(?:et|puis|ensuite|,\s*puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)|le\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)|un\s+point|une\s+droite)\b)/i;
                 const bouts = brut.split(re).map(x => x.trim()).filter(Boolean);
                 return bouts.length > 1 ? bouts : [brut];
             }
@@ -26230,21 +26575,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return { ok: true, message: dits.join(' · '), astuce: notes.join(' ') };
             }
             executerConsigneSimple(phrase) {
-                const brut = this.cslNettoyer(phrase);
-                if (!brut) return { ok: false, message: "Écrivez une consigne." };
-                const t = brut.toLowerCase();
+                const source = this.cslNettoyer(phrase);
+                if (!source) return { ok: false, message: "Écrivez une consigne." };
+                const phraseEleve = this.cslMajuscules(source);
                 const avant = this.entities.length;
                 this._cslAstuces = [];
+                if (phraseEleve !== source) {
+                    this.cslDire(`Notation : un point se note par une MAJUSCULE — « ${phraseEleve} ».`);
+                }
+                /* La couleur et le style demandés dans la phrase, pour cette ligne
+                   seulement : la palette du professeur n'est pas touchée. */
+                const lu = this.cslLireStyle(phraseEleve.toLowerCase());
+                this._cslStyleLigne = lu.style;
+                const brut = lu.dit ? this.cslSansStyle(phraseEleve) : phraseEleve;
+                const t = brut.toLowerCase();
                 const fait = (quoi) => {
-                    // la phrase tapée devient la consigne de l'étape
+                    // la phrase tapée devient la consigne de l'étape, entière
                     if (this.entities.length > avant) {
                         if (!this.stepInstructions) this.stepInstructions = {};
-                        this.stepInstructions[avant] = brut;
+                        this.stepInstructions[avant] = phraseEleve;
                     }
                     this.codageDeConstruction();
                     this.saveState();
                     this.render();
-                    return { ok: true, message: quoi, cree: this.entities.length - avant,
+                    return { ok: true, message: quoi + (lu.dit ? ' — ' + lu.dit : ''),
+                             cree: this.entities.length - avant,
                              astuce: this._cslAstuces.join(' ') };
                 };
                 const rate = (m) => ({ ok: false, message: m, astuce: this._cslAstuces.join(' ') });
@@ -26255,6 +26610,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        les crochets oubliés. */
                     if (/^dessine[rz]?\b/.test(t)) {
                         this.cslDire('Formulation : en géométrie on écrit plutôt « Trace… » que « Dessine… ».');
+                    }
+                    /* « Appelle O le point d'intersection des médiatrices » : ce
+                       croisement porte un nom — c'est le centre du cercle
+                       circonscrit. On pose le point, et on dit lequel c'est.
+                       Avant la règle des droites remarquables, qui retracerait
+                       les trois médiatrices au lieu de leur point commun. */
+                    if (/intersection|se\s+(?:coupent|croisent|rencontrent)|concours|concourantes/.test(t)
+                        && /m[ée]diatrices|hauteurs|m[ée]dianes|bissectrices/.test(t)) {
+                        return this.cslCentreRemarquable(brut, t, fait, rate);
                     }
                     if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
@@ -26295,7 +26659,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        le mot POINT qui décide, pas le verbe. On n'y vient qu'après
                        les figures et les points remarquables, pour ne pas voler « le
                        point d'intersection » ni « un point sur [AB] ». */
-                    const versPlacer = /^(place|placer|pose|poser|marque|marquer|soit|soient|nomme|prends|prendre)\b/.test(t)
+                    const versPlacer = /^(place|placer|pose|poser|marque|marquer|soit|soient|nomme|nommer|appelle|appeler|note|noter|prends|prendre)\b/.test(t)
                         || /\bpoints?\b/.test(t);
                     if (versPlacer
                         && !/segment|droite|cercle|carr|triangle|rectangle|losange|parall|pentagone|hexagone|polygone/.test(t)) {
@@ -26324,6 +26688,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 } catch (err) {
                     console.error('Consigne :', err);
                     return rate("Je n'ai pas su faire ça.");
+                } finally {
+                    // le style demandé ne déborde pas sur la consigne suivante
+                    this._cslStyleLigne = null;
                 }
             }
             /* ---- LA NOTATION -------------------------------------------------
@@ -26370,9 +26737,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                triangle ABC » en trace trois ; au singulier, celle qu'on nomme. Et
                les points qui vont avec : orthocentre, centre de gravité, centres
                des cercles circonscrit et inscrit. */
-            cslTriangleRemarquable(brut, t, fait, rate) {
+            /* « Appelle O le point d'intersection des médiatrices. » Le croisement
+               des trois médiatrices, des trois hauteurs, des trois médianes, des
+               trois bissectrices : chacun a un nom, et c'est ce nom qu'on apprend.
+               On fait le point demandé, et on dit lequel c'est. */
+            cslCentreRemarquable(brut, t, fait, rate) {
+                const table = [
+                    [/m[ée]diatrices/, 'des médiatrices', 'le centre du cercle circonscrit'],
+                    [/hauteurs/, 'des hauteurs', "l'orthocentre"],
+                    [/m[ée]dianes/, 'des médianes', 'le centre de gravité'],
+                    [/bissectrices/, 'des bissectrices', 'le centre du cercle inscrit'],
+                ];
+                const trouve = table.find(([re]) => re.test(t));
+                if (!trouve) return rate("L'intersection de quoi ?");
+                const [, quoi, nomPoint] = trouve;
                 const noms = this.cslNoms(brut);
-                const sommets = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                const connus = noms.filter(n => this.cslPointNomme(n));
+                const libre = noms.find(n => !this.cslPointNomme(n)) || '';
+                const sujet = (this._cslSujet || []).filter(n => this.cslPointNomme(n));
+                const tri = connus.length >= 3 ? connus.slice(0, 3) : sujet.slice(0, 3);
+                if (tri.length < 3) return rate("De quel triangle ? Écrivez « … du triangle ABC ».");
+                this.cslDire(`Vocabulaire : le point d'intersection ${quoi} d'un triangle, c'est ${nomPoint}.`);
+                const phrase = `Place ${nomPoint} ${libre} du triangle ${tri.join('')}`;
+                return this.cslTriangleRemarquable(phrase, phrase.toLowerCase(), fait, rate);
+            }
+            cslTriangleRemarquable(brut, t, fait, rate) {
+                let noms = this.cslNoms(brut);
+                let sommets = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                /* « Trace un triangle ABC puis les médiatrices » : la seconde
+                   consigne ne renomme pas le triangle. C'est celui qu'on vient de
+                   tracer. */
+                if (sommets.length < 3 && this._cslSujet) {
+                    const repris = this._cslSujet.map(n => this.cslPointNomme(n)).filter(Boolean);
+                    if (repris.length >= 3) {
+                        sommets = repris;
+                        noms = noms.concat(this._cslSujet.filter(n => !noms.includes(n)));
+                    }
+                }
                 if (sommets.length < 3) {
                     const inconnu = noms.find(n => !this.cslPointNomme(n));
                     return rate(inconnu ? `Je ne connais pas ${inconnu}.`
@@ -26382,7 +26783,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const nom3 = sommets.slice(0, 3).map(p => p.label).join('');
                 const droite = (p, q, r) => {   // perpendiculaire à (qr) passant par p
                     const d = new PerpendicularLine(p, { p1: q, p2: r });
-                    d.color = this.globalStyle.color;
+                    const st = this.cslStyle();
+                    d.color = st.color;
+                    d.lineWidth = st.width;
+                    d.dash = st.dash ? [5, 5] : [];
                     this.addEntity(d);
                     return d;
                 };
@@ -26438,6 +26842,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/centre\s+de\s+gravit|isobarycentre/.test(t)) {
                     return poserCentre(centres.gravite(), nomLibre, "centre de gravité");
                 }
+                if (/centre\s+du\s+cercle\s+inscrit/.test(t)) {
+                    return poserCentre(centres.inscrit(), nomLibre, "centre du cercle inscrit");
+                }
                 if (/cercle\s+inscrit|inscrit/.test(t) && /cercle/.test(t)) {
                     const o = centres.inscrit();
                     if (!o) return rate("Ce triangle est aplati.");
@@ -26449,7 +26856,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const bord = new Point(o.x + d, o.y, '');
                     bord.visible = false; this.addEntity(bord);
                     const cer = new Circle(centre, bord);
-                    cer.color = this.globalStyle.color; cer.lineWidth = this.globalStyle.width;
+                    const stc = this.cslStyle();
+                    cer.color = stc.color; cer.lineWidth = stc.width;
+                    cer.dash = stc.dash ? [5, 5] : [];
                     this.addEntity(cer);
                     return fait(`Cercle inscrit dans ${nom3}`);
                 }
@@ -26728,8 +27137,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const s = this.cslPointNomme(issue);
                     const a = this.cslPointNomme(noms[0]), b = this.cslPointNomme(noms[1]);
                     if (!s || !a || !b) return rate("Je ne connais pas tous ces points.");
-                    const d = new PerpendicularLine(s, { p1: a, p2: b });
-                    d.color = this.globalStyle.color;
+                    const d = this.cslPoserStyle(new PerpendicularLine(s, { p1: a, p2: b }));
                     this.addEntity(d);
                     return fait(`Hauteur issue de ${issue}`);
                 }
@@ -26755,8 +27163,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, '', [a, b]);
                         m.visible = false;
                         this.addEntity(m);
-                        const d = new PerpendicularLine(m, { p1: a, p2: b });
-                        d.color = this.globalStyle.color;
+                        const d = this.cslPoserStyle(new PerpendicularLine(m, { p1: a, p2: b }));
                         this.addEntity(d);
                     }
                     return fait(`Médiatrice de [${seg[1]}${seg[2]}]`);
@@ -26765,9 +27172,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/\ben\s+([A-Z]'{0,2})\b/);
                 if (!par) return rate("Par quel point ? Écrivez « … passant par C ».");
                 const c = this.cslPoint(par[1]);
-                const d = perp ? new PerpendicularLine(c, { p1: a, p2: b })
-                               : new ParallelLine(c, { p1: a, p2: b });
-                d.color = this.globalStyle.color;
+                const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, { p1: a, p2: b })
+                                                 : new ParallelLine(c, { p1: a, p2: b }));
                 this.addEntity(d);
                 return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
             }
@@ -26824,9 +27230,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const bord = new Point(centre.x + r, centre.y, '');
                 bord.visible = false;
                 this.addEntity(bord);
-                const c = new Circle(centre, bord);
-                c.color = this.globalStyle.color;
-                c.lineWidth = this.globalStyle.width;
+                const c = this.cslPoserStyle(new Circle(centre, bord));
                 this.addEntity(c);
                 return fait(`Cercle de centre ${centre.label || '·'} ${dit}`.trim());
             }
@@ -27286,82 +27690,245 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                On écrit, Entrée, et l'aperçu est la figure elle-même — le panneau
                est petit, flottant, et se déplace si elle gêne.
 
-               L'exécution s'arme d'un bouton : on doit pouvoir écrire un énoncé
-               sans que chaque ligne parte se construire. */
-            basculerConsigneAuto() {
-                this.consigneAuto = !this.consigneAuto;
-                const b = document.getElementById('btnConsigneAuto');
-                if (b) b.classList.toggle('actif', this.consigneAuto);
-                const d = document.getElementById('consigneDetailLigne');
-                if (d) d.style.display = this.consigneAuto ? 'flex' : 'none';
-                this.direConsigne(this.consigneAuto
-                    ? { ok: true, message: 'Écrivez une consigne, puis Entrée.' }
-                    : null);
-                if (this.consigneAuto) {
-                    const z = document.getElementById('instrContent');
-                    if (z) z.focus();
+               UNE LIGNE, UNE CONSIGNE. Elles sont NUMÉROTÉES — on sait où l'on
+               en est, et une ligne déjà faite porte un ✓ au lieu de son numéro :
+               elle ne repart pas une seconde fois. La modifier la remet en jeu.
+               Chacune décide seule d'être construite aux instruments ou non. */
+            consignesListe() {
+                if (!this._consignes) this._consignes = [];
+                return this._consignes;
+            }
+            consigneNeuve(texte = '') {
+                return { texte, instruments: false, faite: false, etat: null,
+                         message: '', astuce: '', signature: '' };
+            }
+            ajouterConsigne(texte = '') {
+                const l = this.consignesListe();
+                l.push(this.consigneNeuve(texte));
+                this.majConsignes(l.length - 1);
+                return l.length - 1;
+            }
+            supprimerConsigne(i) {
+                const l = this.consignesListe();
+                if (i < 0 || i >= l.length) return;
+                l.splice(i, 1);
+                this.majConsignes();
+            }
+            /* Le rendu est refait en entier — à l'ajout, à la suppression, à la
+               validation, jamais à la frappe : le curseur reste donc où il est. */
+            majConsignes(focus = -1) {
+                const hote = document.getElementById('consigneLignes');
+                if (!hote) return;
+                const liste = this.consignesListe();
+                if (!liste.length) liste.push(this.consigneNeuve());
+                const actif = document.activeElement;
+                let iFocus = focus, caret = -1;
+                if (iFocus < 0 && actif && actif.classList && actif.classList.contains('csl-champ')) {
+                    iFocus = Number(actif.dataset.i);
+                    caret = actif.selectionStart;
                 }
+                hote.innerHTML = '';
+                liste.forEach((c, i) => hote.appendChild(this.ligneConsigneDOM(c, i)));
+                if (iFocus >= 0) {
+                    const champ = hote.querySelector('.csl-champ[data-i="' + iFocus + '"]');
+                    if (champ) {
+                        champ.focus();
+                        const p = caret >= 0 ? caret : champ.value.length;
+                        try { champ.setSelectionRange(p, p); } catch (e) { /* champ non textuel */ }
+                    }
+                }
+            }
+            ligneConsigneDOM(c, i) {
+                const el = document.createElement('div');
+                el.className = 'csl-ligne' + (c.faite ? ' faite' : '');
+                const tete = document.createElement('div');
+                tete.className = 'csl-tete';
+
+                const num = document.createElement('span');
+                num.className = 'csl-num';
+                num.textContent = c.faite ? '✓' : String(i + 1);
+                num.title = c.faite ? `Consigne ${i + 1} — déjà faite` : `Consigne ${i + 1}`;
+
+                const champ = document.createElement('input');
+                champ.type = 'text';
+                champ.className = 'csl-champ';
+                champ.dataset.i = String(i);
+                champ.value = c.texte || '';
+                champ.placeholder = 'Trace un triangle ABC…';
+                champ.spellcheck = false;
+                champ.addEventListener('input', () => {
+                    c.texte = champ.value;
+                    /* Modifier une ligne faite la remet en jeu : le ✓ retombe sur
+                       son numéro, et « Valider » redevient actif. */
+                    if (c.faite && champ.value.trim() !== c.signature) {
+                        c.faite = false;
+                        el.classList.remove('faite');
+                        num.textContent = String(i + 1);
+                    }
+                    this.bandeauConsigne(el, champ.value);
+                });
+                champ.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    this.validerConsigne(i);
+                });
+                champ.addEventListener('focus', () => this.bandeauConsigne(el, champ.value));
+
+                const go = document.createElement('button');
+                go.className = 'csl-go';
+                go.textContent = 'Valider';
+                go.addEventListener('click', () => this.validerConsigne(i));
+
+                const sup = document.createElement('button');
+                sup.className = 'csl-suppr';
+                sup.textContent = '✕';
+                sup.title = 'Retirer cette ligne';
+                sup.addEventListener('click', () => this.supprimerConsigne(i));
+
+                tete.append(num, champ, go, sup);
+
+                const outils = document.createElement('label');
+                outils.className = 'csl-outils';
+                const case1 = document.createElement('input');
+                case1.type = 'checkbox';
+                case1.checked = !!c.instruments;
+                case1.addEventListener('change', () => { c.instruments = case1.checked; });
+                const dit = document.createElement('span');
+                dit.textContent = 'avec les instruments';
+                outils.append(case1, dit);
+
+                const rep = document.createElement('div');
+                rep.className = 'csl-reponse' + (c.etat ? ' ' + c.etat : '');
+                if (c.etat) {
+                    rep.textContent = (c.etat === 'ok' ? '✓ ' : '✗ ') + c.message;
+                    /* La notation est un point de cours, pas une faute de frappe :
+                       [AB] le segment, (AB) la droite, [AB) la demi-droite. La
+                       consigne est faite quand même, et l'écriture juste rappelée. */
+                    if (c.astuce) {
+                        const n = document.createElement('span');
+                        n.className = 'note';
+                        n.textContent = '✎ ' + c.astuce;
+                        rep.appendChild(n);
+                    }
+                }
+
+                const mod = document.createElement('div');
+                mod.className = 'csl-modeles';
+
+                el.append(tete, outils, rep, mod);
+                /* Une ligne faite n'a plus besoin qu'on lui montre le modèle :
+                   le bandeau ne parle que tant qu'on cherche ses mots. */
+                if (c.texte && !c.faite) this.bandeauConsigne(el, c.texte);
+                return el;
+            }
+            /* LE BANDEAU. « Trace un carré de 3 cm » ne dit pas quels sommets ; le
+               logiciel en invente alors, en silence. Plutôt que de deviner sans
+               rien dire, on montre sous la ligne la phrase que le logiciel
+               reconnaît vraiment — un clic la recopie. */
+            bandeauConsigne(el, texte) {
+                const mod = el.querySelector('.csl-modeles');
+                if (!mod) return;
+                const trouves = this.cslModeles(texte);
+                mod.innerHTML = '';
+                if (!trouves.length) { mod.style.display = 'none'; return; }
+                const t = document.createElement('b');
+                t.textContent = trouves.length > 1 ? 'Ce que je reconnais :' : 'Ce que je reconnais :';
+                mod.appendChild(t);
+                trouves.forEach(p => {
+                    const a = document.createElement('a');
+                    a.textContent = p;
+                    a.addEventListener('click', () => {
+                        const champ = el.querySelector('.csl-champ');
+                        if (!champ) return;
+                        champ.value = p;
+                        champ.dispatchEvent(new Event('input'));
+                        champ.focus();
+                    });
+                    mod.appendChild(a);
+                });
+                mod.style.display = 'block';
+            }
+            validerConsigne(i) {
+                const liste = this.consignesListe();
+                const c = liste[i];
+                if (!c) return false;
+                const texte = (c.texte || '').trim();
+                if (!texte) {
+                    c.etat = 'rate'; c.message = 'Écrivez une consigne.'; c.astuce = '';
+                    this.majConsignes(i);
+                    return false;
+                }
+                /* Déjà faite et pas retouchée : on ne la rejoue pas. Deux fois la
+                   même ligne, ce sont deux fois les mêmes objets sur la figure. */
+                if (c.faite && c.signature === texte) {
+                    c.etat = 'ok';
+                    c.message = `Consigne ${i + 1} déjà faite — modifiez-la pour la refaire.`;
+                    c.astuce = '';
+                    this.majConsignes(i);
+                    return false;
+                }
+                const r = this.executerConsigneAvec(texte, !!c.instruments);
+                c.etat = r.ok ? 'ok' : 'rate';
+                c.message = r.message;
+                c.astuce = r.astuce || '';
+                c.faite = !!r.ok;
+                c.signature = texte;
+                // une ligne vide reste prête au bout de la liste
+                if (r.ok && i === liste.length - 1) liste.push(this.consigneNeuve());
+                this.majConsignes(r.ok ? Math.min(i + 1, liste.length - 1) : i);
+                return r.ok;
+            }
+            /* Tout l'énoncé d'un coup — sans refaire ce qui est déjà fait. */
+            executerToutesConsignes() {
+                const liste = this.consignesListe();
+                let faites = 0, ratee = -1;
+                for (let i = 0; i < liste.length; i++) {
+                    const c = liste[i];
+                    if (!(c.texte || '').trim() || (c.faite && c.signature === c.texte.trim())) continue;
+                    if (this.validerConsigne(i)) faites++;
+                    else { ratee = i; break; }
+                }
+                if (ratee >= 0) this.showToast(`Arrêt à la consigne ${ratee + 1}`);
+                else this.showToast(faites ? `${faites} consigne${faites > 1 ? 's' : ''} faite${faites > 1 ? 's' : ''}`
+                                           : 'Rien de nouveau à faire');
+                return faites;
+            }
+            basculerEnonceLibre() {
+                const z = document.getElementById('enonceLibre');
+                const b = document.getElementById('btnEnonceLibre');
+                if (!z) return;
+                const ouvert = z.style.display !== 'none' && z.style.display !== '';
+                z.style.display = ouvert ? 'none' : 'block';
+                if (b) b.textContent = ouvert ? 'Énoncé libre ▾' : 'Énoncé libre ▴';
             }
             basculerAideConsigne() {
                 const a = document.getElementById('consigneAide');
                 if (!a) return;
                 a.style.display = (a.style.display === 'none' || !a.style.display) ? 'block' : 'none';
             }
-            direConsigne(r) {
-                const e = document.getElementById('consigneEtat');
-                if (!e) return;
-                if (!r) { e.className = 'consigne-etat'; e.textContent = ''; return; }
-                e.className = 'consigne-etat ' + (r.ok ? 'ok' : 'rate');
-                e.textContent = (r.ok ? '✓ ' : '✗ ') + r.message;
-                /* La notation est un point de cours, pas une faute de frappe :
-                   [AB] le segment, (AB) la droite, [AB) la demi-droite. La consigne
-                   est faite quand même, et la bonne écriture rappelée en dessous. */
-                if (r.astuce) {
-                    const n = document.createElement('span');
-                    n.className = 'note';
-                    n.textContent = '✎ ' + r.astuce;
-                    e.appendChild(n);
-                }
-            }
-            /* La ligne où se trouve le curseur, dans le texte enrichi du panneau. */
-            ligneConsigneCourante() {
-                const zone = document.getElementById('instrContent');
-                const sel = window.getSelection();
-                if (!zone) return '';
-                if (!sel || !sel.anchorNode || !zone.contains(sel.anchorNode)) {
-                    const t = (zone.innerText || '').trim().split('\n');
-                    return t[t.length - 1] || '';
-                }
-                let n = sel.anchorNode;
-                while (n && n.parentNode && n.parentNode !== zone) n = n.parentNode;
-                if (!n || n === zone) {
-                    const t = (zone.innerText || '').trim().split('\n');
-                    return t[t.length - 1] || '';
-                }
-                return (n.innerText || n.textContent || '').trim();
-            }
-            /* Appelée à chaque Entrée dans le panneau : si l'exécution est armée,
-               la ligne qu'on vient d'écrire est faite. Elle RESTE écrite — c'est la
-               consigne de l'étape, on ne la retape pas. */
-            consigneDepuisPanneau() {
-                if (!this.consigneAuto) return false;
-                const ligne = this.ligneConsigneCourante();
-                if (!ligne.trim()) return false;
-                const r = this.executerConsigne(ligne);
-                this.direConsigne(r);
-                return r.ok;
-            }
+            /* Un exemple ne s'exécute pas tout seul : il se pose dans une ligne
+               vide, qu'on lit, qu'on adapte, puis qu'on valide. */
             exempleConsigne(txt) {
-                const zone = document.getElementById('instrContent');
-                if (!zone) return;
-                const p = document.createElement('p');
-                p.textContent = txt;
-                zone.appendChild(p);
-                zone.focus();
-                // le curseur à la fin de la ligne posée, prêt pour Entrée
-                const sel = window.getSelection(), r = document.createRange();
-                r.selectNodeContents(p); r.collapse(false);
-                sel.removeAllRanges(); sel.addRange(r);
+                const liste = this.consignesListe();
+                let i = liste.findIndex(c => !(c.texte || '').trim());
+                if (i < 0) { liste.push(this.consigneNeuve()); i = liste.length - 1; }
+                liste[i].texte = txt;
+                liste[i].faite = false;
+                liste[i].etat = null;
+                this.majConsignes(i);
+            }
+            /* AU TÉLÉPHONE, LE PANNEAU EST LA MOITIÉ BASSE DE L'ÉCRAN, et la
+               feuille est raccourcie d'autant : on voit ce qu'on construit
+               pendant qu'on l'écrit. Ailleurs, il reste la fenêtre flottante. */
+            majPartageConsignes() {
+                const box = document.getElementById('instructionBox');
+                const ouvert = !!box && box.style.display !== 'none' && box.style.display !== '';
+                const petit = window.matchMedia('(max-width: 700px)').matches;
+                document.body.classList.toggle('consignes-partage', ouvert && petit);
+                if (!this._partageArme) {
+                    this._partageArme = true;
+                    window.addEventListener('resize', () => this.majPartageConsignes());
+                }
             }
             enregistrerDansBiblio() {
                 const nom = (this.projectTitle || '').trim() || 'Sans titre';
@@ -28176,7 +28743,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     data: this.serialize(),
                     instructions: {
                         html: content,
-                        visible: isVisible
+                        visible: isVisible,
+                        // les lignes de l'énoncé magique voyagent avec la figure
+                        lignes: this.consignesListe().filter(c => (c.texte || '').trim())
                     },
                     chapters: this.chapters || [],
                     stepInstructions: this.stepInstructions || {},
@@ -28206,6 +28775,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 const box = document.getElementById('instructionBox');
                                 const div = document.getElementById('instrContent');
                                 if (div) div.innerHTML = content.instructions.html;
+                                this._consignes = (content.instructions.lignes || [])
+                                    .map(c => Object.assign(this.consigneNeuve(), c));
+                                this.majConsignes();
                                 if (box) {
                                     if (content.instructions.visible) {
                                         box.style.display = 'flex';
@@ -28219,7 +28791,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 if (div) div.innerHTML = '<h3>Exercice :</h3><p>...</p>';
                                 const box = document.getElementById('instructionBox');
                                 if (box) box.style.display = 'none';
+                                this._consignes = [];
+                                this.majConsignes();
                             }
+                            this.majPartageConsignes();
                             this.chapters = content.chapters || [];
                             this.stepInstructions = content.stepInstructions || {};
                             const titleInput = document.getElementById('docTitleInput');
@@ -31509,9 +32084,13 @@ var qrcode = function() {
                         if (!boite || boite.style.display === 'none' || boite.style.display === '') {
                             app.toggleInstructions();
                         }
-                        if (!app.consigneAuto) app.basculerConsigneAuto();
-                        var z = document.getElementById('instrContent');
-                        if (z) z.focus();
+                        /* Le curseur va dans la première ligne libre : Ctrl+E, on
+                           écrit, Entrée — sans toucher la souris. */
+                        var vides = app.consignesListe().findIndex(function (c) {
+                            return !(c.texte || '').trim();
+                        });
+                        if (vides < 0) vides = app.ajouterConsigne();
+                        app.majConsignes(vides);
                         return;
                     }
                     if (!voile.classList.contains('ouvert')) return;
