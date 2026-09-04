@@ -7942,6 +7942,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <div id="btnMesUnite" class="switch-btn" onclick="app.styleObject('cycleUnit')"
                                 data-tooltip="Unité affichée (mm, cm, dm, m, aucune)"
                                 style="font-size: 12px; font-weight: 600; letter-spacing: .3px;">–</div>
+                            <!-- Donner au segment la longueur qu'on veut. Même
+                                 rangée que le reste des mesures : rien de neuf à
+                                 l'écran, et la loupe le trouve. -->
+                            <div id="btnMesFixer" class="switch-btn" onclick="app.fixerMesure()"
+                                data-libelle="Fixer la longueur"
+                                data-tooltip="Fixer la longueur (ou double-clic sur la mesure)"
+                                style="font-size: 13px; font-weight: 700;">=</div>
                         </div>
                     </div>
                     <div id="rowCoding" class="coding-grid" style="display:none;">
@@ -7997,6 +8004,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
                                     <path d="M4 20 L4 4 A16 16 0 0 1 20 20 H4 Z" fill="none" />
                                     <path d="M4 20 L4 4 A16 16 0 0 1 15.3 8.7 Z" fill="currentColor" stroke="none" />
+                                </svg>
+                            </div>
+                            <!-- Donner à l'angle la valeur qu'on veut. -->
+                            <div id="btnFixerAngle" class="icon-btn" onclick="app.fixerMesure()"
+                                data-libelle="Fixer l'angle"
+                                data-tooltip="Fixer l'angle (ou double-clic sur la valeur)">
+                                <svg viewBox="0 0 24 24">
+                                    <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle"
+                                        font-family="${policePDF('Arial')}" font-weight="bold" font-size="13" fill="currentColor">=</text>
                                 </svg>
                             </div>
                             <div id="btnFlipAngle" class="icon-btn" onclick="app.styleObject('flipAngle')" data-tooltip="Inverser">
@@ -11086,6 +11102,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (v.indexOf('.') !== -1) v = v.replace(/0+$/, '').replace(/\.$/, '');
                 return v + ' ' + this.lengthUnit;
             }
+            /* Où la longueur est écrite, et la place qu'elle prend — le rectangle
+               blanc posé sous elle, exactement. On modifie une mesure là où on la
+               lit : c'est cette boîte que le double-clic vise. */
+            boiteMesure(ctx) {
+                if (!this.showLength || !this.p1 || !this.p2) return null;
+                const mx = (this.p1.x + this.p2.x) / 2, my = (this.p1.y + this.p2.y) / 2;
+                let angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
+                const gros = gmGros();
+                let off = this.measureOffset * gros;
+                if (angle > Math.PI / 2 || angle < -Math.PI / 2) { angle += Math.PI; off = -off; }
+                let w = 40;
+                if (ctx) {
+                    ctx.save();
+                    ctx.font = "14px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
+                    w = ctx.measureText(this.texteLongueur()).width;
+                    ctx.restore();
+                }
+                const t = off - 4 * gros;
+                return { x: mx - Math.sin(angle) * t, y: my + Math.cos(angle) * t,
+                         angle, demiL: w / 2 + 4, demiH: 8 * gros + 2 };
+            }
+            mesureTouchee(ctx, x, y) {
+                const b = this.boiteMesure(ctx);
+                if (!b) return false;
+                const dx = x - b.x, dy = y - b.y;
+                const u = dx * Math.cos(b.angle) + dy * Math.sin(b.angle);
+                const v = -dx * Math.sin(b.angle) + dy * Math.cos(b.angle);
+                return Math.abs(u) <= b.demiL && Math.abs(v) <= b.demiH;
+            }
             draw(ctx, {
                 isHovered,
                 isToDelete
@@ -11324,6 +11369,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (diff > 0) diff -= 2 * Math.PI;
                 }
                 return Math.abs(diff * 180 / Math.PI);
+            }
+            /* Où la valeur est écrite. Un angle droit n'affiche pas de nombre —
+               c'est son équerre qui le dit — donc rien à viser. */
+            boiteMesure(ctx) {
+                if (!this.showValue || !this.p1 || !this.p2 || !this.p3) return null;
+                const val = this.getAngleValue();
+                if (Math.abs(val - 90) < 0.5) return null;
+                const a1 = Math.atan2(this.p1.y - this.p2.y, this.p1.x - this.p2.x);
+                const a2 = Math.atan2(this.p3.y - this.p2.y, this.p3.x - this.p2.x);
+                let diff = a2 - a1;
+                if (this.isCounterClockwise) { if (diff < 0) diff += 2 * Math.PI; }
+                else { if (diff > 0) diff -= 2 * Math.PI; }
+                const midAngle = a1 + diff / 2;
+                const gros = gmGros();
+                const dist = 25 + ((this.arcCount || 1) - 1) * 5 + 15 * gros;
+                let w = 26;
+                if (ctx) {
+                    ctx.save();
+                    ctx.font = "bold 12px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
+                    w = ctx.measureText(Math.round(val) + "°").width;
+                    ctx.restore();
+                }
+                return { x: this.p2.x + Math.cos(midAngle) * dist, y: this.p2.y + Math.sin(midAngle) * dist,
+                         angle: 0, demiL: w / 2 + 4, demiH: 8 * gros + 2 };
+            }
+            mesureTouchee(ctx, x, y) {
+                const b = this.boiteMesure(ctx);
+                if (!b) return false;
+                return Math.abs(x - b.x) <= b.demiL && Math.abs(y - b.y) <= b.demiH;
             }
             draw(ctx, { isHovered, isToDelete }) {
                 if (!this.p1 || !this.p2 || !this.p3) return;
@@ -15364,6 +15438,132 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (e.key === 'Enter') this.calculate();
                 });
             }
+            /* ============================================================
+               DONNER UNE LONGUEUR, DONNER UN ANGLE
+
+               Tout se traçait à la main : on visait 6 cm et l'on tombait sur 5,7.
+               Or un énoncé dit toujours « ABC tel que AB = 5 cm et  = 60° ».
+               Le nombre affiché devient donc modifiable : double-clic dessus, on
+               tape la valeur, le point glisse ou tourne jusqu'à elle et le reste
+               de la figure suit. Rien de neuf dans l'interface — on modifie la
+               mesure là où on la lit, plus un bouton dans la rangée qui règle
+               déjà l'affichage des mesures, pour que la loupe la trouve.
+               ============================================================ */
+            mesureSousSouris(x, y) {
+                for (let i = this.entities.length - 1; i >= 0; i--) {
+                    const e = this.entities[i];
+                    if (e && e.visible !== false && typeof e.mesureTouchee === 'function'
+                        && e.mesureTouchee(this.ctx, x, y)) return e;
+                }
+                return null;
+            }
+            /* Le point qu'on a le droit de bouger : celui qui n'est pas défini par
+               d'autres. Déplacer une intersection ou un milieu n'aurait aucun sens —
+               il reviendrait à sa place à la première mise à jour. */
+            pointLibre(p) {
+                return p instanceof Point && (!p.parents || p.parents.length === 0);
+            }
+            appliquerMesure(ent, valeur) {
+                if (!isFinite(valeur)) return "Valeur illisible";
+                if (ent instanceof Angle) {
+                    if (!(valeur > 0 && valeur < 360)) return "Un angle va de 0 à 360°";
+                    const c = ent.p2;
+                    const a1 = Math.atan2(ent.p1.y - c.y, ent.p1.x - c.x);
+                    const a2 = Math.atan2(ent.p3.y - c.y, ent.p3.x - c.x);
+                    const vise = (ent.isCounterClockwise ? 1 : -1) * valeur * Math.PI / 180;
+                    let mobile = null, delta = 0;
+                    if (this.pointLibre(ent.p3)) { mobile = ent.p3; delta = (a1 + vise) - a2; }
+                    else if (this.pointLibre(ent.p1)) { mobile = ent.p1; delta = (a2 - vise) - a1; }
+                    else return "Les deux côtés dépendent d'autres objets";
+                    const dx = mobile.x - c.x, dy = mobile.y - c.y;
+                    mobile.x = c.x + dx * Math.cos(delta) - dy * Math.sin(delta);
+                    mobile.y = c.y + dx * Math.sin(delta) + dy * Math.cos(delta);
+                } else {
+                    if (!(valeur > 0)) return "Une longueur est un nombre positif";
+                    const info = GM_UNITES_INFO[ent.lengthUnit];
+                    const cm = info ? valeur / info.facteur : valeur;
+                    const px = cm * UNIT / (this.cmScale || 1);
+                    let fixe = ent.p1, mobile = ent.p2;
+                    if (!this.pointLibre(mobile)) {
+                        if (!this.pointLibre(fixe)) return "Les deux extrémités dépendent d'autres objets";
+                        fixe = ent.p2; mobile = ent.p1;
+                    }
+                    const d = MathUtils.dist(fixe.x, fixe.y, mobile.x, mobile.y);
+                    if (d < 0.001) return "Extrémités confondues";
+                    mobile.x = fixe.x + (mobile.x - fixe.x) / d * px;
+                    mobile.y = fixe.y + (mobile.y - fixe.y) / d * px;
+                }
+                this.updateDependents();
+                this.saveState();
+                this.render();
+                return null;
+            }
+            saisieMesure(ent, clientX, clientY) {
+                if (!ent || typeof ent.boiteMesure !== 'function') return;
+                const estAngle = (ent instanceof Angle);
+                const b = ent.boiteMesure(this.ctx);
+                const rc = this.canvas.getBoundingClientRect();
+                let gx = clientX, gy = clientY;
+                if (b) {
+                    gx = rc.left + b.x * this.view.zoom + this.view.x;
+                    gy = rc.top + b.y * this.view.zoom + this.view.y;
+                }
+                const unite = estAngle ? '°' : (ent.lengthUnit || 'cm');
+                const actuel = estAngle ? String(Math.round(ent.getAngleValue()))
+                    : ent.texteLongueur().replace(/[^0-9.,]/g, '');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = actuel;
+                input.title = unite;
+                input.style.cssText = 'position:fixed; width:74px; height:26px; font-family:Arial, sans-serif;'
+                    + ' font-weight:bold; font-size:14px; text-align:center; border:1px solid #90caf9;'
+                    + ' border-radius:6px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.15);'
+                    + ' outline:none; padding:0; z-index:10000;';
+                input.style.left = (gx - 37) + 'px';
+                input.style.top = (gy - 13) + 'px';
+                document.body.appendChild(input);
+                input.focus(); input.select();
+                // même garde que pour le renommage : le clic qui referme l'éditeur
+                // ne doit pas créer un objet au passage
+                this.activeRenameInput = input;
+                let parti = false;
+                const fermer = () => {
+                    if (parti) return;
+                    parti = true;
+                    input.onblur = null;
+                    if (input.parentNode) input.parentNode.removeChild(input);
+                    if (this.activeRenameInput === input) this.activeRenameInput = null;
+                    this.render();
+                };
+                const valider = () => {
+                    const txt = input.value.trim().replace(',', '.');
+                    input.onblur = null;
+                    if (!txt) { fermer(); return; }
+                    const souci = this.appliquerMesure(ent, parseFloat(txt));
+                    fermer();
+                    if (souci) this.showToast(souci);
+                };
+                input.onkeydown = (k) => {
+                    if (k.key === 'Enter') { k.preventDefault(); valider(); }
+                    if (k.key === 'Escape') { k.preventDefault(); fermer(); }
+                    k.stopPropagation();
+                };
+                input.onblur = () => valider();
+            }
+            /* Le bouton du menu de l'objet : même chose, sur l'objet sélectionné. */
+            fixerMesure() {
+                const ent = this.selectedObject;
+                if (!ent || typeof ent.boiteMesure !== 'function') return;
+                if (!(ent instanceof Angle) && !ent.showLength) {
+                    ent.showLength = true;
+                    this.render();
+                }
+                if (!ent.boiteMesure(this.ctx)) {
+                    this.showToast("Affichez d'abord la mesure");
+                    return;
+                }
+                this.saisieMesure(ent, 0, 0);
+            }
             startRenaming(point, clientX, clientY) {
                 point.isRenaming = true;
                 this.render();
@@ -18053,6 +18253,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const targetPoint = this.entities.slice().reverse().find(ent => ent instanceof Point && ent.visible !== false && ent.isLabelHit && ent.isLabelHit(this.ctx, rawMouse.x, rawMouse.y));
                     if (targetPoint) {
                         this.startRenaming(targetPoint, e.clientX, e.clientY);
+                        return;
+                    }
+
+                    // 1 bis. Double-clic sur une mesure affichée (fixer la valeur)
+                    const mesure = this.mesureSousSouris(rawMouse.x, rawMouse.y);
+                    if (mesure) {
+                        this.saisieMesure(mesure, e.clientX, e.clientY);
                         return;
                     }
 
@@ -23682,6 +23889,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const surNom = this.entities.some(ent => ent instanceof Point && ent.visible !== false
                         && ent.isLabelHit && ent.isLabelHit(this.ctx, rawMouse.x, rawMouse.y));
                     if (surNom) cursor = this.draggedLabelPoint ? 'grabbing' : 'grab';
+                    /* Une mesure affichée s'ÉCRIT : le curseur de saisie annonce
+                       qu'un double-clic ouvre le nombre. */
+                    else if (this.mesureSousSouris(rawMouse.x, rawMouse.y)) cursor = 'text';
                     else if (this.hoveredEntities.length > 0) cursor = 'pointer';
                 }
                 this.canvas.style.cursor = cursor;

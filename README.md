@@ -23,6 +23,16 @@ un sommet pose son zéro sur un côté de l'angle. L'aimantation trouve toute se
 les points, les intersections et les **milieux** — et se coupe d'un bouton quand
 elle gêne.
 
+### Donner la mesure, pas seulement la tracer
+
+Un énoncé dit « ABC tel que AB = 5 cm et  = 60° ». On **double-clique sur le
+nombre affiché** — la longueur d'un segment, la valeur d'un angle — on tape la
+valeur, et le point glisse ou tourne jusqu'à elle ; le reste de la figure suit.
+Le champ parle l'unité de la mesure : 40 tapé sous « mm » fait 40 mm. Un point
+défini par d'autres (un milieu, une intersection) ne bouge pas — c'est l'autre
+extrémité qui obéit, ou rien, et le logiciel le dit. Rien de neuf à l'écran :
+on modifie la mesure là où on la lit.
+
 ### La construction se rejoue
 
 Chaque figure garde la trace de sa construction. On la rejoue **pas à pas**, les
@@ -190,7 +200,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 62 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 63 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
