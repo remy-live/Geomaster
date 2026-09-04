@@ -52,12 +52,13 @@ cercle de centre A passant par B »* — et **Entrée**. La réponse s'affiche *
 cette ligne-là** : trois consignes écrites, trois réponses lisibles en même
 temps.
 
-**Une consigne tient sur une ligne.** Son numéro, son texte, une **roue** — rien
-d'autre. Faite, elle porte un ✓ : répéter « ✓ Segment [AB] » en dessous, plus le
-bandeau des modèles, c'était trois blocs par consigne, et un énoncé de vingt
-lignes ne tenait plus dans l'écran. Le détail revient quand on se pose sur la
-ligne. **Une erreur, elle, reste visible** sans rien faire : c'est la seule
-chose qu'on doit voir tout de suite.
+**Le panneau EST l'énoncé, pas un formulaire.** Une pastille, une bordure, un
+fond et un cadre de saisie par consigne : on lisait des cases, plus un texte.
+Ne restent que les phrases, et un **filet de couleur au bord gauche** qui dit
+l'état d'un coup d'œil — vert : faite, rouge : incomprise, rien : à faire. Le
+numéro et la roue n'apparaissent que sur la ligne où l'on est. Quatorze
+consignes tiennent dans 312 px au lieu de 900. **Une erreur reste visible** sans
+rien faire : c'est la seule chose qu'on doit voir tout de suite.
 
 La roue d'une ligne porte ses options — *avec les instruments*, refaire,
 retirer ; la **roue du titre** porte les réglages de tout le panneau, dont
@@ -145,6 +146,14 @@ demandez.
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
 d'un coup et rejouable ensuite avec ▶.
+
+**Aux instruments, un centre ne se calcule pas non plus : il se trouve.** Le
+centre de gravité naît du croisement des trois médianes, l'orthocentre de celui
+des hauteurs, le centre du cercle circonscrit des médiatrices, celui du cercle
+inscrit des bissectrices. C'est la construction du manuel — et c'est elle qui
+montre POURQUOI les trois se coupent au même endroit, ce qu'un point posé tout
+fait n'apprend à personne. Vérifié : le point tombe à zéro pixel de sa position
+théorique.
 
 **Aux instruments, le troisième sommet ne se pose pas : il se trouve.** On trace
 `[AB]` à la règle, un arc de compas depuis A, un autre depuis B — et C est leur
