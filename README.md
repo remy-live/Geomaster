@@ -185,6 +185,10 @@ une couleur ajoutée à la rangée y entre d'elle-même.
 Dépliée, c'est **exactement la palette d'avant** : rien n'en a été retiré. Le
 choix se retient d'une fois sur l'autre.
 
+Repliée, elle garde sa **poignée** — pour l'écarter de la figure — mais pas sa
+croix : à 50 px de large, les deux se superposaient. La refermer reste à un
+doigt, par le bouton palette de la barre du haut.
+
 ### Vu du fond de la salle
 
 Le **mode projection** épaissit traits et lettres d'un clic. Uniquement à

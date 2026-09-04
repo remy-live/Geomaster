@@ -3948,9 +3948,26 @@
             display: none;
         }
 
-        /* la poignée reste : repliée, la palette se déplace toujours */
+        /* La poignée reste : repliée, la palette se déplace toujours. Mais la
+           croix, elle, s'en va.
+
+           Elle est posée en absolu contre le bord droit, la poignée est centrée :
+           sur un panneau de 212 px les deux se tiennent à distance, sur 50 px
+           elles se superposent — au téléphone, on voyait une poignée barrée d'une
+           croix, un seul objet illisible fait de deux commandes. Et les couper en
+           deux cibles de 25 px n'aurait rien arrangé : c'est la moitié de ce qu'un
+           doigt sait viser.
+
+           Repliée, la palette garde donc ce qui compte le plus à cette taille :
+           la poignée, pour l'écarter de la figure. La refermer reste à un doigt —
+           c'est le bouton palette de la barre du haut, qui l'ouvre et la ferme, et
+           qui s'allume quand elle est là. */
         .style-palette.repliee .palette-drag-handle .drag-pill {
-            width: 20px;
+            width: 22px;
+        }
+
+        .style-palette.repliee .palette-drag-handle .close-palette {
+            display: none;
         }
 
         .style-palette.repliee .palette-drag-handle {

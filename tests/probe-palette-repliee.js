@@ -37,6 +37,31 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      depart.rond.replace(/\s/g, '') === 'rgb(51,51,51)' && depart.chiffre === '2',
      `${depart.rond} · ${depart.chiffre}`);
 
+  console.log('\n=== la poignée et la croix ne se superposent plus ===');
+  /* La croix est posée contre le bord droit, la poignée est centrée : sur 212 px
+     elles se tiennent à distance, sur 50 px elles se recouvraient — au téléphone
+     on voyait une poignée barrée d'une croix, un seul objet illisible. */
+  const haut = await page.evaluate(() => {
+    const p = document.getElementById('stylePalettePanel');
+    const cadre = (s) => { const e = p.querySelector(s); if (!e) return null;
+      const st = getComputedStyle(e); if (st.display === 'none' || st.visibility === 'hidden') return null;
+      const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; };
+    return { pastille: cadre('.drag-pill'), croix: cadre('.close-palette'),
+             bouton: !!document.getElementById('btnToggleStylePalette') };
+  });
+  console.log('  ' + JSON.stringify(haut));
+  ck('la poignée est là', !!haut.pastille, JSON.stringify(haut.pastille));
+  ck('la croix ne l\'est plus, donc rien ne se chevauche', haut.croix === null, JSON.stringify(haut.croix));
+  /* Refermer reste à un doigt : c'est le bouton de la barre du haut. */
+  ck('le bouton de la barre du haut ferme toujours la palette', haut.bouton);
+  const ferme = await page.evaluate(() => {
+    app.toggleStylePalette();
+    const v = document.getElementById('stylePalettePanel').style.display;
+    app.toggleStylePalette();
+    return v;
+  });
+  ck('et il la ferme vraiment', ferme === 'none', ferme);
+
   console.log('\n=== un clic sur la couleur passe à la suivante ===');
   const couleurs = await page.evaluate(() => app.couleursRapides());
   console.log('  cycle : ' + couleurs.join(' → '));
@@ -117,6 +142,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('elle reprend ses 212 px', deplie.largeur >= 200 && !deplie.repliee, String(deplie.largeur));
   /* Rien n'a été retiré du panneau : c'est exactement celui d'avant. */
   ck('avec toutes ses commandes', deplie.commandes >= 22, String(deplie.commandes));
+  const croixRevenue = await page.evaluate(() => {
+    const c = document.querySelector('#stylePalettePanel .close-palette');
+    return c ? getComputedStyle(c).display !== 'none' : false;
+  });
+  ck('et sa croix revient, là où il y a la place', croixRevenue);
 
   await page.locator('#stylePalettePanel .quick-color-bar .color-swatch').nth(2).click();
   await page.waitForTimeout(160);
