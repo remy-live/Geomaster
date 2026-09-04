@@ -25,7 +25,9 @@ elle gêne.
 
 **Et toute la figure tourne.** Un énoncé ne dit jamais dans quel sens la poser :
 on la construit comme elle vient, et l'on s'aperçoit après coup qu'elle serait
-plus lisible d'un quart de tour. **Appui long sur la main**, puis on tourne —
+plus lisible d'un quart de tour. Un **bouton** le fait d'un clic — quatre clics
+ramènent la figure d'où elle vient — et pour un angle libre, **appui long sur la
+main**, puis on tourne :
 l'angle s'affiche pendant le geste et se colle aux angles ronds à 3° près, Échap
 annule, et une rotation ne compte que pour une annulation. Partir tout de suite
 déplace la feuille comme avant : c'est l'immobilité qui demande la rotation.
@@ -33,6 +35,14 @@ déplace la feuille comme avant : c'est l'immobilité qui demande la rotation.
 Ce sont les **objets** qui tournent, pas la vue : les instruments, l'export, le
 lien élève et le rejeu continuent de parler de la même figure — et les longueurs
 sont conservées au millième près, sans quoi ce ne serait pas une rotation.
+L'**image de fond** suit : une photo de manuel calée sous la figure resterait
+sinon droite pendant que la figure pivote, et se décollerait de ce qu'elle sert
+à caler.
+
+**Et tout se vise au doigt.** Sur un écran sans souris, chaque commande dispose
+d'au moins 34 px : une croix de 23 px se rate, on tape à côté, et l'on croit que
+le logiciel n'a pas réagi. Seule la zone touchable grandit — le dessin reste le
+même, et sur un ordinateur rien ne gonfle.
 
 ### On écrit la consigne, le logiciel la fait
 

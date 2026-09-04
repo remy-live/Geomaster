@@ -145,6 +145,50 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('la figure revient exactement où elle était',
      JSON.stringify(co3) === JSON.stringify(co2), JSON.stringify(co3));
 
+  console.log('\n=== l\'image de fond tourne avec la figure ===');
+  /* Une photo de manuel calée sous la figure, un plan, un quadrillage scanné :
+     les laisser droits pendant que la figure pivote, c'est les décoller de ce
+     qu'ils servent à caler. */
+  const fond = await page.evaluate(async () => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState();
+    app.executerConsigne('Trace un triangle ABC');
+    const img = new Image();
+    await new Promise(r => {
+      img.onload = r; img.onerror = r;
+      img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
+        + 'C0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    });
+    app.bgImage = new BackgroundImage(img, 400, 300, 200, 160);
+    const avant = { x: app.bgImage.x, y: app.bgImage.y, a: app.bgImage.angle };
+    const c = app.centreDeLaFigure();
+    app.tournerFigure(90);
+    const apres = { x: +app.bgImage.x.toFixed(1), y: +app.bgImage.y.toFixed(1),
+                    a: +(app.bgImage.angle * 180 / Math.PI).toFixed(1) };
+    // la distance au centre de la figure est conservée : c'est une rotation
+    const d = (p) => +Math.hypot(p.x - c.x, p.y - c.y).toFixed(1);
+    return { avant, apres, dAvant: d(avant), dApres: d(apres) };
+  });
+  console.log('  ' + JSON.stringify(fond));
+  ck('le fond a tourné de 90°', Math.abs(fond.apres.a - 90) < 0.2, String(fond.apres.a));
+  ck('et il a suivi le même cercle que la figure',
+     Math.abs(fond.dApres - fond.dAvant) < 0.5, `${fond.dAvant} → ${fond.dApres}`);
+
+  console.log('\n=== le quart de tour a un bouton, et la recherche le trouve ===');
+  /* Un geste sans affordance ne se découvre pas : personne ne survole une icône
+     qu'il croit connaître. */
+  const bouton = await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')]
+      .find(e => /quart de tour/i.test(e.getAttribute('aria-label') || ''));
+    const cmds = window.app.recolterCommandes();
+    return { existe: !!b,
+             visible: b ? !!b.offsetParent : false,
+             trouve: cmds.filter(c => /tour/i.test(c.nom)).map(c => c.nom) };
+  });
+  console.log('  ' + JSON.stringify(bouton));
+  ck('le bouton est là et visible', bouton.existe && bouton.visible, JSON.stringify(bouton));
+  ck('la recherche de commandes le propose', bouton.trouve.length > 0, bouton.trouve.join(' | '));
+
   console.log('\n=== une feuille vide ne tourne pas ===');
   const vide = await page.evaluate(() => {
     const app = window.app;

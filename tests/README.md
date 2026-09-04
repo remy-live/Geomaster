@@ -25,6 +25,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-palette-repliee.js` | repliée, la palette tient dans 50 px et le crayon se règle d'un clic |
 | `probe-apercu-eleve.js` | l'aperçu du lien élève a les vraies dimensions de chaque appareil |
 | `probe-consigne.js` | la phrase du manuel est comprise et faite ; la notation oubliée est expliquée |
+| `probe-cibles-doigt.js` | au doigt, aucune commande ne descend sous 32 px — et rien ne gonfle à la souris |
 | `probe-rotation.js` | l'appui long sur la main tourne la figure sans la déformer ; partir tout de suite déplace |
 | `probe-enonce.js` | un énoncé de devoir entier, collé tel quel, donne la figure — et elle est juste |
 | `probe-codage-milieu.js` | un milieu porte ses deux traits ; le codage n'affirme que ce que la construction dit |

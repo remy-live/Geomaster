@@ -2784,6 +2784,37 @@
 
         .instr-actions { display: flex; align-items: center; gap: 6px; }
 
+        /* AU DOIGT, UNE COMMANDE FAIT 34 PX. Ce qui se vise très bien à la souris
+           — une croix de 23 px, un chevron de 25, une roue de 26 — se rate au
+           doigt : on tape à côté, et l'on croit que le logiciel n'a pas réagi.
+           La règle ne change QUE la zone touchable et l'écartement, jamais le
+           dessin : à l'écran, ces commandes gardent leur discrétion. Elle ne
+           s'applique qu'aux écrans sans souris (pointer: coarse), pour ne pas
+           gonfler l'interface du professeur sur son ordinateur. */
+        @media (pointer: coarse) {
+            .instr-close,
+            #btnConsigneAide,
+            #btnConsigneReglages,
+            .csl-roue,
+            .csl-pied button,
+            .btn-pliage,
+            #barrePages .page-btn,
+            #barrePages #pageEtiquette {
+                min-width: 34px;
+                min-height: 34px;
+            }
+
+            .instr-close, #btnConsigneAide, #btnConsigneReglages, .csl-roue {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+            }
+
+            .csl-tete { gap: 7px; }
+            .csl-pied { gap: 7px; padding-bottom: 8px; }
+        }
+
         /* AU TÉLÉPHONE, ON PARTAGE L'ÉCRAN EN DEUX.
            Une fenêtre flottante de 340 px sur un écran de 390 px, c'est la
            feuille entièrement couverte : on écrit une consigne sans voir ce
@@ -7484,6 +7515,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
                         <path
                             d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                    </svg>
+                </button>
+                <!-- LE QUART DE TOUR A UN BOUTON. La rotation libre vit dans
+                     l'appui long sur la main, mais un geste sans affordance ne se
+                     découvre pas : personne ne survole une icône qu'il croit
+                     connaître. Ce bouton la montre, et la recherche (Ctrl+K) la
+                     trouve. Quatre clics ramènent la figure d'où elle vient. -->
+                <button class="top-btn" onclick="app.tournerFigure(90)"
+                    aria-label="Tourner la figure d'un quart de tour"
+                    data-tooltip="Quart de tour — appui long sur la main pour un angle libre">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 12a9 9 0 1 1-3.2-6.9" />
+                        <polyline points="21 3 21 9 15 9" />
                     </svg>
                 </button>
                 <button class="top-btn" onclick="app.resetView()" aria-label="Recentrer la vue (100%)"
@@ -19636,6 +19680,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                ================================================================ */
             instantaneRotation() {
                 const snap = [];
+                /* L'IMAGE DE FOND TOURNE AVEC. Une photo de manuel calée sous la
+                   figure, un plan, un quadrillage scanné : les laisser droits
+                   pendant que la figure pivote, c'est les décoller de ce qu'ils
+                   servent à caler. Le fond a déjà un angle — il ne demandait qu'à
+                   être emmené. */
+                if (this.bgImage) {
+                    const g = this.bgImage;
+                    snap.push({ e: g, fond: true, x: g.x, y: g.y, a: g.angle || 0 });
+                }
                 this.entities.forEach(e => {
                     if (e instanceof Point || e instanceof TextLabel) {
                         snap.push({ e, x: e.x, y: e.y, la: e.labelAngle });
@@ -19664,6 +19717,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     y: centre.y + (x - centre.x) * si + (y - centre.y) * co,
                 });
                 snap.forEach(m => {
+                    if (m.fond) {
+                        const q = tourne(m.x, m.y);
+                        m.e.x = q.x; m.e.y = q.y;
+                        m.e.angle = m.a + theta;
+                        return;
+                    }
                     if (m.arc) {
                         m.e.startAngle = m.a1 + theta;
                         m.e.endAngle = m.a2 + theta;
