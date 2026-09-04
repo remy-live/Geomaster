@@ -119,7 +119,9 @@ Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
 « Trace… » — comme pour les crochets oubliés.
 
 **Le codage dit ce que la construction affirme, et rien de plus.** Un milieu
-porte ses deux traits — un sur chaque moitié — et le segment n'est pas coupé en
+porte ses deux traits — un sur chaque moitié, qu'il vienne d'une phrase ou de
+l'**outil milieu**, le codage n'appartenant pas au chemin qu'on a pris pour le
+demander — et le segment n'est pas coupé en
 deux pour autant : au tableau, on trace `[AB]` une fois et l'on pose une marque
 sur chaque moitié. Une médiatrice ajoute l'angle droit : sans lui et sans les
 marques, la figure ne montrait qu'une droite qui passe par là. Trois médiatrices

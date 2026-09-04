@@ -18878,6 +18878,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* La marque d'un côté qu'une construction déclare égal aux autres : le
                premier pose une marque libre, les suivants retrouvent la même
                longueur dans la figure et reprennent la sienne. */
+            /* Y a-t-il un trait entre ces deux points ? C'est ce qui décide si un
+               codage de milieu a un support où se poser. */
+            traitEntre(a, b) {
+                return this.entities.find(e => (e instanceof Segment || e instanceof Line || e instanceof Ray)
+                    && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
+            }
+            /* POSER UN MILIEU, D'OÙ QU'ON VIENNE. L'outil milieu fabriquait un
+               point nu : deux clics donnaient un point sans marques, là où la
+               phrase « Place le milieu I de [AB] » donnait les deux traits. Le
+               codage n'appartient pas au chemin qu'on a pris pour le demander. */
+            poserMilieu(a, b, nom) {
+                const m = new Point(0, 0, nom !== undefined ? nom : this.getNextLabel(), [a, b]);
+                m.update();
+                if (this.traitEntre(a, b)) {
+                    m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
+                }
+                this.addEntity(m);
+                return m;
+            }
             marqueCote(a, b) {
                 return this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y)).marque;
             }
@@ -24569,12 +24588,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                         else if (this.currentTool === 'midpoint') {
                             if (clickedLinear instanceof Segment) {
-                                const mid = new Point(0, 0, this.getNextLabel(), [clickedLinear.p1, clickedLinear.p2]);
-                                mid.update(); this.addEntity(mid);
+                                this.poserMilieu(clickedLinear.p1, clickedLinear.p2);
                             } else if (closestPoint) {
                                 if (this.creationStartPoint && this.creationStartPoint !== closestPoint) {
-                                    const mid = new Point(0, 0, this.getNextLabel(), [this.creationStartPoint, closestPoint]);
-                                    mid.update(); this.addEntity(mid); this.creationStartPoint = null;
+                                    this.poserMilieu(this.creationStartPoint, closestPoint);
+                                    this.creationStartPoint = null;
                                 } else {
                                     this.creationStartPoint = closestPoint;
                                 }
@@ -25736,14 +25754,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         case 'midpoint':
                             const clickedLinear = this.entities.filter(e => e instanceof Segment).find(e => e.isNear(endX, endY));
                             if (clickedLinear) {
-                                const mid = new Point(0, 0, this.getNextLabel(), [clickedLinear.p1, clickedLinear.p2]);
-                                mid.update(); this.addEntity(mid); this.saveState();
+                                this.poserMilieu(clickedLinear.p1, clickedLinear.p2);
+                                this.saveState();
                                 this.isDraggingCreation = false;
                             } else {
                                 const pt = this.createPointAt(endX, endY);
                                 if (this.creationStartPoint && this.creationStartPoint !== pt) {
-                                    const mid = new Point(0, 0, this.getNextLabel(), [this.creationStartPoint, pt]);
-                                    mid.update(); this.addEntity(mid); this.creationStartPoint = null; this.saveState();
+                                    this.poserMilieu(this.creationStartPoint, pt);
+                                    this.creationStartPoint = null; this.saveState();
                                     this.isDraggingCreation = false;
                                 } else {
                                     this.creationStartPoint = pt;
@@ -27026,10 +27044,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* Y a-t-il un trait entre ces deux points — segment, droite ou
                demi-droite ? C'est ce qui décide si un codage de milieu a un
                support où se poser. */
-            cslTraitEntre(a, b) {
-                return this.entities.find(e => (e instanceof Segment || e instanceof Line || e instanceof Ray)
-                    && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
-            }
+            cslTraitEntre(a, b) { return this.traitEntre(a, b); }
             cslSegment(a, b) {
                 const deja = this.entities.find(e => e instanceof Segment
                     && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));

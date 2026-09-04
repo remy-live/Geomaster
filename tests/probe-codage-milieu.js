@@ -90,6 +90,44 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('et rien entre les deux', px.ailleurs1 <= 3 && px.ailleurs2 <= 3,
      `${px.ailleurs1} / ${px.ailleurs2}`);
 
+  console.log('\n=== l\'OUTIL milieu code aussi ===');
+  /* Le codage n'appartient pas au chemin qu'on a pris pour le demander : deux
+     clics avec l'outil milieu doivent donner les mêmes deux traits que la
+     phrase « Place le milieu I de [AB] ». */
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState(); app.view = { x: 0, y: 0, zoom: 1 };
+    app.executerConsigne('Place les points A, B');
+  });
+  await poser();
+  await page.evaluate(() => {
+    const app = window.app;
+    app.executerConsigne('Trace [AB]');
+    app.setTool('midpoint'); app.creationStartPoint = null; app.render();
+  });
+  const rc = await page.evaluate(() => {
+    const r = window.app.canvas.getBoundingClientRect(); return { x: r.left, y: r.top };
+  });
+  await page.mouse.move(rc.x + 500, rc.y + 400);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const outil = await page.evaluate(() => {
+    const app = window.app; app.render();
+    const m = app.entities.filter(e => e.constructor.name === 'Point' && (e.parents || []).length === 2);
+    const x = document.getElementById('geoCanvas').getContext('2d');
+    const col = (px) => { let n = 0; for (let y = 390; y <= 410; y++) {
+      const d = x.getImageData(px, y, 1, 1).data; if (d[3] > 0 && d[0] < 200) n++; } return n; };
+    return { milieux: m.map(p => ({ n: p.label, c: p.codageMilieu || null })),
+             quart: col(400), troisQuarts: col(600) };
+  });
+  console.log('  ' + JSON.stringify(outil));
+  ck('un clic sur le segment pose un milieu codé',
+     outil.milieux.length === 1 && outil.milieux[0].c === 'mark-1', JSON.stringify(outil.milieux));
+  ck('et ses deux traits sont tracés',
+     outil.quart >= 10 && outil.troisQuarts >= 10, `${outil.quart} / ${outil.troisQuarts}`);
+  await page.evaluate(() => window.app.setTool('select'));
+
   console.log('\n=== sans trait tracé, rien à coder ===');
   /* Deux marques flottant dans le vide ne voudraient rien dire. */
   const sansTrait = await figure(['Place les points A, B', 'Place le milieu I de [AB]']);
