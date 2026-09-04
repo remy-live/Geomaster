@@ -1,0 +1,292 @@
+// UN ÉNONCÉ ENTIER, COLLÉ D'UN MANUEL, ET LE VOCABULAIRE QUI VA AVEC.
+//
+// Cette sonde ne demande pas seulement « la phrase passe-t-elle ? » : elle
+// MESURE la figure obtenue. Une consigne qui répond « oui » en traçant autre
+// chose est plus dangereuse qu'une consigne refusée — c'est ainsi que « les
+// médiatrices de [AB] et [AC] » en traçait trois, et le disait comme si de
+// rien n'était.
+const { chromium } = require('playwright');
+const path = require('path');
+const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const NAVIGATEUR = process.env.GM_CHROME || undefined;
+
+(async () => {
+  const b = await chromium.launch({ executablePath: NAVIGATEUR });
+  let fail = 0;
+  const ck = (l, ok, d) => { console.log(`  ${ok ? '✓' : '✗'} ${l}${d !== undefined ? ' — ' + d : ''}`); if (!ok) fail++; };
+  const page = await (await b.newContext({ viewport: { width: 1400, height: 1000 } })).newPage();
+  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.goto(PAGE); await page.waitForTimeout(1400);
+
+  /* Une feuille neuve, les phrases exécutées dans l'ordre, et ce qu'on peut
+     mesurer dessus : les points, les cercles, le compte par classe. */
+  const fig = (phrases, instruments) => page.evaluate(([ph, ins]) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {};
+    app._cslSujet = null; if (app.cslOublier) app.cslOublier();
+    app.view = { x: 0, y: 0, zoom: 1 }; app.saveState();
+    const res = ph.map(s => {
+      try { return app.executerConsigneAvec(s, !!ins); }
+      catch (e) { return { ok: false, message: 'EXCEPTION ' + e.message }; }
+    });
+    app.isPlaying = false; app.isLooping = false; app.isToolAnimating = false;
+    app.render();
+    return {
+      res: res.map(r => ({ ok: r.ok, m: r.message, a: r.astuce || '' })),
+      pts: Object.fromEntries(app.entities
+        .filter(e => e.constructor.name === 'Point' && e.label)
+        .map(e => [e.label, { x: e.x, y: e.y }])),
+      cercles: app.entities.filter(e => e.constructor.name === 'Circle')
+        .map(e => ({ r: +(Math.hypot(e.p1.x - e.p2.x, e.p1.y - e.p2.y) / 50).toFixed(3),
+                     c: e.p1.label || null })),
+      droites: app.entities.filter(e => e.nomDroite).map(e => e.nomDroite),
+      objets: app.entities.reduce((o, e) => (o[e.constructor.name] = (o[e.constructor.name] || 0) + 1, o), {}),
+    };
+  }, [phrases, instruments]);
+
+  // mesures, côté Node, à partir des coordonnées lues
+  const cm = (P, a, b) => +(Math.hypot(P[a].x - P[b].x, P[a].y - P[b].y) / 50).toFixed(2);
+  const ang = (P, a, b, c) => {
+    const u = Math.atan2(P[a].y - P[b].y, P[a].x - P[b].x);
+    const v = Math.atan2(P[c].y - P[b].y, P[c].x - P[b].x);
+    let d = Math.abs(v - u) * 180 / Math.PI; while (d > 180) d = 360 - d;
+    return Math.round(d * 10) / 10;
+  };
+  const pente = (P, a, b) => { const t = Math.atan2(P[b].y - P[a].y, P[b].x - P[a].x) * 180 / Math.PI; return ((t % 180) + 180) % 180; };
+
+  /* ================================================================
+     1. UNE DROITE PORTE UN NOM, ET C'EST UNE MINUSCULE.
+     « Trace une droite d » inventait deux points A et B et appelait la
+     droite (AB) : le nom écrit dans l'énoncé disparaissait, et « la
+     perpendiculaire à d » ne trouvait plus rien.
+     ================================================================ */
+  console.log('\n=== une droite se nomme d, pas (AB) ===');
+  let r = await fig(['Trace une droite d']);
+  ck('la droite porte le nom écrit', r.droites.join(',') === 'd', r.droites.join(','));
+  ck('et la réponse le dit', /\(d\)/.test(r.res[0].m), r.res[0].m);
+  ck('aucun point nommé n\'a été inventé', Object.keys(r.pts).length === 0, Object.keys(r.pts).join(''));
+
+  r = await fig(['Trace deux droites d et d\'']);
+  ck('« deux droites d et d\' » en donne deux', r.droites.sort().join(',') === "d,d'", r.droites.join(','));
+  r = await fig(['Trace deux droites (d) et (d\')']);
+  ck('avec ou sans parenthèses', r.droites.sort().join(',') === "d,d'", r.droites.join(','));
+
+  console.log('\n=== et l\'on s\'en sert dans les phrases suivantes ===');
+  r = await fig(['Trace une droite d', 'Place un point A sur d']);
+  ck('« un point A SUR d » ne crée pas un point D',
+     r.res[1].ok && !r.pts.D && !!r.pts.A, r.res[1].m);
+  r = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._cslSujet = null; app.cslOublier();
+    app.view = { x: 0, y: 0, zoom: 1 };
+    ['Trace une droite d', 'Place un point A', 'Trace la perpendiculaire à d passant par A']
+      .forEach(x => app.executerConsigneAvec(x, false));
+    const dr = app.entities.find(e => e.nomDroite === 'd');
+    const pe = app.entities.find(e => e.constructor.name === 'PerpendicularLine');
+    if (!dr || !pe || !pe.refLine) return { ok: false };
+    const u = Math.atan2(dr.p2.y - dr.p1.y, dr.p2.x - dr.p1.x);
+    const v = Math.atan2(pe.refLine.p2.y - pe.refLine.p1.y, pe.refLine.p2.x - pe.refLine.p1.x);
+    let d = Math.abs(v - u) * 180 / Math.PI; while (d > 180) d = 360 - d;
+    const A = app.entities.find(e => e.constructor.name === 'Point' && e.label === 'A');
+    return { ok: true, ecart: Math.round(d * 100) / 100, parA: pe.p1 === A };
+  });
+  ck('la perpendiculaire à d s\'appuie bien sur d', r.ok && r.ecart < 0.01, JSON.stringify(r));
+  ck('et passe par A', r.parA === true);
+
+  /* ================================================================
+     2. ON DEMANDE DEUX MÉDIATRICES, ON EN A DEUX.
+     ================================================================ */
+  console.log('\n=== le pluriel ne veut pas dire « toutes celles du triangle » ===');
+  r = await fig(['Place les points A, B et C', 'Trace les médiatrices de [AB] et [AC]']);
+  ck('deux médiatrices, pas trois', r.objets.PerpendicularLine === 2,
+     `${r.objets.PerpendicularLine} — ${r.res[1].m}`);
+  r = await fig(['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm',
+                 'Trace les hauteurs issues de A et de B']);
+  ck('deux hauteurs, pas trois', r.objets.PerpendicularLine === 2,
+     `${r.objets.PerpendicularLine} — ${r.res[1].m}`);
+  r = await fig(['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm',
+                 'Trace les médiatrices']);
+  ck('mais « les médiatrices » tout court en donne trois',
+     r.objets.PerpendicularLine === 3, String(r.objets.PerpendicularLine));
+
+  console.log('\n=== deux droites nommées se tracent toutes les deux ===');
+  r = await fig(['Place les points A, B et C', 'Trace les droites (AB) et (BC)']);
+  ck('« les droites (AB) et (BC) » en trace deux', r.objets.Line === 2,
+     `${r.objets.Line} — ${r.res[1].m}`);
+
+  /* ================================================================
+     3. LE TRIANGLE DE LA PHRASE PRÉCÉDENTE.
+     ================================================================ */
+  console.log('\n=== on ne redit pas le triangle à chaque ligne ===');
+  const T = 'Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm';
+  r = await fig([T, 'Trace la hauteur issue de A']);
+  ck('« la hauteur issue de A » trouve son triangle', r.res[1].ok, r.res[1].m);
+  r = await fig([T, 'Trace le cercle circonscrit']);
+  ck('« le cercle circonscrit » aussi', r.res[1].ok, r.res[1].m);
+
+  /* ================================================================
+     4. LES POSSESSIFS D'UN ÉNONCÉ.
+     ================================================================ */
+  console.log('\n=== « son milieu », « leur point d\'intersection » ===');
+  r = await fig(['Trace un segment [AB] de 6 cm', 'Place son milieu I']);
+  ck('« place son milieu I » place le milieu de [AB]',
+     r.res[1].ok && Math.abs(cm(r.pts, 'A', 'I') - cm(r.pts, 'I', 'B')) < 0.02,
+     r.res[1].m);
+  ck('et la reformulation est dite', /le milieu I de \[AB\]/.test(r.res[1].a), r.res[1].a);
+  r = await fig(['Trace un carré ABCD de côté 4 cm', 'Trace ses diagonales',
+                 'Appelle O leur point d\'intersection']);
+  ck('« leur point d\'intersection » sur SA ligne', r.res[2].ok, r.res[2].m);
+  ck('O est bien au centre du carré',
+     Math.abs(cm(r.pts, 'O', 'A') - cm(r.pts, 'O', 'C')) < 0.02
+     && Math.abs(cm(r.pts, 'O', 'B') - cm(r.pts, 'O', 'D')) < 0.02,
+     `${cm(r.pts, 'O', 'A')} / ${cm(r.pts, 'O', 'C')}`);
+
+  /* ================================================================
+     5. LE TRAPÈZE N'EST PAS UN RECTANGLE.
+     « Trace un trapèze ABCD » traçait un RECTANGLE : la figure affirmait
+     quatre angles droits que personne n'avait demandés.
+     ================================================================ */
+  console.log('\n=== le trapèze a deux côtés parallèles, et c\'est tout ===');
+  r = await fig(['Trace un trapèze ABCD']);
+  ck('[AB] et [DC] sont parallèles',
+     Math.abs(pente(r.pts, 'A', 'B') - pente(r.pts, 'D', 'C')) < 0.5,
+     `${pente(r.pts, 'A', 'B').toFixed(1)}° / ${pente(r.pts, 'D', 'C').toFixed(1)}°`);
+  ck('les obliques ne le sont pas',
+     Math.abs(pente(r.pts, 'A', 'D') - pente(r.pts, 'B', 'C')) > 5);
+  ck('ce n\'est pas un rectangle', Math.abs(ang(r.pts, 'D', 'A', 'B') - 90) > 3,
+     ang(r.pts, 'D', 'A', 'B') + '°');
+  r = await fig(['Trace un trapèze rectangle ABCD']);
+  ck('le trapèze rectangle a son angle droit', Math.abs(ang(r.pts, 'D', 'A', 'B') - 90) < 0.5,
+     ang(r.pts, 'D', 'A', 'B') + '°');
+  ck('mais pas quatre', Math.abs(ang(r.pts, 'A', 'B', 'C') - 90) > 3, ang(r.pts, 'A', 'B', 'C') + '°');
+  r = await fig(['Trace un trapèze isocèle ABCD']);
+  ck('le trapèze isocèle a ses obliques égales',
+     Math.abs(cm(r.pts, 'A', 'D') - cm(r.pts, 'B', 'C')) < 0.02,
+     `${cm(r.pts, 'A', 'D')} / ${cm(r.pts, 'B', 'C')}`);
+
+  /* ================================================================
+     6. LE LOSANGE ET SA DIAGONALE.
+     ================================================================ */
+  console.log('\n=== « de côté 4 cm et de diagonale AC = 6 cm » ===');
+  r = await fig(['Trace un losange ABCD de côté 4 cm et de diagonale AC = 6 cm']);
+  ck('la phrase passe', r.res[0].ok, r.res[0].m);
+  ck('AC mesure 6 cm', Math.abs(cm(r.pts, 'A', 'C') - 6) < 0.05, cm(r.pts, 'A', 'C') + ' cm');
+  ck('les quatre côtés font 4 cm',
+     ['AB', 'BC', 'CD', 'DA'].every(s => Math.abs(cm(r.pts, s[0], s[1]) - 4) < 0.05),
+     ['AB', 'BC', 'CD', 'DA'].map(s => cm(r.pts, s[0], s[1])).join(' / '));
+
+  /* ================================================================
+     7. LES ANGLES DONNÉS PAR LEUR MESURE, ET L'ANGLE DROIT CODÉ.
+     ================================================================ */
+  console.log('\n=== un angle de 60° de sommet A ===');
+  r = await fig(['Place un point A', 'Trace un angle de 60° de sommet A']);
+  const cotes = Object.keys(r.pts).filter(n => n !== 'A');
+  ck('deux côtés partent de A', cotes.length === 2, cotes.join(''));
+  ck('et l\'angle mesure 60°', Math.abs(ang(r.pts, cotes[0], 'A', cotes[1]) - 60) < 0.5,
+     ang(r.pts, cotes[0], 'A', cotes[1]) + '°');
+  r = await fig(['Trace un carré ABCD de côté 4 cm', 'Code l\'angle droit en A']);
+  ck('« Code l\'angle droit en A » pose l\'angle', r.res[1].ok && r.objets.Angle === 1,
+     `${r.res[1].m} / ${r.objets.Angle}`);
+  r = await fig(['Place les points A, B et C', 'Code l\'angle droit en A']);
+  ck('sans deux traits en A, il le dit', r.res[1].ok === false, r.res[1].m);
+  r = await fig(['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm',
+                 'Code l\'angle droit en A']);
+  ck('et si l\'angle n\'est pas droit, il le dit aussi',
+     /n'est pas un angle droit/.test(r.res[1].a), r.res[1].a);
+
+  /* ================================================================
+     8. LE POLYGONE QUELCONQUE, LE CERCLE DANS TOUS LES SENS.
+     ================================================================ */
+  console.log('\n=== « Trace un polygone ABCDE » ===');
+  r = await fig(['Trace un polygone ABCDE']);
+  ck('cinq sommets et cinq côtés',
+     Object.keys(r.pts).length === 5 && r.objets.Segment === 5,
+     `${Object.keys(r.pts).join('')} / ${r.objets.Segment}`);
+
+  console.log('\n=== le cercle, dans tous les sens ===');
+  for (const [phrase, rayon] of [
+    ['Trace un cercle de 6 cm de diamètre', 3],
+    ['Trace un cercle de diamètre 6 cm', 3],
+    ['Trace un cercle de 3 cm de rayon', 3],
+    ['Trace un cercle de rayon 3 cm', 3],
+  ]) {
+    r = await fig([phrase]);
+    ck(`« ${phrase} » → rayon ${rayon} cm`,
+       r.cercles.length === 1 && Math.abs(r.cercles[0].r - rayon) < 0.01,
+       JSON.stringify(r.cercles));
+  }
+  r = await fig(['Place un point O', 'Trace un cercle de rayon 2,5 cm de centre O']);
+  ck('la réponse ne redit pas deux fois le centre',
+     (r.res[1].m.match(/de centre/g) || []).length === 1, r.res[1].m);
+  r = await fig(['Place les points A et B', 'Trace le cercle de diamètre [AB]']);
+  ck('un cercle de diamètre [AB] n\'a pas de centre « · »',
+     !/·/.test(r.res[1].m), r.res[1].m);
+
+  /* ================================================================
+     9. UN ÉNONCÉ NE CONTIENT PAS QUE DES CONSTRUCTIONS.
+     ================================================================ */
+  console.log('\n=== les phrases qui ne demandent rien à tracer ===');
+  for (const phrase of ['Que remarques-tu ?', 'Justifie ta réponse',
+                        'Vérifie que les trois droites sont concourantes']) {
+    r = await fig([phrase]);
+    ck(`« ${phrase} » passe sans rien tracer`,
+       r.res[0].ok && Object.keys(r.objets).length === 0, r.res[0].m);
+  }
+
+  /* ================================================================
+     10. L'ÉNONCÉ ENTIER, COLLÉ D'UN MANUEL.
+     ================================================================ */
+  console.log('\n=== douze lignes d\'affilée, et la figure mesurée ===');
+  const enonce = [
+    'Étape 1',
+    'Trace un cercle de centre O et de rayon 4 cm',
+    'Place deux points A et B sur ce cercle',
+    'Trace le segment [AB]',
+    'Place son milieu I',
+    'Trace la médiatrice de [AB]',
+    'Elle passe par O',
+    'Étape 2',
+    'Place un point C sur le cercle',
+    'Trace le triangle ABC',
+    'Trace les hauteurs issues de A et de B',
+    'Que remarques-tu ?',
+  ];
+  r = await fig(enonce);
+  r.res.forEach((x, i) => console.log(`  ${x.ok ? '·' : '✗'} ${enonce[i]} → ${x.m}`));
+  ck('les douze lignes passent', r.res.every(x => x.ok),
+     r.res.map((x, i) => x.ok ? '' : enonce[i]).filter(Boolean).join(' | '));
+  ck('« deux points A et B sur ce cercle » en pose bien DEUX',
+     !!r.pts.A && !!r.pts.B, Object.keys(r.pts).join(''));
+  ck('A, B et C sont sur le cercle de 4 cm',
+     ['A', 'B', 'C'].every(n => Math.abs(cm(r.pts, 'O', n) - 4) < 0.05),
+     ['A', 'B', 'C'].map(n => cm(r.pts, 'O', n)).join(' / '));
+  ck('I est le milieu de [AB]',
+     Math.abs(cm(r.pts, 'A', 'I') - cm(r.pts, 'I', 'B')) < 0.02,
+     `${cm(r.pts, 'A', 'I')} / ${cm(r.pts, 'I', 'B')}`);
+
+  /* Le nom d'une droite survit à la sauvegarde : sans cela, rouvrir le
+     fichier rendrait la droite anonyme et « la perpendiculaire à d »
+     ne trouverait plus rien. */
+  console.log('\n=== le nom de la droite survit au fichier ===');
+  const voyage = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._cslSujet = null; app.cslOublier();
+    app.view = { x: 0, y: 0, zoom: 1 };
+    app.executerConsigneAvec('Trace une droite d', false);
+    const code = app.serialize();
+    const relu = app.deserialize(code);
+    const vieux = JSON.parse(code).map(o => { delete o.nomDroite; return o; });
+    const ancien = app.deserialize(JSON.stringify(vieux));
+    return { relu: relu.filter(e => e.nomDroite).map(e => e.nomDroite),
+             ancienOK: ancien.length === relu.length,
+             ancienNom: ancien.some(e => e.nomDroite) };
+  });
+  ck('la droite relue porte encore son nom', voyage.relu.join(',') === 'd', JSON.stringify(voyage.relu));
+  ck('un fichier d\'avant s\'ouvre, simplement sans nom',
+     voyage.ancienOK && voyage.ancienNom === false, JSON.stringify(voyage));
+
+  ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
+  await b.close();
+  console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
+  process.exit(fail ? 1 : 0);
+})();
