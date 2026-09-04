@@ -149,8 +149,9 @@
 
         .header-dropdown-content.grid-3-cols {
             grid-template-columns: repeat(3, 1fr);
-            width: 130px;
-            min-width: 130px;
+            /* de quoi écrire « Bibliothèque » sous une icône de 56 px */
+            width: 208px;
+            min-width: 208px;
             padding: 5px;
             gap: 4px
         }
@@ -300,9 +301,65 @@
         }
 
         .header-dropdown-content.grid-3-cols .icon-btn {
-            width: 36px;
-            height: 36px;
+            width: 56px;
+            height: auto;
+            min-height: 48px;
             margin: 0 auto
+        }
+
+        /* LE MENU FICHIER DIT CE QU'IL FAIT.
+
+           Quinze icônes muettes, dont deux « </> » identiques pour deux choses
+           différentes — coller un code reçu, copier le code de la figure : on ne
+           pouvait que deviner ou survoler une par une. Le libellé existait déjà,
+           mais seulement au doigt (data-libelle, dans le palier tactile), là où
+           l'info-bulle n'existe pas. Il est maintenant affiché PARTOUT : ce menu
+           s'ouvre rarement, on n'y va pas de mémoire.
+
+           Et trois intitulés au lieu de trois traits : ce qu'on fait du document,
+           ce qu'on en sort comme fichier, ce qu'on en transmet. */
+        .header-dropdown-content .icon-btn[data-libelle] {
+            flex-direction: column;
+            gap: 2px;
+            height: auto;
+            padding: 5px 2px;
+            line-height: 1.05;
+        }
+
+        .header-dropdown-content .icon-btn[data-libelle]::after {
+            content: attr(data-libelle);
+            font-size: 9px;
+            font-weight: 600;
+            color: #667;
+            text-align: center;
+            white-space: normal;
+        }
+
+        /* Les trois exports portent leur nom dans le dessin : le répéter en
+           dessous ferait « PNG PNG ». */
+        .header-dropdown-content .icon-btn[data-libelle="PNG"]::after,
+        .header-dropdown-content .icon-btn[data-libelle="SVG"]::after,
+        .header-dropdown-content .icon-btn[data-libelle="PDF"]::after {
+            content: none;
+        }
+
+        .header-dropdown-content.grid-3-cols .menu-titre {
+            grid-column: span 3;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            padding: 8px 2px 2px;
+            margin-top: 2px;
+            border-top: 1px solid #eee;
+            text-align: left;
+        }
+
+        .header-dropdown-content.grid-3-cols .menu-titre:first-child {
+            border-top: none;
+            margin-top: 0;
+            padding-top: 2px;
         }
 
         .logo {
@@ -2480,6 +2537,152 @@
         /* Vignettes de pages : on les tire pour les ranger, on les coche pour les
            fusionner. La page ouverte se signale, la page cochée aussi — et pas de
            la même façon, ce ne sont pas les mêmes choses. */
+        /* --- LE COMPOSEUR DE FICHE ------------------------------------------ */
+        .fiche-box {
+            width: 1040px;
+            max-width: 97vw;
+            text-align: left;
+        }
+
+        .fiche-reglages {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 14px;
+            font-size: 12.5px;
+            color: #444;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border: 1px solid #eceff1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .fiche-reglages label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .fiche-reglages select {
+            font: inherit;
+            padding: 3px 6px;
+            border: 1px solid #cfd8dc;
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .fiche-reglages label.inactif {
+            opacity: .35;
+            pointer-events: none;
+        }
+
+        .fiche-corps {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .fiche-liste {
+            flex: 0 0 360px;
+            max-height: 56vh;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .fiche-apercu {
+            flex: 1;
+            max-height: 56vh;
+            overflow: auto;
+            background: #eceff1;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fiche-apercu canvas {
+            width: 100%;
+            max-width: 470px;
+            height: auto;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .14);
+        }
+
+        .fiche-etape {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 7px;
+            margin-bottom: 6px;
+            border: 1px solid #e3e6e8;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .fiche-etape.eteinte {
+            opacity: .45;
+            background: #fafafa;
+        }
+
+        .fiche-poignee {
+            cursor: grab;
+            color: #b0bec5;
+            font-size: 15px;
+            line-height: 1.2;
+            user-select: none;
+            padding: 0 2px;
+        }
+
+        .fiche-etape img {
+            width: 76px;
+            height: 56px;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            flex: 0 0 auto;
+        }
+
+        .fiche-etape textarea {
+            flex: 1;
+            min-height: 56px;
+            /* et non le raccourci « font » : une famille « inherit » n'y est pas
+               reprise, et la zone repassait à la police à chasse fixe du
+               navigateur */
+            font-family: inherit;
+            font-size: 12.5px;
+            line-height: 1.35;
+            color: #333;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            padding: 3px 5px;
+            resize: vertical;
+            background: transparent;
+        }
+
+        .fiche-etape textarea:focus {
+            border-color: #90caf9;
+            background: #fff;
+            outline: none;
+        }
+
+        .fiche-vide {
+            color: #78909c;
+            font-size: 13px;
+            padding: 20px 6px;
+            text-align: center;
+        }
+
+        @media (max-width: 820px) {
+            .fiche-corps { flex-direction: column; }
+            .fiche-liste { flex: 1 1 auto; max-height: 34vh; }
+            .fiche-apercu { max-height: 34vh; }
+        }
+
         .page-carte {
             position: relative;
             width: 158px;
@@ -4219,35 +4422,11 @@
                 right: 1px;
             }
 
-            /* Libellés visibles sous les icônes du menu fichier. Ces entrées n'ont
-               pour tout indice qu'une info-bulle — inaccessible au doigt, faute de
-               survol, et de toute façon supprimée ici (voir #global-tooltip). Trois
-               d'entre elles portent déjà leur nom dessiné dans l'icône (PNG, SVG,
-               PDF) ; les autres n'avaient rien. On lit le texte dans data-libelle,
-               qui reste ainsi à côté du data-tooltip équivalent du desktop. */
+            /* Les libellés sous les icônes du menu fichier ne sont plus réservés
+               au doigt : ils sont affichés partout (voir « LE MENU FICHIER DIT CE
+               QU'IL FAIT »). Ne reste ici que la cible tactile. */
             .header-dropdown-content .icon-btn[data-libelle] {
-                flex-direction: column;
-                gap: 1px;
-                height: auto;
-                min-height: 44px;
-                padding: 5px 2px;
-                line-height: 1.05;
-            }
-
-            .header-dropdown-content .icon-btn[data-libelle]::after {
-                content: attr(data-libelle);
-                font-size: 9px;
-                font-weight: 600;
-                color: #667;
-                white-space: nowrap;
-            }
-
-            /* Les trois exports portent leur nom dans le dessin : le répéter en
-               dessous ferait « PNG PNG ». */
-            .header-dropdown-content .icon-btn[data-libelle="PNG"]::after,
-            .header-dropdown-content .icon-btn[data-libelle="SVG"]::after,
-            .header-dropdown-content .icon-btn[data-libelle="PDF"]::after {
-                content: none;
+                min-height: 48px;
             }
 
             .tool-btn {
@@ -6725,6 +6904,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         </svg>
                     </button>
                     <div class="header-dropdown-content grid-3-cols">
+                        <div class="menu-titre">Le document</div>
 
                         <div class="icon-btn" onclick="document.getElementById('fileInput').click()" aria-label="Ouvrir" data-libelle="Ouvrir"
                             data-tooltip="Ouvrir un fichier">
@@ -6775,7 +6955,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
 
-                        <div class="sep-h" style="grid-column: 1 / -1; margin: 2px 0;"></div>
+                        <div class="menu-titre">Sortir un fichier</div>
 
                         <div class="icon-btn" onclick="app.requestExport('png')" aria-label="Exporter PNG" data-libelle="PNG"
                             data-tooltip="Exporter l'image (PNG)">
@@ -6821,21 +7001,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                              numérotées, chacune avec sa consigne et l'image de la
                              figure à cette étape-là. Une sortie de plus, dans la
                              grille des exports qui existe déjà. -->
-                        <div class="icon-btn" onclick="app.ficheConstruction()" aria-label="Fiche de construction"
-                            data-libelle="Fiche"
-                            data-tooltip="Fiche de construction (PDF : une étape par ligne)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="3" width="16" height="18" rx="2" />
-                                <line x1="8" y1="8" x2="11" y2="8" />
-                                <line x1="8" y1="12" x2="11" y2="12" />
-                                <line x1="8" y1="16" x2="11" y2="16" />
-                                <rect x="13.5" y="6.5" width="4" height="3.5" />
-                                <rect x="13.5" y="14" width="4" height="3.5" />
+                        <!-- Le dessin précédent — une feuille et quatre rectangles
+                             imbriqués — se remplissait et fusionnait en un carré
+                             plein à 24 px : le bouton ne disait rien du tout. Une
+                             feuille, trois lignes numérotées : c'est une liste
+                             d'étapes, et le libellé écrit dessous achève de le
+                             dire. -->
+                        <div class="icon-btn" onclick="app.ouvrirComposeurFiche()" aria-label="Fiche de construction"
+                            data-libelle="Fiche de construction"
+                            data-tooltip="Fiche de construction : les étapes sur une feuille à imprimer">
+                            <!-- style="fill:none" et non l'attribut fill : la
+                                 feuille de style pose .icon-btn svg { fill:
+                                 currentColor }, qui l'emporte sur un attribut de
+                                 présentation. C'est ce qui remplissait la feuille
+                                 et en faisait un carré plein. -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round" style="fill:none;">
+                                <path d="M5 3h14v18H5z" />
+                                <circle cx="8.5" cy="8" r="1.1" fill="currentColor" stroke="none" />
+                                <circle cx="8.5" cy="12" r="1.1" fill="currentColor" stroke="none" />
+                                <circle cx="8.5" cy="16" r="1.1" fill="currentColor" stroke="none" />
+                                <line x1="11.5" y1="8" x2="16" y2="8" />
+                                <line x1="11.5" y1="12" x2="16" y2="12" />
+                                <line x1="11.5" y1="16" x2="16" y2="16" />
                             </svg>
                         </div>
 
-                        <div class="sep-h" style="grid-column: 1 / -1; margin: 2px 0;"></div>
+                        <div class="menu-titre">Transmettre</div>
 
                         <div class="icon-btn" onclick="app.shareCurrentView()" data-libelle="Lien" style="flex-direction:column; gap:2px;"
                             data-tooltip="Créer un lien partageable">
@@ -8253,6 +8445,62 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     data-libelle="Dupliquer la page" onclick="app.dupliquerChoix()">Dupliquer</button>
                 <button class="modal-btn modal-confirm" id="btnFusionPages" style="background:#8e44ad;"
                     onclick="app.fusionnerChoix()">Fusionner (cochez 2 pages)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         LE COMPOSEUR DE FICHE
+
+         À gauche les étapes : on décoche celles qu'on ne veut pas, on tire une
+         ligne pour en changer l'ordre SUR LA FEUILLE — jamais dans la
+         construction, sinon la figure se casserait — et l'on réécrit la
+         consigne, qui est celle de l'étape : ce qu'on améliore ici, la classe
+         l'entendra au rejeu.
+
+         À droite l'aperçu. Ce n'est pas une imitation de la feuille : c'est le
+         PDF lui-même, fabriqué puis affiché par pdf.js, déjà embarqué dans le
+         fichier pour l'import. Il ne peut donc pas mentir sur ce qui sortira.
+         ====================================================================== -->
+    <div id="ficheModal" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) app.fermerComposeurFiche()">
+        <div class="modal-box fiche-box">
+            <h3 style="margin:0 0 8px; color:#2980b9;">Fiche de construction</h3>
+            <div class="fiche-reglages">
+                <label>Disposition
+                    <select id="ficheDispo" onchange="app.reglerFiche('dispo', this.value)">
+                        <option value="liste">Liste — consigne à gauche, figure à droite</option>
+                        <option value="tableau">Tableau — figures en grille, consigne en légende</option>
+                        <option value="images">Figures seules</option>
+                        <option value="texte">Texte seul — le programme de construction</option>
+                    </select>
+                </label>
+                <label id="ficheLabelCols">Colonnes
+                    <select id="ficheCols" onchange="app.reglerFiche('colonnes', this.value)">
+                        <option value="1">1</option>
+                        <option value="2" selected>2</option>
+                        <option value="3">3</option>
+                    </select>
+                </label>
+                <label><input type="checkbox" id="ficheNumeros" checked
+                        onchange="app.reglerFiche('numeros', this.checked)"> Numéros</label>
+                <label><input type="checkbox" id="ficheFinale" checked
+                        onchange="app.reglerFiche('finale', this.checked)"> Figure terminée</label>
+                <label><input type="checkbox" id="ficheInstruments" checked
+                        onchange="app.reglerFiche('instruments', this.checked)"> Instruments</label>
+                <label><input type="checkbox" id="ficheQuadrillage"
+                        onchange="app.reglerFiche('quadrillage', this.checked)"> Quadrillage</label>
+                <label><input type="checkbox" id="fichePaysage"
+                        onchange="app.reglerFiche('paysage', this.checked)"> Paysage</label>
+            </div>
+            <div class="fiche-corps">
+                <div class="fiche-liste" id="ficheListe"></div>
+                <div class="fiche-apercu" id="ficheApercu"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-cancel" onclick="app.fermerComposeurFiche()">Fermer</button>
+                <button class="modal-btn modal-confirm" id="btnFicheEnregistrer" style="background:#27ae60;"
+                    onclick="app.enregistrerFiche()">Enregistrer le PDF</button>
             </div>
         </div>
     </div>
@@ -24795,44 +25043,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                Le cadrage est celui de la figure ENTIÈRE, identique d'une image à
                l'autre : la construction pousse dans un cadre fixe au lieu de
                sauter d'une vignette à la suivante.
+
+               Trois temps, séparés parce qu'ils ne coûtent pas la même chose :
+               PRENDRE les images (un rendu par étape — on ne le refait que si
+               les instruments ou le quadrillage changent), COMPOSER la feuille
+               (rapide, à chaque réglage), et ENREGISTRER.
                ============================================================ */
-            async ficheConstruction() {
-                const cles = Object.keys(this.stepInstructions || {}).map(Number).sort((a, b) => a - b);
-                if (!cles.length) {
-                    this.showToast("Cette figure n'a pas de consignes — posez-en avec « 💡 Étape »");
-                    return;
+            reglagesFiche() {
+                if (!this._fiche) {
+                    this._fiche = { dispo: 'liste', colonnes: 2, numeros: true, finale: true,
+                                    instruments: true, quadrillage: false, paysage: false };
                 }
-                try { window.gmEnsurePdfLibs(); }
-                catch (e) { this.showToast("❌ Bibliothèques PDF indisponibles."); return; }
-                this.showToast("⏳ Fiche de construction…");
-
-                const taille = (url) => new Promise(r => {
-                    const im = new Image();
-                    im.onload = () => r({ w: im.width, h: im.height });
-                    im.onerror = () => r(null);
-                    im.src = url;
-                });
-
+                return this._fiche;
+            }
+            /* Les étapes telles que la fiche les voit : la consigne, et l'image de
+               la figure une fois l'étape faite. La consigne de l'étape j vaut
+               jusqu'à la suivante — c'est la règle que suit déjà le rejeu. */
+            capturerFiche() {
+                const o = this.reglagesFiche();
+                const cles = Object.keys(this.stepInstructions || {}).map(Number).sort((a, b) => a - b);
+                if (!cles.length) return null;
                 const memoIdx = this.replayIndex, memoW = Object.assign({}, this.activeWidgets);
                 /* Feuille blanche pendant la prise de vue : le quadrillage est une
                    aide à l'écran, pas un élément de la figure — les exports PNG,
                    SVG et PDF ne le montrent pas non plus. Le mode 3 est le fond
-                   uni, déjà là. */
+                   uni, déjà là. On peut le redemander : c'est une case. */
                 const memoGrille = this.gridMode;
-                this.gridMode = 3;
-                const etapes = [];
+                if (!o.quadrillage) this.gridMode = 3;
+                const vide = { compass: false, protractor: false, setsquare: false, ruler: false };
+                const items = [];
                 let finale = '';
                 try {
                     for (let j = 0; j < cles.length; j++) {
-                        // la consigne de l'étape j vaut jusqu'à la suivante : l'image
-                        // montre donc la figure une fois cette étape FAITE
                         const fin = (j + 1 < cles.length) ? cles[j + 1] : this.entities.length;
-                        this.replayIndex = fin; this.fastForward(fin); this.render();
-                        etapes.push({ texte: String(this.stepInstructions[cles[j]] || '').trim(),
-                                      img: this.vignetteCourante(520, 0.85) });
+                        this.replayIndex = fin; this.fastForward(fin);
+                        if (!o.instruments) this.activeWidgets = Object.assign({}, vide);
+                        this.render();
+                        items.push({ cle: cles[j], actif: true,
+                                     texte: String(this.stepInstructions[cles[j]] || '').trim(),
+                                     img: this.vignetteCourante(520, 0.85) });
                     }
                     this.replayIndex = this.entities.length;
-                    this.fastForward(this.replayIndex); this.render();
+                    this.fastForward(this.replayIndex);
+                    this.activeWidgets = Object.assign({}, vide);
+                    this.render();
                     finale = this.vignetteCourante(760, 0.9);
                 } finally {
                     this.gridMode = memoGrille;
@@ -24841,73 +25095,341 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.activeWidgets = memoW;
                     this.render();
                 }
+                return { items, finale };
+            }
+            tailleImage(url) {
+                return new Promise(r => {
+                    const im = new Image();
+                    im.onload = () => r({ w: im.width, h: im.height });
+                    im.onerror = () => r(null);
+                    im.src = url;
+                });
+            }
+            /* La feuille. Quatre dispositions, parce qu'on ne demande pas la même
+               chose selon qu'on donne la fiche à recopier, à compléter, ou qu'on
+               la projette : liste (consigne à gauche, figure à droite), tableau
+               (figures en grille, consigne en légende), figures seules, et texte
+               seul — le programme de construction, sans dessin, pour faire
+               chercher. */
+            async composerFichePDF(items, finale) {
+                const o = this.reglagesFiche();
+                const gardees = items.filter(e => e.actif !== false);
+                const pdf = new jspdf.jsPDF({ orientation: o.paysage ? 'landscape' : 'portrait',
+                                              unit: 'pt', format: 'a4' });
+                const gs = window.gmEnregistrerPolice ? window.gmEnregistrerPolice(pdf) : false;
+                const police = gs ? 'GeoSans' : 'helvetica';
+                const L = o.paysage ? 841.89 : 595.28, H = o.paysage ? 595.28 : 841.89;
+                const marge = 42, bas = H - 46, utile = L - 2 * marge;
+                let y = 0;
 
-                try {
-                    const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-                    const gs = window.gmEnregistrerPolice ? window.gmEnregistrerPolice(pdf) : false;
-                    const police = gs ? 'GeoSans' : 'helvetica';
-                    const L = 595.28, H = 841.89, marge = 42, bas = H - 46;
-                    const largeurTexte = 262, xImage = marge + 282, largeurImage = 212;
-                    let y = 0;
+                const entete = () => {
+                    pdf.setFont(police, 'bold'); pdf.setFontSize(16); pdf.setTextColor(30, 30, 30);
+                    pdf.text('Fiche de construction', marge, 58);
+                    const titre = (this.projectTitle || '').trim();
+                    pdf.setFont(police, 'normal'); pdf.setFontSize(11); pdf.setTextColor(110, 110, 110);
+                    if (titre) pdf.text(titre, marge, 76);
+                    y = titre ? 96 : 82;
+                };
+                const numero = (j) => o.numeros ? String(j + 1) + '.' : '';
+                entete();
 
-                    const entete = () => {
-                        pdf.setFont(police, 'bold'); pdf.setFontSize(16); pdf.setTextColor(30, 30, 30);
-                        pdf.text('Fiche de construction', marge, 58);
-                        const titre = (this.projectTitle || '').trim();
-                        pdf.setFont(police, 'normal'); pdf.setFontSize(11); pdf.setTextColor(110, 110, 110);
-                        if (titre) pdf.text(titre, marge, 76);
-                        y = titre ? 96 : 82;
-                    };
-                    entete();
-
-                    // Ce qu'on obtient, d'abord : on sait où l'on va avant de partir.
-                    if (finale) {
-                        const t = await taille(finale);
-                        if (t) {
-                            const lm = 300, hm = 176;
-                            let w = lm, h = lm * t.h / t.w;
-                            if (h > hm) { h = hm; w = hm * t.w / t.h; }
-                            pdf.addImage(finale, 'JPEG', (L - w) / 2, y, w, h);
-                            pdf.setFont(police, 'normal'); pdf.setFontSize(9); pdf.setTextColor(130, 130, 130);
-                            pdf.text('la figure terminée', L / 2, y + h + 12, { align: 'center' });
-                            y += h + 28;
-                        }
+                // Ce qu'on obtient, d'abord : on sait où l'on va avant de partir.
+                if (o.finale && finale && o.dispo !== 'texte') {
+                    const t = await this.tailleImage(finale);
+                    if (t) {
+                        const lm = Math.min(300, utile), hm = 176;
+                        let w = lm, h = lm * t.h / t.w;
+                        if (h > hm) { h = hm; w = hm * t.w / t.h; }
+                        pdf.addImage(finale, 'JPEG', (L - w) / 2, y, w, h);
+                        pdf.setFont(police, 'normal'); pdf.setFontSize(9); pdf.setTextColor(130, 130, 130);
+                        pdf.text('la figure terminée', L / 2, y + h + 12, { align: 'center' });
+                        y += h + 28;
                     }
+                }
 
-                    for (let j = 0; j < etapes.length; j++) {
-                        const e = etapes[j];
+                if (o.dispo === 'liste' || o.dispo === 'texte') {
+                    const avecImage = (o.dispo === 'liste');
+                    const largeurImage = avecImage ? 212 : 0;
+                    const largeurTexte = avecImage ? utile - largeurImage - 46 : utile - 20;
+                    for (let j = 0; j < gardees.length; j++) {
+                        const e = gardees[j];
                         pdf.setFont(police, 'normal'); pdf.setFontSize(11);
                         const lignes = pdf.splitTextToSize(e.texte || '…', largeurTexte);
                         const hTexte = lignes.length * 14 + 4;
                         let w = 0, h = 0;
-                        if (e.img) {
-                            const t = await taille(e.img);
+                        if (avecImage && e.img) {
+                            const t = await this.tailleImage(e.img);
                             if (t) {
                                 w = largeurImage; h = largeurImage * t.h / t.w;
                                 if (h > 132) { h = 132; w = 132 * t.w / t.h; }
                             }
                         }
-                        const hRangee = Math.max(hTexte, h) + 18;
+                        const hRangee = Math.max(hTexte, h) + (avecImage ? 18 : 10);
                         // le filet SÉPARE deux étapes : en haut d'une feuille il ne
                         // sépare rien, il souligne le titre
                         let neuve = false;
                         if (y + hRangee > bas) { pdf.addPage(); entete(); neuve = true; }
-                        pdf.setDrawColor(224, 224, 224); pdf.setLineWidth(0.5);
-                        if (j > 0 && !neuve) pdf.line(marge, y - 9, L - marge, y - 9);
+                        if (avecImage) {
+                            pdf.setDrawColor(224, 224, 224); pdf.setLineWidth(0.5);
+                            if (j > 0 && !neuve) pdf.line(marge, y - 9, L - marge, y - 9);
+                        }
                         pdf.setFont(police, 'bold'); pdf.setFontSize(12); pdf.setTextColor(41, 128, 185);
-                        pdf.text(String(j + 1) + '.', marge, y + 12);
+                        if (o.numeros) pdf.text(numero(j), marge, y + 12);
                         pdf.setFont(police, 'normal'); pdf.setFontSize(11); pdf.setTextColor(40, 40, 40);
-                        pdf.text(lignes, marge + 18, y + 12);
-                        if (w) pdf.addImage(e.img, 'JPEG', xImage + (largeurImage - w) / 2, y, w, h);
+                        pdf.text(lignes, marge + (o.numeros ? 18 : 0), y + 12);
+                        if (w) pdf.addImage(e.img, 'JPEG', L - marge - largeurImage
+                            + (largeurImage - w) / 2, y, w, h);
                         y += hRangee;
                     }
+                } else {
+                    // tableau et figures seules : une grille, la consigne en légende
+                    const n = Math.max(1, Math.min(3, Number(o.colonnes) || 1));
+                    const legende = (o.dispo === 'tableau');
+                    const ecart = 14;
+                    const cw = (utile - ecart * (n - 1)) / n;
+                    const hMax = n === 1 ? 260 : (n === 2 ? 190 : 140);
+                    for (let j = 0; j < gardees.length; j += n) {
+                        const rangee = gardees.slice(j, j + n);
+                        const cases = [];
+                        let hRangee = 0;
+                        for (let k = 0; k < rangee.length; k++) {
+                            const e = rangee[k];
+                            let w = 0, h = 0;
+                            if (e.img) {
+                                const t = await this.tailleImage(e.img);
+                                if (t) {
+                                    w = cw; h = cw * t.h / t.w;
+                                    if (h > hMax) { h = hMax; w = hMax * t.w / t.h; }
+                                }
+                            }
+                            pdf.setFont(police, 'normal'); pdf.setFontSize(10);
+                            const txt = (o.numeros ? numero(j + k) + ' ' : '') + (legende ? (e.texte || '') : '');
+                            const lignes = legende || o.numeros ? pdf.splitTextToSize(txt.trim() || ' ', cw) : [];
+                            const hLegende = lignes.length * 12 + 6;
+                            cases.push({ e, w, h, lignes, hLegende });
+                            hRangee = Math.max(hRangee, h + hLegende);
+                        }
+                        if (y + hRangee + 12 > bas) { pdf.addPage(); entete(); }
+                        cases.forEach((c, k) => {
+                            const x = marge + k * (cw + ecart);
+                            if (c.w) pdf.addImage(c.e.img, 'JPEG', x + (cw - c.w) / 2, y, c.w, c.h);
+                            if (c.lignes.length) {
+                                pdf.setFont(police, 'normal'); pdf.setFontSize(10); pdf.setTextColor(60, 60, 60);
+                                pdf.text(c.lignes, x, y + c.h + 12);
+                            }
+                        });
+                        y += hRangee + 16;
+                    }
+                }
+                return pdf;
+            }
+            /* Le worker de pdf.js, en Blob local : rien n'est demandé au réseau.
+               L'import de PDF faisait déjà cela dans son coin ; l'aperçu de la
+               fiche en a besoin aussi, d'où la mise en commun. */
+            assurerWorkerPdf() {
+                if (typeof pdfjsLib === 'undefined') return false;
+                if (pdfjsLib.GlobalWorkerOptions.workerSrc) return true;
+                const src = document.getElementById('pdfWorkerSource');
+                if (!src) return false;
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    URL.createObjectURL(new Blob([src.textContent], { type: 'application/javascript' }));
+                return true;
+            }
+            /* ---- le composeur ---- */
+            ouvrirComposeurFiche() {
+                try { window.gmEnsurePdfLibs(); }
+                catch (e) { this.showToast("❌ Bibliothèques PDF indisponibles."); return; }
+                const prise = this.capturerFiche();
+                if (!prise) {
+                    this.showToast("Cette figure n'a pas de consignes — posez-en avec « 💡 Étape »");
+                    return;
+                }
+                this.ficheItems = prise.items;
+                this.ficheFinale = prise.finale;
+                const m = document.getElementById('ficheModal');
+                if (m) m.style.display = 'flex';
+                this.majListeFiche();
+                this.majReglagesFiche();
+                this.majApercuFiche();
+            }
+            fermerComposeurFiche() {
+                const m = document.getElementById('ficheModal');
+                if (m) m.style.display = 'none';
+            }
+            reglerFiche(quoi, valeur) {
+                const o = this.reglagesFiche();
+                o[quoi] = valeur;
+                this.majReglagesFiche();
+                // instruments et quadrillage changent les IMAGES : il faut reprendre
+                if (quoi === 'instruments' || quoi === 'quadrillage') {
+                    const memo = this.ficheItems || [];
+                    const prise = this.capturerFiche();
+                    if (prise) {
+                        // on garde ce que l'utilisateur a fait : ordre, choix, textes
+                        const parCle = {};
+                        prise.items.forEach(it => { parCle[it.cle] = it; });
+                        this.ficheItems = memo.map(it => Object.assign({}, it,
+                            { img: parCle[it.cle] ? parCle[it.cle].img : it.img }));
+                        this.ficheFinale = prise.finale;
+                    }
+                    this.majListeFiche();
+                }
+                this.majApercuFiche();
+            }
+            majReglagesFiche() {
+                const o = this.reglagesFiche();
+                /* Les commandes disent l'état, dans les deux sens : rouvrir le
+                   composeur doit montrer les réglages de la dernière fois, pas ceux
+                   écrits dans le HTML. */
+                const poser = (id, val, coche) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (coche) el.checked = !!val; else el.value = String(val);
+                };
+                poser('ficheDispo', o.dispo);
+                poser('ficheCols', o.colonnes);
+                poser('ficheNumeros', o.numeros, true);
+                poser('ficheFinale', o.finale, true);
+                poser('ficheInstruments', o.instruments, true);
+                poser('ficheQuadrillage', o.quadrillage, true);
+                poser('fichePaysage', o.paysage, true);
+                const grille = (o.dispo === 'tableau' || o.dispo === 'images');
+                const lab = document.getElementById('ficheLabelCols');
+                if (lab) lab.classList.toggle('inactif', !grille);
+                const sansImage = (o.dispo === 'texte');
+                [['ficheFinale', sansImage], ['ficheInstruments', sansImage],
+                 ['ficheQuadrillage', sansImage]].forEach(([id, off]) => {
+                    const el = document.getElementById(id);
+                    if (el && el.parentElement) el.parentElement.classList.toggle('inactif', off);
+                });
+            }
+            majListeFiche() {
+                const hote = document.getElementById('ficheListe');
+                if (!hote) return;
+                hote.innerHTML = '';
+                const items = this.ficheItems || [];
+                if (!items.length) {
+                    hote.innerHTML = '<div class="fiche-vide">Aucune étape.</div>';
+                    return;
+                }
+                items.forEach((it, i) => {
+                    const l = document.createElement('div');
+                    l.className = 'fiche-etape' + (it.actif === false ? ' eteinte' : '');
+                    l.draggable = true;
+                    l.ondragstart = () => { this.ficheTiree = i; };
+                    l.ondragover = (ev) => { ev.preventDefault(); };
+                    l.ondrop = (ev) => { ev.preventDefault(); this.deplacerEtapeFiche(this.ficheTiree, i); };
 
+                    const poignee = document.createElement('span');
+                    poignee.className = 'fiche-poignee'; poignee.textContent = '⠿';
+                    poignee.title = "Tirer pour changer l'ordre sur la feuille";
+
+                    const coche = document.createElement('input');
+                    coche.type = 'checkbox'; coche.checked = it.actif !== false;
+                    coche.title = 'Mettre cette étape sur la fiche';
+                    coche.onchange = () => {
+                        it.actif = coche.checked;
+                        l.classList.toggle('eteinte', !coche.checked);
+                        this.majApercuFiche();
+                    };
+
+                    const img = document.createElement('img');
+                    img.src = it.img || ''; img.alt = '';
+
+                    const zone = document.createElement('textarea');
+                    zone.value = it.texte;
+                    zone.title = "La consigne de l'étape : la modifier ici la modifie aussi dans la figure";
+                    zone.oninput = () => {
+                        it.texte = zone.value;
+                        /* Une seule vérité : la consigne réécrite ici est CELLE DE
+                           L'ÉTAPE. Ce qu'on améliore pour la fiche, la classe
+                           l'entendra au rejeu. */
+                        if (this.stepInstructions && it.cle !== undefined) {
+                            this.stepInstructions[it.cle] = zone.value;
+                        }
+                        this.majApercuFiche();
+                    };
+
+                    l.appendChild(poignee); l.appendChild(coche);
+                    l.appendChild(img); l.appendChild(zone);
+                    hote.appendChild(l);
+                });
+            }
+            /* Réordonner ne touche QUE la feuille : l'ordre de la construction, lui,
+               est celui des objets — le changer casserait la figure. */
+            deplacerEtapeFiche(de, vers) {
+                const items = this.ficheItems || [];
+                if (de === null || de === undefined || de === vers) return;
+                if (de < 0 || vers < 0 || de >= items.length || vers >= items.length) return;
+                items.splice(vers, 0, items.splice(de, 1)[0]);
+                this.majListeFiche();
+                this.majApercuFiche();
+            }
+            /* L'aperçu est le PDF lui-même, affiché par pdf.js : il ne peut pas
+               différer de ce qui sortira. On attend un court silence avant de le
+               refaire, sinon chaque lettre tapée dans une consigne relancerait
+               toute la fabrication. */
+            majApercuFiche(delai = 220) {
+                clearTimeout(this._ficheMinuteur);
+                this._ficheMinuteur = setTimeout(() => this.dessinerApercuFiche(), delai);
+            }
+            async dessinerApercuFiche() {
+                const hote = document.getElementById('ficheApercu');
+                if (!hote) return;
+                const jeton = (this._ficheJeton = (this._ficheJeton || 0) + 1);
+                try {
+                    const pdf = await this.composerFichePDF(this.ficheItems || [], this.ficheFinale);
+                    if (jeton !== this._ficheJeton) return;      // un réglage plus récent a gagné
+                    if (!this.assurerWorkerPdf()) { hote.innerHTML =
+                        '<div class="fiche-vide">Aperçu indisponible.</div>'; return; }
+                    const doc = await pdfjsLib.getDocument({ data: pdf.output('arraybuffer') }).promise;
+                    if (jeton !== this._ficheJeton) return;
+                    const feuilles = [];
+                    for (let i = 1; i <= doc.numPages; i++) {
+                        const p = await doc.getPage(i);
+                        const vp = p.getViewport({ scale: 1.1 });
+                        const c = document.createElement('canvas');
+                        c.width = vp.width; c.height = vp.height;
+                        await p.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+                        feuilles.push(c);
+                    }
+                    if (jeton !== this._ficheJeton) return;
+                    hote.innerHTML = '';
+                    feuilles.forEach(c => hote.appendChild(c));
+                } catch (err) {
+                    console.error('Aperçu de la fiche :', err);
+                    if (jeton === this._ficheJeton) {
+                        hote.innerHTML = '<div class="fiche-vide">Aperçu impossible.</div>';
+                    }
+                }
+            }
+            async enregistrerFiche() {
+                const gardees = (this.ficheItems || []).filter(e => e.actif !== false);
+                if (!gardees.length) { this.showToast('Aucune étape cochée.'); return; }
+                try {
+                    const pdf = await this.composerFichePDF(this.ficheItems, this.ficheFinale);
                     pdf.save(this.getSafeFilename('pdf').replace(/\.pdf$/i, '') + '-fiche.pdf');
-                    this.showToast(`✅ Fiche de ${etapes.length} étape${etapes.length > 1 ? 's' : ''} exportée !`);
+                    this.showToast(`✅ Fiche de ${gardees.length} étape${gardees.length > 1 ? 's' : ''} exportée !`);
+                    this.fermerComposeurFiche();
                 } catch (err) {
                     console.error('Fiche de construction :', err);
                     this.showToast("❌ Erreur lors de la création de la fiche.");
                 }
+            }
+            /* La sortie directe, sans passer par le composeur : les réglages en
+               cours, toutes les étapes, et le fichier. */
+            async ficheConstruction() {
+                try { window.gmEnsurePdfLibs(); }
+                catch (e) { this.showToast("❌ Bibliothèques PDF indisponibles."); return; }
+                const prise = this.capturerFiche();
+                if (!prise) {
+                    this.showToast("Cette figure n'a pas de consignes — posez-en avec « 💡 Étape »");
+                    return;
+                }
+                this.showToast("⏳ Fiche de construction…");
+                this.ficheItems = prise.items;
+                this.ficheFinale = prise.finale;
+                await this.enregistrerFiche();
             }
             enregistrerDansBiblio() {
                 const nom = (this.projectTitle || '').trim() || 'Sans titre';

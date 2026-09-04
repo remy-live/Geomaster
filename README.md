@@ -87,12 +87,24 @@ construction se refait sous les yeux de la classe.
 
 ### La fiche qu'on colle dans le cahier
 
-Une figure qui porte des consignes d'étape sort aussi en **fiche de
-construction** : une feuille A4 avec la figure terminée en haut — on sait où
-l'on va — puis les étapes numérotées, chacune avec son texte et **l'image de la
-figure à cette étape-là**, instruments compris. La feuille se tourne toute
-seule quand il y a beaucoup d'étapes. Le quadrillage n'y est pas : c'est une
-aide à l'écran, pas un élément de la figure.
+Une figure qui porte des consignes d'étape sort en **fiche de construction** :
+une feuille A4 avec la figure terminée en haut — on sait où l'on va — puis les
+étapes numérotées, chacune avec son texte et **l'image de la figure à cette
+étape-là**, instruments compris. La feuille se tourne toute seule quand il y a
+beaucoup d'étapes.
+
+Elle se compose. À gauche, les étapes : on **décoche** celles dont on ne veut
+pas, on **tire une ligne** pour en changer l'ordre *sur la feuille* — jamais
+dans la construction, qui se casserait — et l'on **réécrit la consigne**, qui
+est celle de l'étape : ce qu'on améliore ici, la classe l'entendra au rejeu.
+Quatre dispositions — liste, tableau en 1 à 3 colonnes, figures seules, ou
+**texte seul** (le programme de construction sans dessin, pour faire chercher)
+— avec numéros, figure terminée, instruments, quadrillage et paysage en
+options.
+
+À droite, l'aperçu. Ce n'est pas une imitation de la feuille : c'est **le PDF
+lui-même**, fabriqué puis relu par le lecteur de PDF déjà embarqué dans le
+fichier. Il ne peut donc pas mentir sur ce qui sortira.
 
 ### Vu du fond de la salle
 
@@ -135,7 +147,10 @@ Import d'une image ou d'un **PDF** en fond, page par page, recadrable. Export en
 ### Trouver une commande
 
 248 commandes, dont trois sur quatre rangées dans un panneau qu'il faut d'abord
-ouvrir. La **loupe** de la barre du haut — ou `Ctrl+K` — ouvre une recherche :
+ouvrir. Le menu *fichier* écrit désormais le nom de chacune sous son icône, et
+les range sous trois intitulés — **le document**, **sortir un fichier**,
+**transmettre** : deux `</>` identiques y désignaient deux commandes
+différentes, et il n'y avait qu'à deviner. La **loupe** de la barre du haut — ou `Ctrl+K` — ouvre une recherche :
 on tape ce qu'on veut faire (« médiatrice », « exporter pdf », « compas »), on
 choisit, c'est lancé. Chaque résultat dit **où** la commande se trouve, pour
 qu'on finisse par le savoir.

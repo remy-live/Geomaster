@@ -22,7 +22,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-equerre-repere.js` | le repère rouge de l'équerre tombe juste, et le rejeu la pose |
 | `probe-annuler-rejeu.js` | annuler pendant une construction magique l'arrête au lieu de tout bloquer |
 | `probe-mesure-clavier.js` | une longueur et un angle se donnent au clavier, dans l'unité affichée |
-| `probe-fiche.js` | la fiche de construction sort en A4, une étape par ligne, avec ses images |
+| `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
