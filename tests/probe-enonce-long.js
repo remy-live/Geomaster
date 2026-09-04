@@ -264,6 +264,92 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      Math.abs(cm(r.pts, 'A', 'I') - cm(r.pts, 'I', 'B')) < 0.02,
      `${cm(r.pts, 'A', 'I')} / ${cm(r.pts, 'I', 'B')}`);
 
+  /* ================================================================
+     11. CE QU'ON TRACE DANS UN CERCLE N'EST PAS UN CERCLE.
+     « Trace la tangente au cercle en A » fabriquait un SECOND CERCLE
+     centré sur A : le mot « cercle » suffisait à envoyer la phrase au
+     bâtisseur de cercles.
+     ================================================================ */
+  console.log('\n=== tangente, rayon, diamètre, corde ===');
+  const C3 = ['Place un point O', 'Trace le cercle de centre O et de rayon 3 cm'];
+  r = await fig([...C3, 'Trace la tangente au cercle en A']);
+  ck('la tangente passe', r.res[2].ok, r.res[2].m);
+  ck('et ne fabrique pas un second cercle', r.cercles.length === 1, JSON.stringify(r.cercles));
+  ck('A est posé sur le cercle', !!r.pts.A && Math.abs(cm(r.pts, 'O', 'A') - 3) < 0.02,
+     r.pts.A ? cm(r.pts, 'O', 'A') + ' cm' : 'absent');
+  r = await fig([...C3, 'Trace un diamètre de ce cercle']);
+  const bouts = Object.keys(r.pts).filter(n => n !== 'O');
+  ck('le diamètre mesure deux rayons',
+     bouts.length === 2 && Math.abs(cm(r.pts, bouts[0], bouts[1]) - 6) < 0.05,
+     bouts.length === 2 ? cm(r.pts, bouts[0], bouts[1]) + ' cm' : bouts.join(''));
+  r = await fig([...C3, 'Trace une corde de ce cercle']);
+  const cd = Object.keys(r.pts).filter(n => n !== 'O');
+  ck('les deux bouts de la corde sont sur le cercle',
+     cd.length === 2 && cd.every(n => Math.abs(cm(r.pts, 'O', n) - 3) < 0.02),
+     cd.map(n => cm(r.pts, 'O', n)).join(' / '));
+
+  console.log('\n=== le cercle passant par trois points ===');
+  r = await fig([T, 'Trace le cercle passant par A, B et C']);
+  ck('c\'est le cercle circonscrit, pas un cercle inventé',
+     r.res[1].ok && r.cercles.length === 1, `${r.res[1].m} / ${r.cercles.length}`);
+  r = await fig([T, 'Trace le cercle circonscrit']);
+  ck('sans les instruments, c\'est un vrai cercle', r.cercles.length === 1,
+     JSON.stringify(r.objets));
+  r = await fig([T, 'Trace le cercle circonscrit'], true);
+  ck('avec les instruments, c\'est la construction au compas',
+     !r.objets.Circle && r.objets.CompassArc > 0, JSON.stringify(r.objets));
+
+  /* ================================================================
+     12. MARQUER LES ANGLES, ET NON RETRACER LA FIGURE.
+     ================================================================ */
+  console.log('\n=== « Marque les angles du triangle ABC » ===');
+  r = await fig([T, 'Marque les angles du triangle ABC']);
+  ck('trois angles, un seul triangle', r.objets.Angle === 3 && r.objets.Polygon === 1,
+     `${r.objets.Angle} angles / ${r.objets.Polygon} polygone(s)`);
+  r = await fig(['Trace un carré ABCD de côté 4 cm', 'Marque les angles droits']);
+  ck('quatre angles droits sur un carré', r.objets.Angle === 4 && r.objets.Polygon === 1,
+     `${r.objets.Angle} / ${r.objets.Polygon}`);
+  r = await fig([T, 'Marque les angles droits']);
+  ck('et rien sur un triangle quelconque, avec un mot', r.res[1].ok === false, r.res[1].m);
+
+  /* ================================================================
+     13. UN CÔTÉ NOMMÉ DÉSIGNE LE SOMMET OPPOSÉ.
+     ================================================================ */
+  console.log('\n=== « la médiane de [BC] », « la hauteur relative à [BC] » ===');
+  r = await fig([T, 'Trace la médiane de [BC]']);
+  ck('UNE médiane, pas trois', r.objets.Segment === 4,
+     `${r.objets.Segment} segments (3 côtés + 1)`);
+  r = await fig([T, 'Trace la hauteur relative à [BC]']);
+  ck('UNE hauteur, celle issue de A', r.res[1].ok && r.objets.PerpendicularLine === 1,
+     r.res[1].m);
+  r = await fig([T, 'Trace la hauteur issue du sommet A']);
+  ck('« issue du sommet A » se dit aussi', r.res[1].ok, r.res[1].m);
+
+  console.log('\n=== plusieurs milieux nommés ===');
+  r = await fig([T, 'Place les milieux I de [AB] et J de [AC]']);
+  ck('les DEUX milieux sont posés', !!r.pts.I && !!r.pts.J, Object.keys(r.pts).join(''));
+  ck('I au milieu de [AB], J au milieu de [AC]',
+     Math.abs(cm(r.pts, 'A', 'I') - cm(r.pts, 'I', 'B')) < 0.02
+     && Math.abs(cm(r.pts, 'A', 'J') - cm(r.pts, 'J', 'C')) < 0.02);
+
+  /* ================================================================
+     14. CE QU'ON NE SAIT PAS FAIRE SE DIT.
+     « Trace la translation du triangle ABC » retraçait le triangle
+     par-dessus lui-même et répondait « Triangle ABC ».
+     ================================================================ */
+  console.log('\n=== une transformation inconnue ne fait pas semblant ===');
+  r = await fig(['Trace un triangle ABC', 'Trace la translation du triangle ABC']);
+  ck('elle est refusée, et expliquée',
+     r.res[1].ok === false && /translations/.test(r.res[1].m), r.res[1].m);
+  ck('et le triangle n\'a pas été retracé', r.objets.Polygon === 1, String(r.objets.Polygon));
+  r = await fig([T, 'Trace l\'image du triangle ABC par la symétrie de centre A']);
+  ck('« l\'image DU triangle » est bien une symétrie',
+     r.res[1].ok && r.objets.Polygon === 1, `${r.res[1].m} / ${r.objets.Polygon}`);
+
+  console.log('\n=== un complément n\'est pas une consigne ===');
+  r = await fig(['De centre O et de rayon 3 cm, trace un cercle']);
+  ck('la phrase se comprend d\'un bloc', r.res[0].ok && r.cercles.length === 1, r.res[0].m);
+
   /* Le nom d'une droite survit à la sauvegarde : sans cela, rouvrir le
      fichier rendrait la droite anonyme et « la perpendiculaire à d »
      ne trouverait plus rien. */

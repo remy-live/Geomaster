@@ -27240,6 +27240,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const reVirgule = /\s*[,.]\s+(?=(?:il|elle|celui-ci|celle-ci)\s+(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire|marque|appelle|nomme|note|prends|soit)\b/i;
                 const bouts = brut.split(re).map(x => x.trim()).filter(Boolean)
                     .reduce((acc, b) => acc.concat(b.split(reVirgule).map(x => x.trim()).filter(Boolean)), []);
+                /* UN COMPLÉMENT N'EST PAS UNE CONSIGNE. « De centre O et de rayon
+                   3 cm, trace un cercle » se coupait en deux, dont un morceau
+                   sans verbe qu'on ne pouvait qu'échouer à comprendre. Une
+                   consigne commence par un verbe, un « soit », ou un sujet —
+                   sinon c'est le complément de la suivante, et la phrase entière
+                   se comprend mieux d'un bloc. */
+                const commence = (b) => /^(?:trace|tracer|construis|construire|dessine|dessiner|reproduis|place|placer|pose|poser|marque|marquer|code|coder|relie|relier|joins|joindre|appelle|appeler|nomme|nommer|note|noter|prends|prendre|soit|soient|on\b|il\b|elle\b|ils\b|elles\b|affiche|montre|indique|[ée]tape|que\b|qu'|justifie|explique|v[ée]rifie|calcule|compare|d[ée]montre|observe|ses\b|sa\b|son\b|leurs?\b|un\b|une\b|le\b|la\b|les\b|[A-Z]{2,3}\s+est)/i.test(b);
+                if (bouts.length > 1 && !bouts.every(commence)) return [brut];
                 return bouts.length > 1 ? bouts : [brut];
             }
             /* « ses médiatrices » : celles de la figure qu'on vient de tracer. */
@@ -27402,7 +27410,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
                     if (/milieu/.test(t)) return this.cslMilieu(brut, t, fait, rate);
-                    if (/sym[ée]trique|image\s+de/.test(t)) return this.cslSymetrique(brut, t, fait, rate);
+                    /* « l'image DU triangle ABC » autant que « l'image DE A » :
+                       le « du » n'était pas prévu, et la phrase retombait sur le
+                       bâtisseur de figures, qui retraçait le triangle en silence. */
+                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b/.test(t)) {
+                        return this.cslSymetrique(brut, t, fait, rate);
+                    }
                     /* Les droites remarquables D'UN TRIANGLE, au pluriel comme au
                        singulier : « les médiatrices du triangle ABC », « la hauteur
                        issue de A ». Elles passent avant la règle générale, qui ne
@@ -27434,7 +27447,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     /* Une figure nommée l'emporte : « un triangle ABC tel que
                        l'angle BAC = 60° » décrit un TRIANGLE, pas un angle. */
                     const figure = /carr[ée]|rectangle|losange|parall[ée]logramme|trap[èe]ze|triangle|quadrilat[èe]re|pentagone|hexagone|heptagone|octogone|enn[ée]agone|d[ée]cagone|dod[ée]cagone|polygone/.exec(t);
+                    /* CE QU'ON TRACE DANS UN CERCLE N'EST PAS UN CERCLE. « Trace
+                       la tangente au cercle en A » fabriquait un SECOND CERCLE
+                       centré sur A : le mot « cercle » suffisait à envoyer la
+                       phrase au bâtisseur de cercles. Un rayon, un diamètre, une
+                       corde et une tangente sont des TRAITS. */
+                    if (/\btangente|\brayon\s+(?:de|du|de\s+ce)\b|\bun\s+rayon\b|\bdiam[èe]tre\s+(?:de|du|de\s+ce)\b|\bun\s+diam[èe]tre\b|\bcorde\b/.test(t)
+                        && !/de\s+rayon|de\s+diam[èe]tre|rayon\s*=|\brayon\s+\d/.test(t)) {
+                        const dans = this.cslDansLeCercle(brut, t, fait, rate);
+                        if (dans) return dans;
+                    }
+                    /* Une transformation qu'on ne sait pas faire doit se dire.
+                       « Trace la translation du triangle ABC » retraçait le
+                       triangle par-dessus lui-même, et répondait « Triangle ABC »
+                       comme si la translation avait eu lieu. */
+                    if (/\btranslation\b|\brotation\s+d|\bhomoth[ée]tie\b/.test(t)) {
+                        return rate("Je sais faire les symétries — « le symétrique de A par rapport à O » "
+                            + "ou « par rapport à (EF) » — mais pas encore les translations, "
+                            + "rotations et homothéties.");
+                    }
                     if (/\bcercles?\b/.test(t) && !figure) return this.cslCercle(brut, t, fait, rate);
+                    /* « Marque les angles du triangle ABC », « Marque les angles
+                       droits » : le mot « triangle » ou « carré » envoyait la
+                       phrase au bâtisseur de figures, qui RETRAÇAIT la figure
+                       par-dessus elle-même au lieu de coder ses angles. */
+                    if (/\bangles\b/.test(t)
+                        && /^(?:marque|marquer|code|coder|indique|trace|tracer)\b/.test(t)) {
+                        return this.cslTousLesAngles(brut, t, fait, rate);
+                    }
                     if (/\bangles?\b/.test(t) && !figure) return this.cslAngle(brut, t, fait, rate);
                     if (/\bcercles?\b/.test(t) && /circonscrit|inscrit/.test(t)) {
                         return this.cslCercle(brut, t, fait, rate);
@@ -27710,10 +27750,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         troisMediatrices, 'médiatrices');
                 }
 
-                const issue = (brut.match(/issue\s+d[eu]\s+([A-Z]'{0,2})/) || [])[1];
-                const relatif = (brut.match(/relative\s+[àa]\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?/) || null);
-                const choisis = issue ? trio.filter(x => x[0].label === issue) : trio;
-                if (issue && !choisis.length) return rate(`${issue} n'est pas un sommet de ${nom3}.`);
+                /* « issue du sommet A » se dit comme « issue de A » ; et une
+                   hauteur ou une médiane « relative à [BC] », « de [BC] », part
+                   du sommet opposé à ce côté — c'est le vocabulaire du cours. */
+                const issue = (brut.match(/issue\s+d[eu]\s+(?:sommet\s+)?([A-Z]'{0,2})/) || [])[1]
+                    || (brut.match(/(?:hauteur|m[ée]diane|bissectrice)\s+(?:de|depuis|du\s+sommet)\s+([A-Z]'{0,2})(?=[\s,;.]|$)/) || [])[1];
+                const relatif = brut.match(/relative\s+[àa]\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?/)
+                    || ((/hauteur|m[ée]diane/.test(t) && !issue)
+                        ? brut.match(/(?:hauteur|m[ée]diane)\s+(?:relative\s+[àa]\s*|de\s+|du\s+c[ôo]t[ée]\s+)\[([A-Z]'{0,2})([A-Z]'{0,2})\]/)
+                        : null);
+                /* Le côté nommé désigne le sommet OPPOSÉ : la hauteur relative à
+                   [BC] part de A. Sans cela, « la médiane de [BC] » en traçait
+                   trois — toutes celles du triangle. */
+                let oppose = null;
+                if (relatif && !/m[ée]diatrice/.test(t)) {
+                    const nomsCote = [relatif[1], relatif[2]];
+                    const s = trio.find(x => !nomsCote.includes(x[0].label));
+                    if (s) oppose = s[0].label;
+                }
+                const vise = issue || oppose;
+                const choisis = vise ? trio.filter(x => x[0].label === vise) : trio;
+                if (vise && !choisis.length) return rate(`${vise} n'est pas un sommet de ${nom3}.`);
 
                 if (/m[ée]diatrice/.test(t)) {
                     const cotes = relatif ? [[this.cslPointNomme(relatif[1]), this.cslPointNomme(relatif[2])]]
@@ -27730,11 +27787,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/bissectrice/.test(t)) {
                     choisis.forEach(([s, p, q]) => bissectrice(p, s, q));
                     return fait(choisis.length > 1 ? `Les 3 bissectrices de ${nom3}`
-                                                   : `Bissectrice de l'angle en ${issue}`);
+                                                   : `Bissectrice de l'angle en ${vise}`);
                 }
                 if (/hauteur/.test(t)) {
                     choisis.forEach(([s, p, q]) => droite(s, p, q));
-                    return fait(choisis.length > 1 ? `Les 3 hauteurs de ${nom3}` : `Hauteur issue de ${issue}`);
+                    return fait(choisis.length > 1 ? `Les 3 hauteurs de ${nom3}` : `Hauteur issue de ${vise}`);
                 }
                 if (/milieux/.test(t)) {
                     const pris = [];
@@ -27768,7 +27825,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.addEntity(m);
                         this.cslSegment(s, m);
                     });
-                    return fait(choisis.length > 1 ? `Les 3 médianes de ${nom3}` : `Médiane issue de ${issue}`);
+                    return fait(choisis.length > 1 ? `Les 3 médianes de ${nom3}` : `Médiane issue de ${vise}`);
                 }
                 return rate("Je n'ai pas compris ce qu'il faut tracer dans ce triangle.");
             }
@@ -27964,6 +28021,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return fait(`${noms.join('–')} reliés`);
             }
             cslMilieu(brut, t, fait, rate) {
+                /* PLUSIEURS MILIEUX D'UN COUP. « Place les milieux I de [AB] et
+                   J de [AC] » n'en posait qu'UN : la phrase énumère, le logiciel
+                   n'en lisait que le premier morceau et se taisait sur le reste. */
+                const paires = [...brut.matchAll(/([A-Z]'{0,2})?\s*(?:de\s+)?\[([A-Z]'{0,2})([A-Z]'{0,2})\]/g)];
+                if (paires.length > 1 && /milieux/.test(t)) {
+                    const dits = [];
+                    for (const m of paires) {
+                        const a = this.cslPointNomme(m[2]), b = this.cslPointNomme(m[3]);
+                        if (!a || !b) return rate(`Je ne connais pas ${!a ? m[2] : m[3]}.`);
+                        const n = (m[1] && !this.cslPointNomme(m[1])) ? m[1] : this.cslNomLibre(dits);
+                        this.poserMilieu(a, b, n);
+                        dits.push(n);
+                    }
+                    return fait(`Milieux : ${dits.join(', ')}`);
+                }
                 // le milieu appartient à un SEGMENT : (AB) serait la droite entière
                 const coupe = brut.split(/\bde\s+/i);
                 const p = this.cslPaire(coupe.length > 1 ? coupe.slice(1).join(' de ') : brut, 'segment');
@@ -28169,8 +28241,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
 
                 if (haut) {
-                    const issue = (brut.match(/issue\s+d[eu]\s+([A-Z]'{0,2})/) || [])[1]
-                        || (brut.match(/hauteur\s+(?:de|depuis)\s+([A-Z]'{0,2})/) || [])[1];
+                    /* « issue du sommet A », « relative à [BC] » : le même
+                       vocabulaire que dans le triangle, sans le mot triangle. */
+                    const cote = brut.match(/relative\s+[àa]\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?/)
+                        || brut.match(/hauteur\s+d[eu]\s+c[ôo]t[ée]\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?/);
+                    let issue = (brut.match(/issue\s+d[eu]\s+(?:sommet\s+)?([A-Z]'{0,2})/) || [])[1]
+                        || (brut.match(/hauteur\s+(?:de|depuis|du\s+sommet)\s+([A-Z]'{0,2})(?=[\s,;.]|$)/) || [])[1];
+                    if (!issue && cote) {
+                        const tri = this.cslTriangleCourant();
+                        const s = tri && tri.find(p => p.label !== cote[1] && p.label !== cote[2]);
+                        if (s) issue = s.label;
+                    }
                     let noms = this.cslNoms(brut).filter(n => n !== issue);
                     /* « Trace la hauteur issue de A » : le triangle n'est pas
                        redit, c'est celui qu'on vient de tracer. */
@@ -28206,17 +28287,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (porte) {
                             const parN = brut.match(/(?:passant|qui\s+passe)\s+par\s+([A-Z]'{0,2})/)
                                 || brut.match(/\ben\s+([A-Z]'{0,2})\b/);
-                            if (!parN) return rate("Par quel point ? Écrivez « … passant par C ».");
-                            const cN = this.cslPoint(parN[1]);
+                            /* « Trace une droite d' parallèle à d » ne dit par où
+                               elle passe : une parallèle quelconque, c'est une
+                               parallèle décalée. On la pose à côté, sur un point
+                               qui ne porte pas de nom. */
+                            let cN;
+                            if (parN) cN = this.cslPoint(parN[1]);
+                            else {
+                                const L = Math.hypot(porte.u.x, porte.u.y) || 1;
+                                cN = new Point(porte.p.x - porte.u.y / L * 90,
+                                               porte.p.y + porte.u.x / L * 90, '');
+                                cN.visible = false;
+                                this.addEntity(cN);
+                            }
                             const q1 = { x: porte.p.x, y: porte.p.y };
                             const q2 = { x: porte.p.x + porte.u.x, y: porte.p.y + porte.u.y };
                             const dN = this.cslPoserStyle(perp ? new PerpendicularLine(cN, { p1: q1, p2: q2 })
                                                               : new ParallelLine(cN, { p1: q1, p2: q2 }));
+                            // la nouvelle droite peut elle aussi porter un nom
+                            const sien = this.cslNomsDeDroite(brut).find(n => n !== ref.nomDroite
+                                && !this.cslDroiteNommee(n));
+                            if (sien) { dN.nomDroite = sien; this.cslMemoire().droites[sien] = dN; }
                             this.addEntity(dN);
                             const nomRef = ref.nomDroite ? '(' + ref.nomDroite + ')'
                                 : (ref.p1 && ref.p1.label && ref.p2 && ref.p2.label)
                                     ? `(${ref.p1.label}${ref.p2.label})` : 'la droite';
-                            return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à ${nomRef} passant par ${parN[1]}`);
+                            return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'}${sien ? ' (' + sien + ')' : ''}`
+                                + ` à ${nomRef}${parN ? ' passant par ' + parN[1] : ''}`);
                         }
                     }
                     return rate(med ? "De quel segment ? Écrivez « Trace la médiatrice de [AB] »."
@@ -28240,8 +28337,112 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(d);
                 return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
             }
+            /* CE QU'ON TRACE DANS UN CERCLE : un rayon, un diamètre, une corde,
+               une tangente. Ce sont des traits, pas des cercles — et le mot
+               « cercle » de la phrase les envoyait tous au bâtisseur de cercles,
+               qui en fabriquait un second, centré n'importe où. */
+            cslDansLeCercle(brut, t, fait, rate) {
+                const cer = (() => {
+                    const o = this.cslObjetDe(brut);
+                    if (o instanceof Circle) return o;
+                    const mem = this.cslMemoire();
+                    if (mem.cercle && this.entities.includes(mem.cercle)) return mem.cercle;
+                    const tous = this.entities.filter(e => e instanceof Circle);
+                    return tous.length ? tous[tous.length - 1] : null;
+                })();
+                if (!cer) return rate("Quel cercle ? Tracez-le d'abord.");
+                const O = cer.p1, R = this.cslRayon(cer);
+                const surLeCercle = (p) => p && Math.abs(MathUtils.dist(O.x, O.y, p.x, p.y) - R) < 6;
+                const nomme = this.cslNoms(brut).map(n => this.cslPointNomme(n))
+                    .filter(p => p && p !== O);
+
+                if (/tangente/.test(t)) {
+                    /* La tangente en A : la perpendiculaire au rayon [OA] en A.
+                       C'est sa définition, et c'est ainsi qu'on la construit. Si
+                       le point n'est pas encore posé, la consigne le pose — sur
+                       le cercle, forcément. */
+                    let A = nomme.find(surLeCercle) || nomme[0];
+                    if (!A) {
+                        const n = (brut.match(/\ben\s+([A-Z]'{0,2})(?=[\s,;.]|$)/) || [])[1];
+                        if (n && !this.cslPointNomme(n)) {
+                            A = new Point(O.x + Math.cos(-0.6) * R, O.y + Math.sin(-0.6) * R, n);
+                            this.addEntity(A);
+                        }
+                    }
+                    if (!A) return rate("En quel point ? Écrivez « Trace la tangente au cercle en A ».");
+                    if (!surLeCercle(A)) return rate(`${A.label} n'est pas sur le cercle.`);
+                    const d = this.cslPoserStyle(new PerpendicularLine(A, { p1: O, p2: A }));
+                    this.addEntity(d);
+                    this.addEntity(new Angle(O, A, { x: A.x - (A.y - O.y), y: A.y + (A.x - O.x) }));
+                    return fait(`Tangente au cercle en ${A.label}`);
+                }
+                /* Le rayon, le diamètre, la corde : on pose les points qui
+                   manquent SUR le cercle, et l'on relie. */
+                const libres = this.cslNoms(brut).filter(n => !this.cslPointNomme(n));
+                const surCercle = (angle, nom) => {
+                    const p = new Point(O.x + Math.cos(angle) * R, O.y + Math.sin(angle) * R, nom);
+                    this.addEntity(p); return p;
+                };
+                if (/rayon/.test(t)) {
+                    const A = nomme.find(surLeCercle) || surCercle(-0.6, libres[0] || this.cslNomLibre([]));
+                    this.cslSegment(O, A);
+                    return fait(`Rayon [${O.label || '·'}${A.label}]`);
+                }
+                if (/diam[èe]tre/.test(t)) {
+                    const A = nomme.find(surLeCercle) || surCercle(-0.6, libres[0] || this.cslNomLibre([]));
+                    const ang = Math.atan2(A.y - O.y, A.x - O.x) + Math.PI;
+                    const B = nomme.filter(surLeCercle)[1]
+                        || surCercle(ang, libres[1] || this.cslNomLibre([A.label]));
+                    this.cslSegment(A, B);
+                    return fait(`Diamètre [${A.label}${B.label}]`);
+                }
+                // une corde : deux points du cercle, reliés
+                const A = nomme.filter(surLeCercle)[0] || surCercle(-0.6, libres[0] || this.cslNomLibre([]));
+                const B = nomme.filter(surLeCercle)[1]
+                    || surCercle(-0.6 - Math.PI * 2 / 5, libres[1] || this.cslNomLibre([A.label]));
+                this.cslSegment(A, B);
+                return fait(`Corde [${A.label}${B.label}]`);
+            }
+            /* LE CERCLE CIRCONSCRIT, AVEC OU SANS LES INSTRUMENTS. Il passait
+               toujours par le bâtisseur au compas : deux médiatrices tracées à
+               l'arc, vingt-trois animations d'outil et neuf arcs, même quand la
+               case « avec les instruments » est décochée. La case dit ce qu'on
+               veut voir — la figure seule, ou la construction — et le cercle
+               circonscrit n'avait pas à s'en dispenser. Sans instruments, c'est
+               un vrai Circle : on peut le sélectionner, le colorer, le mesurer. */
+            cslPoserCirconscrit(pA, pB, pC) {
+                const D = 2 * (pA.x * (pB.y - pC.y) + pB.x * (pC.y - pA.y) + pC.x * (pA.y - pB.y));
+                if (Math.abs(D) < 1e-4) return "Ces trois points sont alignés : pas de cercle qui passe par les trois.";
+                if (this.cslDetaille()) {
+                    this.cslBatir(null, () => this.buildCircumscribedCircle(pA, pB, pC));
+                    return null;
+                }
+                const ux = ((pA.x ** 2 + pA.y ** 2) * (pB.y - pC.y) + (pB.x ** 2 + pB.y ** 2) * (pC.y - pA.y)
+                    + (pC.x ** 2 + pC.y ** 2) * (pA.y - pB.y)) / D;
+                const uy = ((pA.x ** 2 + pA.y ** 2) * (pC.x - pB.x) + (pB.x ** 2 + pB.y ** 2) * (pA.x - pC.x)
+                    + (pC.x ** 2 + pC.y ** 2) * (pB.x - pA.x)) / D;
+                const O = new Point(ux, uy, this.cslNomLibre([]));
+                this.addEntity(O);
+                const bord = new Point(pA.x, pA.y, '');
+                bord.visible = false;
+                this.addEntity(bord);
+                this.addEntity(this.cslPoserStyle(new Circle(O, bord)));
+                return null;
+            }
             cslCercle(brut, t, fait, rate) {
                 // le cercle circonscrit a son propre bâtisseur
+                /* « Trace le cercle passant par A, B et C » : c'est le cercle
+                   circonscrit au triangle ABC, et non un cercle de centre
+                   inventé passant par A — ce qu'il traçait, sans le dire. */
+                if (/passant\s+par|qui\s+passe\s+par/.test(t) && !/circonscrit/.test(t)) {
+                    const apres = brut.split(/passant\s+par|qui\s+passe\s+par/i)[1] || '';
+                    const trois = this.cslNoms(apres).map(n => this.cslPointNomme(n)).filter(Boolean);
+                    if (trois.length >= 3 && !/centre/.test(t)) {
+                        const souci = this.cslPoserCirconscrit(trois[0], trois[1], trois[2]);
+                        if (souci) return rate(souci);
+                        return fait(`Cercle passant par ${trois.slice(0, 3).map(p => p.label).join(', ')}`);
+                    }
+                }
                 if (/circonscrit/.test(t)) {
                     let noms = this.cslNoms(brut);
                     let pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
@@ -28252,7 +28453,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (tri) { pts = tri; noms = tri.map(p => p.label); }
                     }
                     if (pts.length < 3) return rate("À quel triangle ? Écrivez « Trace le cercle circonscrit au triangle ABC ».");
-                    this.cslBatir(null, () => this.buildCircumscribedCircle(pts[0], pts[1], pts[2]));
+                    const souci = this.cslPoserCirconscrit(pts[0], pts[1], pts[2]);
+                    if (souci) return rate(souci);
                     return fait(`Cercle circonscrit à ${noms.slice(0, 3).join('')}`);
                 }
                 /* « de 6 cm de diamètre » se dit autant que « de diamètre 6 cm » :
@@ -28631,6 +28833,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(arc);
                 return fait(`Arc de cercle de centre ${nomC}`
                     + (de && a2 ? ` de ${de.label} à ${a2.label}` : ''));
+            }
+            /* TOUS LES ANGLES D'UNE FIGURE, ou tous ses angles droits. « Marque
+               les angles du triangle ABC » : les trois angles du triangle, pas
+               le triangle une seconde fois. */
+            cslTousLesAngles(brut, t, fait, rate) {
+                const noms = this.cslNoms(brut);
+                let sommets = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                if (sommets.length < 3) {
+                    /* Sans nom, la dernière figure posée : « Trace un carré ABCD
+                       de côté 4 cm » puis « Marque les angles droits ». */
+                    const polys = this.entities.filter(e => e instanceof Polygon
+                        && (e.points || []).length >= 3);
+                    const p = polys[polys.length - 1];
+                    if (p) sommets = p.points.slice();
+                }
+                if (sommets.length < 3) {
+                    return rate("De quelle figure ? Écrivez « Marque les angles du triangle ABC ».");
+                }
+                const droitsSeuls = /droits?\b/.test(t);
+                const n = sommets.length, poses = [];
+                for (let i = 0; i < n; i++) {
+                    const s = sommets[i], p = sommets[(i + n - 1) % n], q = sommets[(i + 1) % n];
+                    const u = Math.atan2(p.y - s.y, p.x - s.x), v = Math.atan2(q.y - s.y, q.x - s.x);
+                    let a = Math.abs(v - u) * 180 / Math.PI; while (a > 180) a = 360 - a;
+                    if (droitsSeuls && Math.abs(a - 90) > 1) continue;
+                    const deja = this.entities.find(e => e instanceof Angle && e.p2 === s
+                        && ((e.p1 === p && e.p3 === q) || (e.p1 === q && e.p3 === p)));
+                    if (!deja) this.addEntity(new Angle(p, s, q));
+                    poses.push(s.label || '·');
+                }
+                if (!poses.length) {
+                    return rate(droitsSeuls ? "Cette figure n'a pas d'angle droit."
+                                            : "Aucun angle à marquer.");
+                }
+                return fait(`${poses.length} angle${poses.length > 1 ? 's' : ''}`
+                    + `${droitsSeuls ? ' droit' + (poses.length > 1 ? 's' : '') : ''}`
+                    + ` marqué${poses.length > 1 ? 's' : ''} : ${poses.join(', ')}`);
             }
             cslAngle(brut, t, fait, rate) {
                 const noms = this.cslNoms(brut);
