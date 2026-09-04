@@ -476,6 +476,38 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('une phrase déjà juste ne se voit pas proposer elle-même',
      !band.dejaJuste.includes('Trace la médiatrice de [AB]'), JSON.stringify(band.dejaJuste));
 
+  console.log('\n=== une phrase, un point, une autre phrase ===');
+  /* Un énoncé collé d'un traitement de texte n'a pas ses phrases sur des lignes
+     séparées : le point les sépare comme la virgule sépare deux propositions.
+     Il ne coupe ni « 6,5 cm » ni un nom de point. */
+  const phrases = await suite([
+    'Trace un segment vertical [OQ] de 6 cm de longueur. Place le milieu P du segment [OQ]',
+  ]);
+  phrases.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p}\n      → ${o.m}`));
+  ck('les deux phrases sont faites',
+     phrases.out[0].ok && (phrases.out[0].m || '').includes(' · '), phrases.out[0].m);
+  /* « vertical » n'est pas un mot décoratif : l'énoncé dit comment poser le
+     segment, et une figure penchée ne serait pas celle qu'il décrit. */
+  const pose = await page.evaluate(() => {
+    const app = window.app;
+    const s = app.entities.find(e => e.constructor.name === 'Segment');
+    return s ? { pente: Math.round(Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x) * 180 / Math.PI),
+                 L: +(Math.hypot(s.p1.x - s.p2.x, s.p1.y - s.p2.y) / 50).toFixed(2) } : null;
+  });
+  console.log('  ' + JSON.stringify(pose));
+  ck('le segment est vraiment vertical, et de 6 cm',
+     pose && Math.abs(Math.abs(pose.pente) - 90) < 0.5 && pose.L === 6, JSON.stringify(pose));
+  const horiz = await suite(['Trace un segment horizontal [CD] de 4 cm']);
+  const poseH = await page.evaluate(() => {
+    const s = window.app.entities.find(e => e.constructor.name === 'Segment');
+    return s ? Math.round(Math.atan2(s.p2.y - s.p1.y, s.p2.x - s.p1.x) * 180 / Math.PI) : null;
+  });
+  ck('et « horizontal » de même', horiz.out[0].ok && Math.abs(poseH) < 0.5, String(poseH));
+  /* Le point d'un nombre décimal ne sépare rien. */
+  const decimal = await suite(['Place les points A, B', 'Trace le cercle de centre A et de rayon 6.5 cm']);
+  ck('« 6.5 cm » n\'est pas coupé en deux',
+     decimal.out[1].ok && !(decimal.out[1].m || '').includes(' · '), decimal.out[1].m);
+
   console.log('\n=== le panneau : une ligne, une consigne ===');
   /* Un titre, puis des lignes numérotées. Chacune porte sa case « avec les
      instruments », son bouton Valider, sa réponse en dessous — trois consignes

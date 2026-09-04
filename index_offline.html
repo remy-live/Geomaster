@@ -2729,7 +2729,14 @@
             border-radius: 5px;
         }
 
-        .csl-reponse.ok { display: block; color: #1b5e20; background: #edf7ee; }
+        /* UNE LIGNE FAITE N'A RIEN À RACONTER. Le ✓ de son numéro le dit déjà ;
+           répéter « ✓ Segment [AB] » sous chacune, plus le bandeau des modèles,
+           c'était trois blocs par consigne — un énoncé de vingt lignes ne tenait
+           plus dans l'écran. Le détail revient quand on se pose sur la ligne.
+           UNE ERREUR, ELLE, RESTE VISIBLE : c'est la seule chose qu'on doit voir
+           sans rien faire. */
+        .csl-reponse.ok { display: none; color: #1b5e20; background: #edf7ee; }
+        .csl-ligne:focus-within .csl-reponse.ok { display: block; }
         .csl-reponse.rate { display: block; color: #b71c1c; background: #fdecea; }
         .csl-reponse .note { display: block; color: #8d6e00; margin-top: 2px; }
 
@@ -2760,6 +2767,20 @@
         }
 
         .csl-modeles a:hover { background: #f6edd0; }
+
+        /* Le bandeau ne parle qu'à la ligne où l'on écrit. Affiché partout, il
+           doublait la hauteur du panneau pour dire ce qu'on savait déjà. */
+        .csl-ligne:focus-within .csl-modeles.plein { display: block; }
+
+        .csl-vide {
+            padding: 10px 8px 12px;
+            font-size: 11.5px;
+            line-height: 1.5;
+            color: #90a4ae;
+            text-align: center;
+        }
+
+        .csl-vide b { color: #607d8b; }
 
         .csl-pied {
             display: flex;
@@ -14237,9 +14258,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
                 this.stepInstructions[this.entities.length] = "Le triangle équilatéral a 3 côtés égaux.";
-                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = 'mark-1'; this.addEntity(c1);
-                let c2 = new Segment(pA, pC, {color: segAB.color, width: segAB.lineWidth}); c2.coding = 'mark-1'; this.addEntity(c2);
-                let c3 = new Segment(pB, pC, {color: segAB.color, width: segAB.lineWidth}); c3.coding = 'mark-1'; this.addEntity(c3);
+                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = this.marqueCote(pA, pB); this.addEntity(c1);
+                let c2 = new Segment(pA, pC, {color: segAB.color, width: segAB.lineWidth}); c2.coding = this.marqueCote(pA, pC); this.addEntity(c2);
+                let c3 = new Segment(pB, pC, {color: segAB.color, width: segAB.lineWidth}); c3.coding = this.marqueCote(pB, pC); this.addEntity(c3);
                 
                 let p1 = new ToolAnimation('rulerHide', {}, {}); this.addEntity(p1);
                 let p2 = new ToolAnimation('rulerHide', {}, {}); this.addEntity(p2);
@@ -14355,7 +14376,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    sur la feuille. Les deux traits sont maintenant portés par le
                    milieu, et ne disent que ce qu'ils doivent dire : AI = IB. */
                 let ptMid = new Point(midX, midY, "", [pA, pB]); ptMid.visible = false;
-                ptMid.codageMilieu = 'mark-1';
+                ptMid.codageMilieu = this.marqueCodage(MathUtils.dist(pA.x, pA.y, pB.x, pB.y) / 2).marque;
                 this.addEntity(ptMid);
                 let angMark = new Angle(pB, ptMid, pC); this.addEntity(angMark);
                 
@@ -14519,7 +14540,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    restait. Seule la base fait exception quand le bâtisseur l'a
                    fabriquée lui-même : elle est alors masquée, et c'est sa copie
                    codée qui se voit. */
-                const marqueBase = 'mark-1', marqueCote = carre ? 'mark-1' : 'mark-2';
+                /* Les marques sont choisies DANS LA FIGURE ENTIÈRE, pas dans le
+                   vide : un carré de 3,8 cm posé sur un segment dont le milieu
+                   est déjà codé d'un trait recevait le même trait pour ses
+                   côtés, et la figure affirmait que 1,9 cm valait 3,8 cm. */
+                const marqueBase = this.marqueCodage(MathUtils.dist(pA.x, pA.y, pB.x, pB.y)).marque;
+                const marqueCote = carre ? marqueBase
+                    : this.marqueCodage(MathUtils.dist(pB.x, pB.y, pC.x, pC.y), [marqueBase]).marque;
                 if (segAB.hidden) {
                     let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth});
                     c1.coding = marqueBase; this.addEntity(c1);
@@ -14528,7 +14555,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 segDC.coding = marqueBase;
                 segAD.coding = marqueCote;
 
-                for(let i=0; i<8; i++) this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                /* UNE FOIS SUFFIT POUR RANGER LA RÈGLE. Cette boucle en posait
+                   huit : au rejeu, l'élève regardait huit étapes où il ne se
+                   passait rien, à la fin de chaque carré construit aux
+                   instruments. */
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -14614,7 +14645,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 for (let i = 0; i < 6; i++) {
                     let p1 = points[i];
                     let p2 = points[(i + 1) % 6];
-                    let cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = 'mark-1'; this.addEntity(cSide);
+                    let cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = this.marqueCote(p1, p2); this.addEntity(cSide);
                 }
                 
                 this.saveState();
@@ -14747,7 +14778,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 for (let i = 0; i < 5; i++) {
                     const p1 = points[i];
                     const p2 = points[(i + 1) % 5];
-                    const cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = 'mark-1'; this.addEntity(cSide);
+                    const cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = this.marqueCote(p1, p2); this.addEntity(cSide);
                 }
 
                 this.saveState();
@@ -15326,10 +15357,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let animCB = new ToolAnimation('trace', {x: pC.x, y: pC.y, angle: Math.atan2(pB.y-pC.y, pB.x-pC.x)}, {x: pC.x, y: pC.y, angle: Math.atan2(pB.y-pC.y, pB.x-pC.x)}); animCB.widgetType = 'ruler';
                 this.addEntity(animCB); this.addEntity(segCB); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
-                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = 'mark-1'; this.addEntity(c1);
-                let c2 = new Segment(pA, pD, {color: segAB.color, width: segAB.lineWidth}); c2.coding = 'mark-1'; this.addEntity(c2);
-                let c3 = new Segment(pD, pC, {color: segAB.color, width: segAB.lineWidth}); c3.coding = 'mark-1'; this.addEntity(c3);
-                let c4 = new Segment(pC, pB, {color: segAB.color, width: segAB.lineWidth}); c4.coding = 'mark-1'; this.addEntity(c4);
+                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = this.marqueCote(pA, pB); this.addEntity(c1);
+                let c2 = new Segment(pA, pD, {color: segAB.color, width: segAB.lineWidth}); c2.coding = this.marqueCote(pA, pD); this.addEntity(c2);
+                let c3 = new Segment(pD, pC, {color: segAB.color, width: segAB.lineWidth}); c3.coding = this.marqueCote(pD, pC); this.addEntity(c3);
+                let c4 = new Segment(pC, pB, {color: segAB.color, width: segAB.lineWidth}); c4.coding = this.marqueCote(pC, pB); this.addEntity(c4);
                 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -15399,8 +15430,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let animAD = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: aAD}, {x: pA.x, y: pA.y, angle: aAD}); animAD.widgetType = 'ruler';
                 this.addEntity(animAD); this.addEntity(segAD); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
-                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = 'mark-1'; this.addEntity(c1);
-                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = 'mark-1'; this.addEntity(c2);
+                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = this.marqueCote(pB, pA); this.addEntity(c1);
+                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = this.marqueCote(pC, pD); this.addEntity(c2);
                 let c3 = new Segment(pB, pC, {color: color, width: width}); c3.coding = 'mark-2'; this.addEntity(c3);
                 let c4 = new Segment(pA, pD, {color: color, width: width}); c4.coding = 'mark-2'; this.addEntity(c4);
                 
@@ -15485,8 +15516,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let ang3 = new Angle(pC, pD, pA); this.addEntity(ang3);
                 let ang4 = new Angle(pD, pA, pB); this.addEntity(ang4);
                 
-                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = 'mark-1'; this.addEntity(c1);
-                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = 'mark-1'; this.addEntity(c2);
+                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = this.marqueCote(pB, pA); this.addEntity(c1);
+                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = this.marqueCote(pC, pD); this.addEntity(c2);
                 let c3 = new Segment(pB, pC, {color: color, width: width}); c3.coding = 'mark-2'; this.addEntity(c3);
                 let c4 = new Segment(pA, pD, {color: color, width: width}); c4.coding = 'mark-2'; this.addEntity(c4);
                 
@@ -15666,9 +15697,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(animCircle); this.addEntity(circle);
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
 
-                const r1 = new Segment(O, pA, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r1.coding = 'mark-1'; this.addEntity(r1);
-                const r2 = new Segment(O, pB, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r2.coding = 'mark-1'; this.addEntity(r2);
-                const r3 = new Segment(O, pC, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r3.coding = 'mark-1'; this.addEntity(r3);
+                const r1 = new Segment(O, pA, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r1.coding = this.marqueCote(O, pA); this.addEntity(r1);
+                const r2 = new Segment(O, pB, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r2.coding = this.marqueCote(O, pB); this.addEntity(r2);
+                const r3 = new Segment(O, pC, {color: "rgba(0,0,0,0.25)", width: 1, dash: true}); r3.coding = this.marqueCote(O, pC); this.addEntity(r3);
 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -18817,6 +18848,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.autoCodeAll(this.entities.slice(depuis));
                 while (this.historyPast.length > avant) this.historyPast.pop();
             }
+            /* Les porteurs de codage d'une liste : les segments, et les milieux —
+               ceux-ci avec la DEMI-longueur pour mesure, puisque leurs deux
+               marques parlent des moitiés. */
+            porteursCodage(liste) {
+                const out = [];
+                (liste || this.entities).forEach(e => {
+                    if (e instanceof Segment) {
+                        out.push({ len: MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y),
+                                   lire: () => e.coding, ecrire: (c) => { e.coding = c; } });
+                        return;
+                    }
+                    if (!(e instanceof Point)) return;
+                    const par = (e.parents || []).filter(q => q && typeof q.x === 'number');
+                    if (par.length !== 2) return;
+                    out.push({ len: MathUtils.dist(par[0].x, par[0].y, par[1].x, par[1].y) / 2,
+                               milieu: true,
+                               lire: () => e.codageMilieu, ecrire: (c) => { e.codageMilieu = c; } });
+                });
+                return out;
+            }
+            /* LA MARQUE QUI CONVIENT À UNE LONGUEUR, dans TOUTE la figure. Deux
+               longueurs différentes ne peuvent pas porter le même signe, et deux
+               longueurs égales doivent porter le même : c'est la seule chose
+               qu'un codage affirme. Chaque construction choisissait jusqu'ici sa
+               marque sans regarder les autres — un carré de 3,8 cm et les
+               moitiés de 1,9 cm de son côté recevaient tous deux le trait
+               simple, et la figure affirmait 1,9 = 3,8. */
+            /* La marque d'un côté qu'une construction déclare égal aux autres : le
+               premier pose une marque libre, les suivants retrouvent la même
+               longueur dans la figure et reprennent la sienne. */
+            marqueCote(a, b) {
+                return this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y)).marque;
+            }
+            marqueCodage(longueur, reserves = []) {
+                const SYM = ['mark-1', 'mark-2', 'mark-3', 'mark-o', 'mark-x', 'mark-xx', 'mark-oo'];
+                const codes = this.porteursCodage().filter(p => p.lire() && p.lire() !== 'mark-none');
+                const meme = codes.find(p => Math.abs(p.len - longueur) < 2);
+                if (meme) return { marque: meme.lire(), reprise: true };
+                const prises = new Set(codes.map(p => p.lire()).concat(reserves));
+                return { marque: SYM.find(x => !prises.has(x)) || SYM[0], reprise: false };
+            }
             autoCodeAll(portee) {
                 const champ = Array.isArray(portee) ? portee : this.entities;
                 const discret = Array.isArray(portee);
@@ -18851,16 +18923,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else segGroups.push({ len: po.len, items: [po] });
                 });
                 const symbols = ['mark-1', 'mark-2', 'mark-3', 'mark-o', 'mark-x', 'mark-xx', 'mark-oo'];
-                let usedSymbols = new Set();
+                const reserves = [];
                 segGroups.forEach(g => {
                     g.model = g.items.find(s => s.lire() && s.lire() !== 'mark-none');
-                    if (g.model) usedSymbols.add(g.model.lire());
                 });
                 segGroups.forEach(g => {
-                    if (g.items.length > 1) {
-                        let code = g.model ? g.model.lire() : (symbols.find(s => !usedSymbols.has(s)) || symbols[0]);
-                        if (!g.model) usedSymbols.add(code);
-                        g.items.forEach(po => { if (po.lire() !== code) { po.ecrire(code); hasChanges = true; } });
+                    const choix = g.model ? { marque: g.model.lire(), reprise: true }
+                                          : this.marqueCodage(g.len, reserves);
+                    /* On code un groupe de deux, OU un objet seul dont la longueur
+                       est déjà codée ailleurs : c'est la même longueur, la figure
+                       doit le dire d'une seule voix. */
+                    if (g.items.length > 1 || choix.reprise) {
+                        reserves.push(choix.marque);
+                        g.items.forEach(po => {
+                            if (po.lire() !== choix.marque) { po.ecrire(choix.marque); hasChanges = true; }
+                        });
                     }
                 });
 
@@ -19848,6 +19925,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             addEntity(entity) {
                 if (this.isMagicConstructing && !this.magicUseTools && entity instanceof ToolAnimation) {
                     return;
+                }
+                /* RANGER DEUX FOIS LE MÊME INSTRUMENT NE LE RANGE PAS DEUX FOIS.
+                   Un bâtisseur qui range sa règle après chaque côté, et une fois
+                   encore à la fin, empilait les « rulerHide » : sur un carré
+                   construit aux instruments, neuf d'affilée. Au rejeu, l'élève
+                   regarde alors neuf étapes où il ne se passe rien. */
+                if (entity instanceof ToolAnimation && /Hide$/.test(entity.widgetType || '')) {
+                    const famille = entity.widgetType.replace(/Hide$/, '');
+                    /* On remonte jusqu'au dernier geste de CET instrument : s'il
+                       était déjà rangé, le ranger encore ne fait rien. Les objets
+                       tracés entre-temps ne l'ont pas ressorti. */
+                    for (let i = this.entities.length - 1; i >= 0; i--) {
+                        const e = this.entities[i];
+                        if (!(e instanceof ToolAnimation)) continue;
+                        if (e.widgetType === entity.widgetType) return;
+                        if (e.widgetType === famille) break;
+                    }
                 }
                 this.entities.push(entity);
                 this.replayIndex = this.entities.length;
@@ -26997,7 +27091,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    segment [OQ] de 6 cm, place le milieu P » en est deux. Elle ne
                    sépare rien devant un nom de point (« A, B, C ») ni dans un
                    nombre (« 6,5 cm ») : c'est le verbe qui décide. */
-                const reVirgule = /\s*,\s*(?=(?:il|elle|celui-ci|celle-ci)\s+(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire|marque|appelle|nomme|note|prends|soit)\b/i;
+                /* Le POINT sépare deux phrases comme la virgule sépare deux
+                   propositions : « … de 6 cm de longueur. Place le milieu P … »
+                   est un énoncé collé d'un traitement de texte, où les phrases
+                   ne sont pas sur des lignes séparées. Il ne coupe pas « 6.5 cm »
+                   ni une abréviation : c'est le verbe qui décide, comme pour la
+                   virgule. */
+                const reVirgule = /\s*[,.]\s+(?=(?:il|elle|celui-ci|celle-ci)\s+(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire|marque|appelle|nomme|note|prends|soit)\b/i;
                 const bouts = brut.split(re).map(x => x.trim()).filter(Boolean)
                     .reduce((acc, b) => acc.concat(b.split(reVirgule).map(x => x.trim()).filter(Boolean)), []);
                 return bouts.length > 1 ? bouts : [brut];
@@ -27367,8 +27467,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/m[ée]diatrice/.test(t)) {
                     const cotes = relatif ? [[this.cslPointNomme(relatif[1]), this.cslPointNomme(relatif[2])]]
                                           : [[A, B], [B, C], [C, A]];
-                    const marques = ['mark-1', 'mark-2', 'mark-3'];
-                    cotes.forEach(([p, q], i) => { if (p && q) droite(milieu(p, q, marques[i]), p, q); });
+                    const pris = [];
+                    cotes.forEach(([p, q]) => {
+                        if (!p || !q) return;
+                        const mq = this.marqueCodage(MathUtils.dist(p.x, p.y, q.x, q.y) / 2, pris);
+                        pris.push(mq.marque);
+                        droite(milieu(p, q, mq.marque), p, q);
+                    });
                     return fait(cotes.length > 1 ? `Les 3 médiatrices de ${nom3}` : `Médiatrice d'un côté de ${nom3}`);
                 }
                 if (/bissectrice/.test(t)) {
@@ -27381,26 +27486,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(choisis.length > 1 ? `Les 3 hauteurs de ${nom3}` : `Hauteur issue de ${issue}`);
                 }
                 if (/milieux/.test(t)) {
-                    const marques = ['mark-1', 'mark-2', 'mark-3'];
-                    const poses = [[A, B], [B, C], [C, A]].map(([p, q], i) => {
+                    const pris = [];
+                    const poses = [[A, B], [B, C], [C, A]].map(([p, q]) => {
                         const nom = this.cslNomLibre([]);
                         const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2, nom, [p, q]);
                         // un trait sur chaque moitié, et une marque par côté
-                        if (this.cslTraitEntre(p, q)) m.codageMilieu = marques[i];
+                        if (this.cslTraitEntre(p, q)) {
+                            const mq = this.marqueCodage(MathUtils.dist(p.x, p.y, q.x, q.y) / 2, pris);
+                            pris.push(mq.marque);
+                            m.codageMilieu = mq.marque;
+                        }
                         this.addEntity(m);
                         return nom;
                     });
                     return fait(`Milieux des côtés de ${nom3} : ${poses.join(', ')}`);
                 }
                 if (/m[ée]diane/.test(t)) {
-                    const marquesMed = ['mark-1', 'mark-2', 'mark-3'];
-                    choisis.forEach(([s, p, q], i) => {
+                    const prisMed = [];
+                    choisis.forEach(([s, p, q]) => {
                         const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2,
                             this.cslNomLibre([]), [p, q]);
                         /* Une médiane joint un sommet AU MILIEU du côté opposé :
                            c'est ce milieu qu'il faut coder, sinon rien sur la
                            figure ne distingue une médiane d'une cévienne. */
-                        if (this.cslTraitEntre(p, q)) m.codageMilieu = marquesMed[i];
+                        if (this.cslTraitEntre(p, q)) {
+                            const mq = this.marqueCodage(MathUtils.dist(p.x, p.y, q.x, q.y) / 2, prisMed);
+                            prisMed.push(mq.marque);
+                            m.codageMilieu = mq.marque;
+                        }
                         this.addEntity(m);
                         this.cslSegment(s, m);
                     });
@@ -27564,7 +27677,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Un milieu se CODE : un trait sur chaque moitié. On ne le pose que
                    si le trait existe — deux marques flottant dans le vide ne
                    voudraient rien dire. */
-                if (this.cslTraitEntre(a, b)) m.codageMilieu = 'mark-1';
+                if (this.cslTraitEntre(a, b)) {
+                    m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
+                }
                 this.addEntity(m);
                 return fait(`${nom} est le milieu de [${s[1]}${s[2]}]`);
             }
@@ -27714,7 +27829,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            droite qui passe par là — rien ne dit pourquoi. */
                         const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, '', [a, b]);
                         m.visible = false;
-                        m.codageMilieu = 'mark-1';
+                        m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
                         this.addEntity(m);
                         const d = this.cslPoserStyle(new PerpendicularLine(m, { p1: a, p2: b }));
                         this.addEntity(d);
@@ -28459,8 +28574,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 let a, b;
                 if (m) {
+                    const neufA = !this.cslPointNomme(m[1]), neufB = !this.cslPointNomme(m[2]);
                     a = this.cslPoint(m[1], true, -90, 40);
                     b = this.cslPoint(m[2], true, 90, -40);
+                    /* « Trace un segment VERTICAL [OQ] » : l'énoncé dit aussi
+                       comment le poser. On ne redresse que ce qu'on vient de
+                       créer — déplacer un point déjà placé changerait la figure
+                       sous les autres objets qui s'y accrochent. */
+                    const vertical = /\bverticale?\b/.test(t), horizontal = /\bhorizontale?\b/.test(t);
+                    if ((vertical || horizontal) && neufB && a !== b) {
+                        const d = MathUtils.dist(a.x, a.y, b.x, b.y) || 150;
+                        b.x = a.x + (horizontal ? d : 0);
+                        b.y = a.y + (vertical ? d : 0);
+                    }
                     // « Trace le segment [AB] de 5 cm » : si B vient d'être posé, on
                     // le pose à la bonne distance
                     const L = this.cslLongueurPx(brut.replace(/\[[A-Z]'{0,2}[A-Z]'{0,2}[\]\)]/g, ''));
@@ -28531,6 +28657,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 hote.innerHTML = '';
                 liste.forEach((c, i) => hote.appendChild(this.ligneConsigneDOM(c, i)));
+                /* Rien d'écrit : on dit le geste qui fait gagner le plus de temps
+                   — coller un énoncé entier plutôt que le retaper ligne à ligne. */
+                if (liste.length === 1 && !(liste[0].texte || '').trim()) {
+                    const aide = document.createElement('div');
+                    aide.className = 'csl-vide';
+                    aide.innerHTML = '<b>Collez un énoncé entier</b> : chaque ligne devient une '
+                        + 'consigne.<br>Entrée fait la ligne · <b>▶ Tout faire</b> les fait toutes.';
+                    hote.appendChild(aide);
+                }
                 if (iFocus >= 0) {
                     const champ = hote.querySelector('.csl-champ[data-i="' + iFocus + '"]');
                     if (champ) {
@@ -28742,7 +28877,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!mod) return;
                 const trouves = this.reglagesConsignes().modeles ? this.cslModeles(texte) : [];
                 mod.innerHTML = '';
-                if (!trouves.length) { mod.style.display = 'none'; return; }
+                if (!trouves.length) { mod.classList.remove('plein'); return; }
                 const t = document.createElement('b');
                 t.textContent = trouves.length > 1 ? 'Ce que je reconnais :' : 'Ce que je reconnais :';
                 mod.appendChild(t);
@@ -28758,7 +28893,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     });
                     mod.appendChild(a);
                 });
-                mod.style.display = 'block';
+                mod.classList.add('plein');
             }
             validerConsigne(i) {
                 const liste = this.consignesListe();

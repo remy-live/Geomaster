@@ -52,15 +52,23 @@ cercle de centre A passant par B »* — et **Entrée**. La réponse s'affiche *
 cette ligne-là** : trois consignes écrites, trois réponses lisibles en même
 temps.
 
-La ligne ne montre que son numéro, son texte et une **roue** : une case, un
-bouton et une croix sur chacune, c'était trois commandes par consigne pour un
-énoncé qui en compte vingt. La roue d'une ligne porte ses options — *avec les
-instruments*, refaire, retirer ; la **roue du titre** porte les réglages de tout
-le panneau, dont **« dessiner à chaque retour à la ligne »** : décochée, Entrée
-ne fait que descendre, et l'on écrit tout l'énoncé avant de le lancer.
+**Une consigne tient sur une ligne.** Son numéro, son texte, une **roue** — rien
+d'autre. Faite, elle porte un ✓ : répéter « ✓ Segment [AB] » en dessous, plus le
+bandeau des modèles, c'était trois blocs par consigne, et un énoncé de vingt
+lignes ne tenait plus dans l'écran. Le détail revient quand on se pose sur la
+ligne. **Une erreur, elle, reste visible** sans rien faire : c'est la seule
+chose qu'on doit voir tout de suite.
+
+La roue d'une ligne porte ses options — *avec les instruments*, refaire,
+retirer ; la **roue du titre** porte les réglages de tout le panneau, dont
+**« dessiner à chaque retour à la ligne »** : décochée, Entrée ne fait que
+descendre, et l'on écrit tout l'énoncé avant de le lancer.
 
 **COLLEZ UN ÉNONCÉ ENTIER** — chaque ligne du texte devient une consigne, les
-intertitres « Étape 2 » compris. **▶ Tout faire** les exécute dans l'ordre.
+intertitres « Étape 2 » compris. Les phrases n'ont pas besoin d'être sur des
+lignes séparées : *« … de 6 cm de longueur. Place le milieu P … »* fait deux
+consignes, et « 6,5 cm » n'est pas coupé pour autant. Ensuite, **▶ Tout faire**
+les exécute dans l'ordre, ou **Entrée** les fait une par une.
 
 **Faite, une ligne porte un ✓ à la place de son numéro** et ne repart pas une
 seconde fois : deux fois la même ligne, ce seraient deux fois les mêmes objets.
@@ -89,7 +97,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | | |
 |---|---|
 | **Placer** | `Place 3 points A, B, C non alignés` · `Trace 3 points A, B, C` · `alignés` · `Place le milieu I de [AB]` · `Soit I…` |
-| **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
+| **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `un segment vertical [OQ] de 6 cm` · `horizontal` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de rayon [AC]` · `de diamètre [AB]` · `circonscrit au triangle ABC` |
 | **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `octogone` · `polygone régulier à 7 côtés` · `polygone ABCDE` · `les diagonales de ABCD` |
 | **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · `équilatéral` · `isocèle en A de côté 5 cm et de base 3 cm` · `rectangle en A` · `isocèle rectangle en A de côté 4 cm` |
@@ -121,7 +129,10 @@ affirmerait que les six moitiés sont égales entre elles.
 Un milieu est un **porteur de codage comme un autre** : si la moitié d'un
 segment coupé en son milieu mesure autant qu'un autre segment de la figure, les
 deux reçoivent la même marque — c'est la même longueur, et une figure ne le dit
-pas de deux façons.
+pas de deux façons. Et **la marque se choisit dans toute la figure**, jamais
+dans le vide : un carré de 3,8 cm posé sur un segment dont le milieu portait
+déjà le trait simple recevait le même trait pour ses côtés, et la figure
+affirmait que 1,9 cm valait 3,8 cm.
 
 Et le codage automatique qui suit une consigne **ne regarde que ce que cette
 consigne vient de construire** : appliqué à toute la feuille, « même longueur ⇒

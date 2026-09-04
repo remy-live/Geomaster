@@ -32,9 +32,18 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     await new Promise(r => setTimeout(r, 400));
     app.isPlaying = false; app.isToolAnimating = false; app.isLooping = false;
     const n = app.entities.length;
-    for (let k = 0; k < consignesEnPlus; k++)
-      app.stepInstructions[Math.round(n * (k + 1) / (consignesEnPlus + 2))] =
+    /* Des index DISTINCTS, dans la figure, et qui ne retombent pas sur ceux que
+       le bâtisseur a déjà posés : sans quoi deux consignes se partagent une
+       étape et la fiche a une image de moins que de consignes — un défaut du
+       test, pas de la fiche. */
+    let pose = 0;
+    for (let i = 1; i < n && pose < consignesEnPlus; i++) {
+      if (app.stepInstructions[i] !== undefined) continue;
+      app.stepInstructions[i] =
         'On reporte la longueur au compas, puis on trace à la règle en passant par les deux points obtenus.';
+      pose++;
+      i++;   // on saute une entité pour espacer les étapes
+    }
     app.replayIndex = n;
     app.projectTitle = 'Médiatrice';
     return { etapes: Object.keys(app.stepInstructions).length, objets: n };
