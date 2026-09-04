@@ -47,8 +47,9 @@ Chaque vignette est découpée sur la **zone utile** de sa page, pas sur la feui
 entière.
 
 Et l'on peut en **fusionner** plusieurs. Un parallélogramme, un rectangle, un
-losange et un carré construits chacun sur sa page se retrouvent sur une seule,
-rangés en grille — et comme ils s'appelaient tous *ABCD*, les points qui
+losange et un carré construits chacun sur sa page se retrouvent sur une
+**nouvelle** page, rangés en grille — les pages d'origine restent, la croix les
+retire si l'on n'en veut plus — et comme ils s'appelaient tous *ABCD*, les points qui
 portaient déjà leur lettre sont **renommés** : ABCD, EFGH, IJKL… Les consignes
 des quatre constructions suivent, décalées : la feuille se rejoue en entier.
 

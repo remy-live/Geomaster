@@ -173,7 +173,8 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const pts = app.entities.filter(e => e.constructor.name === 'Point');
     const labels = pts.map(p => p.label).filter(Boolean);
     const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
-    return { avant, pages: app.pagesDocument().length, objets: app.entities.length,
+    return { avant, pages: app.pagesDocument().length, pageActive: app.pageActive,
+             objets: app.entities.length,
              points: pts.length, labels,
              doublons: labels.filter((l, i) => labels.indexOf(l) !== i),
              etapes: Object.keys(app.stepInstructions).length,
@@ -182,7 +183,10 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
              zoom: +app.view.zoom.toFixed(2) };
   });
   console.log('  ' + JSON.stringify({ ...fusion, labels: fusion.labels.join('') }));
-  ck('les quatre pages n\'en font plus qu\'une', fusion.pages === 1, String(fusion.pages));
+  /* La fusion AJOUTE une page, elle n'en mange aucune : quatre fusionnées en
+     donnent cinq. Rien ne se perd, et l'on peut refaire la fusion autrement. */
+  ck('les quatre pages d\'origine restent, plus la fusionnée', fusion.pages === 5, String(fusion.pages));
+  ck('et c\'est la nouvelle qu\'on regarde', fusion.pageActive === 4, String(fusion.pageActive));
   ck('les quatre figures sont toutes là', fusion.objets > 100 && fusion.points >= 16,
      `${fusion.objets} objets, ${fusion.points} points`);
   ck('AUCUN point ne porte deux fois la même lettre', fusion.doublons.length === 0,

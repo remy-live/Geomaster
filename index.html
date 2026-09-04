@@ -6149,7 +6149,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <b>plusieurs pages</b> : « ＋ » à côté du titre en ajoute une, ◀ ▶ les feuillette, et
                                 <b>cliquer sur le numéro</b> ouvre les vignettes — on y range les pages en les
                                 tirant, et l'on <b>fusionne</b> celles qu'on coche : les figures se rangent côte à
-                                côte sur une seule page, et les points qui portaient la même lettre sont renommés. La case
+                                côte sur une <b>nouvelle</b> page — les pages d'origine restent — et les points qui
+                                portaient la même lettre sont renommés. La case
                                 <b>Figures seules</b> laisse de côté les tracés de construction et pose une étape
                                 par figure, pour les découvrir une à une.
                                 Elles sortent en un seul PDF et voyagent dans un seul lien. Au tableau, <b>Page suiv. / Page
@@ -8194,8 +8195,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <h3 style="margin-top:0; color:#2980b9;">Les pages de la séance</h3>
             <p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">
                 Tirez une vignette pour la ranger ailleurs. Cochez-en plusieurs et
-                <b>fusionnez-les</b> : les figures se rangent côte à côte sur une seule page,
-                et les points qui portaient la même lettre sont renommés.
+                <b>fusionnez-les</b> : les figures se rangent côte à côte sur une <b>nouvelle</b>
+                page, et les points qui portaient la même lettre sont renommés. Les pages
+                d'origine restent — la croix les retire si vous n'en voulez plus.
             </p>
             <div id="pagesListe"
                 style="display:flex; flex-wrap:wrap; gap:10px; max-height:50vh; overflow:auto; padding:4px;">
@@ -24212,16 +24214,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.saveState();
                 this.cadrerSurFigure();
                 const code = this.getCompressedString();
-                // la fusion prend la place de la première, les autres disparaissent
-                const gardee = choix[0];
-                p[gardee] = code;
-                for (let i = choix.length - 1; i >= 1; i--) p.splice(choix[i], 1);
-                this.pageActive = gardee;
+                /* La fusion AJOUTE une page, elle n'en mange aucune : fusionner deux
+                   pages en donne trois. Rien ne se perd — ni le travail de départ, ni
+                   la possibilité de refaire la fusion autrement — et la croix reste
+                   là pour retirer les originales quand on n'en veut plus. La nouvelle
+                   page se place juste après la dernière fusionnée, là où l'œil la
+                   cherche. */
+                const insertion = choix[choix.length - 1] + 1;
+                p.splice(insertion, 0, code);
+                this.pageActive = insertion;
                 this.vignettesPages = {};
                 this.majBarrePages();
                 this.render();
-                this.showToast(`🧩 ${choix.length} pages fusionnées — ${prises.size} points nommés`
-                    + (figuresSeules ? `, ${choix.length} étapes` : ''));
+                this.showToast(`🧩 ${choix.length} pages réunies en page ${insertion + 1} `
+                    + `— ${prises.size} points nommés`
+                    + (figuresSeules ? `, ${choix.length} étapes` : '')
+                    + ` · les ${choix.length} pages d'origine sont gardées`);
                 return true;
             }
 
