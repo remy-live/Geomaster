@@ -3229,32 +3229,94 @@
             flex-direction: column
         }
 
+        /* L'APERÇU DU LIEN ÉLÈVE.
+
+           Il montrait la page dans un cadre de 800 × 380 : ni un téléphone, ni
+           une tablette, ni un écran — une boîte qui ne correspondait à aucun
+           appareil, et l'on ne pouvait donc rien conclure de ce qu'on y voyait.
+
+           Le cadre prend maintenant les dimensions RÉELLES de l'appareil choisi.
+           Le cadre intérieur mesure vraiment 390 px de large sur un téléphone :
+           les règles d'affichage du logiciel — qui changent à 820 px et à 480 px —
+           s'appliquent exactement comme sur l'appareil. Ce qu'on voit est donc ce
+           que l'élève verra. Une mise à l'échelle le fait tenir dans la fenêtre
+           sans changer sa largeur intérieure, et le rapport est écrit. */
+        .preview-barre {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preview-appareil {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .preview-appareil:hover { background: rgba(255, 255, 255, .2); }
+
+        .preview-appareil.actif {
+            background: #fff;
+            color: #222;
+            font-weight: 700;
+            border-color: #fff;
+        }
+
+        #previewTaille {
+            color: rgba(255, 255, 255, .7);
+            font-size: 12px;
+            margin-left: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .preview-scene {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
         .phone-mockup {
-            width: 800px;
-            height: 380px;
             background: #fff;
             border: 10px solid #222;
             border-radius: 24px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, .5)
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
+            transform-origin: top center;
         }
 
         .phone-mockup iframe {
-            width: 100%;
-            height: 100%;
             border: none;
-            display: block
+            display: block;
+            background: #fff;
         }
 
-        .orientation-controls {
-            display: none !important
+        #previewLien {
+            width: min(560px, 80vw);
+            font-size: 11.5px;
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            padding: 6px 9px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            background: rgba(255, 255, 255, .08);
+            color: rgba(255, 255, 255, .85);
         }
 
         .preview-actions {
-            margin-top: 20px;
+            margin-top: 18px;
             display: flex;
-            gap: 15px
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .preview-btn {
@@ -8894,14 +8956,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </div>
     <div id="video-cursor-highlight" class="cursor-highlighter"></div>
     <div id="previewModal">
-        <div class="phone-mockup">
-            <iframe id="previewFrame"></iframe>
+        <!-- Les tailles sont celles d'appareils réels, pas des à-peu-près : un
+             iPhone 14 fait 390 × 844 points, un iPad 820 × 1180, et 1280 × 800 est
+             le petit portable de salle informatique. -->
+        <div class="preview-barre">
+            <button class="preview-appareil" data-l="390" data-h="844">📱 Téléphone</button>
+            <button class="preview-appareil" data-l="820" data-h="1180">📲 Tablette</button>
+            <button class="preview-appareil actif" data-l="1280" data-h="800">💻 Ordinateur</button>
+            <button class="preview-appareil" id="previewRotation" data-tooltip="Pivoter">⟳ Pivoter</button>
+            <span id="previewTaille"></span>
+        </div>
+        <div class="preview-scene">
+            <div class="phone-mockup">
+                <iframe id="previewFrame"></iframe>
+            </div>
         </div>
         <div class="preview-actions">
-            <button class="preview-btn btn-copy" onclick="copyStudentLink()">📋 Copier lien Élève</button>
+            <input type="text" id="previewLien" readonly onclick="this.select()">
+            <button class="preview-btn btn-copy" onclick="copyStudentLink()">📋 Copier le lien</button>
             <button class="preview-btn btn-close" onclick="closePreview()">Fermer</button>
         </div>
     </div>
+    <script>
+        /* Les boutons d'appareil : posés ici plutôt qu'en attribut, pour que les
+           dimensions restent écrites une seule fois, dans le HTML. */
+        document.querySelectorAll('.preview-appareil[data-l]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                choisirAppareil(Number(b.dataset.l), Number(b.dataset.h), b);
+            });
+        });
+        (function () {
+            var r = document.getElementById('previewRotation');
+            if (r) r.addEventListener('click', function () {
+                previewAppareil = { l: previewAppareil.h, h: previewAppareil.l };
+                appliquerAppareil();
+            });
+        })();
+    </script>
     <div id="calcPanel" class="draggable-panel floating-window" style="display: none;">
         <div id="calcHeader" class="panel-header">
             <span>Calculatrice</span>
@@ -19917,8 +20008,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             checkAutoSave() {
                 const backup = localStorage.getItem('geoMaster_backup');
+                /* Le mode lecture peut être demandé dans l'ADRESSE ou dans son
+                   dièse — l'aperçu du lien élève passe par le dièse, pour contourner
+                   un défaut de Firefox sur les cadres locaux. La question n'était
+                   posée qu'à l'adresse : l'aperçu s'ouvrait donc sur « Une
+                   sauvegarde automatique a été trouvée. Voulez-vous la restaurer ? »
+                   — une boîte de dialogue par-dessus la figure, que l'élève, lui,
+                   n'aurait jamais vue. */
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('mode') === 'lecture') return;
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                if (urlParams.get('mode') === 'lecture' || hashParams.get('mode') === 'lecture') return;
                 if (!backup) return;
                 try {
                     const parsed = JSON.parse(backup);
@@ -28059,6 +28158,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const newCode = event.data.code;
                 const baseUrl = window.location.href.split('?')[0].split('#')[0];
                 frame.dataset.shareUrl = baseUrl + "?mode=lecture&fig=" + encodeURIComponent(newCode);
+                if (typeof majLienApercu === 'function') majLienApercu();
                 const btnCopy = document.querySelector('.btn-copy');
                 if (btnCopy) {
                     btnCopy.innerHTML = "Lien mis à jour !";
@@ -28066,6 +28166,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 console.log("Vue mise à jour reçue de l'iframe !");
             }
+        });
+
+        /* L'APPAREIL DE L'APERÇU.
+
+           Le cadre prend la taille RÉELLE de l'appareil : le document de l'iframe
+           mesure alors vraiment 390 px de large sur un téléphone, et les règles
+           d'affichage du logiciel s'y appliquent comme sur l'appareil. Pour que
+           cela tienne dans la fenêtre, on le RÉDUIT — une mise à l'échelle ne
+           change pas la largeur intérieure, contrairement à un cadre qu'on
+           rétrécirait. Le rapport est écrit à côté, pour qu'on sache ce qu'on
+           regarde. */
+        let previewAppareil = { l: 1280, h: 800 };
+        function appliquerAppareil() {
+            const cadre = document.querySelector('.phone-mockup');
+            const frame = document.getElementById('previewFrame');
+            const scene = document.querySelector('.preview-scene');
+            if (!cadre || !frame) return;
+            const { l, h } = previewAppareil;
+            frame.style.width = l + 'px';
+            frame.style.height = h + 'px';
+            const dispoL = Math.max(240, window.innerWidth - 90);
+            const dispoH = Math.max(200, window.innerHeight - 250);
+            const k = Math.min(1, dispoL / (l + 20), dispoH / (h + 20));
+            cadre.style.transform = `scale(${k})`;
+            // le transform ne change pas la place prise : on la donne à la scène
+            if (scene) scene.style.height = Math.round((h + 20) * k) + 'px';
+            const t = document.getElementById('previewTaille');
+            if (t) t.textContent = `${l} × ${h} px${k < 0.999 ? ` · affiché à ${Math.round(k * 100)} %` : ''}`;
+        }
+        function choisirAppareil(l, h, bouton) {
+            previewAppareil = { l, h };
+            document.querySelectorAll('.preview-appareil').forEach(b => {
+                if (b.id !== 'previewRotation') b.classList.toggle('actif', b === bouton);
+            });
+            appliquerAppareil();
+        }
+        window.addEventListener('resize', () => {
+            const m = document.getElementById('previewModal');
+            if (m && m.style.display === 'flex') appliquerAppareil();
         });
 
         // 2. Fonctions d'aperçu corrigées pour Firefox
@@ -28088,6 +28227,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             frame.dataset.shareUrl = studentUrl + "&fig=" + encodeURIComponent(code);
             document.getElementById('previewModal').style.display = 'flex';
+            majLienApercu();
+            appliquerAppareil();
+        }
+        /* Le lien est ÉCRIT, pas seulement copiable : on voit qu'il commence par
+           file:// quand on travaille sur une copie locale, et l'on comprend
+           pourquoi il ne dira rien à personne d'autre. */
+        function majLienApercu() {
+            const champ = document.getElementById('previewLien');
+            const frame = document.getElementById('previewFrame');
+            if (champ && frame) champ.value = frame.dataset.shareUrl || '';
         }
 
         function closePreview() {

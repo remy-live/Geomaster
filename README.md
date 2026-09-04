@@ -184,6 +184,16 @@ programme (voir *Hors connexion*).
 `?mode=lecture` ouvre le **lien élève** : la figure et son rejeu, sans les outils
 de modification.
 
+Avant de l'envoyer, on le regarde. L'aperçu montre **la vraie page** — pas une
+imitation — dans un cadre aux **dimensions réelles de l'appareil** : téléphone
+390 × 844, tablette 820 × 1180, ordinateur 1280 × 800, et le bouton *Pivoter*.
+Le document du cadre mesure vraiment 390 px de large : les règles d'affichage du
+logiciel s'y appliquent exactement comme sur l'appareil, et ce qu'on voit est ce
+que l'élève verra. Il est réduit pour tenir dans la fenêtre — la réduction ne
+change pas cette largeur — et le rapport est écrit à côté : « 820 × 1180 px ·
+affiché à 63 % ». Le lien est affiché en toutes lettres, et *Définir vue* fixe
+le cadrage que l'élève trouvera en ouvrant.
+
 ### Dessiner à main levée, obtenir une vraie figure
 
 On trace un carré du doigt : le logiciel le reconnaît et construit un vrai carré,
@@ -290,7 +300,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 65 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 66 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
