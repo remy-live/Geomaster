@@ -7525,7 +7525,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </svg>
                 </button>
                 <div class="header-dropdown">
-                    <button class="top-btn">
+                    <button class="top-btn" aria-label="Menu Fichier" data-tooltip="Fichier">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                         </svg>
@@ -8473,7 +8473,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     comme une formule. Les autres restent du texte ordinaire.
                 </div>
             </div>
-            <canvas id="geoCanvas" width=3000 height="2000"></canvas>
+            <!-- La feuille porte un nom : un lecteur d'écran annonçait « canevas »,
+                 sans dire de quoi il s'agit. Ce qui s'y trouve reste inaccessible à
+                 la voix — c'est un dessin — mais on sait au moins où l'on est. -->
+            <canvas id="geoCanvas" width=3000 height="2000" role="img"
+                aria-label="Feuille de construction géométrique"></canvas>
 
             <!-- 1. BANDEAU PROMPTEUR (Édition rapide à la volée) -->
             <div id="stepInstructionBand"
@@ -11250,7 +11254,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.parents[0] instanceof Point && this.parents[1] instanceof Point) {
                         this.x = (this.parents[0].x + this.parents[1].x) / 2;
                         this.y = (this.parents[0].y + this.parents[1].y) / 2;
-                        this.visible = true;
+                        /* ON NE REND PAS VISIBLE CE QU'ON A CACHÉ. Un milieu existe
+                           toujours : il n'y a rien à rétablir. Cette ligne
+                           rallumait les points de construction cachés — celui d'une
+                           médiatrice, le centre d'un cercle de diamètre — dès qu'on
+                           déplaçait une extrémité, et à chaque relecture d'un
+                           fichier. Une croix parasite apparaissait sur la figure au
+                           premier geste de l'élève. La visibilité appartient à qui
+                           a construit le point ; la mise à jour ne fait que le
+                           replacer. (Le cas du croisement, plus bas, est différent :
+                           un point d'intersection qui n'existe plus doit bien
+                           disparaître.) */
                     } else {
                         const pts = MathUtils.getIntersections(this.parents[0], this.parents[1]);
                         if (pts.length === 0) this.visible = false;
@@ -29963,7 +29977,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     btnCopy.innerHTML = "Lien mis à jour !";
                     setTimeout(() => btnCopy.innerHTML = "📋 Copier le lien", 2000);
                 }
-                console.log("Vue mise à jour reçue de l'iframe !");
             }
         });
 

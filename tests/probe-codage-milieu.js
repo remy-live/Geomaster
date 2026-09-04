@@ -167,6 +167,34 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      carre.segs.length === 4 && carre.segs.every(s => s.c === 'mark-1'),
      JSON.stringify(carre.segs.map(s => s.c)));
 
+  console.log('\n=== ce qui est caché le reste ===');
+  /* Un point de construction caché — celui d'une médiatrice, le centre d'un
+     cercle de diamètre — se rallumait dès qu'on déplaçait une extrémité, et à
+     chaque relecture d'un fichier : une croix parasite apparaissait sur la
+     figure au premier geste de l'élève. Un milieu existe toujours ; sa mise à
+     jour n'a rien à rétablir. */
+  const cache = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.saveState();
+    app.executerConsigne('Place les points A, B');
+    app.executerConsigne('Trace [AB]');
+    app.executerConsigne('Trace la médiatrice de [AB]');
+    const m = app.entities.find(e => e.constructor.name === 'Point' && !e.label);
+    const avant = m.visible;
+    const A = app.entities.find(e => e.constructor.name === 'Point' && e.label === 'A');
+    A.x += 40; A.y += 15;
+    app.entities.forEach(e => { if (e.update) e.update(); });
+    const apresGlisser = m.visible;
+    const relu = app.deserialize(app.serialize());
+    const m2 = relu.find(e => e.constructor.name === 'Point' && !e.label);
+    return { avant, apresGlisser, apresRelecture: m2 ? m2.visible : null };
+  });
+  console.log('  ' + JSON.stringify(cache));
+  ck('le milieu d\'une médiatrice est caché', cache.avant === false, String(cache.avant));
+  ck('déplacer une extrémité ne le rallume pas', cache.apresGlisser === false,
+     String(cache.apresGlisser));
+  ck('relire le fichier non plus', cache.apresRelecture === false, String(cache.apresRelecture));
+
   console.log('\n=== le codage voyage : sauvegarde, export, fichier d\'avant ===');
   const voyage = await page.evaluate(() => {
     const app = window.app;
