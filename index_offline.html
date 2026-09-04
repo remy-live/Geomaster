@@ -149,11 +149,12 @@
 
         .header-dropdown-content.grid-3-cols {
             grid-template-columns: repeat(3, 1fr);
-            /* de quoi écrire « Bibliothèque » sous une icône de 56 px */
-            width: 208px;
-            min-width: 208px;
+            /* Sans les libellés, trois icônes tiennent dans 168 px : la largeur
+               de 208 px servait à écrire « Bibliothèque » sous une icône. */
+            width: 168px;
+            min-width: 168px;
             padding: 5px;
-            gap: 4px
+            gap: 2px
         }
 
         .header-dropdown:hover .header-dropdown-content.grid-3-cols {
@@ -301,9 +302,9 @@
         }
 
         .header-dropdown-content.grid-3-cols .icon-btn {
-            width: 56px;
-            height: auto;
-            min-height: 48px;
+            width: 44px;
+            height: 40px;
+            min-height: 40px;
             margin: 0 auto
         }
 
@@ -318,29 +319,16 @@
 
            Et trois intitulés au lieu de trois traits : ce qu'on fait du document,
            ce qu'on en sort comme fichier, ce qu'on en transmet. */
+        /* LES LIBELLÉS SONT REVENUS DANS L'INFO-BULLE. Écrits sous chaque icône,
+           ils faisaient d'un menu de treize commandes un panneau de six cents
+           pixels de haut : « Fiche de construction » sur deux lignes, « Coller un
+           code » sur deux lignes, et trois intitulés de section pour tenir le
+           tout. Les icônes se reconnaissent, et le nom se lit au survol comme
+           partout ailleurs dans le logiciel — les intitulés de section, eux,
+           restent : ce sont eux qui disent où chercher. */
         .header-dropdown-content .icon-btn[data-libelle] {
-            flex-direction: column;
-            gap: 2px;
-            height: auto;
-            padding: 5px 2px;
-            line-height: 1.05;
-        }
-
-        .header-dropdown-content .icon-btn[data-libelle]::after {
-            content: attr(data-libelle);
-            font-size: 9px;
-            font-weight: 600;
-            color: #667;
-            text-align: center;
-            white-space: normal;
-        }
-
-        /* Les trois exports portent leur nom dans le dessin : le répéter en
-           dessous ferait « PNG PNG ». */
-        .header-dropdown-content .icon-btn[data-libelle="PNG"]::after,
-        .header-dropdown-content .icon-btn[data-libelle="SVG"]::after,
-        .header-dropdown-content .icon-btn[data-libelle="PDF"]::after {
-            content: none;
+            height: 40px;
+            padding: 4px;
         }
 
         .header-dropdown-content.grid-3-cols .menu-titre {
@@ -5018,7 +5006,7 @@
                au doigt : ils sont affichés partout (voir « LE MENU FICHIER DIT CE
                QU'IL FAIT »). Ne reste ici que la cible tactile. */
             .header-dropdown-content .icon-btn[data-libelle] {
-                min-height: 48px;
+                min-height: 44px;
             }
 
             .tool-btn {
@@ -18421,13 +18409,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let isDragging = false;
                 let startX, startY, initLeft, initTop;
                 handle.addEventListener('pointerdown', (e) => {
-                    /* La croix vit DANS la poignée. Sans cette sortie, l'appui était
-                       capturé par la poignée — preventDefault + setPointerCapture —
-                       le relâchement lui revenait aussi, et le navigateur ne
-                       fabriquait donc jamais de « click » sur la croix : la fenêtre
-                       des consignes ne se fermait plus. La palette de style avait
-                       déjà ce garde-fou ; celle-ci l'avait perdu. */
-                    if (e.target.closest('.instr-close')) return;
+                    /* TOUT BOUTON DE L'EN-TÊTE vit DANS la poignée. Sans cette
+                       sortie, l'appui est capturé par la poignée — preventDefault
+                       + setPointerCapture — le relâchement lui revient aussi, et
+                       le navigateur ne fabrique jamais de « click ». La croix
+                       avait sa dérogation ; la roue des réglages, ajoutée
+                       ensuite, ne l'avait pas : le menu ne s'ouvrait jamais. La
+                       règle vaut désormais pour tous les boutons, y compris ceux
+                       qu'on ajoutera demain. */
+                    if (e.target.closest('button')) return;
                     isDragging = true;
                     startX = e.clientX;
                     startY = e.clientY;
@@ -19950,6 +19940,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    encore à la fin, empilait les « rulerHide » : sur un carré
                    construit aux instruments, neuf d'affilée. Au rejeu, l'élève
                    regarde alors neuf étapes où il ne se passe rien. */
+                /* UN OBJET N'ENTRE QU'UNE FOIS DANS LA FIGURE. Le bâtisseur du
+                   triangle posait le sommet C, puis la construction au compas le
+                   posait une seconde fois : le même point figurait deux fois dans
+                   la liste, son nom était écrit deux fois, et l'on voyait « deux
+                   points C ». Le supprimer n'en retirait qu'un. */
+                if (this.entities.includes(entity)) return;
                 if (entity instanceof ToolAnimation && /Hide$/.test(entity.widgetType || '')) {
                     const famille = entity.widgetType.replace(/Hide$/, '');
                     /* On remonte jusqu'au dernier geste de CET instrument : s'il
@@ -28496,7 +28492,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const ux = (pB.x - pA.x) / d, uy = (pB.y - pA.y) / d;
                 const pC = this.cslPointNomme(C)
                     || new Point(pA.x + ux * x + uy * h, pA.y + uy * x - ux * h, C);
-                if (!this.cslPointNomme(C)) this.addEntity(pC);
+                /* AUX INSTRUMENTS, LE TROISIÈME SOMMET NE SE POSE PAS : IL SE
+                   TROUVE. On trace [AB], on ouvre le compas au deuxième côté, un
+                   arc depuis A, un autre depuis B avec le troisième — et C est
+                   leur croisement. Le poser d'avance, c'était donner la réponse
+                   avant la construction, et le rejeu montrait un point surgi de
+                   nulle part au début. C'est le bâtisseur qui l'ajoute, après ses
+                   deux arcs. */
+                const dejaC = !!this.cslPointNomme(C);
+                if (!dejaC && !this.cslDetaille()) this.addEntity(pC);
                 this._cslSujet = [A, B, C];
                 if (this.cslDetaille()) {
                     this.cslTriangleAuCompas(pA, pB, pC, a, b);

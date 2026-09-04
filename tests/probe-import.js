@@ -28,10 +28,11 @@ const D = path.resolve(__dirname, 'fixtures') + '/';
       const feuille = btn.closest('.header-dropdown-content');
       if (feuille) feuille.classList.add('gm-ouvert');
       const rb = btn.getBoundingClientRect();
-      const cs = getComputedStyle(btn, '::after');
       out.boite = [Math.round(rb.width), Math.round(rb.height)];
       out.visible = rb.width > 0 && rb.height > 0;
-      out.libelle = cs.content;
+      /* Le nom se lit au survol, plus sous l'icône : quinze libellés écrits
+         faisaient du menu fichier un panneau de six cents pixels de haut. */
+      out.libelle = (btn.getAttribute('data-tooltip') || btn.getAttribute('aria-label') || '');
       out.dansEcran = rb.left >= 0 && rb.right <= innerWidth && rb.top >= 0 && rb.bottom <= innerHeight;
       // le centre du bouton atteint-il bien le bouton ?
       const el = document.elementFromPoint(rb.left + rb.width / 2, rb.top + rb.height / 2);
@@ -46,7 +47,7 @@ const D = path.resolve(__dirname, 'fixtures') + '/';
     ck('la cible fait au moins 40px', r.boite && r.boite[0] >= 40 && r.boite[1] >= 40, `${r.boite}`);
     ck('elle tient dans l\'écran', r.dansEcran === true);
     ck('son centre atteint bien le bouton', r.atteint === true);
-    ck('le libellé annonce le PDF', /PDF/.test(r.libelle || ''), r.libelle);
+    ck('l\'info-bulle annonce le PDF', /PDF/i.test(r.libelle || ''), r.libelle);
     ck('aucune erreur JS', errs.length === 0, errs.slice(0, 2).join(' | '));
     await page.context().close();
   }

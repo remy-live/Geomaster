@@ -112,11 +112,13 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const menu = await page.evaluate(() => {
     const d = document.querySelector('.header-dropdown-content.grid-3-cols');
     d.style.display = 'grid';
-    const lu = (el) => getComputedStyle(el, '::after').content;
+    /* Le nom n'est plus écrit SOUS l'icône — quinze libellés faisaient un menu
+       de six cents pixels de haut — mais il doit rester lisible quelque part :
+       c'est l'info-bulle, comme partout ailleurs dans le logiciel. */
     const btns = [...d.querySelectorAll('.icon-btn[data-libelle]')];
     const sansNom = btns.filter(b => {
-      const c = lu(b);
-      return (!c || c === 'none') && !['PNG', 'SVG', 'PDF'].includes(b.dataset.libelle);
+      const n = (b.getAttribute('data-tooltip') || b.getAttribute('aria-label') || '').trim();
+      return n.length < 3;
     }).map(b => b.dataset.libelle);
     return { boutons: btns.length, sansNom,
              titres: [...d.querySelectorAll('.menu-titre')].map(t => t.textContent),
@@ -124,7 +126,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
              avecPDF: !!d.querySelector('[onclick="app.requestExport(\'pdf\')"]') };
   });
   console.log('  ' + JSON.stringify(menu));
-  ck('chaque icône porte son nom', menu.sansNom.length === 0, menu.sansNom.join(', '));
+  ck('chaque icône se nomme au survol', menu.sansNom.length === 0, menu.sansNom.join(', '));
   ck('trois intitulés au lieu de trois traits', menu.titres.length === 3, menu.titres.join(' / '));
   ck('la fiche est là, avec les autres sorties', menu.fiche && menu.avecPDF);
 

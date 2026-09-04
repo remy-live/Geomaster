@@ -146,6 +146,12 @@ Une case décide de ce que « Trace un carré » veut dire : **la figure seule**
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
 d'un coup et rejouable ensuite avec ▶.
 
+**Aux instruments, le troisième sommet ne se pose pas : il se trouve.** On trace
+`[AB]` à la règle, un arc de compas depuis A, un autre depuis B — et C est leur
+croisement. Il était posé d'avance, puis reposé par la construction : le même
+point figurait deux fois dans la figure, son nom était écrit deux fois, et le
+supprimer n'en retirait qu'un.
+
 Et **tout y passe**, quelle que soit la façon dont l'énoncé donne le triangle :
 les cinq cas se ramènent aux trois longueurs, et trois longueurs se construisent
 aux instruments — [AB] à la règle, un arc de compas depuis chaque extrémité,

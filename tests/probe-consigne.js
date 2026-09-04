@@ -613,6 +613,48 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      efface.lignes.length === 1 && efface.lignes[0] === '' && efface.enonce === '',
      JSON.stringify(efface.lignes));
 
+  console.log('\n=== la roue des réglages agit vraiment ===');
+  /* La roue vit DANS la poignée de déplacement du panneau, qui capture l'appui :
+     sans dérogation, le navigateur ne fabrique jamais de « click » et le menu ne
+     s'ouvre pas. La croix avait la sienne ; la roue, ajoutée après, ne l'avait
+     pas — le réglage ne faisait rien. */
+  const reglages = await page.evaluate(async () => {
+    const app = window.app;
+    localStorage.removeItem('gmConsignes');
+    app._cslReglages = null;
+    app.entities = []; app.historyPast = []; app._consignes = []; app.saveState();
+    app.majConsignes();
+    document.getElementById('btnConsigneReglages').click();
+    await new Promise(r => setTimeout(r, 60));
+    const menu = document.getElementById('cslMenuLigne');
+    if (!menu) return { ouvert: false };
+    const cases = [...menu.querySelectorAll('input')];
+    const avant = cases.map(c => c.checked);
+    cases[0].click(); cases[1].click(); cases[2].click();
+    await new Promise(r => setTimeout(r, 60));
+    app.fermerMenuConsigne();
+    const r = app.reglagesConsignes();
+    const i = app.ajouterConsigne();
+    return { ouvert: true, avant, apres: [r.auto, r.instruments, r.modeles],
+             stocke: JSON.parse(localStorage.getItem('gmConsignes') || 'null'),
+             ligneNeuve: app.consignesListe()[i].instruments };
+  });
+  console.log('  ' + JSON.stringify(reglages));
+  ck('la roue ouvre bien son menu', reglages.ouvert === true);
+  ck('les trois cases basculent',
+     JSON.stringify(reglages.apres) === JSON.stringify(reglages.avant.map(x => !x)),
+     JSON.stringify(reglages.apres));
+  ck('et le réglage est retenu d\'une séance sur l\'autre',
+     reglages.stocke && reglages.stocke.auto === false, JSON.stringify(reglages.stocke));
+  /* « Nouvelles lignes : avec les instruments » ne vaut rien s'il ne se pose pas
+     sur la ligne suivante. */
+  ck('une ligne neuve hérite du réglage', reglages.ligneNeuve === true, String(reglages.ligneNeuve));
+  await page.evaluate(() => {
+    localStorage.removeItem('gmConsignes');
+    window.app._cslReglages = null;
+    window.app._consignes = []; window.app.majConsignes();
+  });
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
