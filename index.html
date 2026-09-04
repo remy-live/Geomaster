@@ -27226,7 +27226,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                6 cm et de largeur 3 cm » décrivent UNE figure et ne se coupent pas.
                On ne coupe que devant ce qui commence une construction. */
             cslDecouper(brut) {
-                const re = /\s+(?:et|puis|ensuite|,\s*puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)|le\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)|un\s+point|une\s+droite)\b)/i;
+                const re = /\s+(?:et|puis|ensuite|,\s*puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)|le\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)|un\s+(?:point|triangle|carr[ée]|rectangle|losange|parall[ée]logramme|trap[èe]ze|cercle|segment|polygone|pentagone|hexagone|angle)|une\s+(?:droite|demi-droite))\b)/i;
                 /* LA VIRGULE AUSSI SÉPARE, quand un verbe la suit : « Trace un
                    segment [OQ] de 6 cm, place le milieu P » en est deux. Elle ne
                    sépare rien devant un nom de point (« A, B, C ») ni dans un
@@ -27428,6 +27428,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         || /milieux\s+des\s+c[ôo]t[ée]s/.test(t)
                         || /centre\s+du\s+cercle\s+circonscrit/.test(t)
                         || (/m[ée]diatrices|bissectrices|hauteurs/.test(t))
+                        /* « la médiatrice de chaque côté » : trois médiatrices,
+                           dites au singulier — c'est la formule des manuels. */
+                        || (/chaque\s+c[ôo]t[ée]|tous\s+les\s+c[ôo]t[ée]s/.test(t)
+                            && /m[ée]diatrice|hauteur|bissectrice|m[ée]diane|milieu/.test(t))
                         || (/triangle/.test(t) && /m[ée]diatrice|bissectrice|hauteur/.test(t))) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
@@ -27472,8 +27476,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        phrase au bâtisseur de figures, qui RETRAÇAIT la figure
                        par-dessus elle-même au lieu de coder ses angles. */
                     if (/\bangles\b/.test(t)
-                        && /^(?:marque|marquer|code|coder|indique|trace|tracer)\b/.test(t)) {
+                        && /^(?:marque|marquer|code|coder|indique|affiche|trace|tracer)\b/.test(t)) {
                         return this.cslTousLesAngles(brut, t, fait, rate);
+                    }
+                    /* CE QUE LE PANNEAU NE SAIT PAS FAIRE, IL LE DIT. « Efface le
+                       point C » répondait « C existe déjà » — une phrase qui n'a
+                       aucun sens pour qui vient d'écrire « efface ». Une consigne
+                       construit ; elle ne défait pas. */
+                    if (/^(?:efface|effacer|supprime|supprimer|enl[èe]ve|enlever|retire|retirer|gomme)\b/.test(t)) {
+                        return rate("Une consigne construit ; elle n'efface pas. "
+                            + "Utilisez la gomme, ou Ctrl+Z.");
+                    }
+                    /* « Colorie le triangle ABC », « Hachure-le » : on REMPLIT la
+                       figure, on ne la retrace pas par-dessus elle-même. */
+                    if (/^(?:colorie|colorier|remplis|remplir|hachure|hachurer|grise|griser|peins)\b/.test(t)) {
+                        return this.cslRemplir(brut, t, fait, rate);
+                    }
+                    /* « Prolonge [AB] », « Partage [AB] en trois parts égales » :
+                       deux verbes d'énoncé qui ne construisaient rien, tout en
+                       répondant « Segment [AB] » comme si c'était fait. */
+                    if (/^(?:prolonge|prolonger)\b/.test(t)) return this.cslProlonger(brut, t, fait, rate);
+                    if (/^(?:partage|partager|divise|diviser|coupe\s+en)\b/.test(t)
+                        && /\bparts?\b|\bparties\b|\bsegments\s+[ée]gaux\b|\b[ée]gales?\b/.test(t)) {
+                        return this.cslPartager(brut, t, fait, rate);
                     }
                     if (/\bangles?\b/.test(t) && !figure) return this.cslAngle(brut, t, fait, rate);
                     if (/\bcercles?\b/.test(t) && /circonscrit|inscrit/.test(t)) {
@@ -28837,6 +28862,81 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* TOUS LES ANGLES D'UNE FIGURE, ou tous ses angles droits. « Marque
                les angles du triangle ABC » : les trois angles du triangle, pas
                le triangle une seconde fois. */
+            /* REMPLIR UNE FIGURE. « Colorie le triangle ABC » retraçait le
+               triangle par-dessus lui-même — un second polygone, invisible, et
+               la réponse disait « Triangle ABC ». */
+            cslRemplir(brut, t, fait, rate) {
+                const noms = this.cslNoms(brut);
+                const vises = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                const polys = this.entities.filter(e => e instanceof Polygon && (e.points || []).length >= 3);
+                let cible = null;
+                if (vises.length >= 3) {
+                    cible = polys.find(p => vises.every(v => p.points.includes(v))
+                        && p.points.length === vises.length);
+                }
+                if (!cible) cible = polys[polys.length - 1];
+                if (!cible) return rate("Quelle figure ? Tracez-la d'abord.");
+                cible.fillMode = /hachure/.test(t) ? 'hatch' : 'solid';
+                const lu = this.cslLireStyle(t);
+                if (lu.style && lu.style.color) cible.fillColor = lu.style.color;
+                if (cible.opacity === undefined) cible.opacity = 0.25;
+                this.saveState(); this.render();
+                return { ok: true, cree: 0, astuce: '',
+                         message: `${/hachure/.test(t) ? 'Hachures' : 'Remplissage'} sur `
+                             + `${cible.points.map(p => p.label || '·').join('')}` };
+            }
+            /* PROLONGER UN SEGMENT : c'est en faire une droite. L'énoncé le
+               demande pour montrer où elle va couper autre chose. */
+            cslProlonger(brut, t, fait, rate) {
+                const p = this.cslPaire(brut, null);
+                const objet = p ? null : this.cslObjetDe(brut);
+                let a = null, b = null;
+                if (p) { a = this.cslPointNomme(p.a); b = this.cslPointNomme(p.b); }
+                else if (objet && objet.p1 && objet.p2) { a = objet.p1; b = objet.p2; }
+                if (!a || !b) return rate("Quoi ? Écrivez « Prolonge [AB] ».");
+                const deja = this.entities.find(e => e instanceof Line
+                    && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
+                if (deja) return rate(`La droite (${a.label}${b.label}) est déjà tracée.`);
+                this.addEntity(this.cslPoserStyle(new Line(a, b)));
+                return fait(`[${a.label || '·'}${b.label || '·'}] prolongé en droite`);
+            }
+            /* PARTAGER UN SEGMENT EN PARTS ÉGALES : on pose les points de
+               partage, et l'on code les parts — c'est ce qui dit qu'elles sont
+               égales. Deux parts, c'est le milieu. */
+            cslPartager(brut, t, fait, rate) {
+                const p = this.cslPaire(brut, null);
+                const objet = p ? null : this.cslObjetDe(brut);
+                let a = null, b = null;
+                if (p) { a = this.cslPointNomme(p.a); b = this.cslPointNomme(p.b); }
+                else if (objet && objet.p1 && objet.p2) { a = objet.p1; b = objet.p2; }
+                if (!a || !b) return rate("Quoi ? Écrivez « Partage [AB] en trois parts égales ».");
+                const mots = { deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8 };
+                const chiffre = (brut.match(/en\s+(\d+)\s/) || [])[1];
+                const mot = Object.keys(mots).find(m => new RegExp('\\ben\\s+' + m + '\\b', 'i').test(t));
+                const n = Number(chiffre) || (mot ? mots[mot] : 0);
+                if (!(n >= 2 && n <= 12)) {
+                    return rate("En combien ? Écrivez « Partage [AB] en trois parts égales ».");
+                }
+                if (n === 2) {
+                    const m = this.poserMilieu(a, b);
+                    return fait(`${m.label} est le milieu de [${a.label}${b.label}] : deux parts égales`);
+                }
+                const marque = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / n).marque;
+                const poses = [];
+                for (let i = 1; i < n; i++) {
+                    const nom = this.cslNomLibre(poses);
+                    const q = new Point(a.x + (b.x - a.x) * i / n, a.y + (b.y - a.y) * i / n, nom);
+                    this.addEntity(q); poses.push(nom);
+                }
+                /* Les n parts portent la même marque : c'est ce que « parts
+                   égales » veut dire, et sans elle la figure ne le dit pas. */
+                const suite = [a, ...poses.map(x => this.cslPointNomme(x)), b];
+                for (let i = 0; i < suite.length - 1; i++) {
+                    const s = this.cslSegment(suite[i], suite[i + 1]);
+                    if (s) s.coding = marque;
+                }
+                return fait(`[${a.label}${b.label}] partagé en ${n} parts égales : ${poses.join(', ')}`);
+            }
             cslTousLesAngles(brut, t, fait, rate) {
                 const noms = this.cslNoms(brut);
                 let sommets = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
@@ -28852,15 +28952,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return rate("De quelle figure ? Écrivez « Marque les angles du triangle ABC ».");
                 }
                 const droitsSeuls = /droits?\b/.test(t);
+                // « Affiche les mesures des angles » : la valeur écrite dans l'arc
+                const montrer = /^(?:affiche|montre|indique)\b/.test(t) || /mesures?\b/.test(t);
                 const n = sommets.length, poses = [];
                 for (let i = 0; i < n; i++) {
                     const s = sommets[i], p = sommets[(i + n - 1) % n], q = sommets[(i + 1) % n];
                     const u = Math.atan2(p.y - s.y, p.x - s.x), v = Math.atan2(q.y - s.y, q.x - s.x);
                     let a = Math.abs(v - u) * 180 / Math.PI; while (a > 180) a = 360 - a;
                     if (droitsSeuls && Math.abs(a - 90) > 1) continue;
-                    const deja = this.entities.find(e => e instanceof Angle && e.p2 === s
+                    let ang = this.entities.find(e => e instanceof Angle && e.p2 === s
                         && ((e.p1 === p && e.p3 === q) || (e.p1 === q && e.p3 === p)));
-                    if (!deja) this.addEntity(new Angle(p, s, q));
+                    if (!ang) { ang = new Angle(p, s, q); this.addEntity(ang); }
+                    if (montrer) ang.showValue = true;
                     poses.push(s.label || '·');
                 }
                 if (!poses.length) {

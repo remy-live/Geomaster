@@ -350,6 +350,50 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   r = await fig(['De centre O et de rayon 3 cm, trace un cercle']);
   ck('la phrase se comprend d\'un bloc', r.res[0].ok && r.cercles.length === 1, r.res[0].m);
 
+  /* ================================================================
+     15. LES VERBES D'ÉNONCÉ QUI NE CONSTRUISAIENT RIEN.
+     « Colorie le triangle ABC » retraçait le triangle par-dessus
+     lui-même ; « Prolonge [AB] » et « Partage [AB] en trois parts
+     égales » ne faisaient rien tout en répondant « Segment [AB] ».
+     ================================================================ */
+  console.log('\n=== colorier, prolonger, partager ===');
+  r = await fig([T, 'Colorie le triangle ABC']);
+  ck('colorier remplit, sans retracer', r.res[1].ok && r.objets.Polygon === 1,
+     `${r.res[1].m} / ${r.objets.Polygon} polygone(s)`);
+  r = await fig([T, 'Hachure le triangle ABC']);
+  ck('hachurer aussi', /Hachures/.test(r.res[1].m) && r.objets.Polygon === 1, r.res[1].m);
+  r = await fig([T, 'Prolonge [AB]']);
+  ck('prolonger fait une droite', r.res[1].ok && r.objets.Line === 1, r.res[1].m);
+  r = await fig(['Trace un segment [AB] de 6 cm', 'Partage [AB] en trois parts égales']);
+  ck('partager pose les points de partage',
+     r.res[1].ok && Object.keys(r.pts).length === 4, `${r.res[1].m}`);
+  if (Object.keys(r.pts).length === 4) {
+    const suite = ['A', ...Object.keys(r.pts).filter(n => n !== 'A' && n !== 'B'), 'B'];
+    const parts = [];
+    for (let i = 0; i < suite.length - 1; i++) parts.push(cm(r.pts, suite[i], suite[i + 1]));
+    ck('et les trois parts sont égales',
+       parts.every(x => Math.abs(x - parts[0]) < 0.02), parts.join(' / '));
+  }
+  r = await fig(['Trace un segment [AB] de 6 cm', 'Partage [AB] en deux parts égales']);
+  ck('en deux, c\'est le milieu', r.res[1].ok && /milieu/.test(r.res[1].m), r.res[1].m);
+
+  console.log('\n=== deux figures dans une phrase ===');
+  r = await fig(['Trace un triangle ABC et un triangle DEF']);
+  ck('les deux triangles sont tracés', r.objets.Polygon === 2 && Object.keys(r.pts).length === 6,
+     `${r.objets.Polygon} polygones / ${Object.keys(r.pts).join('')}`);
+
+  console.log('\n=== effacer n\'est pas construire ===');
+  r = await fig(['Place les points A, B et C', 'Efface le point C']);
+  ck('la consigne le dit clairement',
+     r.res[1].ok === false && /n'efface pas/.test(r.res[1].m), r.res[1].m);
+
+  console.log('\n=== « la médiatrice de chaque côté » ===');
+  r = await fig([T, 'Trace la médiatrice de chaque côté']);
+  ck('trois médiatrices', r.objets.PerpendicularLine === 3, String(r.objets.PerpendicularLine));
+  r = await fig([T, 'Affiche les mesures des angles']);
+  ck('les trois angles sont marqués et chiffrés', r.res[1].ok && r.objets.Angle === 3,
+     `${r.res[1].m} / ${r.objets.Angle}`);
+
   /* Le nom d'une droite survit à la sauvegarde : sans cela, rouvrir le
      fichier rendrait la droite anonyme et « la perpendiculaire à d »
      ne trouverait plus rien. */
