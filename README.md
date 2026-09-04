@@ -42,13 +42,22 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `[AB], [BC] et [CA]` · `une droite` · `Relie A à B` |
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de rayon [AC]` · `de diamètre [AB]` · `circonscrit au triangle ABC` |
 | **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `parallélogramme` · `pentagone` · `hexagone` · `triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` · `équilatéral` · `rectangle en A` · `isocèle en A` · `polygone ABCDE` |
-| **Droites remarquables** | `médiatrice de [AB]` · `perpendiculaire à (AB) passant par C` · `parallèle à…` · `bissectrice de l'angle ABC` · `hauteur issue de A` |
-| **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` |
+| **Droites remarquables** | `médiatrice de [AB]` · `perpendiculaire à (AB) passant par C` · `parallèle à…` · `bissectrice de l'angle ABC` |
+| **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A` |
+| **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
+| **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — celle
 des constructions magiques, bâtie d'un coup et rejouable ensuite avec ▶.
+
+**Et il enseigne la notation.** Oublier les crochets n'est pas une faute de
+frappe, c'est le point qu'on travaille en classe. *« Trace la médiatrice de
+AB »* est donc **exécuté** — on ne bloque personne — et la notation juste
+s'affiche à côté : « il manque les crochets — [AB] ». De même pour *« la
+médiatrice de (AB) »* (« (AB) est la droite ; ici on attend [AB] »), *« la
+perpendiculaire à [AB] »*, *« le segment (BC) »*.
 
 Ce sont des règles, pas un modèle de langue : un fichier HTML sans réseau ne
 peut pas faire autrement. Il comprend donc les phrases d'un manuel, plusieurs

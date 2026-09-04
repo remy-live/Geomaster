@@ -22,7 +22,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-equerre-repere.js` | le repère rouge de l'équerre tombe juste, et le rejeu la pose |
 | `probe-annuler-rejeu.js` | annuler pendant une construction magique l'arrête au lieu de tout bloquer |
 | `probe-mesure-clavier.js` | une longueur et un angle se donnent au clavier, dans l'unité affichée |
-| `probe-consigne.js` | la phrase du manuel est comprise, faite, et devient la consigne de l'étape |
+| `probe-consigne.js` | la phrase du manuel est comprise et faite ; la notation oubliée est expliquée |
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 

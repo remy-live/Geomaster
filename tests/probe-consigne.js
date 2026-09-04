@@ -21,7 +21,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     app.view = { x: 0, y: 0, zoom: 1 };
     const c = document.getElementById('consigneDetail');
     if (c) c.checked = !!det;
-    const out = ph.map(p => { const r = app.executerConsigne(p); return { p, ok: r.ok, m: r.message }; });
+    const out = ph.map(p => { const r = app.executerConsigne(p); return { p, ok: r.ok, m: r.message, a: r.astuce }; });
     app.isPlaying = false; app.isLooping = false; app.isToolAnimating = false;
     return { out,
              points: app.entities.filter(e => e.constructor.name === 'Point' && e.label).map(e => e.label),
@@ -113,6 +113,91 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     'Place les points P, Q', 'Soit I le milieu de [PQ]',
     "Place les points C', D'", "Trace [C'D']",
   ]), 'trace / construis / dessine / place / soit, et les noms à primes');
+
+  console.log('\n=== dans un triangle : les trois d\'un coup, ou celle qu\'on nomme ===');
+  tous(await suite([
+    'Place 3 points A, B, C non alignés',
+    'Trace les médiatrices du triangle ABC',
+    'Trace les bissectrices du triangle ABC',
+    'Trace les hauteurs du triangle ABC',
+    'Trace les médianes du triangle ABC',
+    'Trace la médiane issue de A dans le triangle ABC',
+    'Trace la hauteur issue de B dans le triangle ABC',
+  ]), 'médiatrices, bissectrices, hauteurs, médianes — au pluriel et au singulier');
+
+  console.log('\n=== les points remarquables ===');
+  const rem = await suite([
+    'Place 3 points A, B, C non alignés',
+    'Place le centre de gravité G du triangle ABC',
+    "Place l'orthocentre H du triangle ABC",
+    'Place le centre du cercle circonscrit O au triangle ABC',
+    'Trace le cercle inscrit dans le triangle ABC',
+  ]);
+  tous(rem, 'centre de gravité, orthocentre, centre circonscrit, cercle inscrit');
+  /* Le nom voulu est celui de la phrase qui n'existe pas encore, qu'il soit écrit
+     avant les sommets ou après. */
+  ck('les points remarquables portent le nom demandé',
+     ['G', 'H', 'O'].every(n => rem.points.includes(n)), rem.points.join(','));
+  const centres = await page.evaluate(() => {
+    const app = window.app, p = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const [A, B, C, G, H, O] = ['A', 'B', 'C', 'G', 'H', 'O'].map(p);
+    return { g: [Math.round(G.x - (A.x + B.x + C.x) / 3), Math.round(G.y - (A.y + B.y + C.y) / 3)],
+             // O est à égale distance des trois sommets
+             o: ['A', 'B', 'C'].map(n => Math.round(Math.hypot(p(n).x - O.x, p(n).y - O.y))),
+             // Euler : O, G et H sont alignés, et OH = 3·OG
+             euler: Math.round(Math.hypot(H.x - O.x, H.y - O.y) / Math.hypot(G.x - O.x, G.y - O.y) * 100) / 100 };
+  });
+  console.log('  ' + JSON.stringify(centres));
+  ck('G est bien l\'isobarycentre', Math.abs(centres.g[0]) + Math.abs(centres.g[1]) === 0, JSON.stringify(centres.g));
+  ck('O est à égale distance des trois sommets',
+     Math.max(...centres.o) - Math.min(...centres.o) <= 1, centres.o.join('/'));
+  /* La droite d'Euler : dans tout triangle, OH = 3·OG. Si ce rapport tombe juste,
+     l'orthocentre est au bon endroit. */
+  ck('H vérifie la droite d\'Euler (OH = 3·OG)', Math.abs(centres.euler - 3) < 0.02, String(centres.euler));
+
+  console.log('\n=== poser un point sur un objet, ou à un croisement ===');
+  tous(await suite([
+    'Place 3 points A, B, C non alignés', 'Place le point D',
+    'Trace (AB)', 'Trace (CD)',
+    'Place le point I intersection de (AB) et (CD)',
+    'Place un point M sur [AB]', 'Place un point N sur (CD)',
+    'Trace le cercle de centre A passant par B',
+    'Place un point P sur le cercle de centre A',
+  ]), 'intersection de deux droites, point sur un segment, une droite, un cercle');
+
+  console.log('\n=== la notation : il la corrige et il l\'explique ===');
+  /* Oublier les crochets n'est pas une faute de frappe, c'est le point qu'on
+     travaille en classe. La consigne est FAITE — on ne bloque personne — et la
+     notation juste est rappelée à côté. */
+  const nota = await suite([
+    'Place 3 points A, B, C non alignés',
+    'Trace la médiatrice de AB',
+    'Trace la médiatrice de (AB)',
+    'Trace la perpendiculaire à [AB] passant par C',
+    'Trace la droite AB',
+    'Trace le segment (BC)',
+    'Place le milieu I de (AB)',
+  ]);
+  nota.out.forEach(o => console.log(`  ${o.ok ? '✓' : '✗'} ${o.p} → ${o.m}${o.a ? '\n      ✎ ' + o.a : ''}`));
+  ck('malgré la notation, tout est fait', nota.out.every(o => o.ok));
+  ck('et chaque écart est expliqué',
+     nota.out.slice(1).every(o => /Notation/.test(o.a || '')),
+     nota.out.slice(1).map(o => o.a || '(rien)').join(' | '));
+  ck('les crochets oubliés sont nommés',
+     /crochets/.test(nota.out[1].a), nota.out[1].a);
+  ck('la droite mise pour le segment est nommée',
+     /est la droite/.test(nota.out[2].a), nota.out[2].a);
+  ck('les parenthèses oubliées sont nommées',
+     /parenth[èe]ses/.test(nota.out[4].a), nota.out[4].a);
+
+  console.log('\n=== encore d\'autres façons de le dire ===');
+  tous(await suite([
+    'Place 3 points A, B, O',
+    'Trace le cercle centré en O qui passe par A',
+    'Trace le cercle de centre le point O et de rayon 2 cm',
+    'Trace un rectangle DEFG de longueur 6 cm et de largeur 3 cm',
+    "Trace l'image de A par la symétrie de centre O",
+  ]), 'centré en, qui passe par, de centre le point, longueur/largeur, par la symétrie de centre');
 
   console.log('\n=== ce qu\'il refuse, et comment il le dit ===');
   /* Un analyseur qui devine de travers est pire qu'un qui refuse : chaque échec
