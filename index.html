@@ -16280,6 +16280,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
                 this.stepInstructions[this.entities.length] = "On relie les 6 sommets pour former l'hexagone régulier.";
+                const cotes = [];
                 for (let i = 0; i < 6; i++) {
                     let p1 = points[i];
                     let p2 = points[(i + 1) % 6];
@@ -16287,14 +16288,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     let aLine = Math.atan2(p2.y - p1.y, p2.x - p1.x);
                     let animSide = new ToolAnimation('trace', {x: p1.x, y: p1.y, angle: aLine}, {x: p1.x, y: p1.y, angle: aLine}); animSide.widgetType = 'ruler';
                     this.addEntity(animSide); this.addEntity(side); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    cotes.push(side);
                 }
-                
-                for (let i = 0; i < 6; i++) {
-                    let p1 = points[i];
-                    let p2 = points[(i + 1) % 6];
-                    let cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = this.marqueCote(p1, p2); this.addEntity(cSide);
-                }
-                
+
+                /* LE CODAGE SE POSE SUR LES CÔTÉS DÉJÀ TRACÉS. Six côtés venaient
+                   d'être construits à la règle, et six copies codées se posaient
+                   exactement par-dessus : l'hexagone comptait douze côtés, on en
+                   effaçait un et le trait restait. */
+                cotes.forEach(s => { s.coding = this.marqueCote(s.p1, s.p2); });
+
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -16413,6 +16415,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
 
                 this.stepInstructions[this.entities.length] = "On relie les 5 sommets pour former le pentagone régulier.";
+                const cotes = [];
                 for (let i = 0; i < 5; i++) {
                     const p1 = points[i];
                     const p2 = points[(i + 1) % 5];
@@ -16420,13 +16423,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const aLine = Math.atan2(p2.y - p1.y, p2.x - p1.x);
                     const animSide = new ToolAnimation('trace', {x: p1.x, y: p1.y, angle: aLine}, {x: p1.x, y: p1.y, angle: aLine}); animSide.widgetType = 'ruler';
                     this.addEntity(animSide); this.addEntity(side); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    cotes.push(side);
                 }
 
-                for (let i = 0; i < 5; i++) {
-                    const p1 = points[i];
-                    const p2 = points[(i + 1) % 5];
-                    const cSide = new Segment(p1, p2, {color: segAB.color, width: segAB.lineWidth}); cSide.coding = this.marqueCote(p1, p2); this.addEntity(cSide);
-                }
+                /* Le codage sur les côtés déjà tracés — voir l'hexagone. */
+                cotes.forEach(s => { s.coding = this.marqueCote(s.p1, s.p2); });
 
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
@@ -17004,11 +17005,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let animCB = new ToolAnimation('trace', {x: pC.x, y: pC.y, angle: Math.atan2(pB.y-pC.y, pB.x-pC.x)}, {x: pC.x, y: pC.y, angle: Math.atan2(pB.y-pC.y, pB.x-pC.x)}); animCB.widgetType = 'ruler';
                 this.addEntity(animCB); this.addEntity(segCB); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
-                let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth}); c1.coding = this.marqueCote(pA, pB); this.addEntity(c1);
-                let c2 = new Segment(pA, pD, {color: segAB.color, width: segAB.lineWidth}); c2.coding = this.marqueCote(pA, pD); this.addEntity(c2);
-                let c3 = new Segment(pD, pC, {color: segAB.color, width: segAB.lineWidth}); c3.coding = this.marqueCote(pD, pC); this.addEntity(c3);
-                let c4 = new Segment(pC, pB, {color: segAB.color, width: segAB.lineWidth}); c4.coding = this.marqueCote(pC, pB); this.addEntity(c4);
-                
+                /* LE CODAGE SE POSE SUR LES CÔTÉS DÉJÀ TRACÉS — comme le carré et
+                   le rectangle le font depuis longtemps. Seule la base fait
+                   exception quand le bâtisseur l'a fabriquée lui-même : elle est
+                   alors masquée, et c'est sa copie codée qui se voit. */
+                if (segAB.hidden) {
+                    let c1 = new Segment(pA, pB, {color: segAB.color, width: segAB.lineWidth});
+                    c1.coding = this.marqueCote(pA, pB); this.addEntity(c1);
+                } else segAB.coding = this.marqueCote(pA, pB);
+                segAD.coding = this.marqueCote(pA, pD);
+                segDC.coding = this.marqueCote(pD, pC);
+                segCB.coding = this.marqueCote(pC, pB);
+
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17077,11 +17085,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let animAD = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: aAD}, {x: pA.x, y: pA.y, angle: aAD}); animAD.widgetType = 'ruler';
                 this.addEntity(animAD); this.addEntity(segAD); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
-                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = this.marqueCote(pB, pA); this.addEntity(c1);
-                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = this.marqueCote(pC, pD); this.addEntity(c2);
-                let c3 = new Segment(pB, pC, {color: color, width: width}); c3.coding = 'mark-2'; this.addEntity(c3);
-                let c4 = new Segment(pA, pD, {color: color, width: width}); c4.coding = 'mark-2'; this.addEntity(c4);
-                
+                /* Le codage sur les côtés déjà tracés — voir le losange. Ici les
+                   quatre côtés sortent du bâtisseur lui-même : aucun n'est masqué. */
+                segAB.coding = this.marqueCote(pB, pA);
+                segCD.coding = this.marqueCote(pC, pD);
+                segBC.coding = 'mark-2';
+                segAD.coding = 'mark-2';
+
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17163,11 +17173,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let ang3 = new Angle(pC, pD, pA); this.addEntity(ang3);
                 let ang4 = new Angle(pD, pA, pB); this.addEntity(ang4);
                 
-                let c1 = new Segment(pB, pA, {color: color, width: width}); c1.coding = this.marqueCote(pB, pA); this.addEntity(c1);
-                let c2 = new Segment(pC, pD, {color: color, width: width}); c2.coding = this.marqueCote(pC, pD); this.addEntity(c2);
-                let c3 = new Segment(pB, pC, {color: color, width: width}); c3.coding = 'mark-2'; this.addEntity(c3);
-                let c4 = new Segment(pA, pD, {color: color, width: width}); c4.coding = 'mark-2'; this.addEntity(c4);
-                
+                /* Le codage sur les côtés déjà tracés — voir le losange. */
+                segAB.coding = this.marqueCote(pB, pA);
+                segCD.coding = this.marqueCote(pC, pD);
+                segBC.coding = 'mark-2';
+                segAD.coding = 'mark-2';
+
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -22157,6 +22168,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             estTraceDeConstruction(e) {
                 if (e instanceof ToolAnimation) return true;
                 if (e instanceof CompassArc) return true;
+                /* Le pointillé DEMANDÉ dans la consigne appartient à la figure. */
+                if (e && e.styleDemande) return false;
                 // le bâtisseur peut le dire lui-même, sans qu'on ait à deviner
                 if (e && e.estConstruction) return true;
                 if (e instanceof LinearObject) {
@@ -29893,6 +29906,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 obj.color = st.color;
                 obj.lineWidth = st.width;
                 obj.dash = st.dash ? [5, 5] : [];
+                if (st.dash) obj.styleDemande = true;
                 return obj;
             }
             /* Y a-t-il un trait entre ces deux points — segment, droite ou
@@ -29903,7 +29917,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const deja = this.entities.find(e => e instanceof Segment
                     && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
                 if (deja) return deja;
-                const s = new Segment(a, b, this.cslStyle());
+                const st = this.cslStyle();
+                const s = new Segment(a, b, st);
+                if (st.dash) s.styleDemande = true;
                 this.addEntity(s);
                 return s;
             }
@@ -29924,8 +29940,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                posent, consignes d'étape. On la bâtit sans la regarder (le rejeu est
                là, ▶ le rejoue quand on veut), puis on rend aux sommets les noms
                demandés dans la consigne. */
+            /* Repasser le style demandé sur ce qu'un bâtisseur vient de tracer,
+               sans toucher aux traces de construction. Un seul endroit : c'est ce
+               qui garantit qu'un bâtisseur ajouté demain se comportera comme les
+               autres sans qu'on ait à y penser. */
+            cslStyliserDepuis(index) {
+                const st = this._cslStyleLigne;
+                if (!st || (!st.color && !st.dash && !st.width)) return;
+                for (let i = index; i < this.entities.length; i++) {
+                    const e = this.entities[i];
+                    if (!(e instanceof LinearObject)) continue;
+                    if (this.estTraceDeConstruction(e)) continue;
+                    if (st.color) e.color = st.color;
+                    if (st.width) e.lineWidth = st.width;
+                    /* UN TRAIT POINTILLÉ DEMANDÉ N'EST PAS UN TRAIT DE
+                       CONSTRUCTION. Sans cette marque, « Trace un rectangle en
+                       pointillé » donnait une figure que le logiciel prenait
+                       ensuite pour de la construction — donc effaçable par « sans
+                       les outils », et invisible à qui compte les côtés. */
+                    if (st.dash) { e.dash = [5, 5]; e.styleDemande = true; }
+                }
+            }
             cslBatir(noms, fn) {
                 const avantPts = this.entities.filter(e => e instanceof Point);
+                const avantTout = this.entities.length;
                 const memo = this.magicAnimate;
                 /* La case « avec les instruments » de LA LIGNE l'emporte sur le
                    réglage général « sans les outils » : on vient de la cocher pour
@@ -29936,6 +29974,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.sansOutil = false;
                 try { fn(); }
                 finally { this.magicAnimate = memo; this.sansOutil = memoNu; this.isMagicConstructing = false; }
+                /* LE STYLE DEMANDÉ VAUT AUSSI POUR LA CONSTRUCTION DÉTAILLÉE.
+                   Chaque bâtisseur peint ses côtés à sa façon — certains reprennent
+                   la couleur du premier segment, d'autres la couleur par défaut, et
+                   AUCUN ne reprend les pointillés. Mesuré : « Trace un rectangle
+                   bleu » aux instruments sortait NOIR, et « en pointillé » ne
+                   pointillait rien du tout, pendant que la réponse annonçait
+                   « en bleu, en pointillés ». Le carré, lui, était bleu : deux
+                   bâtisseurs voisins, deux comportements.
+
+                   Plutôt que de reprendre onze bâtisseurs un par un — et d'en
+                   oublier un —, on repasse ici sur ce qui vient d'être construit.
+                   Les TRACES DE CONSTRUCTION sont épargnées : les arcs de compas et
+                   les traits légers gris ne sont pas la figure, et les repeindre en
+                   bleu ferait disparaître la différence entre les deux. */
+                this.cslStyliserDepuis(avantTout);
                 const neufs = this.entities.filter(e => e instanceof Point && e.visible !== false
                     && e.label && !avantPts.includes(e));
                 if (noms && noms.length) {
@@ -35531,7 +35584,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 23h';
+        window.GM_VERSION = '2026-09-06 · 01h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

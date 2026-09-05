@@ -294,6 +294,71 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('sans « rempli », « en rouge » colore le trait',
      f.trait === '#e53935' && f.fond !== '#e53935', JSON.stringify([f.trait, f.fond]));
 
+  console.log('\n=== la couleur vaut AUSSI pour la construction détaillée ===');
+  /* LE PIÈGE DE MA PROPRE MESURE : j'avais vérifié les douze couleurs SANS les
+     instruments, et conclu que tout marchait. Aux instruments, chaque bâtisseur
+     peint ses côtés à sa façon — le carré reprenait la couleur, le rectangle
+     non, et AUCUN ne reprenait les pointillés. « Trace un rectangle bleu en
+     pointillé » sortait NOIR ET PLEIN pendant que la réponse annonçait « en
+     bleu, en pointillés ».
+
+     Plutôt que de reprendre onze bâtisseurs un par un — et d'en oublier un —,
+     le style est repassé une fois, au même endroit, sur ce qui vient d'être
+     construit. Cette section vérifie les onze d'un coup. */
+  const peint = (ph, outils) => page.evaluate(([x, ou]) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = []; app._cslSujet = null;
+    if (app.cslOublier) app.cslOublier();
+    const r = app.executerConsigneAvec(x, ou);
+    const lin = app.entities.filter(e => e instanceof LinearObject);
+    const fig = lin.filter(e => !app.estTraceDeConstruction(e));
+    const constr = lin.filter(e => app.estTraceDeConstruction(e));
+    const cle = e => [Math.round(e.p1.x), Math.round(e.p1.y),
+                      Math.round(e.p2.x), Math.round(e.p2.y)].sort().join('|');
+    const vis = fig.filter(e => !e.hidden);
+    return { ok: r.ok, msg: r.message,
+             figure: [...new Set(fig.map(e => e.color))],
+             cotes: vis.length + '/' + new Set(vis.map(cle)).size,
+             pointilles: fig.filter(e => e.dash && e.dash.length).length + '/' + fig.length,
+             construction: [...new Set(constr.map(e => e.color))],
+             arcs: [...new Set(app.entities.filter(e => e.constructor.name === 'CompassArc')
+               .map(e => e.color))] };
+  }, [ph, outils]);
+
+  for (const figure of ['carré', 'rectangle', 'losange', 'parallélogramme', 'trapèze',
+                        'hexagone', 'pentagone']) {
+    const q = await peint(`Trace un ${figure} bleu`, true);
+    ck(`« un ${figure} bleu » est bleu, même aux instruments`,
+       q.figure.length === 1 && q.figure[0] === '#1e88e5', JSON.stringify(q.figure));
+    /* UN CÔTÉ N'EXISTE QU'UNE FOIS. Le rectangle, le losange, le
+       parallélogramme, l'hexagone et le pentagone traçaient leurs côtés à la
+       règle, puis reposaient PAR-DESSUS une copie codée : le rectangle
+       comptait huit côtés exactement superposés, l'hexagone douze. Invisible
+       à l'œil — on en effaçait un et le trait restait. */
+    const [n, u] = q.cotes.split('/');
+    ck(`  et chaque côté n'existe qu'une fois`, n === u, q.cotes);
+  }
+  const tri = await peint('Trace un triangle ABC bleu', true);
+  ck('« un triangle ABC bleu » aussi', tri.figure[0] === '#1e88e5', JSON.stringify(tri.figure));
+  /* Les pointillés se perdaient partout aux instruments. */
+  const poi = await peint('Trace un rectangle bleu en pointillé', true);
+  ck('« en pointillé » pointille vraiment, aux instruments',
+     poi.pointilles.split('/')[0] !== '0'
+     && poi.pointilles.split('/')[0] === poi.pointilles.split('/')[1], poi.pointilles);
+  /* ET SURTOUT : les traces de construction ne sont PAS repeintes. Un arc de
+     compas bleu, un trait léger bleu, et l'on ne distingue plus ce qui est la
+     figure de ce qui a servi à la construire. */
+  const garde = await peint('Trace un triangle ABC rectangle en A tel que AB = 5 cm '
+    + 'et BC = 6 cm en bleu', true);
+  console.log('  ' + JSON.stringify({ figure: garde.figure, construction: garde.construction,
+                                      arcs: garde.arcs }));
+  ck('la figure est bleue', garde.figure.includes('#1e88e5'), JSON.stringify(garde.figure));
+  ck('  mais les traits de construction gardent leur gris',
+     garde.construction.length > 0 && garde.construction.every(c => /^#(9{6}|b8b8b8)$/i.test(c)),
+     JSON.stringify(garde.construction));
+  ck('  et les arcs de compas leur orange',
+     garde.arcs.every(c => c === '#ff9900'), JSON.stringify(garde.arcs));
+
   console.log('\n=== les solides, en perspective cavalière ===');
   /* Ce ne sont pas des figures en trois dimensions : c'est la représentation
      conventionnelle du cahier. Trois règles, et la troisième est celle qu'on

@@ -399,6 +399,25 @@ disait « en vert », la figure disait autre chose. Le fond est maintenant vert 
 rouge »* hachure ; sans mot de remplissage, *« en rouge »* reste la couleur du
 trait, comme avant.
 
+**Et la couleur vaut aussi quand on montre la construction.** *« Dessine-moi un
+carré rouge à droite et un rectangle bleu en pointillé à gauche »* : le carré
+sortait rouge, le rectangle **noir et plein**, pendant que la réponse annonçait
+« en bleu, en pointillés ». Chaque bâtisseur peignait ses côtés à sa façon — le
+carré reprenait la couleur demandée, le rectangle et le parallélogramme non, et
+aucun ne reprenait les pointillés. Plutôt que de reprendre onze bâtisseurs un
+par un, le style demandé est **repassé une fois, au même endroit**, sur ce que le
+bâtisseur vient de tracer ; les traces de construction, elles, gardent leur gris
+et les arcs de compas leur orange. Un pointillé **demandé** appartient d'ailleurs
+à la figure : le logiciel ne le confond plus avec un trait de construction.
+
+**Un côté n'existe qu'une fois.** En le mesurant, on a trouvé mieux : aux
+instruments, le rectangle sortait avec **huit** côtés, l'hexagone avec **douze**.
+Les bâtisseurs traçaient les côtés à la règle, puis reposaient par-dessus une
+copie portant le codage — exactement superposée, donc invisible, mais on en
+effaçait un et le trait restait. Le carré avait été corrigé il y a longtemps ; le
+rectangle, le losange, le parallélogramme, le pentagone et l'hexagone posent
+maintenant eux aussi leur codage **sur le côté déjà tracé**.
+
 ### Ce qui se dicte, et ce qui s'écrit
 
 Dictée au micro, une consigne ne ressemble pas à une consigne tapée :
