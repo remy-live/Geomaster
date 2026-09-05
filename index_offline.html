@@ -29261,8 +29261,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(`Angle ${n1}${sommet}${n2} = ${deg0[1]}°`);
                 }
                 if (noms.length < 3) return rate("Quel angle ? Écrivez « Marque l'angle ABC » — le sommet au milieu.");
+                /* « Trace un angle ABC de 40° » : les trois points ne sont pas
+                   encore placés, et c'est la consigne qui les fait naître — le
+                   sommet au milieu, les deux autres au bout de ses côtés. Le
+                   logiciel répondait « Je ne connais pas tous ces points », ce
+                   qui est vrai et n'aide personne : on lui demandait de les
+                   poser. On ne les invente que si la phrase donne une mesure ou
+                   dit de TRACER — « Marque l'angle ABC » parle, lui, de points
+                   qu'on a sous les yeux. */
+                const [nA, nB, nC] = noms.slice(0, 3);
+                const manquants = [nA, nB, nC].filter(n => !this.cslPointNomme(n));
+                if (manquants.length && (deg0 || /^(?:trace|tracer|construis|construire|dessine)\b/.test(t))) {
+                    const val = deg0 ? parseFloat(deg0[1].replace(',', '.')) : 60;
+                    if (!(val > 0 && val < 180)) return rate("Un angle se donne entre 0° et 180°.");
+                    const pB0 = this.cslPointNomme(nB) || (() => {
+                        const o = this.cslPlaceLibre(0, 40);
+                        const q = new Point(o.x, o.y, nB); this.addEntity(q); return q;
+                    })();
+                    const R = 180;
+                    const base = this.cslPointNomme(nA)
+                        ? Math.atan2(this.cslPointNomme(nA).y - pB0.y, this.cslPointNomme(nA).x - pB0.x)
+                        : -Math.PI / 12;
+                    const pA0 = this.cslPointNomme(nA) || (() => {
+                        const q = new Point(pB0.x + Math.cos(base) * R, pB0.y + Math.sin(base) * R, nA);
+                        this.addEntity(q); return q;
+                    })();
+                    const vers = base - val * Math.PI / 180;
+                    const pC0 = this.cslPointNomme(nC) || (() => {
+                        const q = new Point(pB0.x + Math.cos(vers) * R, pB0.y + Math.sin(vers) * R, nC);
+                        this.addEntity(q); return q;
+                    })();
+                    this.addEntity(this.cslPoserStyle(new Ray(pB0, pA0)));
+                    this.addEntity(this.cslPoserStyle(new Ray(pB0, pC0)));
+                    this.addEntity(new Angle(pA0, pB0, pC0));
+                    return fait(`Angle ${nA}${nB}${nC} = ${deg0 ? deg0[1] : Math.round(val)}°`);
+                }
                 const [a, b, c] = noms.slice(0, 3).map(n => this.cslPointNomme(n));
-                if (!a || !b || !c) return rate("Je ne connais pas tous ces points.");
+                if (!a || !b || !c) {
+                    const q = [nA, nB, nC].find(n => !this.cslPointNomme(n));
+                    return rate(`Je ne connais pas ${q}. Écrivez « Trace un angle ${nA}${nB}${nC} de 40° » `
+                        + `pour le faire naître, ou placez d'abord les points.`);
+                }
                 let ang = this.entities.find(e => e instanceof Angle && e.p2 === b
                     && ((e.p1 === a && e.p3 === c) || (e.p1 === c && e.p3 === a)));
                 if (!ang) { ang = new Angle(a, b, c); this.addEntity(ang); }
@@ -29597,6 +29636,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
 
+                /* CE QUE L'ÉNONCÉ DONNE décide de l'INSTRUMENT. Trois longueurs
+                   se construisent au compas ; une longueur et deux angles se
+                   construisent au RAPPORTEUR — c'est la leçon, et le logiciel
+                   ramenait tout à trois longueurs pour tout tracer au compas.
+                   On note donc ici ce que la phrase a réellement donné, avant
+                   que la trigonométrie ne complète le reste. */
+                const donne = {
+                    cotes: cotes.map(x => !!x),
+                    angles: angles.map(x => x !== null),
+                };
+                donne.nc = donne.cotes.filter(Boolean).length;
+                donne.na = donne.angles.filter(Boolean).length;
+
                 // somme des angles
                 const nAng = angles.filter(x => x !== null).length;
                 if (nAng === 2) {
@@ -29659,14 +29711,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (a + b <= c || a + c <= b || b + c <= a) {
                     return rate("Ce triangle n'existe pas : un côté dépasse la somme des deux autres.");
                 }
-                return this.cslPoserTriangle(noms, a, b, c, fait);
+                return this.cslPoserTriangle(noms, a, b, c, fait, { donne, angles });
             }
             /* Le placement, une fois les trois longueurs connues. Tous les cas —
                trois longueurs, deux longueurs et un angle, une longueur et deux
                angles, isocèle, rectangle — y arrivent : c'est ce qui rend la figure
                CONSTRUCTIBLE aux instruments dans tous les cas, puisque trois
                longueurs se construisent à la règle et au compas. */
-            cslPoserTriangle(noms, a, b, c, fait) {
+            cslPoserTriangle(noms, a, b, c, fait, donnees) {
                 const [A, B, C] = noms;
                 const o = this.cslPlaceLibre(0, 0);
                 const pA = this.cslPointNomme(A) || new Point(o.x - c / 2, o.y + b / 3, A);
@@ -29690,12 +29742,170 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!dejaC && !this.cslDetaille()) this.addEntity(pC);
                 this._cslSujet = [A, B, C];
                 if (this.cslDetaille()) {
+                    /* L'INSTRUMENT SUIT L'ÉNONCÉ. « EF = 5 cm, Ê = 30° et F̂ = 40° »
+                       se construit au RAPPORTEUR : on trace [EF] à la règle, on
+                       pose le rapporteur en E pour marquer 30°, en F pour marquer
+                       40°, et G est le croisement des deux demi-droites. Le
+                       logiciel ramenait toute mesure à trois longueurs pour tout
+                       tracer au compas — la figure était juste, la leçon fausse. */
+                    const d = donnees && donnees.donne;
+                    const quoi = this.cslInstrumentTriangle(d);
+                    if (quoi === 'rapporteur') {
+                        this.cslTriangleAuRapporteur(pA, pB, pC, donnees.angles);
+                        return fait(`Triangle ${A}${B}${C} — construction au rapporteur`);
+                    }
+                    if (quoi === 'mixte') {
+                        this.cslTriangleAngleEtCote(pA, pB, pC, donnees.angles, d);
+                        return fait(`Triangle ${A}${B}${C} — rapporteur et report de longueur`);
+                    }
                     this.cslTriangleAuCompas(pA, pB, pC, a, b);
                     return fait(`Triangle ${A}${B}${C} — construction au compas`);
                 }
                 this.cslSegment(pA, pB); this.cslSegment(pB, pC); this.cslSegment(pC, pA);
                 this.addEntity(new Polygon([pA, pB, pC]));
                 return fait(`Triangle ${A}${B}${C}`);
+            }
+            /* QUEL INSTRUMENT POUR QUELLE DONNÉE ? C'est toute la leçon :
+                 · trois longueurs        → règle et COMPAS (report de longueur)
+                 · une longueur, deux angles → règle et RAPPORTEUR
+                 · deux longueurs et l'angle entre elles → rapporteur PUIS report
+               Tout le reste — équilatéral, isocèle sans mesure d'angle — se
+               ramène honnêtement à des longueurs, donc au compas. */
+            cslInstrumentTriangle(d) {
+                if (!d) return 'compas';
+                if (d.nc >= 1 && d.na >= 2) return 'rapporteur';
+                if (d.nc >= 2 && d.na >= 1) return 'mixte';
+                return 'compas';
+            }
+            /* Poser le rapporteur sur un sommet, marquer une mesure, et tracer la
+               demi-droite : le geste se répète, il vaut une fonction. */
+            cslPoserRapporteur(sommet, versLaBase, deg, sens, jusque) {
+                const base = Math.atan2(versLaBase.y - sommet.y, versLaBase.x - sommet.x);
+                const pose = { x: sommet.x, y: sommet.y, angle: base };
+                const venir = new ToolAnimation('move', pose, pose);
+                venir.widgetType = 'protractor';
+                this.addEntity(venir);
+                // la graduation lue, marquée d'un petit point comme au crayon
+                const vise = base + sens * deg * Math.PI / 180;
+                const R = 170;
+                const marque = new Point(sommet.x + Math.cos(vise) * R, sommet.y + Math.sin(vise) * R, '');
+                marque.visible = false;
+                this.addEntity(marque);
+                const tenir = new ToolAnimation('move', pose, pose);
+                tenir.widgetType = 'protractor';
+                this.addEntity(tenir);
+                this.addEntity(new ToolAnimation('protractorHide', {}, {}));
+                // puis la règle, le long de la mesure lue
+                const bout = jusque || marque;
+                const ang = Math.atan2(bout.y - sommet.y, bout.x - sommet.x);
+                const trace = new ToolAnimation('trace', { x: sommet.x, y: sommet.y, angle: ang },
+                                                         { x: sommet.x, y: sommet.y, angle: ang });
+                trace.widgetType = 'ruler';
+                this.addEntity(trace);
+                return { marque, ang };
+            }
+            /* UNE LONGUEUR ET DEUX ANGLES : on trace [AB], on pose le rapporteur
+               en A puis en B, et le troisième sommet est le CROISEMENT des deux
+               demi-droites — il ne se pose pas, il se trouve. */
+            cslTriangleAuRapporteur(pA, pB, pC, angles) {
+                const regle = (p, q) => {
+                    const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                    const pose = { x: p.x, y: p.y, angle: ang };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.cslSegment(p, q);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                };
+                regle(pA, pB);
+                /* De quel côté de [AB] se trouve C ? Les deux demi-droites doivent
+                   partir vers lui, sinon elles se croiseraient de l'autre côté. */
+                const cote = Math.sign((pB.x - pA.x) * (pC.y - pA.y) - (pB.y - pA.y) * (pC.x - pA.x)) || 1;
+                const aA = (angles && angles[0]) || 60;
+                const aB = (angles && angles[1]) || 60;
+                /* LE TRAIT DE CONSTRUCTION DÉPASSE UN PEU, PAS JUSQU'AU BORD. On
+                   traçait deux demi-droites infinies : elles barraient la feuille
+                   d'un bout à l'autre, alors qu'au crayon on tire un trait léger
+                   qui dépasse à peine le croisement, et qu'on gomme après. */
+                const trait = (depuis) => {
+                    const dx = pC.x - depuis.x, dy = pC.y - depuis.y;
+                    const bout = new Point(depuis.x + dx * 1.22, depuis.y + dy * 1.22, '');
+                    bout.visible = false;
+                    this.addEntity(bout);
+                    const seg = new Segment(depuis, bout, { color: 'rgba(0,0,0,0.28)', width: 1, dash: true });
+                    this.addEntity(seg);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                };
+                // en A, l'angle se lit depuis [AB] ; en B, depuis [BA] — dans l'autre sens
+                this.cslPoserRapporteur(pA, pB, aA, cote, pC);
+                trait(pA);
+                this.cslPoserRapporteur(pB, pA, aB, -cote, pC);
+                trait(pB);
+                // le croisement des deux traits : c'est LUI, le sommet
+                this.addEntity(pC);
+                // et les côtés, à la règle, une fois le sommet trouvé
+                [[pA, pC], [pB, pC]].forEach(([p, q]) => {
+                    const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                    const pose = { x: p.x, y: p.y, angle: ang };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.cslSegment(p, q);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                });
+                this.addEntity(new Polygon([pA, pB, pC]));
+                this.addEntity(new Angle(pB, pA, pC));
+                this.addEntity(new Angle(pA, pB, pC));
+            }
+            /* DEUX LONGUEURS ET L'ANGLE ENTRE ELLES : on trace [AB], on ouvre
+               l'angle au rapporteur en A, puis on REPORTE la seconde longueur sur
+               la demi-droite — au compas, comme on reporte une longueur. */
+            cslTriangleAngleEtCote(pA, pB, pC, angles, d) {
+                const regle = (p, q) => {
+                    const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                    const pose = { x: p.x, y: p.y, angle: ang };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.cslSegment(p, q);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                };
+                regle(pA, pB);
+                /* Le sommet qui porte l'angle donné : c'est là qu'on pose le
+                   rapporteur. À défaut, A — l'angle entre [AB] et [AC]. */
+                const iAng = (d && d.angles) ? d.angles.findIndex(Boolean) : 0;
+                const sommet = [pA, pB, pC][iAng] || pA;
+                const versB = (sommet === pA) ? pB : pA;
+                const deg = (angles && angles[iAng]) || 60;
+                const cote = Math.sign((pB.x - pA.x) * (pC.y - pA.y) - (pB.y - pA.y) * (pC.x - pA.x)) || 1;
+                const sens = (sommet === pA) ? cote : -cote;
+                this.cslPoserRapporteur(sommet, versB, deg, sens, pC);
+                // le trait de construction dépasse à peine le point cherché
+                const dxC = pC.x - sommet.x, dyC = pC.y - sommet.y;
+                const boutC = new Point(sommet.x + dxC * 1.22, sommet.y + dyC * 1.22, '');
+                boutC.visible = false;
+                this.addEntity(boutC);
+                this.addEntity(new Segment(sommet, boutC, { color: 'rgba(0,0,0,0.28)', width: 1, dash: true }));
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                // le report de la longueur au compas, sur la demi-droite ouverte
+                const r = MathUtils.dist(sommet.x, sommet.y, pC.x, pC.y);
+                const vise = Math.atan2(pC.y - sommet.y, pC.x - sommet.x);
+                const pose = (ang, ray) => ({ x: sommet.x, y: sommet.y, angle: ang, radius: ray });
+                const ouvrir = new ToolAnimation('move', pose(vise - 0.4, 10), pose(vise - 0.4, r));
+                ouvrir.widgetType = 'compass';
+                this.addEntity(ouvrir);
+                const tracer = new ToolAnimation('trace', pose(vise - 0.4, r), pose(vise + 0.4, r));
+                tracer.widgetType = 'compass';
+                const arc = new CompassArc(sommet, r, vise - 0.4, vise + 0.4, false);
+                arc.color = '#ff9900';
+                this.addEntity(tracer); this.addEntity(arc);
+                this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                this.addEntity(pC);
+                const autre = (sommet === pA) ? pB : pA;
+                regle(sommet, pC);
+                regle(pC, autre);
+                this.addEntity(new Polygon([pA, pB, pC]));
+                this.addEntity(new Angle(versB, sommet, pC));
             }
             /* LE GESTE RÉEL, quand la case « construction détaillée » est cochée :
                on trace [AB] à la règle, on ouvre le compas à la longueur du

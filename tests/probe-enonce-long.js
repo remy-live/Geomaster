@@ -426,6 +426,72 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   r = await fig(['Trace un triangle ABC tel que AB = 5 cm, A = 30° et B = 40°']);
   ck('et la notation juste est rappelée', /s\'écrit/.test(r.res[0].a), r.res[0].a);
 
+  /* ================================================================
+     17. L'INSTRUMENT SUIT L'ÉNONCÉ.
+     Trois longueurs se construisent au COMPAS ; une longueur et deux
+     angles au RAPPORTEUR. Le logiciel ramenait toute mesure à trois
+     longueurs pour tout tracer au compas : la figure était juste, la
+     leçon fausse.
+     ================================================================ */
+  console.log('\n=== compas, rapporteur, ou les deux ===');
+  const outils = (phrase) => page.evaluate((x) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._cslSujet = null; app.cslOublier();
+    app.view = { x: 0, y: 0, zoom: 1 };
+    const r = app.executerConsigneAvec(x, true);   // AVEC les instruments
+    app.isPlaying = false; app.isToolAnimating = false;
+    const o = {};
+    app.entities.filter(e => e.constructor.name === 'ToolAnimation')
+      .forEach(e => { o[e.widgetType] = (o[e.widgetType] || 0) + 1; });
+    const P = {};
+    app.entities.filter(e => e.constructor.name === 'Point' && e.label)
+      .forEach(e => { P[e.label] = { x: e.x, y: e.y }; });
+    return { ok: r.ok, m: r.message, o, pts: P };
+  }, phrase);
+
+  let u = await outils('Trace un triangle EFG tel que EF = 5 cm, E = 30° et F = 40°');
+  ck('une longueur et deux angles → RAPPORTEUR',
+     !!u.o.protractor && !u.o.compass, `${u.m} — ${JSON.stringify(u.o)}`);
+  ck('et les deux angles sont justes',
+     Math.abs(ang(u.pts, 'F', 'E', 'G') - 30) < 0.5 && Math.abs(ang(u.pts, 'E', 'F', 'G') - 40) < 0.5,
+     `${ang(u.pts, 'F', 'E', 'G')}° / ${ang(u.pts, 'E', 'F', 'G')}°`);
+  ck('la longueur donnée aussi', Math.abs(cm(u.pts, 'E', 'F') - 5) < 0.05, cm(u.pts, 'E', 'F') + ' cm');
+
+  u = await outils('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm');
+  ck('trois longueurs → COMPAS', !!u.o.compass && !u.o.protractor,
+     `${u.m} — ${JSON.stringify(u.o)}`);
+  ck('et le triangle 3-4-5 est rectangle',
+     Math.abs(ang(u.pts, 'A', 'C', 'B') - 90) < 0.5, ang(u.pts, 'A', 'C', 'B') + '°');
+
+  u = await outils('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BAC = 60°');
+  ck('deux longueurs et l\'angle entre elles → RAPPORTEUR puis report',
+     !!u.o.protractor && !!u.o.compass, `${u.m} — ${JSON.stringify(u.o)}`);
+  ck('l\'angle donné est juste', Math.abs(ang(u.pts, 'B', 'A', 'C') - 60) < 0.5,
+     ang(u.pts, 'B', 'A', 'C') + '°');
+
+  u = await outils('Trace un triangle ABC équilatéral de 4 cm de côté');
+  ck('équilatéral → COMPAS', !!u.o.compass && !u.o.protractor, JSON.stringify(u.o));
+
+  /* ================================================================
+     18. UN ANGLE NOMMÉ QUI N'EXISTE PAS ENCORE.
+     « Trace un angle ABC de 40° » répondait « Je ne connais pas tous
+     ces points » — ce qui est vrai, et n'aide personne : on lui
+     demandait justement de les poser.
+     ================================================================ */
+  console.log('\n=== « Trace un angle ABC de 40° » ===');
+  for (const phrase of ['trace un angle ABC de 40°', 'Trace l\'angle ABC de 40°',
+                        'Trace un angle de 40° de sommet B']) {
+    r = await fig([phrase]);
+    const n = Object.keys(r.pts).sort();
+    const ok = r.res[0].ok && n.length === 3
+      && Math.abs(ang(r.pts, n[0], n[1], n[2]) - 40) < 0.5;
+    ck(`« ${phrase} »`, ok, r.res[0].ok
+      ? `${n.join('')} — ${ang(r.pts, n[0], n[1], n[2])}°` : r.res[0].m);
+  }
+  r = await fig(['Marque l\'angle ABC']);
+  ck('mais « Marque l\'angle ABC » sans points le dit, et montre la sortie',
+     r.res[0].ok === false && /Trace un angle/.test(r.res[0].m), r.res[0].m);
+
   /* Le nom d'une droite survit à la sauvegarde : sans cela, rouvrir le
      fichier rendrait la droite anonyme et « la perpendiculaire à d »
      ne trouverait plus rien. */

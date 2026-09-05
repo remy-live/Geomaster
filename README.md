@@ -118,7 +118,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Deux d'un coup** | `Trace un triangle ABC et ses médiatrices` · `et ses diagonales` · `et son cercle circonscrit` |
 | **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
 | **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
-| **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Trace un angle de 60° de sommet A` · `Code l'angle droit en A` · `Marque les angles du triangle ABC` · `Marque les angles droits` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
+| **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Trace un angle ABC de 40°` (les points naissent avec lui) · `Trace un angle de 60° de sommet A` · `Code l'angle droit en A` · `Marque les angles du triangle ABC` · `Marque les angles droits` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 | **Croisements nommés** | `Appelle O le point d'intersection des médiatrices` · `des hauteurs` (l'orthocentre) · `des médianes` · `des bissectrices` |
 | **Couleur et style** | `Trace [AB] en bleu` · `en rouge et en pointillés` · `en gras` · `épaisseur 4` — pour cette ligne seulement |
 | **Objets nommés** | `Trace le cercle C1 de centre O et de rayon 6 cm` · puis `le cercle C1` · `ce segment` · `il`, `elle` |
@@ -166,6 +166,17 @@ consigne vient de construire** : appliqué à toute la feuille, « même longueu
 même marque » affirmait l'égalité de deux traits sans aucun rapport. Le bouton
 **Codage auto**, lui, garde toute la feuille pour champ — là, c'est vous qui le
 demandez.
+
+**L'INSTRUMENT SUIT L'ÉNONCÉ.** Trois longueurs se construisent au **compas** :
+on trace `[AB]` à la règle, un arc depuis A, un autre depuis B, et le sommet est
+leur croisement. Une longueur et deux angles se construisent au **rapporteur** :
+on le pose en A, on lit la mesure, on tire un trait léger ; on recommence en B ;
+le sommet est là où les deux traits se coupent. Deux longueurs et l'angle entre
+elles : **rapporteur puis report de longueur au compas**.
+
+Le logiciel ramenait *tout* à trois longueurs pour tout tracer au compas — la
+figure était juste, la leçon fausse : un élève à qui l'on donne deux angles n'a
+aucune longueur à reporter.
 
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie

@@ -348,28 +348,36 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   }
 
   console.log('\n=== tout est constructible aux instruments ===');
-  /* Tous les cas se ramènent aux TROIS LONGUEURS, et trois longueurs se
-     construisent à la règle et au compas : [AB] à la règle, un arc de chaque
-     extrémité, leur croisement est le sommet. La case le fait pour n'importe
-     quel énoncé — même « une longueur et deux angles », qui n'a pourtant aucune
-     longueur donnée pour les deux autres côtés. */
+  /* Tout énoncé se construit aux instruments — et AVEC L'INSTRUMENT QUI
+     CONVIENT : trois longueurs au compas (report de longueur), une longueur et
+     deux angles au RAPPORTEUR. Tout passait par le compas, parce que tout
+     était ramené à trois longueurs : la figure était juste, la leçon fausse.
+     Le détail de ce choix est mesuré par probe-enonce-long.js. */
   const auCompas = (phrase) => page.evaluate((p) => {
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {}; app.saveState();
     const r = app.executerConsigneAvec(p, true);
     app.isPlaying = false; app.isLooping = false;
     const c = (n) => app.entities.filter(e => e.constructor.name === n).length;
-    return { ok: r.ok, anims: c('ToolAnimation'), arcs: c('CompassArc'), objets: app.entities.length };
+    const outils = {};
+    app.entities.filter(e => e.constructor.name === 'ToolAnimation')
+      .forEach(e => { outils[e.widgetType] = (outils[e.widgetType] || 0) + 1; });
+    return { ok: r.ok, anims: c('ToolAnimation'), arcs: c('CompassArc'),
+             objets: app.entities.length, outils };
   }, phrase);
-  for (const [nom, phrase] of [
-    ['trois longueurs', 'Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm'],
-    ['une longueur et deux angles', "Trace un triangle ABC tel que AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°"],
-    ['rectangle', 'Trace un rectangle ABCD de 5 cm sur 3 cm'],
-    ['parallélogramme', 'Trace un parallélogramme ABCD'],
+  for (const [nom, phrase, outil] of [
+    ['trois longueurs', 'Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', 'compass'],
+    ['une longueur et deux angles', "Trace un triangle ABC tel que AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°", 'protractor'],
+    ['rectangle', 'Trace un rectangle ABCD de 5 cm sur 3 cm', null],
+    ['parallélogramme', 'Trace un parallélogramme ABCD', null],
   ]) {
     const r = await auCompas(phrase);
-    console.log(`  ${nom} : ${r.objets} objets, ${r.anims} animations, ${r.arcs} arcs`);
-    ck(`aux instruments : ${nom}`, r.ok && r.anims >= 8 && r.arcs >= 2, JSON.stringify(r));
+    console.log(`  ${nom} : ${r.objets} objets, ${r.anims} animations, ${JSON.stringify(r.outils)}`);
+    ck(`aux instruments : ${nom}`, r.ok && r.anims >= 8, JSON.stringify(r));
+    if (outil) {
+      ck(`  et c'est le bon instrument (${outil})`, !!r.outils[outil],
+         JSON.stringify(r.outils));
+    }
   }
 
   console.log('\n=== on écrit vite, et en minuscules ===');
