@@ -380,6 +380,18 @@ axiale, translation, rotation et homothétie ; et deux séances de quatre pages.
 consignes comprises : on l'ouvre, on appuie sur ▶ ou sur *Page suivante*, et la
 construction se refait sous les yeux de la classe.
 
+**Les treize fenêtres suivent un même patron.** Le voile, la boîte et la rangée
+de boutons étaient déjà communs ; la largeur, la couleur du titre et le
+paragraphe d'attaque, non — chacune les choisissait dans son propre attribut
+`style=`, soit **cent vingt attributs, neuf par fenêtre**. Deux plafonds
+cohabitaient ainsi, 95 % et 96 %, sans qu'aucune raison ne les distingue :
+mesuré, ce plafond ne bride jamais la boîte — la fenêtre la borne avant — les
+deux écritures disaient donc exactement la même chose.
+
+Ces décisions sont maintenant au même endroit, où une exception se voit au lieu
+de se répéter. Vérifié : les treize fenêtres sont **identiques au pixel** avant
+et après, largeur par largeur, et aucune ne déborde jusqu'à 320 px de large.
+
 ### La fiche qu'on colle dans le cahier
 
 Une figure qui porte des consignes d'étape sort en **fiche de construction** :
