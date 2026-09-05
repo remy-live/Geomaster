@@ -163,6 +163,59 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     ck(`« ${ph} »`, q.ok && q.grille === mode, `${q.msg} / mode ${q.grille}`);
   }
 
+  console.log('\n=== ce qu\'on DICTE, et ce qu\'on écrit ===');
+  /* « Trace un triangle APC tel que P égal 5 cm assez égal 6 cm et PC égal
+     7 cm » : personne ne TAPE cela. C'est de la dictée vocale, et le logiciel la
+     recevait comme une phrase écrite — il n'y lisait aucune mesure et traçait un
+     triangle quelconque EN RÉPONDANT « Triangle APC », comme si tout allait
+     bien. Mesuré alors : 3 / 3,6 / 4,2 cm au lieu de 5 / 6 / 7. Un refus aurait
+     été moins grave qu'une figure fausse qu'on croit juste. */
+  const dictee = await faire(['Trace un triangle APC tel que P égal 5 cm assez égal 6 cm '
+    + 'et PC égal 7 cm. Trace aussi les médiatrices.']);
+  const cotesD = await page.evaluate(() => {
+    const app = window.app; const pt = {}; const U = 50 / (app.cmScale || 1);
+    app.entities.forEach(e => { if (e.constructor.name === 'Point' && e.label) pt[e.label] = e; });
+    const d = (x, y) => (pt[x] && pt[y])
+      ? +(Math.hypot(pt[x].x - pt[y].x, pt[x].y - pt[y].y) / U).toFixed(2) : null;
+    return { AP: d('A', 'P'), AC: d('A', 'C'), PC: d('P', 'C') };
+  });
+  console.log('  ' + JSON.stringify(cotesD));
+  ck('la phrase dictée passe entière', dictee.ok, dictee.msg);
+  ck('  et les TROIS mesures dictées sont respectées',
+     cotesD.AP === 5 && cotesD.AC === 6 && cotesD.PC === 7, JSON.stringify(cotesD));
+  ck('  « Trace aussi les médiatrices » suit', (dictee.cpt.PerpendicularLine || 0) === 3,
+     String(dictee.cpt.PerpendicularLine));
+  /* Trois traductions, et rien de plus — on transcrit ce que la dictée écrit
+     toujours de la même façon, on ne devine pas. */
+  for (const [ph, attendu] of [
+      ['Trace un triangle ABC tel que AB égal 5 cm, AC égal 6 cm et BC égal 7 cm', [5, 6, 7]],
+      ['Trace un triangle ABC tel que AB vaut 5 cm, AC vaut 6 cm et BC vaut 7 cm', [5, 6, 7]],
+      ['Trace un triangle ABC tel que AB fait 5 cm, AC fait 6 cm et BC fait 7 cm', [5, 6, 7]],
+      ['Trace un triangle ABC tel que A C = 6 cm et AB = 5 cm et BC = 7 cm', [5, 6, 7]]]) {
+    const q = await faire([ph]);
+    ck(`« ${ph.slice(28, 52)}… »`,
+       q.AB === attendu[0] && q.AC === attendu[1] && q.BC === attendu[2],
+       JSON.stringify([q.AB, q.AC, q.BC]));
+  }
+  /* ET ON NE TRADUIT PAS LE RESTE. Le garde-fou est le nombre qui suit : sans
+     lui, « des côtés égaux » et « il vaut mieux » deviendraient des équations. */
+  for (const ph of ['Trace un triangle ABC équilatéral', 'Trace un segment assez grand']) {
+    const q = await faire([ph]);
+    ck(`  « ${ph} » n'est pas touché par la traduction`, q.ok, q.msg);
+  }
+
+  console.log('\n=== il donnait des mesures, on n\'en a lu aucune ===');
+  /* LE PIRE DES CAS, et celui que la dictée révélait : le logiciel traçait un
+     triangle quelconque en répondant « Triangle ABC ». Une figure fausse qu'on
+     croit juste coûte plus cher qu'un refus. */
+  r = await faire(['Trace un triangle ABC tel que XY = 5 cm']);
+  ck('une phrase qui donne des mesures illisibles est REFUSÉE', !r.ok, r.msg);
+  ck('  et le refus rappelle comment on nomme un côté et un angle',
+     /deux extrémités/.test(r.msg) && /sommet/.test(r.msg), r.msg);
+  /* Mais un triangle sans AUCUNE mesure reste un triangle quelconque, honnête. */
+  r = await faire(['Trace un triangle ABC']);
+  ck('un triangle sans mesure reste tracé', r.ok && r.AB > 0, r.msg);
+
   console.log('\n=== deux figures qui ne sont dans aucune liste ===');
   /* Elles ne servent aucun programme, et c'est bien pour cela qu'elles sont là.
      Toutes deux sont de VRAIES mathématiques, pas des dessins décoratifs — et

@@ -345,6 +345,38 @@ l'hypoténuse, et l'hypoténuse est toujours le plus long côté. C'est ce que
 répond le logiciel, avec les deux longueurs sous les yeux — pas « ce triangle
 n'existe pas ».
 
+### Ce qui se dicte, et ce qui s'écrit
+
+Dictée au micro, une consigne ne ressemble pas à une consigne tapée :
+
+> *« Trace un triangle APC tel que P égal 5 cm assez égal 6 cm et PC égal
+> 7 cm. Trace aussi les médiatrices. »*
+
+Le logiciel la recevait comme une phrase écrite : il n'y lisait **aucune**
+mesure et traçait un triangle quelconque **en répondant « Triangle APC »**, comme
+si tout allait bien — 3 / 3,6 / 4,2 cm au lieu de 5 / 6 / 7. Une figure fausse
+qu'on croit juste coûte plus cher qu'un refus.
+
+Trois traductions, et rien de plus — on transcrit ce que la dictée écrit toujours
+de la même façon, on ne devine pas :
+
+- **« égal », « vaut », « fait »** devant un nombre, c'est le signe `=`. Le
+  nombre est le garde-fou : *« des côtés égaux »* et *« il vaut mieux »* ne
+  bougent pas.
+- **« assez » devant une mesure, c'est `AC`** — deux lettres dictées d'affilée se
+  recollent en un mot français. *« un segment assez grand »* n'est pas touché.
+- **`A C = 6 cm`** vaut `AC = 6 cm` : deux lettres séparées, devant une mesure
+  seulement.
+
+Et **« P égal 5 cm »** : à l'oral, la première lettre du côté se perd dans la
+liaison. Un côté a deux extrémités, et si les deux autres sont connus il n'en
+reste qu'un — il est déduit, et **dit** : *« « P = 5 cm » a été compris comme
+« AP » »*.
+
+**Enfin, il ne dit plus oui à tort.** Une phrase qui donne des mesures dont
+aucune n'est lisible est désormais **refusée**, en rappelant comment se nomment
+un côté et un angle.
+
 ### Ce qu'il comprend en plus
 
 - **La phrase nomme ses points, il les pose.** *« Trace la parallèle à (AB)

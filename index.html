@@ -29355,9 +29355,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                « 1. Trace [AB] », « • Place le point O ». Ni l'un ni l'autre ne fait
                partie de ce qu'il y a à faire. */
             cslNettoyer(t) {
-                return String(t || '').replace(/[’‘]/g, "'").replace(/\s+/g, ' ')
+                return this.cslDictee(String(t || '').replace(/[’‘]/g, "'").replace(/\s+/g, ' ')
                     .replace(/^\s*(?:\d+\s*[).°]|[-–—•*])\s*/, '')
-                    .replace(/\s*[.;,]\s*$/, '').trim();
+                    .replace(/\s*[.;,]\s*$/, '').trim());
+            }
+            /* ================================================================
+               CE QU'ON DICTE, ET CE QU'ON ÉCRIT
+
+               « Trace un triangle APC tel que P égal 5 cm assez égal 6 cm et PC
+               égal 7 cm » : personne ne tape cela. C'est de la DICTÉE VOCALE, et
+               le logiciel la recevait comme une phrase écrite — il n'y lisait
+               aucune mesure et traçait un triangle quelconque EN DISANT
+               « Triangle APC », comme si tout allait bien. Mesuré : 3 / 3,6 /
+               4,2 cm au lieu de 5 / 6 / 7. Un refus aurait été moins grave.
+
+               Deux choses à traduire, et rien de plus — on ne devine pas, on
+               transcrit ce que la dictée écrit toujours de la même façon :
+                 · le signe « = » n'existe pas à l'oral : on dit « égal », « vaut »,
+                   « fait » ;
+                 · deux lettres dictées d'affilée se recollent en un mot français.
+                   « A C » devient « assez ». C'est le seul vraiment courant, et il
+                   n'est traduit QUE devant une mesure — « assez grand » n'est
+                   jamais touché.
+               ================================================================ */
+            cslDictee(t) {
+                if (!t) return t;
+                let s = t;
+                /* « égal », « vaut », « fait » DEVANT UN NOMBRE : c'est un signe
+                   égal, et rien d'autre. Le garde-fou est le nombre qui suit —
+                   « des côtés égaux » ou « il vaut mieux » ne bougent pas. */
+                s = s.replace(/\s+(?:est\s+)?(?:[ée]gale?s?|[ée]galent|vaut|valent|fait|font|c'est)\s+(?=[-\d])/gi, ' = ');
+                /* Les lettres dictées, recollées en mots. On ne traduit que
+                   devant « = » ou une mesure : ailleurs, ce sont de vrais mots. */
+                const paires = { assez: 'AC', abbe: 'AB', abbé: 'AB', abe: 'AB', abé: 'AB',
+                                 bece: 'BC', bécé: 'BC', bessé: 'BC', bece2: 'BC' };
+                s = s.replace(/\b([A-Za-zÀ-ÿ]{2,6})\b(?=\s*(?:=|[ée]gale?)\s*[-\d])/gi, (m, mot) => {
+                    const k = paires[mot.toLowerCase()];
+                    return k || m;
+                });
+                /* Deux lettres SÉPARÉES par une espace devant une mesure : « A C =
+                   6 cm » est la même chose que « AC = 6 cm ». On ne recolle que là,
+                   sans quoi « A, B, C » deviendrait un seul nom. */
+                s = s.replace(/\b([A-Z])\s+([A-Z])\b(?=\s*=\s*[-\d])/g, '$1$2');
+                return s;
             }
             /* Les noms de points : une majuscule, éventuellement suivie d'un ou deux
                primes. Une majuscule suivie d'une minuscule commence un mot —
@@ -32378,6 +32418,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 [...brut.matchAll(/([A-Z]'{0,2})([A-Z]'{0,2})\s*=?\s*(?:mesure\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/g)]
                     .forEach(m => { const v = this.cslLongueurPx(m[3]); if (v) poser(m[1], m[2], v); });
+                /* UNE SEULE LETTRE POUR UN CÔTÉ. À l'oral, « AP égal 5 cm » se
+                   dicte souvent « P égal 5 cm » — la première lettre se perd dans
+                   la liaison. Un côté a pourtant deux extrémités, et la phrase
+                   donne assez d'informations pour retrouver laquelle manque : si
+                   les deux autres côtés sont déjà connus, il n'en reste qu'un.
+                   On le déduit, et ON LE DIT — c'est une notation de cours qu'il
+                   vaut mieux corriger que deviner en silence. */
+                [...brut.matchAll(/(?:^|[^A-Za-z'])([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/g)]
+                    .forEach(m => {
+                        const i = iSommet[m[1]];
+                        if (i === undefined) return;
+                        const v = this.cslLongueurPx(m[2]);
+                        if (!v) return;
+                        // les deux côtés qui partent de ce sommet, et ceux qu'on ignore
+                        const candidats = [0, 1, 2].filter(j => j !== i && !cotes[3 - i - j]);
+                        if (candidats.length !== 1) return;
+                        const autre = noms[candidats[0]];
+                        poser(m[1], autre, v);
+                        this.cslDire(`Notation : un côté se nomme par ses deux extrémités — `
+                            + `« ${m[1]} = ${m[2].trim()} » a été compris comme « ${m[1]}${autre} ».`);
+                    });
 
                 /* LE CHAPEAU DE L'ANGLE. « Â = 30° » est la notation du tableau :
                    un accent circonflexe sur le sommet. Écrit au clavier il arrive
@@ -32617,6 +32678,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         for (let j = 0; j < 3; j++) if (!cotes[j] && angles[j] !== null) {
                             cotes[j] = k0 * Math.sin(rad(angles[j]));
                         }
+                    } else if (connus === 0 && !equi && sommetIso === null
+                               && /\d\s*(?:mm|cm|dm|m\b|°)/.test(brut)) {
+                        /* IL DONNAIT DES MESURES, ON N'EN A LU AUCUNE. C'est le
+                           pire des cas : le logiciel traçait un triangle
+                           quelconque EN RÉPONDANT « Triangle ABC », comme si tout
+                           allait bien — mesuré 3 / 3,6 / 4,2 cm là où l'énoncé
+                           disait 5 / 6 / 7. Un refus vaut mieux qu'une figure
+                           fausse qu'on croit juste. */
+                        return rate(`Je n'ai lu aucune mesure dans cette phrase, alors qu'elle en donne. `
+                            + `Un côté se nomme par ses deux extrémités — « AB = 5 cm » — `
+                            + `et un angle par son sommet — « A = 30° ».`);
                     } else if (connus === 0 && !equi && sommetIso === null) {
                         // rien d'imposé : un triangle quelconque, honnête
                         cotes[0] = 210; cotes[1] = 180; cotes[2] = 150;
@@ -35059,7 +35131,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 18h';
+        window.GM_VERSION = '2026-09-05 · 19h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
