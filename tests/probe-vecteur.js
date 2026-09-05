@@ -45,6 +45,34 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('le panneau s\'ouvre', e.ouvert, JSON.stringify(e));
   ck('  et tient dans l\'écran', e.dansEcran, JSON.stringify(e));
   ck('  il propose le vecteur, en toutes lettres', /Vecteur/.test(e.texte), JSON.stringify(e.texte));
+  /* AUCUN CARACTÈRE COMBINANT DANS L'INTERFACE. « u⃗ » s'écrit u + U+20D7 : les
+     polices de l'interface ne savent pas assembler les deux, et l'on obtenait un
+     carré vide qui cassait la ligne en trois — vu à l'écran, pas deviné. */
+  const combinants = await p.evaluate(() => {
+    const mauvais = [];
+    document.querySelectorAll('#segmentOptions, #croquisOptions, #styloOptions').forEach(el => {
+      for (const ch of el.innerText) {
+        const c = ch.codePointAt(0);
+        if ((c >= 0x0300 && c <= 0x036f) || (c >= 0x20d0 && c <= 0x20f0)) mauvais.push(ch.codePointAt(0).toString(16));
+      }
+    });
+    return mauvais;
+  });
+  ck('  et sans caractère combinant, que les polices ne savent pas assembler',
+     combinants.length === 0, combinants.join(','));
+  /* La ligne doit tomber comme celles des panneaux voisins : une description sur
+     une seule ligne, pas trois morceaux séparés par un carré vide. */
+  const hauteurs = await p.evaluate(() => {
+    const h = (sel) => [...document.querySelectorAll(sel + ' .croquis-opt i')]
+      .map(i => Math.round(i.getBoundingClientRect().height));
+    ['#croquisOptions', '#styloOptions'].forEach(s2 => { document.querySelector(s2).style.display = 'block'; });
+    const r = { segment: h('#segmentOptions'), croquis: h('#croquisOptions'), stylo: h('#styloOptions') };
+    ['#croquisOptions', '#styloOptions'].forEach(s2 => { document.querySelector(s2).style.display = 'none'; });
+    return r;
+  });
+  ck('  sa description tient sur une ligne, comme les panneaux voisins',
+     hauteurs.segment.length === 1 && hauteurs.segment[0] === hauteurs.croquis[0]
+     && hauteurs.segment[0] === hauteurs.stylo[0], JSON.stringify(hauteurs));
   /* L'infobulle du bouton doit ANNONCER le geste : sans cela il est introuvable,
      et c'est précisément la faute que le bouton « quart de tour » a corrigée. */
   const bulle = await p.evaluate(() =>
@@ -55,22 +83,32 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await p.click('#optSegmentFleche'); await p.waitForTimeout(200);
   e = await p.evaluate(() => {
     const btn = document.getElementById('btn-segment');
-    const av = getComputedStyle(btn, '::after');
+    const pointe = btn.querySelector('.gm-bout-vecteur');
+    const croix = btn.querySelector('.gm-bout-segment');
     return { badge: btn.classList.contains('gm-mode-vecteur'),
-             dessine: av.content !== 'none' && av.borderBottomWidth !== '0px',
+             pointeVue: !!pointe && getComputedStyle(pointe).display !== 'none',
+             croixCachee: !!croix && getComputedStyle(croix).display === 'none',
              bulle: btn.getAttribute('data-tooltip'),
              memo: localStorage.getItem('gm_segment_fleche') };
   });
-  ck('le bouton porte une marque', e.badge && e.dessine, JSON.stringify(e));
+  /* C'EST L'ICÔNE QUI CHANGE, pas une pastille collée à côté : la croix du
+     second point cède la place à une pointe, et le bouton dessine alors ce
+     qu'il trace. */
+  ck('l\'icône devient un vecteur', e.badge && e.pointeVue && e.croixCachee, JSON.stringify(e));
   ck('  et son infobulle dit « Vecteur »', /Vecteur/.test(e.bulle), e.bulle);
   ck('le choix est retenu d\'une séance à l\'autre', e.memo === '1', String(e.memo));
   /* Retenu, donc : au rechargement, la marque doit être là AVANT qu'on ait rien
      fait — sinon on rouvre le logiciel et l'on trace des flèches sans le savoir. */
   await p.reload(); await p.waitForTimeout(1400);
-  const apres = await p.evaluate(() => ({
-    badge: document.getElementById('btn-segment').classList.contains('gm-mode-vecteur'),
-    actif: window.app.segmentFleche }));
-  ck('  et la marque revient au rechargement', apres.badge && apres.actif, JSON.stringify(apres));
+  const apres = await p.evaluate(() => {
+    const btn = document.getElementById('btn-segment');
+    const pointe = btn.querySelector('.gm-bout-vecteur');
+    return { badge: btn.classList.contains('gm-mode-vecteur'),
+             pointeVue: !!pointe && getComputedStyle(pointe).display !== 'none',
+             actif: window.app.segmentFleche };
+  });
+  ck('  et l\'icône revient en vecteur au rechargement',
+     apres.badge && apres.actif && apres.pointeVue, JSON.stringify(apres));
 
   console.log('\n=== un segment tracé devient un vecteur, et le reste ===');
   const trace = await p.evaluate(() => {
@@ -127,12 +165,19 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
   console.log('\n=== décoché, on retrouve un segment ordinaire ===');
   await p.evaluate(() => { window.app.reglerSegment('fleche', false); });
-  const remis = await p.evaluate(() => ({
-    badge: document.getElementById('btn-segment').classList.contains('gm-mode-vecteur'),
-    memo: localStorage.getItem('gm_segment_fleche'),
-    bulle: document.getElementById('btn-segment').getAttribute('data-tooltip') }));
-  ck('la marque disparaît, et le souvenir avec',
-     !remis.badge && remis.memo === '0' && /Segment/.test(remis.bulle), JSON.stringify(remis));
+  const remis = await p.evaluate(() => {
+    const btn = document.getElementById('btn-segment');
+    const pointe = btn.querySelector('.gm-bout-vecteur');
+    const croix = btn.querySelector('.gm-bout-segment');
+    return { badge: btn.classList.contains('gm-mode-vecteur'),
+             pointeVue: !!pointe && getComputedStyle(pointe).display !== 'none',
+             croixVue: !!croix && getComputedStyle(croix).display !== 'none',
+             memo: localStorage.getItem('gm_segment_fleche'),
+             bulle: btn.getAttribute('data-tooltip') };
+  });
+  ck('l\'icône redevient un segment, et le souvenir suit',
+     !remis.badge && !remis.pointeVue && remis.croixVue
+     && remis.memo === '0' && /Segment/.test(remis.bulle), JSON.stringify(remis));
   await ctx.close();
 
   console.log('\n=== au doigt aussi ===');

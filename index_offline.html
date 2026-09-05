@@ -2232,24 +2232,15 @@
            immobile pendant que la figure se construisait. Ce curseur-ci ne se
            tire pas — il rend compte. D'où le trait fin plutôt qu'une pastille :
            on ne doit pas croire qu'il s'attrape. */
-        /* LE MODE VECTEUR SE VOIT. Il est retenu d'une séance à l'autre : sans
-           marque, on rouvrirait le logiciel et l'on tracerait des flèches sans
-           l'avoir voulu. Une pointe dans le coin du bouton, de la couleur des
-           outils actifs — on lit le mode sans avoir à ouvrir les options. */
-        .tool-btn.gm-mode-vecteur { position: relative; }
-        .tool-btn.gm-mode-vecteur::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-bottom: 8px solid #2980b9;
-            transform: rotate(45deg);
-            pointer-events: none;
-        }
+        /* LE MODE VECTEUR SE VOIT — DANS L'ICÔNE, pas à côté d'elle. Il est
+           retenu d'une séance à l'autre : sans marque, on rouvrirait le logiciel
+           et l'on tracerait des flèches sans l'avoir voulu. Une pastille collée
+           dans le coin l'aurait dit, mais comme une étiquette sur un objet qui ne
+           change pas ; la croix du second point cède la place à une POINTE, et le
+           bouton dessine alors ce qu'il trace. */
+        .gm-bout-vecteur { display: none; }
+        .tool-btn.gm-mode-vecteur .gm-bout-vecteur { display: inline; }
+        .tool-btn.gm-mode-vecteur .gm-bout-segment { display: none; }
 
         .cs-progress {
             position: absolute;
@@ -9130,11 +9121,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div class="group-label">Lignes</div>
             <button class="tool-btn" id="btn-segment" onclick="app.setTool('segment')" aria-label="Segment [AB]"
                 data-tooltip="Segment [AB] — appui long : options">
+                <!-- L'ICÔNE DIT LE MODE, elle ne le porte pas en pastille. En
+                     vecteur, la croix du bout — celle qui marque le second point —
+                     cède la place à une POINTE : le dessin devient ce qu'il trace,
+                     au lieu de se faire coller un badge dans le coin. -->
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round">
-                    <line x1="5" y1="19" x2="19" y2="5" />
+                    <!-- Le trait S'ARRÊTE À LA POINTE en mode vecteur. Poussé
+                         jusqu'au bout, son extrémité ARRONDIE ressortait par la
+                         pointe et lui faisait une petite queue — vu à l'écran, en
+                         agrandissant six fois. -->
+                    <line class="gm-bout-segment" x1="5" y1="19" x2="19" y2="5" />
+                    <line class="gm-bout-vecteur" x1="5" y1="19" x2="16" y2="8" />
                     <line x1="3" y1="17" x2="7" y2="21" stroke-width="2.5" />
-                    <line x1="17" y1="3" x2="21" y2="7" stroke-width="2.5" />
+                    <line class="gm-bout-segment" x1="17" y1="3" x2="21" y2="7" stroke-width="2.5" />
+                    <!-- La pointe est calculée SUR l'axe du trait : sommet en
+                         (20,4) dans le prolongement de (5,19)→(19,5), base à 6 de
+                         là, demi-largeur 2,8 de part et d'autre. À l'œil, elle
+                         penchait et mangeait le tiers du trait. -->
+                    <polygon class="gm-bout-vecteur" points="20,4 17.74,10.22 13.78,6.26"
+                        fill="currentColor" stroke="none" />
                 </svg>
             </button>
             <button class="tool-btn" onclick="app.setTool('line')" aria-label="Droite (AB)" data-tooltip="Droite (AB)">
@@ -10462,8 +10468,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <div id="segmentOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:238px; font-family:'Segoe UI', sans-serif; font-size:13px;">
         <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Segment</div>
+        <!-- PAS DE CARACTÈRE COMBINANT ICI. « u⃗ » s'écrit u + U+20D7 : les polices
+             de l'interface ne savent pas assembler les deux, et l'on obtenait un
+             carré vide qui cassait la ligne en trois. Une description en toutes
+             lettres dit la même chose et s'affiche partout. -->
         <label class="croquis-opt"><input type="checkbox" id="optSegmentFleche"
-                onchange="app.reglerSegment('fleche', this.checked)"><span>Vecteur<i>une pointe au bout : <span style="font-style:normal">u⃗</span>, un sens de A vers B</i></span></label>
+                onchange="app.reglerSegment('fleche', this.checked)"><span>Vecteur<i>une pointe au bout : un sens, de A vers B</i></span></label>
     </div>
     <div id="styloOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:246px; font-family:'Segoe UI', sans-serif; font-size:13px;">
@@ -26234,6 +26244,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // 3. les traits
                 corps.push('  % --- les traits ---');
                 let rendus = 0, ignores = new Set();
+                // combien d'angles déjà posés sur chaque sommet (voir plus bas)
+                const sommetsAngles = new Map();
                 for (const e of ents) {
                     const nomC = e.constructor.name;
                     if (e instanceof Point || e instanceof Polygon || e instanceof ToolAnimation) continue;
@@ -26287,7 +26299,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         while (d > 180) d -= 360;
                         while (d < -180) d += 360;
                         const droit = Math.abs(Math.abs(d) - 90) < 0.6;
-                        const r = droit ? 0.28 : 0.5;
+                        /* PLUSIEURS ANGLES AU MÊME SOMMET S'ÉCARTENT. Trois demi-
+                           droites issues d'un point, ce sont trois angles dont les
+                           arcs et les valeurs tombaient au même endroit : mesuré,
+                           0,6 cm entre des étiquettes qui en font 0,9 — elles se
+                           chevauchaient, illisibles. Chacune s'éloigne donc un peu
+                           plus du sommet que la précédente, comme on le fait à la
+                           main. La clé est la POSITION du sommet, et non le point :
+                           deux points distincts au même endroit comptent pour un. */
+                        const cle = `${Math.round(s.x)},${Math.round(s.y)}`;
+                        const rang = (sommetsAngles.get(cle) || 0);
+                        sommetsAngles.set(cle, rang + 1);
+                        const r = (droit ? 0.28 : 0.5) + rang * 0.42;
                         /* LES POINTS SE CALCULENT ICI, PAS DANS LATEX. La syntaxe
                            « ($(A)+(30:1)$) » demande \usetikzlibrary{calc} : le
                            fichier ne compilerait pas chez qui ne l'a pas chargée,
@@ -26308,8 +26331,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 + ` arc (${a1.toFixed(2)}:${(a1 + d).toFixed(2)}:${r});`);
                         }
                         if (e.showValue && !droit) {
-                            corps.push(`  \\node${style(e)} at ${vers(a1 + d / 2, r + 0.28)}`
-                                + ` {\\small $${Math.round(Math.abs(d))}^\\circ$};`);
+                            /* « font=\small » en OPTION du nœud, et non « \small »
+                               DANS son texte : c'est l'écriture idiomatique de
+                               TikZ, et un moteur qui ne connaîtrait pas l'option
+                               l'ignore au lieu de l'imprimer telle quelle. */
+                            const o = style(e, 'font=\\small') || '[font=\\small]';
+                            corps.push(`  \\node${o} at ${vers(a1 + d / 2, r + 0.34)}`
+                                + ` {$${Math.round(Math.abs(d))}^\\circ$};`);
                         }
                         rendus++;
                     } else if (!(e instanceof TextLabel)) {

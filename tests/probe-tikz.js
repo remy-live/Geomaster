@@ -124,6 +124,45 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('les noms suivent l\'angle du point', /label=\{\[label distance=-2pt\]-?\d+:\$/.test(code),
      (code.match(/[^\n]*label distance[^\n]*/) || [''])[0]);
 
+  console.log('\n=== plusieurs angles au même sommet ne se chevauchent pas ===');
+  /* Trois demi-droites issues d'un même point, ce sont trois angles — et leurs
+     valeurs tombaient au MÊME ENDROIT : mesuré, 0,6 cm entre des étiquettes qui
+     en font 0,9. À l'écran de LaTeX, « 30° 60° 30° » se lisaient l'un par-dessus
+     l'autre. Chacune s'éloigne maintenant un peu plus du sommet que la
+     précédente, comme on le fait à la main. */
+  const empile = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = [];
+    const O = app.createPointAt(300, 600);
+    const bras = (deg) => app.createPointAt(300 + Math.cos(-deg * Math.PI / 180) * 300,
+                                            600 + Math.sin(-deg * Math.PI / 180) * 300);
+    const P = [bras(0), bras(30), bras(90), bras(120)];
+    P.forEach(q => app.addEntity(new Segment(O, q)));
+    for (let i = 0; i < 3; i++) app.addEntity(new Angle(P[i], O, P[i + 1]));
+    const code = app.genererTikZ();
+    const n = code.split('\n').filter(l => /\\node/.test(l) && /circ/.test(l))
+      .map(l => { const m = l.match(/at \(([-\d.]+),([-\d.]+)\)/); return m ? [+m[1], +m[2]] : null; })
+      .filter(Boolean);
+    let mini = 99;
+    for (let i = 0; i < n.length; i++) {
+      for (let j = i + 1; j < n.length; j++) {
+        mini = Math.min(mini, Math.hypot(n[i][0] - n[j][0], n[i][1] - n[j][1]));
+      }
+    }
+    return { combien: n.length, mini: +mini.toFixed(2), code };
+  });
+  console.log('  ' + JSON.stringify({ combien: empile.combien, mini: empile.mini }));
+  ck('les trois valeurs sont écrites', empile.combien === 3, String(empile.combien));
+  /* Une étiquette « 30° » en \small fait environ 0,9 cm de large : c'est le
+     seuil au-dessous duquel deux voisines se touchent. */
+  ck('  et aucune n\'en touche une autre', empile.mini >= 0.85, `${empile.mini} cm`);
+  /* « font=\small » est une OPTION du nœud, pas du texte : c'est l'écriture
+     idiomatique de TikZ, et un moteur qui ne connaîtrait pas l'option l'ignore
+     au lieu de l'imprimer telle quelle au milieu de la figure. */
+  ck('la taille est une option du nœud, pas du texte',
+     !/\{\\small /.test(empile.code) && /font=\\small/.test(empile.code),
+     (empile.code.match(/[^\n]*small[^\n]*/) || [''])[0]);
+
   console.log('\n=== le vecteur sort en flèche ===');
   code = await produire(['Place les points A et B'], 'vecteur');
   ck('un segment fléché devient « -> », le mot même de TikZ',
