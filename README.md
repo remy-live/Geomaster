@@ -307,6 +307,44 @@ peut pas faire autrement. Il comprend donc les phrases d'un manuel, plusieurs
 formulations par consigne, et **dit quand il ne comprend pas** au lieu de
 deviner — la phrase reste alors dans le champ, pour être corrigée.
 
+**« Efface tout puis trace… »** repart d'une feuille propre sans lâcher le
+clavier. Elle ne demande pas confirmation — on vient de l'écrire, c'est déjà la
+réponse — et reste annulable par `Ctrl+Z`. Effacer **un** objet, en revanche,
+renvoie à la gomme : une consigne construit.
+
+**« … et ses diagonales », « les médiatrices de ce triangle »** : le possessif
+et le démonstratif renvoient à la figure qu'on vient de tracer, avec ou sans les
+instruments. Le logiciel dit alors comment il a compris la phrase.
+
+### L'instrument suit l'énoncé
+
+Ce que la phrase donne décide de l'outil qui sort — c'est toute la leçon, et la
+figure seule ne la contient pas :
+
+| ce que l'énoncé donne | l'instrument |
+|---|---|
+| trois longueurs | règle et **compas** (report de longueur) |
+| une longueur et deux angles | règle et **rapporteur** |
+| deux longueurs et un angle | rapporteur **puis** report au compas |
+| **un angle droit** | **équerre**, puis le compas donne le sommet |
+
+L'angle droit ne se mesure pas au rapporteur. *« Trace un triangle ABC rectangle
+en A tel que AB = 5 cm et BC = 6 cm »* trace donc [AB] à la règle, élève la
+perpendiculaire **à l'équerre** en A, et plante le **compas en B** ouvert à
+6 cm : l'arc coupe la perpendiculaire, et c'est là qu'est C. Le compas se plante
+au sommet dont la longueur est **donnée**, jamais ailleurs — reporter une
+longueur que l'énoncé ne donne pas serait tricher.
+
+Quand l'angle droit est en C, [AB] est l'hypoténuse : l'équerre n'a pas de bout
+de segment où se poser, et la construction reste celle d'avant. La limite est
+assumée, pas cachée.
+
+**Et quand la figure n'existe pas, on dit pourquoi.** *« rectangle en A, AB =
+5 cm et BC = 4 cm »* n'est pas une figure : l'angle droit étant en A, [BC] est
+l'hypoténuse, et l'hypoténuse est toujours le plus long côté. C'est ce que
+répond le logiciel, avec les deux longueurs sous les yeux — pas « ce triangle
+n'existe pas ».
+
 ### Donner la mesure, pas seulement la tracer
 
 Un énoncé dit « ABC tel que AB = 5 cm et  = 60° ». On **double-clique sur le
@@ -329,6 +367,13 @@ Au tableau, on avance **à la main** : *Page suivante* / *Page précédente* —
 touches qu'envoie une **télécommande de présentation** — plus Espace et les
 flèches. On passe à l'étape suivante quand on a fini d'expliquer, pas quand le
 minuteur le décide. Une figure sans consignes se dévoile alors objet par objet.
+
+Un **curseur orange** dit où en est le rejeu. Les deux poignées de la barre
+disent d'**où** à **où** la construction se rejoue ; aucune ne disait où elle
+**en est** — on regardait une barre bleue immobile pendant que la figure se
+construisait. Il glisse aussi *pendant* les animations d'outil : un trait à la
+règle dure cinq fois le pas ordinaire, et compter les étapes entières le figeait
+une seconde et demie au moment précis où il se passe quelque chose.
 
 ### Une séance, pas une figure
 

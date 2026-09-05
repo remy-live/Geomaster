@@ -2227,6 +2227,42 @@
             z-index: 1
         }
 
+        /* OÙ EN EST-ON ? Les deux poignées disent d'où à où la construction se
+           rejoue ; aucune ne disait où elle EN EST. On regardait une barre bleue
+           immobile pendant que la figure se construisait. Ce curseur-ci ne se
+           tire pas — il rend compte. D'où le trait fin plutôt qu'une pastille :
+           on ne doit pas croire qu'il s'attrape. */
+        .cs-progress {
+            position: absolute;
+            top: 50%;
+            width: 3px;
+            height: 22px;
+            margin-left: -1.5px;
+            background: #e67e22;
+            border-radius: 2px;
+            transform: translateY(-50%);
+            z-index: 3;
+            pointer-events: none;
+            box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9);
+            transition: left .08s linear;
+        }
+        .cs-progress[hidden] { display: none; }
+        /* L'étape en cours, au-dessus du trait — le chiffre que les deux poignées
+           affichent déjà pour leurs bornes. */
+        .cs-progress-num {
+            position: absolute;
+            bottom: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e67e22;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
         .cs-thumb {
             position: absolute;
             top: 50%;
@@ -9592,6 +9628,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </div>
                             <div class="cs-thumb" id="csThumbEnd">
                                 <div class="cs-tooltip" id="csTooltipEnd">fin</div>
+                            </div>
+                            <!-- Le curseur de progression : il rend compte, il ne
+                                 se tire pas. -->
+                            <div class="cs-progress" id="csProgress" hidden>
+                                <div class="cs-progress-num" id="csProgressNum">0</div>
                             </div>
                         </div>
                     </div>
@@ -19727,6 +19768,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* « à MAX » ne veut rien dire pour qui n'a jamais monté de vidéo ;
                    « à la fin » dit exactement la même chose. */
                 if (lblE) lblE.innerText = (eVal >= total) ? 'la fin' : eVal;
+                this.majCurseurRejeu();
+            }
+            /* LE CURSEUR DE PROGRESSION. Appelé depuis render(), donc à chaque
+               image du rejeu, à chaque pas-à-pas et après chaque annulation : il
+               n'y a pas deux façons de le tenir à jour, et il ne peut pas rester
+               en arrière. Il se cache quand il n'a rien à dire — au repos, à
+               l'étape 0 ou à la fin, la barre parle déjà d'elle-même. */
+            majCurseurRejeu() {
+                const c = document.getElementById('csProgress');
+                if (!c) return;
+                const total = (this.entities && this.entities.length) || 0;
+                const i = Math.max(0, Math.min(total, this.replayIndex || 0));
+                const enCours = this.isPlaying || this.isToolAnimating || (i > 0 && i < total);
+                if (!total || !enCours) { c.hidden = true; return; }
+                c.hidden = false;
+                /* IL GLISSE PENDANT LES ANIMATIONS D'OUTIL. Un trait à la règle
+                   dure cinq fois le pas ordinaire : à ne compter que les étapes
+                   entières, le curseur restait figé pendant une seconde et demie
+                   au moment précis où il se passe quelque chose — mesuré, huit
+                   images de suite sur la même position. On y ajoute donc
+                   l'avancement de l'animation en cours. */
+                const glisse = (this.isToolAnimating && typeof this.currentAnimProgress === 'number')
+                    ? Math.min(1, Math.max(0, this.currentAnimProgress)) : 0;
+                c.style.left = (Math.min(total, i + glisse) / total) * 100 + '%';
+                const n = document.getElementById('csProgressNum');
+                if (n && n.textContent !== String(i)) n.textContent = String(i);
             }
             updateSliderBounds() {
                 if (this.loopEndIndex === 0 || this.loopEndIndex >= this.entities.length) {
@@ -25016,7 +25083,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 try { return this.dessinerTout(targetCtx); }
                 finally {
                     if (grossi) this.fermerLoupeProjection();
-                    if (!targetCtx && !this.isExporting) this.majFeuilleVide();
+                    if (!targetCtx && !this.isExporting) {
+                        this.majFeuilleVide();
+                        this.majCurseurRejeu();
+                    }
                 }
             }
             /* CE QUI N'A RIEN À FAIRE SUR UNE FEUILLE VIDE. Deux choses s'y
@@ -29142,7 +29212,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    consigne commence par un verbe, un « soit », ou un sujet —
                    sinon c'est le complément de la suivante, et la phrase entière
                    se comprend mieux d'un bloc. */
-                const commence = (b) => /^(?:trace|tracer|construis|construire|dessine|dessiner|reproduis|place|placer|pose|poser|marque|marquer|code|coder|relie|relier|joins|joindre|appelle|appeler|nomme|nommer|note|noter|prends|prendre|soit|soient|on\b|il\b|elle\b|ils\b|elles\b|affiche|montre|indique|[ée]tape|que\b|qu'|justifie|explique|v[ée]rifie|calcule|compare|d[ée]montre|observe|ses\b|sa\b|son\b|leurs?\b|un\b|une\b|le\b|la\b|les\b|[A-Z]{2,3}\s+est)/i.test(b);
+                const commence = (b) => /^(?:trace|tracer|construis|construire|dessine|dessiner|reproduis|place|placer|pose|poser|marque|marquer|code|coder|relie|relier|joins|joindre|appelle|appeler|nomme|nommer|note|noter|prends|prendre|soit|soient|on\b|il\b|elle\b|ils\b|elles\b|affiche|montre|indique|[ée]tape|que\b|qu'|justifie|explique|v[ée]rifie|calcule|compare|d[ée]montre|observe|efface|effacer|gomme|gommer|nettoie|nettoyer|vide|vider|ses\b|sa\b|son\b|leurs?\b|un\b|une\b|le\b|la\b|les\b|[A-Z]{2,3}\s+est)/i.test(b);
                 if (bouts.length > 1 && !bouts.every(commence)) return [brut];
                 return bouts.length > 1 ? bouts : [brut];
             }
@@ -29378,9 +29448,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        point C » répondait « C existe déjà » — une phrase qui n'a
                        aucun sens pour qui vient d'écrire « efface ». Une consigne
                        construit ; elle ne défait pas. */
-                    if (/^(?:efface|effacer|supprime|supprimer|enl[èe]ve|enlever|retire|retirer|gomme)\b/.test(t)) {
-                        return rate("Une consigne construit ; elle n'efface pas. "
-                            + "Utilisez la gomme, ou Ctrl+Z.");
+                    if (/^(?:efface|effacer|supprime|supprimer|enl[èe]ve|enlever|retire|retirer|gomme|nettoie|nettoyer|vide|vider)\b/.test(t)) {
+                        /* « EFFACE TOUT PUIS TRACE … » est une consigne ordinaire,
+                           et la plus utile de toutes : on repart d'une feuille
+                           propre sans lâcher le clavier. Elle ne demande pas
+                           confirmation — on vient de l'écrire, c'est déjà la
+                           réponse —, et la figure d'avant reste dans l'historique :
+                           Ctrl+Z la ramène. Effacer UN objet, en revanche, reste
+                           refusé : « Efface le point C » répondait « C existe
+                           déjà », une phrase qui n'a aucun sens pour qui vient
+                           d'écrire « efface ». */
+                        if (/\b(?:tout|tous|la\s+figure|le\s+dessin|la\s+feuille|l'?[ée]cran|la\s+construction)\b/.test(t)) {
+                            const n = this.entities.length;
+                            this.cslEffacerTout();
+                            /* « Ctrl+Z la ramène » serait un mot de trop : dans
+                               « efface tout PUIS trace… », la phrase reconstruit
+                               par-dessus, et il faut deux annulations — mesuré.
+                               On promet donc ce qui est vrai dans tous les cas :
+                               c'est annulable. */
+                            return fait(n ? `Feuille effacée (${n} objet${n > 1 ? 's' : ''}) — annulable par Ctrl+Z`
+                                : 'La feuille était déjà vide');
+                        }
+                        return rate("Je sais effacer TOUT — écrivez « efface tout ». "
+                            + "Pour un seul objet, la gomme ou Ctrl+Z.");
                     }
                     /* « Colorie le triangle ABC », « Hachure-le » : on REMPLIT la
                        figure, on ne la retrace pas par-dessus elle-même. */
@@ -30702,6 +30792,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this._cslMemoire;
             }
             cslOublier() { this._cslMemoire = { cercles: {}, droites: {} }; }
+            /* La feuille se vide, l'ÉNONCÉ RESTE. clearAll() emporte aussi la
+               liste des consignes — ce qui, appelé depuis une consigne, effacerait
+               la phrase en train de s'exécuter. Ici on ne touche qu'au dessin, et
+               l'état d'avant part dans l'historique avant de disparaître de
+               l'écran, pour que Ctrl+Z le ramène. */
+            cslEffacerTout() {
+                this.saveState();
+                this.entities = [];
+                this.replayIndex = 0;
+                this.stepInstructions = {};
+                this.chapters = [];
+                this.loopStartIndex = 0;
+                this.loopEndIndex = 0;
+                if (typeof this.resetInteraction === 'function') this.resetInteraction();
+                this.cslOublier();
+                this._cslSujet = null;
+                if (typeof this.updateButtons === 'function') this.updateButtons();
+            }
             /* Ce que la consigne vient de tracer, retenu pour la suivante. */
             cslMemoriser(neufs) {
                 const mem = this.cslMemoire();
@@ -31361,6 +31469,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const base = this.entities.filter(e => e instanceof Segment).pop();
                     this.cslBatir(noms.slice(2), () => (batisseur ? batisseur(base)
                         : this.buildEquilateralTriangle(base)));
+                    /* LA FIGURE QU'ON VIENT DE TRACER RESTE LE SUJET. Sans cette
+                       ligne, « Trace un carré ABCD et ses diagonales » marchait
+                       sans les instruments et échouait avec — « De quelle
+                       figure ? » —, alors que c'est l'exemple même que le panneau
+                       propose. Les deux autres chemins la posaient déjà ; ce
+                       bâtisseur-ci, non. */
+                    this._cslSujet = noms.slice();
                     return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
                 }
 
@@ -31572,6 +31687,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 donne.nc = donne.cotes.filter(Boolean).length;
                 donne.na = donne.angles.filter(Boolean).length;
+                /* L'ANGLE DROIT N'EST PAS UN ANGLE COMME LES AUTRES : il a son
+                   instrument. On retient donc OÙ il est, et pas seulement qu'il y
+                   en a un — c'est ce sommet qui recevra l'équerre. */
+                donne.droit = sommetDroit;
 
                 // somme des angles
                 const nAng = angles.filter(x => x !== null).length;
@@ -31617,6 +31736,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const l = [0, 1, 2].find(i2 => i2 !== k && cotes[i2]);
                             const sinL = cotes[l] * Math.sin(rad(angles[k])) / cotes[k];
                             if (!(sinL <= 1)) {
+                                /* L'ANGLE DROIT MÉRITE SON EXPLICATION. « Le côté
+                                   opposé est trop court pour rejoindre l'autre »
+                                   est exact et ne s'adresse à personne. Quand
+                                   l'angle vaut 90°, le côté qui lui fait face
+                                   porte un nom — l'hypoténuse — et la règle qu'on
+                                   enfreint tient en une phrase de cours. On la
+                                   donne, avec les deux longueurs sous les yeux. */
+                                const nomCote = (i) => noms[(i + 1) % 3] + noms[(i + 2) % 3];
+                                const enCm = (px) => {
+                                    const v = (px / UNIT) * (this.cmScale || 1);
+                                    return (Math.round(v * 100) / 100).toString().replace('.', ',');
+                                };
+                                if (Math.round(angles[k]) === 90) {
+                                    return rate(`Ce triangle n'existe pas : l'angle droit est en ${noms[k]}, `
+                                        + `donc [${nomCote(k)}] est l'hypoténuse — et l'hypoténuse est toujours `
+                                        + `le plus long côté. Or ${nomCote(k)} = ${enCm(cotes[k])} cm `
+                                        + `et ${nomCote(l)} = ${enCm(cotes[l])} cm.`);
+                                }
                                 return rate(`Ce triangle n'existe pas : avec ${noms[k]} = ${Math.round(angles[k])}°, `
                                     + `le côté opposé est trop court pour rejoindre l'autre.`);
                             }
@@ -31710,6 +31847,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        tracer au compas — la figure était juste, la leçon fausse. */
                     const d = donnees && donnees.donne;
                     const quoi = this.cslInstrumentTriangle(d);
+                    if (quoi === 'equerre') {
+                        this.cslTriangleAEquerre(pA, pB, pC, d.droit, d);
+                        return fait(`Triangle ${A}${B}${C} — équerre et compas`);
+                    }
                     if (quoi === 'rapporteur') {
                         this.cslTriangleAuRapporteur(pA, pB, pC, donnees.angles);
                         return fait(`Triangle ${A}${B}${C} — construction au rapporteur`);
@@ -31750,6 +31891,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                ramène honnêtement à des longueurs, donc au compas. */
             cslInstrumentTriangle(d) {
                 if (!d) return 'compas';
+                /* L'ÉQUERRE D'ABORD. Un angle droit ne se mesure pas au
+                   rapporteur : on pose l'équerre. Le logiciel ouvrait 90° à la
+                   graduation comme n'importe quel angle — la figure était juste,
+                   le geste faux, et c'est le geste qu'un élève regarde. La
+                   condition tient au sommet : l'équerre se pose à un bout du côté
+                   déjà tracé, donc quand l'angle droit est en A ou en B. En C, le
+                   premier côté [AB] est l'hypoténuse — ce n'est plus cette
+                   construction-là, et le compas reste le bon outil. */
+                if (d.droit === 0 || d.droit === 1) return 'equerre';
                 if (d.nc >= 1 && d.na >= 2) return 'rapporteur';
                 if (d.nc >= 2 && d.na >= 1) return 'mixte';
                 return 'compas';
@@ -31918,6 +32068,88 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 regle(pC, autre);
                 this.addEntity(new Polygon([pA, pB, pC]));
                 this.addEntity(new Angle(versB, sommet, pC));
+            }
+            /* LE TRIANGLE RECTANGLE, AU GESTE DU CAHIER : on trace [AB] à la
+               règle, on POSE L'ÉQUERRE au sommet de l'angle droit pour élever la
+               perpendiculaire, puis le COMPAS donne le troisième sommet sur cette
+               perpendiculaire — et la règle referme.
+
+               Un angle droit ne se mesure pas au rapporteur. Le logiciel ouvrait
+               90° à la graduation comme n'importe quel angle : la figure était
+               juste, la leçon fausse, et c'est la leçon qu'un élève regarde.
+
+               OÙ PLANTER LE COMPAS ? Sur le sommet dont la distance au point
+               cherché est DONNÉE, jamais ailleurs — reporter une longueur que
+               l'énoncé ne donne pas serait tricher. « AB = 5 cm et BC = 6 cm,
+               rectangle en A » : l'équerre en A, et le compas planté en B ouvert
+               à 6 cm, dont l'arc coupe la perpendiculaire. Si c'est l'autre jambe
+               qui est donnée, le compas se plante au sommet de l'angle droit et
+               reporte simplement cette longueur. */
+            cslTriangleAEquerre(pA, pB, pC, iD, d) {
+                const regle = (p, q) => {
+                    const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                    const pose = { x: p.x, y: p.y, angle: ang };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.cslSegment(p, q);
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                };
+                this.cslPremierCote(pA, pB);
+                const S = (iD === 1) ? pB : pA;          // le sommet de l'angle droit
+                const autre = (S === pA) ? pB : pA;      // l'autre bout de la jambe tracée
+                const base = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+                const cote = Math.sign((pB.x - pA.x) * (pC.y - pA.y)
+                                     - (pB.y - pA.y) * (pC.x - pA.x)) || 1;
+                const perp = base + cote * Math.PI / 2;
+                const rS = MathUtils.dist(S.x, S.y, pC.x, pC.y);
+
+                /* L'ÉQUERRE POSE L'ANGLE DROIT, et laisse un trait de
+                   construction : la perpendiculaire dépasse un peu le sommet
+                   cherché, comme au crayon — c'est sur elle que l'arc va tomber. */
+                this.stepInstructions[this.entities.length] =
+                    "L'équerre élève la perpendiculaire au sommet de l'angle droit.";
+                const posE = { x: S.x, y: S.y, angle: perp };
+                const animE = new ToolAnimation('trace', posE, posE);
+                animE.widgetType = 'setsquare';
+                this.addEntity(animE);
+                const bout = new Point(S.x + Math.cos(perp) * rS * 1.25,
+                                       S.y + Math.sin(perp) * rS * 1.25, '');
+                bout.visible = false;
+                this.addEntity(bout);
+                this.addEntity(new Segment(S, bout, { color: '#b8b8b8', width: 1, dash: true }));
+                this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
+
+                /* LE COMPAS DONNE LE SOMMET. Côté i = celui qui fait face au
+                   sommet i : [SC] porte l'indice du troisième sommet, [autre-C]
+                   celui de S. On plante là où l'énoncé a donné la longueur. */
+                const iSC = (S === pA) ? 1 : 0;          // [AC] = côté 1, [BC] = côté 0
+                const iAutreC = (S === pA) ? 0 : 1;
+                const cotes = (d && d.cotes) || [];
+                const centre = cotes[iSC] ? S : (cotes[iAutreC] ? autre : S);
+                const r = MathUtils.dist(centre.x, centre.y, pC.x, pC.y);
+                this.stepInstructions[this.entities.length] = (centre === S)
+                    ? "Le compas reporte la longueur sur la perpendiculaire."
+                    : "Le compas, ouvert à l'hypoténuse, coupe la perpendiculaire.";
+                const vise = Math.atan2(pC.y - centre.y, pC.x - centre.x);
+                const pose = (ang, ray) => ({ x: centre.x, y: centre.y, angle: ang, radius: ray });
+                const ouvrir = new ToolAnimation('move', pose(vise - 0.45, 10), pose(vise - 0.45, r));
+                ouvrir.widgetType = 'compass';
+                this.addEntity(ouvrir);
+                const tracer = new ToolAnimation('trace', pose(vise - 0.45, r), pose(vise + 0.45, r));
+                tracer.widgetType = 'compass';
+                const arc = new CompassArc(centre, r, vise - 0.45, vise + 0.45, false);
+                arc.color = '#ff9900';
+                this.addEntity(tracer); this.addEntity(arc);
+                this.addEntity(new ToolAnimation('compassHide', {}, {}));
+
+                this.addEntity(pC);
+                regle(S, pC);
+                regle(autre, pC);
+                this.addEntity(new Polygon([pA, pB, pC]));
+                /* Le codage de l'angle droit : il est DONNÉ par l'énoncé, la
+                   figure doit le dire. */
+                this.addEntity(new Angle(autre, S, pC));
             }
             /* LE GESTE RÉEL, quand la case « construction détaillée » est cochée :
                on trace [AB] à la règle, on ouvre le compas à la longueur du

@@ -116,6 +116,48 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   }
   ck('et ce qui le remplace se lit', /REJOUER EN BOUCLE/.test(mots) && /la fin/.test(mots), mots);
 
+  console.log('\n=== pendant le rejeu, on voit OÙ ON EN EST ===');
+  /* Les deux poignées disent d'où à où la construction se rejoue ; aucune ne
+     disait où elle EN EST. On regardait une barre bleue immobile pendant que la
+     figure se construisait sous ses yeux. */
+  const curseur = () => page.evaluate(() => {
+    const c = document.getElementById('csProgress');
+    const r = c.getBoundingClientRect();
+    return { cache: !!c.hidden, gauche: parseFloat(c.style.left) || 0, largeur: Math.round(r.width),
+             num: document.getElementById('csProgressNum').textContent,
+             idx: window.app.replayIndex, total: window.app.entities.length };
+  });
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = [];
+    if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', true);
+    app.render();
+  });
+  await page.waitForTimeout(300);
+  let c0 = await curseur();
+  ck('au repos, sur une figure finie, il ne dit rien', c0.cache === true, JSON.stringify(c0));
+  await page.evaluate(() => window.app.playFromStart());
+  await page.waitForTimeout(500);
+  const suite = [];
+  for (let i = 0; i < 8; i++) { await page.waitForTimeout(320); suite.push(await curseur()); }
+  console.log('  ' + JSON.stringify(suite.map(s => s.gauche.toFixed(1))));
+  ck('dès qu\'on joue, il paraît', suite.every(s => !s.cache && s.largeur > 0),
+     JSON.stringify(suite[0]));
+  /* IL AVANCE VRAIMENT, et pas seulement d'étape en étape : un trait à la règle
+     dure cinq fois le pas ordinaire, et le curseur restait figé pendant une
+     seconde et demie au moment précis où il se passait quelque chose. */
+  const positions = suite.map(s => s.gauche);
+  ck('  il avance', positions[positions.length - 1] > positions[0] + 1,
+     `${positions[0].toFixed(1)} % → ${positions[positions.length - 1].toFixed(1)} %`);
+  const distincts = new Set(positions.map(x => x.toFixed(2))).size;
+  ck('  et il glisse pendant les animations d\'outil, au lieu de se figer',
+     distincts >= 5, `${distincts} positions distinctes sur ${positions.length}`);
+  ck('  le numéro d\'étape suit', suite.every(s => s.num === String(s.idx)),
+     JSON.stringify(suite.map(s => [s.num, s.idx])));
+  await page.evaluate(() => window.app.stopAnimation());
+  await page.waitForTimeout(300);
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

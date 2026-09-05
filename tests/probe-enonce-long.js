@@ -391,10 +391,21 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('les deux triangles sont tracés', r.objets.Polygon === 2 && Object.keys(r.pts).length === 6,
      `${r.objets.Polygon} polygones / ${Object.keys(r.pts).join('')}`);
 
-  console.log('\n=== effacer n\'est pas construire ===');
+  console.log('\n=== effacer UN objet renvoie à la gomme ===');
+  /* « Efface le point C » répondait « C existe déjà » — une phrase qui n'a aucun
+     sens pour qui vient d'écrire « efface ». Elle reste refusée, mais le refus
+     dit maintenant les deux choses utiles : ce que la consigne SAIT faire
+     (« efface tout »), et où est l'outil pour le reste. */
   r = await fig(['Place les points A, B et C', 'Efface le point C']);
-  ck('la consigne le dit clairement',
-     r.res[1].ok === false && /n'efface pas/.test(r.res[1].m), r.res[1].m);
+  ck('le refus dit où aller',
+     r.res[1].ok === false && /gomme/.test(r.res[1].m) && /efface tout/.test(r.res[1].m),
+     r.res[1].m);
+  /* Et « efface tout », elle, s'exécute : c'est la phrase la plus utile de
+     toutes — on repart d'une feuille propre sans lâcher le clavier. */
+  r = await fig(['Place les points A, B et C', 'Efface tout']);
+  ck('« efface tout » vide vraiment la feuille',
+     r.res[1].ok === true && Object.keys(r.pts).length === 0,
+     `${r.res[1].m} / ${Object.keys(r.pts).join('')}`);
 
   console.log('\n=== « la médiatrice de chaque côté » ===');
   r = await fig([T, 'Trace la médiatrice de chaque côté']);
