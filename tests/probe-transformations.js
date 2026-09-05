@@ -259,6 +259,46 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     await page.evaluate(() => { window.app.sansOutil = false; });
   }
 
+  console.log('\n— La translation se construit AU COMPAS SEUL');
+  /* On traçait « la parallèle au vecteur À LA RÈGLE ». Une règle ne trace pas de
+     parallèle : le trait partait dans la bonne direction parce que le logiciel
+     la connaissait déjà — on posait le résultat pour le démontrer ensuite.
+     Le vrai geste est le PARALLÉLOGRAMME, entièrement au compas : PP' = DE et
+     EP' = DP, deux arcs, leur croisement est l'image. */
+  {
+    const r = await page.evaluate(() => {
+      const app = window.app;
+      app.entities = []; app.historyPast = []; app._consignes = [];
+      app._cslSujet = null; if (app.cslOublier) app.cslOublier();
+      app.executerConsigneAvec('Place les points A, B, C, D et E', false);
+      const base = app.entities.length;
+      const res = app.executerConsigneAvec(
+        "Construis A'B'C' image de ABC par la translation de vecteur DE", true);
+      const outils = {};
+      app.entities.slice(base).filter(e => e.constructor.name === 'ToolAnimation')
+        .forEach(e => { const k = e.widgetType || e.type; outils[k] = (outils[k] || 0) + 1; });
+      const pt = {};
+      app.entities.forEach(e => { if (e.constructor.name === 'Point' && e.label) pt[e.label] = e; });
+      const vx = pt.E.x - pt.D.x, vy = pt.E.y - pt.D.y;
+      const ecart = (n) => (pt[n] && pt[n + "'"])
+        ? Math.round(Math.hypot(pt[n + "'"].x - pt[n].x - vx, pt[n + "'"].y - pt[n].y - vy)) : null;
+      return { ok: !!(res && res.ok), outils,
+               arcs: app.entities.slice(base).filter(e => e.constructor.name === 'CompassArc').length,
+               ecarts: ['A', 'B', 'C'].map(ecart) };
+    });
+    console.log('  ' + JSON.stringify(r));
+    ck('la construction est faite', r.ok);
+    ck('  aucune règle n\'y intervient', !r.outils.ruler, JSON.stringify(r.outils));
+    ck('  ni équerre, ni rapporteur',
+       !r.outils.setsquare && !r.outils.protractor, JSON.stringify(r.outils));
+    /* DEUX arcs par point : PP' = DE, puis EP' = DP. Un seul arc voudrait dire
+       qu'on connaît déjà la direction — c'est justement ce qu'on démontre. */
+    ck('  deux arcs de compas par point image', r.arcs === 6, String(r.arcs));
+    /* Et la figure est juste au pixel : c'est une translation, pas une figure
+       qui lui ressemble. */
+    ck('  les trois images sont exactes', r.ecarts.every(e => e === 0), JSON.stringify(r.ecarts));
+  }
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

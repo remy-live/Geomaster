@@ -183,6 +183,68 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const nomme = await faire('trace un carré ABCD de 5 cm et ses diagonales');
   ck('nommé, c\'est pareil', nomme.ok && /diagonales de ABCD/.test(nomme.msg), nomme.msg);
 
+  console.log('\n=== « les bissectrices du triangle KLM », sur une feuille vide ===');
+  /* DEUX DÉFAUTS, TROUVÉS SUR LA MÊME PHRASE.
+     1. Sur une feuille vide, elle répondait « Je ne connais pas K. » — exact, et
+        parfaitement inutile : la phrase dit exactement quel triangle elle veut.
+     2. Quand un AUTRE triangle existait, « les bissectrices du triangle ABC »
+        traçait celles de KLM : le logiciel se rabattait sur le triangle qu'on
+        venait de tracer, même quand la phrase en nommait un. Il répondait à une
+        autre question que celle posée. */
+  const remarquable = (phrases) => page.evaluate((ph) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = [];
+    app._cslSujet = null; if (app.cslOublier) app.cslOublier();
+    let res;
+    for (const x of ph) { try { res = app.executerConsigneAvec(x, false); } catch (e) { return { crash: e.message }; } }
+    const cpt = {}; const pts = new Set();
+    app.entities.forEach(e => {
+      cpt[e.constructor.name] = (cpt[e.constructor.name] || 0) + 1;
+      if (e.constructor.name === 'Point' && e.label) pts.add(e.label);
+    });
+    return { ok: !!(res && res.ok), msg: (res && res.message) || '', astuce: (res && res.astuce) || '',
+             cpt, pts: [...pts].sort().join('') };
+  }, phrases);
+
+  for (const [objet, forme, compte] of [['bissectrices', 'Ray', 3], ['hauteurs', 'PerpendicularLine', 3],
+                                        ['médiatrices', 'PerpendicularLine', 3], ['médianes', 'Segment', 6]]) {
+    /* « dans le triangle » se dit autant que « du triangle » — c'est la
+       formulation d'un manuel, et elle butait pareil. */
+    const r = await remarquable([`Trace les ${objet} dans le triangle KLM`]);
+    ck(`« les ${objet} dans le triangle KLM » trace le triangle PUIS les ${objet}`,
+       r.ok && r.pts.includes('K') && r.cpt[forme] >= compte, `${r.msg} / ${JSON.stringify(r.cpt)}`);
+    ck(`  et le dit, au lieu de faire surgir KLM de nulle part`,
+       /n'existait pas/.test(r.astuce), r.astuce);
+  }
+  /* Le cercle circonscrit et le cercle inscrit suivent la même règle, au même
+     endroit : un seul cslTriangleAbsent() pour tous. */
+  for (const ph of ['Trace le cercle circonscrit au triangle KLM',
+                    'Trace le cercle inscrit dans le triangle KLM',
+                    "Place l'orthocentre du triangle KLM"]) {
+    const r = await remarquable([ph]);
+    ck(`« ${ph} » aussi`, r.ok && r.pts.includes('K'), `${r.msg} / ${r.pts}`);
+  }
+
+  console.log('\n=== un triangle NOMMÉ l\'emporte sur celui d\'avant ===');
+  let deux = await remarquable(['Trace un triangle KLM', 'Trace les bissectrices du triangle ABC']);
+  ck('on demande ABC, on obtient ABC — pas KLM',
+     deux.ok && /de ABC/.test(deux.msg), deux.msg);
+  ck('  et KLM est toujours là, intact', deux.pts.includes('K') && deux.pts.includes('A'), deux.pts);
+  deux = await remarquable(['Trace un triangle KLM', 'Trace un triangle ABC',
+                            'Trace les bissectrices du triangle KLM']);
+  ck('les deux existent : c\'est bien le nommé qui est servi',
+     deux.ok && /de KLM/.test(deux.msg), deux.msg);
+  /* Sans nom, en revanche, « ce triangle » désigne toujours le dernier tracé :
+     c'est le comportement qu'on ne veut PAS casser en corrigeant l'autre. */
+  deux = await remarquable(['Trace un triangle KLM', 'Trace les médiatrices de ce triangle']);
+  ck('« ce triangle » désigne toujours le dernier tracé', deux.ok && /de KLM/.test(deux.msg), deux.msg);
+
+  /* LA LIMITE, ASSUMÉE : si DEUX des trois sommets existent déjà, inventer le
+     troisième déplacerait la figure de quelqu'un. On demande, on ne devine pas. */
+  const partiel = await remarquable(['Place les points K et L', 'Trace les hauteurs du triangle KLM']);
+  ck('deux sommets sur trois : on demande au lieu d\'inventer',
+     !partiel.ok && /M/.test(partiel.msg) && /tracez d'abord/.test(partiel.msg), partiel.msg);
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

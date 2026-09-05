@@ -17364,9 +17364,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                qu'à la toute fin : avant le report, rien sur la feuille ne dit encore
                où il tombe. Le poser d'abord et « justifier » ensuite, c'est montrer
                la réponse avant la construction. */
+            /* LA TRANSLATION, AU COMPAS SEUL — et c'est une correction, pas un
+               raccourci. On traçait « la parallèle au vecteur à la règle » : une
+               règle ne sait pas tracer une parallèle. Le trait partait dans la
+               bonne direction parce que le logiciel la connaissait déjà, ce qui
+               revenait à poser le résultat pour le démontrer ensuite.
+
+               Le vrai geste est le PARALLÉLOGRAMME, et il est entièrement au
+               compas : P' est le point tel que DEP'P soit un parallélogramme,
+               donc PP' = DE et EP' = DP. Deux arcs, deux longueurs prises sur la
+               figure, leur croisement est l'image — la propriété du cours devient
+               la construction, au lieu d'être supposée par le tracé. */
             buildTranslation(points, pD, pE) {
                 let startIndex = this.entities.length;
-                this.stepInstructions[startIndex] = "Translation : par chaque point, on trace la parallèle au vecteur à la règle, puis on y reporte sa longueur au compas.";
+                this.stepInstructions[startIndex] = "Translation au compas : DEP'P est un parallélogramme — "
+                    + "on reporte DE depuis le point, puis DP depuis E ; les deux arcs se croisent sur l'image.";
 
                 const vx = pE.x - pD.x, vy = pE.y - pD.y;
                 const L = Math.hypot(vx, vy);
@@ -17380,35 +17392,41 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(new Segment(pD, pE, { color: "#999999", width: 1 }));
                 }
 
-                for (let pTarget of points) {
-                    let pNew = new Point(pTarget.x + vx, pTarget.y + vy, this.nomImage(pTarget));
-
-                    let bout = new Point(pTarget.x + vx * 1.18, pTarget.y + vy * 1.18, "");
-                    bout.visible = false;
-                    this.addEntity(bout);
-
-                    let pose = { x: pTarget.x, y: pTarget.y, angle: ang };
-                    let venir = new ToolAnimation('move', pose, pose);
-                    venir.widgetType = 'ruler';
-                    this.addEntity(venir);
-                    let trace = new ToolAnimation('trace', pose, pose);
-                    trace.widgetType = 'ruler';
-                    this.addEntity(trace);
-                    this.addEntity(new Segment(pTarget, bout, { color: "#b8b8b8", width: 1, dash: true }));
-                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-
-                    let ouvre = new ToolAnimation('move', { x: pTarget.x, y: pTarget.y, angle: ang, radius: 10 },
-                                                          { x: pTarget.x, y: pTarget.y, angle: ang, radius: L });
+                /* Un arc de compas : on l'ouvre depuis le centre, puis on le trace
+                   autour de la direction visée. Le geste se répète quatre fois par
+                   point, il vaut une fonction. */
+                const arc = (centre, r, vers, ouverture) => {
+                    const cible = Math.atan2(vers.y - centre.y, vers.x - centre.x);
+                    const a = ouverture || 0.35;
+                    const pose = (angle, radius) => ({ x: centre.x, y: centre.y, angle, radius });
+                    const ouvre = new ToolAnimation('move', pose(cible - a, 10), pose(cible - a, r));
                     ouvre.widgetType = 'compass';
                     this.addEntity(ouvre);
-                    let arcTrace = new CompassArc(pTarget, L, ang - 0.2, ang + 0.2, false);
-                    arcTrace.color = "#ff9900";
-                    let animC = new ToolAnimation('trace', { x: pTarget.x, y: pTarget.y, angle: ang - 0.2, radius: L },
-                                                           { x: pTarget.x, y: pTarget.y, angle: ang + 0.2, radius: L });
-                    animC.widgetType = 'compass';
-                    this.addEntity(animC); this.addEntity(arcTrace);
+                    const anim = new ToolAnimation('trace', pose(cible - a, r), pose(cible + a, r));
+                    anim.widgetType = 'compass';
+                    const trait = new CompassArc(centre, r, cible - a, cible + a, false);
+                    trait.color = "#ff9900";
+                    this.addEntity(anim); this.addEntity(trait);
                     this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                };
 
+                for (let pTarget of points) {
+                    const pNew = new Point(pTarget.x + vx, pTarget.y + vy, this.nomImage(pTarget));
+                    /* Le point est-il SUR la droite (DE) ? Le parallélogramme est
+                       alors aplati : les deux cercles sont tangents et se coupent
+                       mal. On se contente d'un report de longueur dans la
+                       direction du vecteur — toujours au compas, et c'est bien le
+                       geste qu'on ferait à la main dans ce cas-là. */
+                    const dx = pTarget.x - pD.x, dy = pTarget.y - pD.y;
+                    const aplati = Math.abs(vx * dy - vy * dx) < L * 0.12;
+                    if (aplati) {
+                        arc(pTarget, L, pNew, 0.2);
+                    } else {
+                        // PP' = DE : l'arc depuis le point, ouvert à la longueur du vecteur
+                        arc(pTarget, L, pNew);
+                        // EP' = DP : l'arc depuis E, ouvert à la distance de D au point
+                        arc(pE, Math.hypot(dx, dy), pNew);
+                    }
                     this.addEntity(pNew);
                 }
 
@@ -29598,28 +29616,79 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const connus = noms.filter(n => this.cslPointNomme(n));
                 const libre = noms.find(n => !this.cslPointNomme(n)) || '';
                 const sujet = (this._cslSujet || []).filter(n => this.cslPointNomme(n));
-                const tri = connus.length >= 3 ? connus.slice(0, 3) : sujet.slice(0, 3);
+                /* Même règle qu'en dessous : un triangle NOMMÉ l'emporte sur celui
+                   qu'on vient de tracer, même s'il reste à construire — c'est
+                   cslTriangleRemarquable qui s'en chargera. Se rabattre sur le
+                   sujet, c'était répondre à une autre question. */
+                const nommes = noms.filter(n => /^[A-Z]'{0,2}$/.test(n));
+                const tri = connus.length >= 3 ? connus.slice(0, 3)
+                    : (nommes.length >= 3 ? nommes.slice(0, 3) : sujet.slice(0, 3));
                 if (tri.length < 3) return rate("De quel triangle ? Écrivez « … du triangle ABC ».");
                 this.cslDire(`Vocabulaire : le point d'intersection ${quoi} d'un triangle, c'est ${nomPoint}.`);
                 const phrase = `Place ${nomPoint} ${libre} du triangle ${tri.join('')}`;
                 return this.cslTriangleRemarquable(phrase, phrase.toLowerCase(), fait, rate);
+            }
+            /* LE TRIANGLE QUE LA PHRASE NOMME, ON LE TRACE. « Trace les
+               bissectrices du triangle KLM » sur une feuille vide répondait
+               « Je ne connais pas K. » — exact, et parfaitement inutile : la
+               phrase dit exactement quel triangle elle veut. On le construit
+               donc, comme on construirait « Trace un triangle KLM », puis on
+               trace ce qui était demandé — et on le DIT, pour que personne ne
+               croie que le triangle est tombé du ciel. La case « aux
+               instruments » vaut pour lui aussi : c'est cslTriangle qui bâtit.
+
+               Seulement quand AUCUN des trois sommets n'existe. Si deux sont déjà
+               posés, inventer le troisième déplacerait la figure de quelqu'un —
+               là, on demande. Rendre null laisse l'appelant dire son propre
+               message. */
+            cslTriangleAbsent(noms) {
+                const trois = (noms || []).slice(0, 3);
+                if (trois.length < 3) return null;
+                if (trois.some(n => this.cslPointNomme(n))) return null;
+                const phrase = `Trace un triangle ${trois.join('')}`;
+                const r = this.cslTriangle(phrase, phrase.toLowerCase(),
+                    (m) => ({ ok: true, message: m }), (m) => ({ ok: false, message: m }));
+                if (!r || !r.ok) return null;
+                const pts = trois.map(n => this.cslPointNomme(n)).filter(Boolean);
+                if (pts.length < 3) return null;
+                this.cslDire(`Le triangle ${trois.join('')} n'existait pas : il a été tracé d'abord.`);
+                return pts;
             }
             cslTriangleRemarquable(brut, t, fait, rate) {
                 let noms = this.cslNoms(brut);
                 let sommets = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
                 /* « Trace un triangle ABC puis les médiatrices » : la seconde
                    consigne ne renomme pas le triangle. C'est celui qu'on vient de
-                   tracer. */
-                if (sommets.length < 3 && this._cslSujet) {
+                   tracer — MAIS SEULEMENT SI LA PHRASE N'EN NOMME AUCUN. Sans ce
+                   garde-fou, « Trace les bissectrices du triangle ABC » traçait
+                   celles de KLM, le triangle précédent : le logiciel répondait à
+                   une autre question que celle posée, et le disait comme si tout
+                   allait bien. Un nom écrit noir sur blanc l'emporte toujours. */
+                if (noms.length < 3 && sommets.length < 3 && this._cslSujet) {
                     const repris = this._cslSujet.map(n => this.cslPointNomme(n)).filter(Boolean);
                     if (repris.length >= 3) {
                         sommets = repris;
                         noms = noms.concat(this._cslSujet.filter(n => !noms.includes(n)));
                     }
                 }
+                /* LE TRIANGLE QUE LA PHRASE NOMME, ON LE TRACE. « Trace les
+                   bissectrices du triangle KLM » sur une feuille vide répondait
+                   « Je ne connais pas K. » — vrai, et parfaitement inutile : la
+                   phrase dit exactement quel triangle elle veut. On le construit
+                   donc, comme on construirait « Trace un triangle KLM », puis on
+                   trace ce qui était demandé — et on le DIT, pour que personne ne
+                   croie que le triangle est tombé du ciel.
+
+                   Seulement quand AUCUN des trois sommets n'existe : si deux sont
+                   déjà posés, inventer le troisième déplacerait la figure de
+                   quelqu'un. Là, on demande. */
+                if (sommets.length === 0 && noms.length >= 3) {
+                    sommets = this.cslTriangleAbsent(noms) || sommets;
+                }
                 if (sommets.length < 3) {
                     const inconnu = noms.find(n => !this.cslPointNomme(n));
-                    return rate(inconnu ? `Je ne connais pas ${inconnu}.`
+                    return rate(inconnu
+                        ? `Je ne connais pas ${inconnu} — tracez d'abord le triangle, ou donnez trois sommets qui existent.`
                         : "De quel triangle ? Écrivez « … du triangle ABC ».");
                 }
                 const [A, B, C] = sommets.slice(0, 3);
@@ -30706,6 +30775,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     let pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
                     /* « … puis trace le cercle circonscrit » : le triangle n'est
                        pas redit, c'est celui de la phrase d'avant. */
+                    /* Un triangle NOMMÉ l'emporte sur celui de la phrase d'avant,
+                       et s'il n'existe pas encore, on le trace — même règle que
+                       pour les médiatrices et les hauteurs, au même endroit. */
+                    if (pts.length < 3 && noms.length >= 3) {
+                        const neuf = this.cslTriangleAbsent(noms);
+                        if (neuf) pts = neuf;
+                    }
                     if (pts.length < 3) {
                         const tri = this.cslTriangleCourant();
                         if (tri) { pts = tri; noms = tri.map(p => p.label); }
