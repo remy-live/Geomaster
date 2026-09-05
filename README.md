@@ -378,6 +378,20 @@ centres à moins de treize pixels. Elles vont maintenant chacune dans son coin
 seules les tournures de **place** comptent, et *« à droite de A »*, qui situe par
 rapport à un objet, n'en est pas une.
 
+**Et la phrase se coupe là où il faut.** *« Trace un carré rouge en haut à
+gauche, un rectangle bleu en haut à droite, un cercle en bas à gauche et un
+triangle isocèle en bas à droite marron »* — un seul verbe, des virgules — ne se
+coupait que devant un **verbe** : les trois premières figures restaient dans un
+seul morceau, dont une seule était tracée. **Le rectangle et le cercle
+disparaissaient sans un mot**, et les trois places s'annulaient, si bien que le
+carré tombait au centre. La virgule sépare maintenant aussi devant un article
+suivi d'une figure — mais toujours pas dans « 6,5 cm » ni dans « A, B, C », qui
+n'en ont pas.
+
+**La couleur en adjectif** — *« un carré rouge »*, *« un triangle marron »* — est
+la façon la plus naturelle de le dire, et c'était la seule qui n'était pas
+comprise : il fallait écrire *« en rouge »*.
+
 **Et remplir, c'est remplir.** *« Trace un carré ABCD rempli en vert »* traçait un
 carré au **trait** vert en laissant le fond au bleu pâle par défaut : la réponse
 disait « en vert », la figure disait autre chose. Le fond est maintenant vert et

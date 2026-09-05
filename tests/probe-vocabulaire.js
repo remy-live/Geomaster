@@ -207,6 +207,65 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const prudence = await faire(['Trace une droite']);
   ck('« Trace une droite » n\'est pas un placement', prudence.ok, prudence.msg);
 
+  /* LA MÊME PHRASE, ÉCRITE COMME ON L'ÉCRIT VRAIMENT : un seul « trace », des
+     virgules, des couleurs en adjectif. Elle ne se coupait QUE devant un verbe —
+     les trois premières figures restaient dans un seul morceau, dont une seule
+     était tracée : LE RECTANGLE ET LE CERCLE DISPARAISSAIENT SANS UN MOT. Et
+     leurs trois places s'annulaient, si bien que le carré tombait au centre. */
+  const enum4 = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = []; app._cslSujet = null;
+    if (app.cslOublier) app.cslOublier();
+    const ph = 'trace un carré rouge en haut à gauche, un rectangle bleu en haut à droite, '
+      + 'un cercle en bas à gauche et un triangle isocèle en bas à droite marron';
+    const bouts = app.cslDecouper(app.cslNettoyer(ph));
+    const r = app.executerConsigneAvec(ph, false);
+    const b = app.canvas.parentElement.getBoundingClientRect();
+    const pol = app.entities.filter(e => e.constructor.name === 'Polygon').map(e => {
+      const q = e.points.filter(Boolean);
+      return [Math.round(q.reduce((s, v) => s + v.x, 0) / q.length),
+              Math.round(q.reduce((s, v) => s + v.y, 0) / q.length)];
+    });
+    const cer = app.entities.find(e => /Circle/.test(e.constructor.name));
+    const c = cer ? (cer.p1 || cer.center) : null;
+    const pt = {};
+    app.entities.forEach(e => { if (e.constructor.name === 'Point' && e.label) pt[e.label] = e; });
+    const d = (a, z) => (pt[a] && pt[z]) ? Math.round(Math.hypot(pt[a].x - pt[z].x, pt[a].y - pt[z].y)) : null;
+    return { bouts: bouts.length, ok: r.ok, msg: r.message,
+             couleurs: [...new Set(app.entities.filter(e => e.constructor.name === 'Segment')
+               .map(e => e.color))],
+             polygones: pol, cercle: c ? [Math.round(c.x), Math.round(c.y)] : null,
+             milieu: [Math.round(b.width / 2), Math.round(b.height / 2)],
+             iso: [d('J', 'K'), d('J', 'L'), d('K', 'L')] };
+  });
+  console.log('  ' + JSON.stringify({ bouts: enum4.bouts, msg: enum4.msg }));
+  ck('l\'énumération se coupe en QUATRE, pas en deux', enum4.bouts === 4, String(enum4.bouts));
+  ck('  les quatre figures sont là — carré, rectangle, cercle, triangle',
+     enum4.polygones.length === 3 && enum4.cercle, enum4.msg);
+  /* Chacune dans son coin, le cercle compris. */
+  const M = enum4.milieu;
+  ck('  le carré en haut à gauche', enum4.polygones[0][0] < M[0] && enum4.polygones[0][1] < M[1],
+     JSON.stringify(enum4.polygones[0]));
+  ck('  le rectangle en haut à droite', enum4.polygones[1][0] > M[0] && enum4.polygones[1][1] < M[1],
+     JSON.stringify(enum4.polygones[1]));
+  ck('  le cercle en bas à gauche', enum4.cercle[0] < M[0] && enum4.cercle[1] > M[1],
+     JSON.stringify(enum4.cercle));
+  ck('  le triangle en bas à droite', enum4.polygones[2][0] > M[0] && enum4.polygones[2][1] > M[1],
+     JSON.stringify(enum4.polygones[2]));
+  /* LA COULEUR EN ADJECTIF. « Un carré ROUGE » est la façon la plus naturelle de
+     le dire, et c'était la seule qui n'était pas comprise. */
+  ck('  « rouge », « bleu », « marron » en adjectif sont compris',
+     enum4.couleurs.includes('#e53935') && enum4.couleurs.includes('#1e88e5')
+     && enum4.couleurs.includes('#6d4c41'), JSON.stringify(enum4.couleurs));
+  /* Et « isocèle » n'a pas été perdu en route. */
+  ck('  et le triangle est bien isocèle',
+     enum4.iso[0] === enum4.iso[1] && enum4.iso[2] !== enum4.iso[0], JSON.stringify(enum4.iso));
+  /* Le nombre, lui, ne sépare toujours rien : il n'a pas d'article devant une
+     figure. C'est le garde-fou de tout le découpage. */
+  const nb = await faire(['Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm']);
+  ck('une virgule dans une liste de mesures ne coupe rien',
+     nb.AB === 5 && nb.AC === 4 && nb.BC === 3, JSON.stringify([nb.AB, nb.AC, nb.BC]));
+
   console.log('\n=== remplir, c\'est remplir — pas colorier le contour ===');
   /* « Trace un carré ABCD rempli en vert » traçait un carré au TRAIT vert et
      laissait le fond au bleu pâle que tout polygone porte par défaut : la

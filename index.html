@@ -1512,6 +1512,13 @@
             color: #94a3b8;
             margin-left: 8px;
             white-space: nowrap;
+            /* La zone cliquable déborde du texte : douze pixels de haut, c'est
+               trop peu pour qu'un clic tombe juste — et il en faut sept. Rien ne
+               se voit, mais on n'a plus besoin de viser. */
+            padding: 8px 10px;
+            margin-right: -10px;
+            transition: color .15s;
+            user-select: none;
         }
 
         .modal-titre { margin-top: 0; color: #2980b9; }
@@ -20709,13 +20716,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    assez peu pour qu'un curieux y arrive. */
                 const v = document.getElementById('gmVersion');
                 if (v) {
-                    let n = 0, dernier = 0;
+                    let n = 0, dernier = 0, minuteur = null;
+                    /* PAS DE CURSEUR MAIN : rien ne doit annoncer qu'il y a
+                       quelque chose. Mais la cible ne fait que 123 sur 12 pixels,
+                       et une hésitation d'une seconde remettait tout à zéro —
+                       mesuré : sept clics au rythme d'un humain qui réfléchit ne
+                       marchaient pas. La fenêtre passe à deux secondes et demie,
+                       et le texte s'éclaire À PARTIR DU QUATRIÈME clic : on ne
+                       promet rien à celui qui passe, on encourage celui qui
+                       insiste. */
                     v.style.cursor = 'default';
                     v.addEventListener('click', () => {
                         const t = Date.now();
-                        n = (t - dernier < 900) ? n + 1 : 1;
+                        n = (t - dernier < 2500) ? n + 1 : 1;
                         dernier = t;
-                        if (n >= 7) { n = 0; this.ouvrirSecret('cabinet'); }
+                        clearTimeout(minuteur);
+                        v.style.color = (n >= 4) ? '#fbbf24' : '';
+                        minuteur = setTimeout(() => { n = 0; v.style.color = ''; }, 2600);
+                        if (n >= 7) {
+                            n = 0; v.style.color = '';
+                            clearTimeout(minuteur);
+                            this.ouvrirSecret('cabinet');
+                        }
                     });
                 }
             }
@@ -29720,7 +29742,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const couleurs = this.cslCouleursNommees();
                 const noms = Object.keys(couleurs).sort((a, b) => b.length - a.length).join('|');
                 const c = t.match(new RegExp('\\ben\\s+(' + noms + ')\\b'))
-                       || t.match(new RegExp('\\bde\\s+couleur\\s+(' + noms + ')\\b'));
+                       || t.match(new RegExp('\\bde\\s+couleur\\s+(' + noms + ')\\b'))
+                       /* LA COULEUR EN ADJECTIF. « Trace un carré ROUGE » est la
+                          façon la plus naturelle de le dire, et c'était la seule
+                          qui n'était pas comprise : il fallait écrire « en rouge ».
+                          Le nom de couleur est cherché seul, en dernier — après
+                          « en » et « de couleur », pour ne rien leur voler. */
+                       || t.match(new RegExp('\\b(' + noms + ')\\b'));
                 if (c) { st.color = couleurs[c[1]]; dits.push('en ' + c[1]); }
                 if (/\ben\s+(?:traits?\s+)?pointill|\bpointill[ée]s?\b|\ben\s+tirets?\b/.test(t)) {
                     st.dash = [5, 5]; dits.push('en pointillés');
@@ -29740,6 +29768,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     .sort((a, b) => b.length - a.length).join('|');
                 return s
                     .replace(new RegExp('\\s*(?:et\\s+)?\\b(?:en|de\\s+couleur)\\s+(?:' + noms + ')\\b', 'gi'), '')
+                    .replace(new RegExp('\\s+\\b(?:' + noms + ')\\b', 'gi'), '')
                     .replace(/\s*(?:et\s+)?\ben\s+(?:traits?\s+)?pointill[ée]{1,2}s?\b/gi, '')
                     .replace(/\s*(?:et\s+)?\ben\s+tirets?\b/gi, '')
                     .replace(/\s*(?:et\s+)?\ben\s+(?:gras|[ée]pais|fin|mince)\b/gi, '')
@@ -29947,7 +29976,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                6 cm et de largeur 3 cm » décrivent UNE figure et ne se coupent pas.
                On ne coupe que devant ce qui commence une construction. */
             cslDecouper(brut) {
-                const re = /\s+(?:et|puis|ensuite|,\s*puis)\s+(?=(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins|ses|sa|son|leurs?|les\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)|le\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)|la\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)|un\s+(?:point|triangle|carr[ée]|rectangle|losange|parall[ée]logramme|trap[èe]ze|cercle|segment|polygone|pentagone|hexagone|angle)|une\s+(?:droite|demi-droite))\b)/i;
+                /* CE QUI COMMENCE UNE CONSIGNE : un verbe, un possessif, ou un
+                   article suivi d'une figure. La liste est écrite UNE fois et sert
+                   aux deux séparateurs — « et » et la virgule —, sans quoi les
+                   deux divergent, et c'est exactement ce qui est arrivé. */
+                const DEBUT = '(?:trace|tracer|construis|place|placer|marque|dessine|appelle|nomme|note|relie|joins'
+                    + '|ses|sa|son|leurs?'
+                    + '|les\\s+(?:m[ée]diatrices?|hauteurs?|bissectrices?|m[ée]dianes?|milieux|diagonales|points?)'
+                    + '|le\\s+(?:milieu|cercle|centre|point|segment|sym[ée]trique)'
+                    + '|la\\s+(?:m[ée]diatrice|hauteur|bissectrice|m[ée]diane|droite|perpendiculaire|parall[èe]le)'
+                    + '|un\\s+(?:point|triangle|carr[ée]|rectangle|losange|parall[ée]logramme|trap[èe]ze|cercle'
+                    + '|segment|polygone|pentagone|hexagone|octogone|angle|cube|pav[ée]|parall[ée]l[ée]pip[èe]de|t[ée]tra[èe]dre)'
+                    + '|une\\s+(?:droite|demi-droite|pyramide))';
+                const re = new RegExp('\\s+(?:et|puis|ensuite|,\\s*puis)\\s+(?=' + DEBUT + '\\b)', 'i');
                 /* LA VIRGULE AUSSI SÉPARE, quand un verbe la suit : « Trace un
                    segment [OQ] de 6 cm, place le milieu P » en est deux. Elle ne
                    sépare rien devant un nom de point (« A, B, C ») ni dans un
@@ -29958,7 +29999,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    ne sont pas sur des lignes séparées. Il ne coupe pas « 6.5 cm »
                    ni une abréviation : c'est le verbe qui décide, comme pour la
                    virgule. */
-                const reVirgule = /\s*[,.]\s+(?=(?:il|elle|celui-ci|celle-ci)\s+(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire|marque|appelle|nomme|note|prends|soit)\b/i;
+                /* ET LA VIRGULE SÉPARE AUSSI DEVANT UNE FIGURE. « Trace un carré
+                   rouge en haut à gauche, un rectangle bleu en haut à droite, un
+                   cercle en bas à gauche et un triangle en bas à droite » ne se
+                   coupait QUE devant un verbe : les trois premières figures
+                   restaient dans un seul morceau, dont une seule était tracée — le
+                   rectangle et le cercle disparaissaient SANS UN MOT. Et les trois
+                   places s'annulaient entre elles, si bien que le carré tombait au
+                   centre. Mesuré avant : deux morceaux au lieu de quatre.
+
+                   Le nombre, lui, ne sépare toujours rien : « 6,5 cm » et
+                   « A, B, C » n'ont pas d'article devant une figure. */
+                const reVirgule = new RegExp('\\s*[,.]\\s+(?=(?:il|elle|celui-ci|celle-ci)\\s+'
+                    + '(?:coupe|recoupe|rencontre)|place|placer|pose|trace|tracer|construis|construire'
+                    + '|marque|appelle|nomme|note|prends|soit|' + DEBUT + ')\\b', 'i');
                 const bouts = brut.split(re).map(x => x.trim()).filter(Boolean)
                     .reduce((acc, b) => acc.concat(b.split(reVirgule).map(x => x.trim()).filter(Boolean)), []);
                 /* UN COMPLÉMENT N'EST PAS UNE CONSIGNE. « De centre O et de rayon
@@ -31685,8 +31739,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 if (r === null) {
-                    // « Trace un cercle » tout court : un cercle honnête, au milieu
-                    if (/^(trace|tracer|construis|construire|dessine)\b/.test(t) && !/de\s/.test(t)) r = 130;
+                    /* « Trace un cercle » tout court : un cercle honnête, au milieu.
+                       LE VERBE PEUT MANQUER : dans « … , un cercle en bas à gauche »,
+                       il est en tête de la phrase et vaut pour tous les morceaux.
+                       Sans cela, le cercle d'une énumération réclamait un rayon que
+                       ses voisines n'avaient pas eu à donner. */
+                    if (/^(?:trace|tracer|construis|construire|dessine|un\s+cercle|le\s+cercle)\b/.test(t)
+                        && !/de\s/.test(t)) r = 130;
                 }
                 if (r === null || !(r > 0)) {
                     return rate("Quel rayon ? Écrivez « … passant par B », « … de rayon 3 cm » "
@@ -35472,7 +35531,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 22h';
+        window.GM_VERSION = '2026-09-05 · 23h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
