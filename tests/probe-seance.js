@@ -424,7 +424,68 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      doit suivre — sinon on se retrouverait à travailler sur une autre page. */
   ck('le rang de la page ouverte a suivi le décalage', copie.pageApres === 2, String(copie.pageApres));
 
-  ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
+  /* LA BARRE DE PAGES NE MONTRE QUE CE QUI EXISTE. Sur un document d'UNE
+     page, les deux flèches et la croix restaient visibles et pointaient vers
+     rien : la règle qui devait les cacher était écrasée par celle des boutons,
+     écrite plus bas avec la même force. Et en LECTURE, l'élève pouvait ajouter
+     et supprimer des pages de la séance qu'on lui avait envoyée. */
+  console.log('\n=== la barre de pages ne montre que ce qui existe ===');
+  const barreVisible = () => page.evaluate(() => {
+    const app = window.app;
+    app.majBarrePages();
+    const b = document.getElementById('barrePages');
+    return { barre: getComputedStyle(b).display,
+             pages: app.pagesDocument().length,
+             boutons: [...b.children].filter(x => getComputedStyle(x).display !== 'none')
+               .map(x => (x.textContent || '').trim() || x.id) };
+  });
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.pages = null; app.pageActive = 0;
+    app.executerConsigneAvec('Trace un triangle ABC', false);
+  });
+  let bp = await barreVisible();
+  console.log('  professeur, 1 page : ' + JSON.stringify(bp));
+  ck('une seule page : pas de flèches ni de croix',
+     bp.pages === 1 && !bp.boutons.some(x => /◀|▶|✕/.test(x)), JSON.stringify(bp.boutons));
+  ck('mais on peut toujours ajouter une page', bp.boutons.some(x => /＋/.test(x)));
+  await page.evaluate(() => window.app.ajouterPage());
+  bp = await barreVisible();
+  console.log('  professeur, 2 pages : ' + JSON.stringify(bp));
+  ck('deux pages : les flèches reviennent',
+     bp.pages === 2 && bp.boutons.some(x => /◀/.test(x)) && bp.boutons.some(x => /▶/.test(x)),
+     JSON.stringify(bp.boutons));
+
+  const lecture = await (await b.newContext({ viewport: { width: 900, height: 800 } })).newPage();
+  await lecture.goto(PAGE + '?mode=lecture'); await lecture.waitForTimeout(1200);
+  const el1 = await lecture.evaluate(() => {
+    const app = window.app;
+    app.entities = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un triangle ABC', false);
+    app.majBarrePages();
+    const b = document.getElementById('barrePages');
+    return { barre: getComputedStyle(b).display,
+             boutons: [...b.children].filter(x => getComputedStyle(x).display !== 'none')
+               .map(x => (x.textContent || '').trim()) };
+  });
+  console.log('  élève, 1 page : ' + JSON.stringify(el1));
+  ck('en lecture, une seule page : pas de barre du tout', el1.barre === 'none', JSON.stringify(el1));
+  const el2 = await lecture.evaluate(() => {
+    const app = window.app;
+    app.ajouterPage(); app.majBarrePages();
+    const b = document.getElementById('barrePages');
+    return [...b.children].filter(x => getComputedStyle(x).display !== 'none')
+      .map(x => (x.textContent || '').trim());
+  });
+  console.log('  élève, 2 pages : ' + JSON.stringify(el2));
+  ck('en lecture, on tourne les pages…', el2.some(x => /◀/.test(x)) && el2.some(x => /▶/.test(x)),
+     JSON.stringify(el2));
+  ck('…mais on n\'en ajoute ni n\'en supprime',
+     !el2.some(x => /＋|✕/.test(x)), JSON.stringify(el2));
+  await lecture.close();
+
+  ck('aucune erreur JS' , errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
   process.exit(fail ? 1 : 0);

@@ -3252,6 +3252,29 @@
             color: #2980b9;
         }
 
+        /* LA NAVIGATION DE PAGES NE S'AFFICHE QUE S'IL Y A DES PAGES. La règle
+           qui la cachait — « #barrePages .page-multi { display: none } » —
+           était écrasée par celle des boutons, écrite plus bas avec exactement
+           la même force : les deux flèches et la croix restaient visibles sur
+           un document d'UNE page, et pointaient vers rien. Le mécanisme entier
+           était mort sans que rien ne le dise. */
+        #barrePages:not(.multi) .page-multi {
+            display: none !important;
+        }
+
+        /* EN LECTURE, L'ÉLÈVE NE MODIFIE PAS LA SÉANCE qu'on lui a envoyée. Il
+           pouvait AJOUTER une page et SUPPRIMER celle qu'il regardait : deux
+           boutons d'auteur dans un lien de lecture. Il tourne les pages, c'est
+           tout — et s'il n'y en a qu'une, la barre entière n'a rien à dire. */
+        body.mode-lecture #barrePages .page-btn[onclick*="ajouterPage"],
+        body.mode-lecture #barrePages .page-btn[onclick*="supprimerPage"] {
+            display: none !important;
+        }
+
+        body.mode-lecture #barrePages:not(.multi) {
+            display: none;
+        }
+
         .obj-item {
             display: flex;
             align-items: center;
@@ -11207,18 +11230,41 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             ctx.fillStyle = '#2980b9';
                             ctx.beginPath(); ctx.arc(0, -h2 - 25, 6, 0, Math.PI * 2); ctx.fill();
 
-                            /* Quatre coins pleins — ils redimensionnent — et quatre
-                               bords creux — ils ouvrent le volet. La différence de
-                               remplissage dit laquelle fait quoi sans un mot. */
+                            /* LES DEUX GESTES NE SE RESSEMBLENT PLUS. Un coin
+                               redimensionne, un bord ROGNE — et l'on prétendait
+                               que « la différence de remplissage le dit sans un
+                               mot » : un carré plein et un carré creux, c'est le
+                               même objet pour qui regarde. On croyait le rognage
+                               disparu. Les coins restent des carrés ; les bords
+                               deviennent des BARRES posées le long du bord, avec
+                               deux chevrons qui montrent de quel côté tirer —
+                               la poignée d'un volet, pas un point d'ancrage. */
                             ctx.lineWidth = 2; ctx.strokeStyle = '#2980b9';
                             ctx.fillStyle = '#2980b9';
                             [[-w2, -h2], [w2, -h2], [w2, h2], [-w2, h2]].forEach(([hx, hy]) => {
                                 ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill();
                             });
-                            ctx.fillStyle = 'white';
-                            [[w2, 0], [-w2, 0], [0, h2], [0, -h2]].forEach(([hx, hy]) => {
-                                ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill(); ctx.stroke();
-                            });
+                            const volet = (hx, hy, vertical) => {
+                                const L = 26, E = 9;
+                                const w = vertical ? E : L, h = vertical ? L : E;
+                                ctx.beginPath();
+                                if (ctx.roundRect) ctx.roundRect(hx - w / 2, hy - h / 2, w, h, 3);
+                                else ctx.rect(hx - w / 2, hy - h / 2, w, h);
+                                ctx.fillStyle = '#fff'; ctx.fill();
+                                ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2; ctx.stroke();
+                                // deux chevrons : on tire vers l'intérieur ou vers l'extérieur
+                                ctx.beginPath(); ctx.lineWidth = 1.6;
+                                if (vertical) {
+                                    ctx.moveTo(hx - 2.5, hy - 5); ctx.lineTo(hx - 2.5, hy + 5);
+                                    ctx.moveTo(hx + 2.5, hy - 5); ctx.lineTo(hx + 2.5, hy + 5);
+                                } else {
+                                    ctx.moveTo(hx - 5, hy - 2.5); ctx.lineTo(hx + 5, hy - 2.5);
+                                    ctx.moveTo(hx - 5, hy + 2.5); ctx.lineTo(hx + 5, hy + 2.5);
+                                }
+                                ctx.stroke();
+                            };
+                            volet(w2, 0, true); volet(-w2, 0, true);
+                            volet(0, h2, false); volet(0, -h2, false);
                         }
                     }
                 }
@@ -20644,7 +20690,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.selectedObject instanceof BackgroundImage) {
                         document.getElementById('contextMenu').style.display = 'none';
                         this.choisirModeDocument('cadre');
-                        this.showToast("Réglez le cadre avec la barre sous le document");
+                        /* LE MESSAGE DIT LE GESTE. Il renvoyait « à la barre sous
+                           le document » — où il n'y a AUCUNE commande de rognage :
+                           on cliquait « Recadrer », on lisait qu'il fallait aller
+                           ailleurs, on ne trouvait rien, et l'on concluait que le
+                           rognage avait disparu. Il n'avait pas disparu : il est
+                           sur les bords du cadre. */
+                        this.showToast("✂️ Tirez un BORD du document pour le rogner "
+                            + "— un COIN pour le redimensionner");
                         return;
                     }
                 }
@@ -29433,8 +29486,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const pA = this.cslPointNomme(noms[0]) || new Point(o.x - L / 2, o.y + L / 2, noms[0]);
                     if (!this.cslPointNomme(noms[0])) this.addEntity(pA);
                     const pB = this.cslPointNomme(noms[1]) || new Point(pA.x + L, pA.y, noms[1]);
-                    if (!this.cslPointNomme(noms[1])) this.addEntity(pB);
-                    const base = this.cslSegment(pA, pB);
+                    /* LE PREMIER CÔTÉ, LÀ AUSSI, NAÎT DE LA RÈGLE. Le carré, le
+                       losange, l'hexagone : leur base apparaissait toute faite,
+                       deux points et un trait, avant que les instruments ne
+                       sortent. On place le premier point, on pose la règle, et
+                       la mesure donne le second. */
+                    this.cslPremierCote(pA, pB);
+                    const base = this.entities.filter(e => e instanceof Segment).pop();
                     this.cslBatir(noms.slice(2), () => (batisseur ? batisseur(base)
                         : this.buildEquilateralTriangle(base)));
                     return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
@@ -29758,7 +29816,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const pA = this.cslPointNomme(A) || new Point(o.x - c / 2, o.y + b / 3, A);
                 if (!this.cslPointNomme(A)) this.addEntity(pA);
                 const pB = this.cslPointNomme(B) || new Point(pA.x + c, pA.y, B);
-                if (!this.cslPointNomme(B)) this.addEntity(pB);
+                /* Aux instruments, le second point NAÎT de la règle : on ne le
+                   pose pas d'avance (voir cslPremierCote). */
+                if (!this.cslPointNomme(B) && !this.cslDetaille()) this.addEntity(pB);
                 const d = MathUtils.dist(pA.x, pA.y, pB.x, pB.y) || c;
                 const x = (c * c + b * b - a * a) / (2 * d);
                 const h = Math.sqrt(Math.max(0, b * b - x * x));
@@ -29798,6 +29858,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.cslSegment(pA, pB); this.cslSegment(pB, pC); this.cslSegment(pC, pA);
                 this.addEntity(new Polygon([pA, pB, pC]));
                 return fait(`Triangle ${A}${B}${C}`);
+            }
+            /* LE PREMIER CÔTÉ NAÎT DE LA RÈGLE. On posait les DEUX extrémités,
+               puis on sortait la règle pour joindre deux points déjà là : ce
+               n'est pas le geste. On place le premier point, on pose la règle
+               dessus, on lit la longueur — et c'est la mesure qui donne le
+               second point. C'est le premier geste de toute construction, celui
+               qu'un élève doit voir en premier. */
+            cslPremierCote(p, q) {
+                const ang = Math.atan2(q.y - p.y, q.x - p.x);
+                const pose = { x: p.x, y: p.y, angle: ang };
+                const an = new ToolAnimation('trace', pose, pose);
+                an.widgetType = 'ruler';
+                this.addEntity(an);
+                // le second point tombe où la graduation le dit
+                this.addEntity(q);
+                this.cslSegment(p, q);
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
             }
             /* QUEL INSTRUMENT POUR QUELLE DONNÉE ? C'est toute la leçon :
                  · trois longueurs        → règle et COMPAS (report de longueur)
@@ -29851,7 +29928,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.cslSegment(p, q);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 };
-                regle(pA, pB);
+                this.cslPremierCote(pA, pB);
                 /* De quel côté de [AB] se trouve C ? Les deux demi-droites doivent
                    partir vers lui, sinon elles se croiseraient de l'autre côté. */
                 const cote = Math.sign((pB.x - pA.x) * (pC.y - pA.y) - (pB.y - pA.y) * (pC.x - pA.x)) || 1;
@@ -29904,7 +29981,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.cslSegment(p, q);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 };
-                regle(pA, pB);
+                this.cslPremierCote(pA, pB);
                 /* Le sommet qui porte l'angle donné : c'est là qu'on pose le
                    rapporteur. À défaut, A — l'angle entre [AB] et [AC]. */
                 const iAng = (d && d.angles) ? d.angles.findIndex(Boolean) : 0;
@@ -29977,7 +30054,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(tracer); this.addEntity(trait);
                     this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 };
-                regle(pA, pB);
+                this.cslPremierCote(pA, pB);
                 arc(pA, b, pC);   // le côté [AC]
                 arc(pB, a, pC);   // le côté [BC] : les deux arcs se croisent en C
                 this.addEntity(pC);

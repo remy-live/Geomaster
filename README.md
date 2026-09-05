@@ -167,9 +167,12 @@ même marque » affirmait l'égalité de deux traits sans aucun rapport. Le bout
 **Codage auto**, lui, garde toute la feuille pour champ — là, c'est vous qui le
 demandez.
 
-**L'INSTRUMENT SUIT L'ÉNONCÉ.** Trois longueurs se construisent au **compas** :
-on trace `[AB]` à la règle, un arc depuis A, un autre depuis B, et le sommet est
-leur croisement. Une longueur et deux angles se construisent au **rapporteur** :
+**L'INSTRUMENT SUIT L'ÉNONCÉ.** Toute construction commence par le même geste :
+on place le **premier point**, on pose la **règle** dessus, et c'est la mesure qui
+donne le second — les deux extrémités n'apparaissent plus toutes faites avant que
+les instruments ne sortent. Ensuite, trois longueurs se construisent au
+**compas** : un arc depuis A, un autre depuis B, et le sommet est leur
+croisement. Une longueur et deux angles se construisent au **rapporteur** :
 on le pose en A, on lit la mesure, on tire un trait léger ; on recommence en B ;
 le sommet est là où les deux traits se coupent. Deux longueurs et l'angle entre
 elles : **rapporteur puis report de longueur au compas**. Et deux longueurs

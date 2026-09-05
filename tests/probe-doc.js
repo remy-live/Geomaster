@@ -120,6 +120,77 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('le mode actif est signalé', ba.av.cadre === true && ba.av.page === false);
   ck('verrouillé : la barre se réduit au cadenas', ba.verrouille.aff === 'none' && ba.verrouille.verrou !== 'none');
   ck('verrouillé : le document ne répond plus aux gestes', ba.verrouille.zone === null);
+  /* ON PEUT ENCORE ROGNER — et surtout, ON LE VOIT. Le rognage est sur les
+     BORDS du cadre, le redimensionnement sur les coins. Les deux se dessinaient
+     en carré, plein d'un côté, creux de l'autre, et le code prétendait que
+     « la différence de remplissage le dit sans un mot » : on croyait le
+     rognage disparu. Et le bouton « Recadrer » renvoyait à une barre où il n'y
+     a aucune commande de rognage. */
+  console.log('\n=== rogner le document ===');
+  await poser(); await page.waitForTimeout(200);
+  const rogne = await page.evaluate(() => {
+    const app = window.app, g = app.bgImage;
+    g.docMode = 'cadre'; app.selectedObject = g; app.render();
+    const av = { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: g.cropR };
+    // le bord droit ouvre le volet : la fenêtre rétrécit, l'image n'est pas étirée
+    const zoneBord = g.getHitZone(g.x + g.width / 2, g.y);
+    const zoneCoin = g.getHitZone(g.x + g.width / 2, g.y + g.height / 2);
+    const largeurAv = g.width;
+    app.dragTarget = g; app.dragZone = 'volet-e';
+    if (typeof g.ouvrirVolet === 'function') g.ouvrirVolet('e', -100);
+    return { av, zoneBord, zoneCoin, largeurAv: Math.round(largeurAv) };
+  });
+  console.log('  ' + JSON.stringify(rogne));
+  ck('le bord du cadre est une poignée de volet', rogne.zoneBord === 'volet-e', String(rogne.zoneBord));
+  ck('le coin en est une autre — il redimensionne', rogne.zoneCoin === 'coin-se', String(rogne.zoneCoin));
+
+  /* Le geste, à la souris, comme un utilisateur : on tire le bord droit vers
+     l'intérieur. La fenêtre rétrécit et la SOURCE ne bouge pas — c'est ce qui
+     distingue un rognage d'une mise à l'échelle. */
+  const pos = await page.evaluate(() => {
+    const app = window.app, g = app.bgImage;
+    const c = app.canvas.getBoundingClientRect(), z = app.view.zoom || 1;
+    const k = c.width / app.canvas.width;
+    return { x: c.left + ((g.x + g.width / 2) * z + app.view.x) * k,
+             y: c.top + (g.y * z + app.view.y) * k };
+  });
+  const avantG = await page.evaluate(() => {
+    const g = window.app.bgImage;
+    return { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: +g.cropR.toFixed(3) };
+  });
+  await page.mouse.move(pos.x, pos.y);
+  await page.mouse.down();
+  await page.mouse.move(pos.x - 120, pos.y, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const apresG = await page.evaluate(() => {
+    const g = window.app.bgImage;
+    return { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: +g.cropR.toFixed(3),
+             curseur: getComputedStyle(window.app.canvas).cursor };
+  });
+  console.log('  ' + JSON.stringify(avantG) + ' → ' + JSON.stringify(apresG));
+  ck('tirer le bord rétrécit la fenêtre', apresG.w < avantG.w - 50,
+     `${avantG.w} → ${apresG.w}`);
+  ck('et coupe l\'image au lieu de l\'étirer',
+     apresG.cropR < avantG.cropR - 0.05 && Math.abs(apresG.sw - avantG.sw) < 2,
+     `cropR ${avantG.cropR} → ${apresG.cropR}, source ${avantG.sw} → ${apresG.sw}`);
+
+  /* Le bouton « Recadrer » du menu contextuel doit DIRE le geste : il renvoyait
+     à la barre, où il n'y a rien de tel. */
+  const dit = await page.evaluate(() => {
+    const app = window.app;
+    app.selectedObject = app.bgImage;
+    let message = '';
+    const vrai = app.showToast;
+    app.showToast = (m) => { message = m; };
+    app.styleObject('image-crop');
+    app.showToast = vrai;
+    return { message, mode: app.bgImage.docMode };
+  });
+  console.log('  ' + JSON.stringify(dit));
+  ck('« Recadrer » passe en mode cadre', dit.mode === 'cadre');
+  ck('et dit quel geste rogne', /BORD/.test(dit.message), dit.message);
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
