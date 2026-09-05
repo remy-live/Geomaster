@@ -4688,6 +4688,135 @@
         /* Recherche de commandes. Elle se pose au-dessus de tout (z-index le plus
            haut de l'application) et n'occupe que le haut de l'écran : on doit
            continuer de voir sa figure pendant qu'on cherche. */
+        /* ================================================================
+           LA CONSIGNE ÉCLAIR
+
+           Le panneau des consignes prend la moitié basse d'un téléphone. C'est
+           la bonne place pour composer un énoncé de vingt lignes ; c'est
+           beaucoup trop pour en écrire UNE. Cette ligne-là s'ouvre, trace, et
+           se referme — sur les trois appareils, à la même place.
+
+           Elle emprunte la forme de la recherche parce que c'est la forme juste
+           d'un champ qui se pose par-dessus le travail, mais elle ne s'y
+           confond pas : crayon et non loupe, « Tracer » et non une liste, et
+           une case pour les instruments que la recherche n'a pas.
+           ================================================================ */
+        #consigneEclair {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 20000;
+            background: rgba(15, 23, 42, 0.28);
+            padding-top: max(8vh, 40px);
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #consigneEclair.ouvert { display: flex; }
+
+        #ceBoite {
+            width: min(620px, calc(100vw - 24px));
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        #ceHaut {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 10px 10px 14px;
+            color: #64748b;
+        }
+
+        #ceChamp {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;      /* 16px : en dessous, iOS zoome tout seul à la saisie */
+            font-family: inherit;
+            color: #0f172a;
+        }
+
+        #ceGo {
+            flex: 0 0 auto;
+            min-height: 34px;
+            padding: 0 14px;
+            border: none;
+            border-radius: 9px;
+            background: #2980b9;
+            color: #fff;
+            font: 600 13.5px 'Segoe UI', sans-serif;
+            cursor: pointer;
+        }
+
+        #ceGo:hover { background: #236f9f; }
+
+        #ceFermer {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        #ceFermer:hover { background: #f1f5f9; color: #475569; }
+
+        #ceBas {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 14px 11px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        /* La case des instruments est le seul réglage de cette ligne : elle
+           décide si l'on obtient la figure seule ou sa construction à la règle
+           et au compas. Toute l'étiquette est cliquable. */
+        #ceOutils {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 30px;
+            font: 12.5px 'Segoe UI', sans-serif;
+            color: #546e7a;
+            cursor: pointer;
+        }
+
+        #ceOutils input { width: 16px; height: 16px; margin: 0; flex: 0 0 auto; }
+
+        #ceAide { font: 11.5px 'Segoe UI', sans-serif; color: #b0bec5; white-space: nowrap; }
+
+        #ceReponse {
+            display: none;
+            padding: 9px 14px 11px;
+            font: 12.5px 'Segoe UI', sans-serif;
+            line-height: 1.35;
+        }
+
+        #ceReponse.ok { display: block; color: #1b5e20; background: #edf7ee; }
+        #ceReponse.rate { display: block; color: #b71c1c; background: #fdecea; }
+        #ceReponse .ce-note { display: block; margin-top: 4px; color: #8d6e00; }
+
+        @media (pointer: coarse) {
+            #consigneEclair { padding-top: max(6vh, 30px); }
+            #ceGo { min-height: 44px; padding: 0 16px; }
+            #ceFermer { width: 40px; height: 40px; }
+            #ceOutils { min-height: 40px; font-size: 13.5px; }
+            #ceOutils input { width: 20px; height: 20px; }
+            /* La place manque : le rappel clavier ne sert à rien au doigt. */
+            #ceAide { display: none; }
+        }
+
         #rechercheOverlay {
             display: none;
             position: fixed;
@@ -8105,6 +8234,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div id="rechercheAide">↑ ↓ pour choisir · Entrée pour lancer · Échap pour fermer</div>
         </div>
     </div>
+    <!-- LA CONSIGNE ÉCLAIR. Une seule phrase, tracée tout de suite, sans ouvrir
+         le panneau — qui prend la moitié basse d'un téléphone. La phrase part
+         quand même se ranger dans les consignes : elle voyage donc avec la
+         figure, se rejoue et se relit, exactement comme si on l'avait écrite
+         dans le panneau. Seule la place qu'elle prend à l'écran change.
+         Ce n'est pas la loupe : la loupe cherche une COMMANDE du logiciel, cette
+         ligne écrit une PHRASE de géométrie. -->
+    <div id="consigneEclair" role="dialog" aria-modal="true" aria-label="Écrire une consigne">
+        <div id="ceBoite">
+            <div id="ceHaut">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                    <path d="M4 17.5l-.9 3.4 3.4-.9L20 6.6a1.8 1.8 0 0 0-2.6-2.6L4 17.5z" />
+                    <path d="M3 8h7M3 12h4" />
+                </svg>
+                <input type="text" id="ceChamp" autocomplete="off" spellcheck="false"
+                    placeholder="Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm"
+                    aria-label="Écrire une consigne">
+                <button id="ceGo" onclick="app.lancerConsigneEclair()">Tracer</button>
+                <button id="ceFermer" onclick="app.fermerConsigneEclair()" aria-label="Fermer">✕</button>
+            </div>
+            <div id="ceBas">
+                <label id="ceOutils">
+                    <input type="checkbox" id="ceInstruments"
+                        onchange="app.reglerInstrumentsEclair(this.checked)">
+                    <span>Avec les instruments de géométrie</span>
+                </label>
+                <span id="ceAide">Entrée pour tracer · Échap pour fermer</span>
+            </div>
+            <div id="ceReponse"></div>
+        </div>
+    </div>
     <div id="toast-notification">Message par défaut</div>
     <!-- L'aperçu miniature a été retiré : rien ne l'ouvrait, rien ne dessinait
          dans son canevas, et sa croix appelait une fonction inexistante — un
@@ -8124,6 +8285,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle cx="11" cy="11" r="7" />
                         <line x1="16.5" y1="16.5" x2="21" y2="21" stroke-linecap="round" />
+                    </svg>
+                </button>
+                <!-- ÉCRIRE UNE CONSIGNE, SANS OUVRIR LE PANNEAU. Le panneau des
+                     consignes prend la moitié basse de l'écran sur un téléphone :
+                     c'est la bonne place pour écrire un énoncé de vingt lignes, et
+                     beaucoup trop pour en écrire UNE. Ce bouton ouvre une simple
+                     ligne, avec la case des instruments à côté.
+                     Il est en tête de bande, comme la loupe, pour rester visible
+                     sur un téléphone sans passer par la grille — et son crayon ne
+                     se confond pas avec elle : la loupe cherche une COMMANDE, ce
+                     crayon écrit une PHRASE. -->
+                <button class="top-btn" id="btnConsigneEclair" onclick="app.ouvrirConsigneEclair()"
+                    aria-label="Écrire une consigne" data-tooltip="Écrire une consigne (Ctrl+E)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 17.5l-.9 3.4 3.4-.9L20 6.6a1.8 1.8 0 0 0-2.6-2.6L4 17.5z" />
+                        <path d="M3 8h7M3 12h4" />
                     </svg>
                 </button>
                 <button class="top-btn" id="btnPan" onclick="app.togglePanMode()"
@@ -14897,6 +15075,88 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return cmds;
             }
 
+            /* ============================================================
+               LA CONSIGNE ÉCLAIR : une phrase, tout de suite.
+
+               La phrase part quand même se ranger dans la liste des consignes.
+               C'est ce qui fait qu'elle voyage avec la figure, se relit et se
+               rejoue — si elle ne faisait que tracer, on aurait une figure sans
+               son énoncé, et le lien élève arriverait muet. Seule la PLACE que
+               le panneau prend à l'écran change.
+               ============================================================ */
+            /* Une phrase de géométrie, et non un nom de commande : un verbe de
+               construction en tête, et plus d'un mot. On ne devine rien de plus —
+               au pire on propose de tracer une phrase qui ne tracera rien, et
+               l'analyseur le dira lui-même. */
+            ressembleAUneConsigne(texte) {
+                const t = GeometrieAppCore.aplatir(texte || '');
+                return t.split(' ').length >= 3
+                    && /^(trace|tracer|construis|construire|place|placer|dessine|dessiner|marque|marquer|relie|joins|nomme|appelle|soit|prends)\b/.test(t);
+            }
+            instrumentsEclair() {
+                try { return localStorage.getItem('gm_eclair_outils') === '1'; }
+                catch (e) { void e; return false; }
+            }
+            reglerInstrumentsEclair(v) {
+                try { localStorage.setItem('gm_eclair_outils', v ? '1' : '0'); } catch (e) { void e; }
+            }
+            ouvrirConsigneEclair() {
+                const voile = document.getElementById('consigneEclair');
+                const champ = document.getElementById('ceChamp');
+                if (!voile || !champ) return;
+                const cases = document.getElementById('ceInstruments');
+                if (cases) cases.checked = this.instrumentsEclair();
+                this.reponseConsigneEclair(null);
+                champ.value = '';
+                voile.classList.add('ouvert');
+                setTimeout(() => champ.focus(), 40);
+            }
+            fermerConsigneEclair() {
+                const voile = document.getElementById('consigneEclair');
+                if (voile) voile.classList.remove('ouvert');
+                const champ = document.getElementById('ceChamp');
+                if (champ) champ.blur();
+            }
+            reponseConsigneEclair(r) {
+                const boite = document.getElementById('ceReponse');
+                if (!boite) return;
+                boite.className = '';
+                boite.textContent = '';
+                if (!r) return;
+                boite.classList.add(r.ok ? 'ok' : 'rate');
+                boite.textContent = (r.ok ? '✓ ' : '✗ ') + (r.message || '');
+                if (r.astuce) {
+                    const n = document.createElement('span');
+                    n.className = 'ce-note';
+                    n.textContent = '✎ ' + r.astuce;
+                    boite.appendChild(n);
+                }
+            }
+            lancerConsigneEclair() {
+                const champ = document.getElementById('ceChamp');
+                if (!champ) return;
+                const phrase = (champ.value || '').trim();
+                if (!phrase) { champ.focus(); return; }
+                const cases = document.getElementById('ceInstruments');
+                const avec = !!(cases && cases.checked);
+                const liste = this.consignesListe();
+                let i = liste.findIndex(c => !(c.texte || '').trim());
+                if (i < 0) { liste.push(this.consigneNeuve()); i = liste.length - 1; }
+                liste[i].texte = phrase;
+                liste[i].instruments = avec;
+                liste[i].faite = false;
+                liste[i].etat = null;
+                this.majConsignes();
+                this.validerConsigne(i);
+                const c = liste[i] || {};
+                this.reponseConsigneEclair({ ok: c.etat === 'ok', message: c.message, astuce: c.astuce });
+                /* Réussie, la ligne se vide pour la suivante : on enchaîne les
+                   consignes sans jamais ouvrir le panneau. Ratée, le texte reste —
+                   on le corrige là où on l'a écrit. */
+                if (c.etat === 'ok') champ.value = '';
+                champ.focus();
+                this.render();
+            }
             ouvrirRecherche() {
                 const voile = document.getElementById('rechercheOverlay');
                 const champ = document.getElementById('rechercheChamp');
@@ -14948,9 +15208,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.rechercheResultats = res;
                 if (this.rechercheIndex >= res.length) this.rechercheIndex = 0;
                 if (!res.length) {
+                    /* LA LOUPE ET LE CRAYON NE FONT PAS DOUBLON, ET C'EST ICI QU'ON
+                       LE DIT. La loupe cherche une COMMANDE du logiciel ; le crayon
+                       écrit une PHRASE de géométrie. Qui tape « trace un triangle
+                       ABC » dans la loupe ne trouve évidemment rien — et c'est le
+                       moment de lui montrer où sa phrase va, plutôt que de lui
+                       répondre « aucune commande » et de le laisser là. */
+                    if (this.ressembleAUneConsigne(texte)) {
+                        liste.innerHTML = '<div id="rechercheVide">Ça ressemble à une consigne, '
+                            + 'pas à une commande.<br><b>Entrée</b> pour la tracer.</div>';
+                        this.consigneDepuisRecherche = String(texte);
+                        return;
+                    }
+                    this.consigneDepuisRecherche = null;
                     liste.innerHTML = '<div id="rechercheVide">Aucune commande ne correspond</div>';
                     return;
                 }
+                this.consigneDepuisRecherche = null;
                 const echapper = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 liste.innerHTML = res.map((c, i) =>
                     `<div class="rech-item${i === this.rechercheIndex ? ' actif' : ''}" role="option" data-i="${i}">`
@@ -14975,6 +15249,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             lancerRecherche(i) {
+                /* Aucune commande, mais une phrase : Entrée l'emmène au crayon, avec
+                   son texte déjà dedans. On ne renvoie pas l'utilisateur chercher
+                   lui-même le bon bouton. */
+                if (this.consigneDepuisRecherche && i === undefined) {
+                    const phrase = this.consigneDepuisRecherche;
+                    this.consigneDepuisRecherche = null;
+                    this.fermerRecherche();
+                    this.ouvrirConsigneEclair();
+                    setTimeout(() => {
+                        const ch = document.getElementById('ceChamp');
+                        if (ch) { ch.value = phrase; ch.focus(); }
+                    }, 60);
+                    return;
+                }
                 const c = (this.rechercheResultats || [])[i === undefined ? this.rechercheIndex : i];
                 if (!c) return;
                 this.fermerRecherche();
@@ -33433,6 +33721,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            dire si elles cachent quelque chose. On le leur demande maintenant, puis
            à chaque changement de taille ou d'orientation. */
         app.armerBandesDebordantes();
+        /* La consigne éclair : Entrée trace, Échap ferme, et un appui à côté de la
+           ligne la referme aussi — comme toutes les fenêtres du logiciel. */
+        (function () {
+            const champ = document.getElementById('ceChamp');
+            const voile = document.getElementById('consigneEclair');
+            if (!champ || !voile) return;
+            champ.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); app.lancerConsigneEclair(); }
+                if (e.key === 'Escape') { e.preventDefault(); app.fermerConsigneEclair(); }
+            });
+            voile.addEventListener('click', (e) => {
+                if (e.target === voile) app.fermerConsigneEclair();
+            });
+        })();
         /* Entrée vaut « Tracer » : c'est la seule chose qu'on essaie dans un champ
            qui porte déjà une phrase. */
         (function () {
@@ -36544,21 +36846,17 @@ var qrcode = function() {
                         else app.ouvrirRecherche();
                         return;
                     }
-                    /* Ctrl+E : le panneau des consignes, prêt à exécuter. Voisin de
-                       Ctrl+K parce que c'est le même geste — dire ce qu'on veut. */
+                    /* Ctrl+E : écrire UNE consigne. Voisin de Ctrl+K parce que
+                       c'est le même geste — dire ce qu'on veut — et il ouvre
+                       maintenant la ligne éclair plutôt que le panneau entier :
+                       neuf fois sur dix on n'a qu'une phrase à écrire, et le
+                       panneau prend la moitié basse d'un téléphone pour ça.
+                       Le panneau garde son bouton, pour composer un énoncé. */
                     if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')) {
                         e.preventDefault();
-                        var boite = document.getElementById('instructionBox');
-                        if (!boite || boite.style.display === 'none' || boite.style.display === '') {
-                            app.toggleInstructions();
-                        }
-                        /* Le curseur va dans la première ligne libre : Ctrl+E, on
-                           écrit, Entrée — sans toucher la souris. */
-                        var vides = app.consignesListe().findIndex(function (c) {
-                            return !(c.texte || '').trim();
-                        });
-                        if (vides < 0) vides = app.ajouterConsigne();
-                        app.majConsignes(vides);
+                        var eclair = document.getElementById('consigneEclair');
+                        if (eclair && eclair.classList.contains('ouvert')) app.fermerConsigneEclair();
+                        else app.ouvrirConsigneEclair();
                         return;
                     }
                     if (!voile.classList.contains('ouvert')) return;

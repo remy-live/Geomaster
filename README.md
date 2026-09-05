@@ -392,6 +392,26 @@ Ces décisions sont maintenant au même endroit, où une exception se voit au li
 de se répéter. Vérifié : les treize fenêtres sont **identiques au pixel** avant
 et après, largeur par largeur, et aucune ne déborde jusqu'à 320 px de large.
 
+**Une seule consigne, sans ouvrir le panneau.** Le panneau des consignes prend
+**46 % d'un écran de téléphone** : c'est la bonne place pour composer un énoncé
+de vingt lignes, et beaucoup trop pour en écrire une. Un crayon dans la barre du
+haut — à côté de la loupe, donc visible sur un téléphone sans rien déplier —
+ouvre **une simple ligne** : la phrase, la case *avec les instruments de
+géométrie*, et la réponse affichée dessous. **13 % de l'écran** au lieu de 46,
+sur les trois appareils, à la même place. `Ctrl+E`.
+
+La phrase part **quand même** se ranger dans la liste des consignes : elle voyage
+donc avec la figure, se relit et se rejoue exactement comme si on l'avait écrite
+dans le panneau. Seule la place qu'elle prend à l'écran change. Réussie, la ligne
+se vide et reste ouverte — on enchaîne ; ratée, le texte reste, on le corrige là
+où on l'a écrit.
+
+**Ce n'est pas la loupe, et le logiciel le dit.** La loupe cherche une *commande*
+du logiciel, le crayon écrit une *phrase* de géométrie. Qui tape « trace un
+triangle ABC » dans la loupe ne trouve évidemment rien — il lit alors « ça
+ressemble à une consigne, pas à une commande », et **Entrée l'emmène au crayon,
+son texte déjà dedans**. Un vrai nom de commande, lui, reste à la loupe.
+
 **La première minute.** Le logiciel s'ouvrait sur son tableau de bord et non sur
 ce qu'il sait faire : une feuille vide, vingt-deux icônes muettes, et — le plus
 intimidant — une télécommande de rejeu, ▶ ◀ ■ ↻ ✂ *vitesse* *attente*, sur une
