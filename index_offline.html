@@ -29483,8 +29483,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Une place où le point ne tombera pas sur un autre : on part du centre de
                ce qu'on voit et l'on s'écarte en spirale tant que c'est occupé. */
+            /* OÙ SUR LA FEUILLE ? « Trace un carré en haut à gauche, puis un
+               rectangle en haut à droite… » : les quatre figures se posaient AU
+               MÊME ENDROIT, les unes par-dessus les autres — mesuré, quatre
+               centres à moins de treize pixels les uns des autres. La phrase disait
+               pourtant où les mettre.
+
+               « À droite » demande de la prudence : en géométrie, une droite est
+               un objet. On n'accepte donc que les tournures de PLACE — « en haut à
+               droite », « à droite » seul — et jamais « à droite de A », qui situe
+               par rapport à un objet et non sur la feuille. */
+            cslOu(t) {
+                if (!t) return null;
+                const s = ' ' + String(t).toLowerCase() + ' ';
+                if (/[àa]\s+(?:gauche|droite)\s+d[eu]\s/.test(s)) return null;   // relatif : pas une place
+                const haut = /\ben\s+haut\b|\bau\s+dessus\b|\bpartie\s+sup[ée]rieure\b/.test(s);
+                const bas = /\ben\s+bas\b|\bau\s+dessous\b|\bpartie\s+inf[ée]rieure\b/.test(s);
+                const gauche = /[àa]\s+gauche\b/.test(s);
+                const droite = /[àa]\s+droite\b/.test(s);
+                const centre = /\bau\s+(?:centre|milieu)\b/.test(s);
+                if (!haut && !bas && !gauche && !droite && !centre) return null;
+                const c = this.canvas.parentElement.getBoundingClientRect();
+                const z = this.view.zoom || 1;
+                /* Un quart d'écran de côté, un cinquième en hauteur : assez pour
+                   séparer quatre figures, pas assez pour en sortir. */
+                const ex = (c.width / z) * 0.26, ey = (c.height / z) * 0.22;
+                return { dx: (gauche ? -ex : 0) + (droite ? ex : 0),
+                         dy: (haut ? -ey : 0) + (bas ? ey : 0) };
+            }
             cslPlaceLibre(dx = 0, dy = 0) {
                 const c = this.cslCentreVue();
+                /* La place demandée par la phrase s'ajoute à celle du bâtisseur. */
+                const ou = this._cslOu;
+                if (ou) { dx += ou.dx; dy += ou.dy; }
                 const pts = this.entities.filter(e => e instanceof Point && e.visible !== false);
                 const pris = (x, y) => pts.some(p => Math.hypot(p.x - x, p.y - y) < 55);
                 let x = c.x + dx, y = c.y + dy;
@@ -29579,6 +29610,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     .replace(/\s+et\s*$/i, '')
                     .replace(/\s{2,}/g, ' ')
                     .trim();
+            }
+            /* REMPLIR, C'EST REMPLIR — pas colorier le contour. « Trace un carré
+               ABCD rempli en vert » traçait un carré au TRAIT vert, et laissait le
+               remplissage au bleu pâle que tout polygone porte par défaut : la
+               réponse disait « en vert », la figure disait autre chose. Mesuré
+               avant : trait #43a047, remplissage rgba(0,150,255,0.2).
+
+               La couleur du remplissage n'est pas celle du trait : on la pose à
+               35 % d'opacité, comme un surligneur — un aplat opaque cacherait le
+               codage des côtés et les noms des sommets. */
+            cslLireRemplissage(t) {
+                if (!/\brempli|\bcolori|\bhachur|\bgris[ée]|\bpeint/.test(t)) return null;
+                /* LA COULEUR A DÉJÀ ÉTÉ LUE, et RETIRÉE de la phrase analysée : la
+                   chercher ici ne trouvait plus rien. On reprend donc celle que le
+                   lecteur de style a mise de côté.
+
+                   Et on la lui RETIRE : « rempli en vert » nomme le FOND, pas le
+                   trait. Peindre les deux en vert serait dire plus que la phrase —
+                   le contour reste noir, comme au cahier. */
+                const st = this._cslStyleLigne || {};
+                const couleur = st.color || null;
+                if (couleur) delete st.color;
+                const mode = /\bhachur/.test(t) ? 'hatch'
+                    : /\bpointill|\bpoints\b/.test(t) ? 'dots' : 'solid';
+                return { couleur, mode };
+            }
+            /* Le polygone d'une figure construite par une consigne : un seul
+               endroit qui le crée, pour que le remplissage demandé s'applique
+               partout de la même façon. */
+            cslPoserPolygone(pts) {
+                const p = new Polygon([...pts]);
+                const r = this._cslRemplissage;
+                if (r) {
+                    p.fillMode = r.mode;
+                    if (r.couleur) {
+                        p.color = r.couleur;
+                        p.opacity = (r.mode === 'solid') ? 0.35 : 1;
+                    }
+                }
+                this.addEntity(p);
+                return p;
             }
             cslStyle() {
                 const g = this.globalStyle;
@@ -29885,6 +29957,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/^dessine[rz]?\b/.test(t)) {
                         this.cslDire('Formulation : en géométrie on écrit plutôt « Trace… » que « Dessine… ».');
                     }
+                    /* La place demandée vaut pour TOUTE la consigne : elle est lue
+                       une fois, et cslPlaceLibre s'en sert pour chaque point posé. */
+                    this._cslOu = this.cslOu(t);
+                    this._cslRemplissage = this.cslLireRemplissage(t);
                     /* LE PAPIER ET LES DEUX FIGURES CACHÉES PASSENT EN PREMIER.
                        Leurs mots sont trop spécifiques pour prêter à confusion —
                        mais les mots VOISINS, eux, les volaient : « mets le papier
@@ -29894,6 +29970,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/quadrillage|papier|carreaux|grille/.test(t)
                         && /^(?:mets?|mettre|passe|passer|efface|effacer|enl[èe]ve|enlever|retire|retirer|affiche|montre|change|changer|utilise)\b/.test(t)) {
                         return this.cslQuadrillage(brut, t, fait, rate);
+                    }
+                    /* LES SOLIDES AVANT LES FIGURES PLANES. « parallélépipède
+                       RECTANGLE » contient le mot « rectangle » : sans ce passage
+                       en tête, il traçait silencieusement un simple rectangle —
+                       mesuré, quatre points et quatre segments au lieu d'un
+                       solide. Le mot le plus précis gagne. */
+                    if (/\bcube\b|pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de|pyramide|t[ée]tra[èe]dre/.test(t)) {
+                        const solide = this.cslSolide(brut, t, fait, rate);
+                        if (solide) return solide;
                     }
                     if (/flocon|koch|spirale|th[ée]odore|escargot\s+de\s+pythagore/.test(t)) {
                         const surprise = this.cslFigureCachee(brut, t, fait, rate);
@@ -30109,8 +30194,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     console.error('Consigne :', err);
                     return rate("Je n'ai pas su faire ça.");
                 } finally {
-                    // le style demandé ne déborde pas sur la consigne suivante
+                    // ni le style ni la place ne débordent sur la consigne suivante
                     this._cslStyleLigne = null;
+                    this._cslOu = null;
+                    this._cslRemplissage = null;
                 }
             }
             /* ---- LA NOTATION -------------------------------------------------
@@ -31523,6 +31610,123 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return fait(`Papier : ${trouve[2]}`);
             }
             /* ============================================================
+               LES SOLIDES, EN PERSPECTIVE CAVALIÈRE
+
+               Ce ne sont pas des figures en trois dimensions : ce sont des
+               figures PLANES, la représentation conventionnelle qu'on trace au
+               cahier. Trois règles, et elles sont dans tous les manuels :
+                 · la face avant se dessine en VRAIE GRANDEUR ;
+                 · les fuyantes partent à 45° et sont réduites — coefficient 0,5 ;
+                 · les arêtes cachées sont en POINTILLÉS.
+               La troisième est celle qu'on oublie, et c'est celle qui fait qu'un
+               dessin de cube ressemble à un cube.
+               ============================================================ */
+            cslSolide(brut, t, fait, rate) {
+                const FUYANTE = -Math.PI / 4;          // 45° vers le haut à droite
+                const K = 0.5;                          // le coefficient de réduction
+                const fx = Math.cos(FUYANTE) * K, fy = Math.sin(FUYANTE) * K;
+                const st = this.cslStyle();
+                const lg = (m) => (m ? this.cslLongueurPx(m) : null);
+                /* Les mesures, dans l'ordre où elles sont écrites. */
+                const mesures = [...brut.matchAll(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)\b)/gi)].map(m => m[1]);
+                /* UNE MESURE NOMMÉE N'EST PLUS DISPONIBLE POUR LE RANG. « Trace une
+                   pyramide de hauteur 5 cm » donnait une base de 5 cm ET une
+                   hauteur de 5 cm : le même nombre servait deux fois, une fois par
+                   son nom et une fois par sa position. On retire donc du rang ce
+                   qui a été pris par son nom. */
+                const prises = new Set();
+                const nommee = (re) => {
+                    const m = brut.match(new RegExp(re.source + '\\s*(?:de\\s*|:\\s*|=\\s*)?(\\d+(?:[.,]\\d+)?\\s*(?:mm|cm|dm|m)\\b)', 'i'));
+                    if (!m) return null;
+                    prises.add(m[1].replace(/\s+/g, ''));
+                    return lg(m[1]);
+                };
+                const rang = (i) => {
+                    const restantes = mesures.filter(x => !prises.has(x.replace(/\s+/g, '')));
+                    return restantes[i] ? lg(restantes[i]) : null;
+                };
+                const o = this.cslPlaceLibre(0, 0);
+                const noms = [];
+                const nomLibre = () => { const n = this.cslNomLibre(noms); noms.push(n); return n; };
+                const poser = (x, y, nom) => {
+                    const p = new Point(x, y, nom !== undefined ? nom : nomLibre());
+                    this.addEntity(p);
+                    return p;
+                };
+                /* Une arête : pleine si on la voit, en pointillés si elle est
+                   derrière. C'est la seule différence, et c'est toute la lecture
+                   du dessin. */
+                const arete = (a, b, cachee) => {
+                    const s = new Segment(a, b, { color: st.color, width: st.width });
+                    if (cachee) s.dash = [5, 5];
+                    this.addEntity(s);
+                    return s;
+                };
+
+                if (/\bcube\b/.test(t) || /pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de/.test(t)) {
+                    const cube = /\bcube\b/.test(t);
+                    const nL = nommee(/(?:ar[êe]te|c[ôo]t[ée]|longueur)/);
+                    const nH = nommee(/hauteur/);
+                    const nP = nommee(/(?:largeur|profondeur)/);
+                    let L = nL || rang(0) || 200;
+                    let P = cube ? L : (nP || rang(nL ? 0 : 1) || L * 0.62);
+                    let H = cube ? L : (nH || rang((nL ? 0 : 1) + (nP ? 0 : 1)) || L * 0.62);
+                    if (cube) { H = L; P = L; }
+                    const dx = P * fx, dy = P * fy;
+                    /* ABCD la face avant, EFGH la face arrière — E derrière A. */
+                    const x0 = o.x - L / 2 - dx / 2, y0 = o.y + H / 2 - dy / 2;
+                    const A = poser(x0, y0), B = poser(x0 + L, y0);
+                    const C = poser(x0 + L, y0 - H), D = poser(x0, y0 - H);
+                    const E = poser(x0 + dx, y0 + dy), F = poser(x0 + L + dx, y0 + dy);
+                    const G = poser(x0 + L + dx, y0 - H + dy), H2 = poser(x0 + dx, y0 - H + dy);
+                    // la face avant, entière
+                    arete(A, B); arete(B, C); arete(C, D); arete(D, A);
+                    // la face arrière : E est caché derrière A, ses arêtes aussi
+                    arete(E, F, true); arete(F, G); arete(G, H2); arete(H2, E, true);
+                    // les fuyantes
+                    arete(A, E, true); arete(B, F); arete(C, G); arete(D, H2);
+                    this.cslDire('Perspective cavalière : la face avant est en vraie grandeur, '
+                        + 'les fuyantes à 45° sont réduites de moitié, et les arêtes cachées '
+                        + 'sont en pointillés.');
+                    const nom = [A, B, C, D, E, F, G, H2].map(p => p.label).join('');
+                    return fait(cube ? `Cube ${nom} — perspective cavalière`
+                        : `Pavé droit ${nom} — perspective cavalière`);
+                }
+
+                if (/pyramide|t[ée]tra[èe]dre/.test(t)) {
+                    const tetra = /t[ée]tra[èe]dre|base\s+triangulaire/.test(t);
+                    const nL = nommee(/(?:c[ôo]t[ée]|ar[êe]te|base)/);
+                    const nH = nommee(/hauteur/);
+                    const L = nL || rang(0) || 190;
+                    const H = nH || rang(nL ? 0 : 1) || L * 1.05;
+                    const dx = L * fx, dy = L * fy;
+                    const x0 = o.x - L / 2 - dx / 2, y0 = o.y + H / 2 - dy / 2;
+                    if (tetra) {
+                        /* Base triangulaire : la fuyante emmène le troisième sommet
+                           en arrière, et c'est LUI qui est caché. */
+                        const A = poser(x0, y0), B = poser(x0 + L, y0);
+                        const C = poser(x0 + L * 0.5 + dx, y0 + dy);
+                        const S = poser(x0 + L * 0.5 + dx * 0.5, y0 + dy * 0.5 - H);
+                        arete(A, B); arete(B, C); arete(C, A, true);
+                        arete(A, S); arete(B, S); arete(C, S, true);
+                        this.cslDire('Perspective cavalière : les arêtes cachées sont en pointillés.');
+                        return fait(`Tétraèdre ${[A, B, C, S].map(p => p.label).join('')} — perspective cavalière`);
+                    }
+                    /* Base carrée, vue de biais : un parallélogramme. */
+                    const A = poser(x0, y0), B = poser(x0 + L, y0);
+                    const C = poser(x0 + L + dx, y0 + dy), D = poser(x0 + dx, y0 + dy);
+                    const S = poser(x0 + L / 2 + dx / 2, y0 + dy / 2 - H);
+                    // D est le sommet du fond : ses deux arêtes de base sont cachées
+                    arete(A, B); arete(B, C); arete(C, D, true); arete(D, A, true);
+                    arete(A, S); arete(B, S); arete(C, S); arete(D, S, true);
+                    this.cslDire('Perspective cavalière : la base carrée se dessine en '
+                        + 'parallélogramme, et les arêtes cachées sont en pointillés.');
+                    return fait(`Pyramide ${[A, B, C, D, S].map(p => p.label).join('')} `
+                        + `à base carrée — perspective cavalière`);
+                }
+                return null;
+            }
+            /* ============================================================
                DEUX FIGURES QUI NE SONT PAS DANS LA LISTE
 
                Elles ne servent aucun programme, et c'est bien pour cela qu'elles
@@ -32224,7 +32428,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
                     if (pts.length < 3) return rate("Quels sommets ? Écrivez « Trace le polygone ABCDE ».");
                     for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
-                    this.addEntity(new Polygon([...pts]));
+                    this.cslPoserPolygone(pts);
                     return fait(`Polygone ${pts.map(p => p.label).join('')}`);
                 }
 
@@ -32385,7 +32589,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return p;
                 });
                 for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
-                this.addEntity(new Polygon([...pts]));
+                this.cslPoserPolygone(pts);
                 this._cslSujet = noms.slice();
                 return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}`);
             }
@@ -32761,7 +32965,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(`Triangle ${A}${B}${C} — construction au compas`);
                 }
                 this.cslSegment(pA, pB); this.cslSegment(pB, pC); this.cslSegment(pC, pA);
-                this.addEntity(new Polygon([pA, pB, pC]));
+                this.cslPoserPolygone([pA, pB, pC]);
                 return fait(`Triangle ${A}${B}${C}`);
             }
             /* LE PREMIER CÔTÉ NAÎT DE LA RÈGLE. On posait les DEUX extrémités,
@@ -32906,7 +33110,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.cslSegment(p, q);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 });
-                this.addEntity(new Polygon([pA, pB, pC]));
+                this.cslPoserPolygone([pA, pB, pC]);
                 this.addEntity(new Angle(pB, pA, pC));
                 this.addEntity(new Angle(pA, pB, pC));
             }
@@ -32964,7 +33168,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const autre = (sommet === pA) ? pB : pA;
                 regle(sommet, pC);
                 regle(pC, autre);
-                this.addEntity(new Polygon([pA, pB, pC]));
+                this.cslPoserPolygone([pA, pB, pC]);
                 this.addEntity(new Angle(versB, sommet, pC));
             }
             /* LE TRIANGLE RECTANGLE, AU GESTE DU CAHIER : on trace [AB] à la
@@ -33044,7 +33248,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(pC);
                 regle(S, pC);
                 regle(autre, pC);
-                this.addEntity(new Polygon([pA, pB, pC]));
+                this.cslPoserPolygone([pA, pB, pC]);
                 /* Le codage de l'angle droit : il est DONNÉ par l'énoncé, la
                    figure doit le dire. */
                 this.addEntity(new Angle(autre, S, pC));
@@ -33084,7 +33288,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(pC);
                 regle(pA, pC);
                 regle(pB, pC);
-                this.addEntity(new Polygon([pA, pB, pC]));
+                this.cslPoserPolygone([pA, pB, pC]);
             }
             cslLineaire(brut, t, fait, rate) {
                 /* PLUSIEURS DROITES D'UN COUP. « Trace les droites (AB) et (BC) »
@@ -35131,7 +35335,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 19h';
+        window.GM_VERSION = '2026-09-05 · 21h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

@@ -163,6 +163,139 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     ck(`« ${ph} »`, q.ok && q.grille === mode, `${q.msg} / mode ${q.grille}`);
   }
 
+  console.log('\n=== où sur la feuille ===');
+  /* « Trace un carré en haut à gauche, puis un rectangle en haut à droite… » :
+     les quatre figures se posaient AU MÊME ENDROIT, les unes par-dessus les
+     autres — mesuré, quatre centres à moins de treize pixels. La phrase disait
+     pourtant où les mettre. */
+  const quatre = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = []; app._cslSujet = null;
+    if (app.cslOublier) app.cslOublier();
+    const r = app.executerConsigneAvec('Trace un carré en haut à gauche, puis trace un rectangle '
+      + 'en haut à droite, puis trace un triangle en bas à gauche, puis trace un triangle en bas à droite', false);
+    const c = app.entities.filter(e => e.constructor.name === 'Polygon')
+      .map(e => { const p = e.points.filter(Boolean);
+        return [Math.round(p.reduce((s, q) => s + q.x, 0) / p.length),
+                Math.round(p.reduce((s, q) => s + q.y, 0) / p.length)]; });
+    const b = app.canvas.parentElement.getBoundingClientRect();
+    return { ok: r.ok, msg: r.message, centres: c,
+             milieu: [Math.round(b.width / 2), Math.round(b.height / 2)] };
+  });
+  console.log('  ' + JSON.stringify(quatre.centres) + '  centre de l\'écran ' + JSON.stringify(quatre.milieu));
+  ck('les quatre figures sont tracées', quatre.ok && quatre.centres.length === 4, quatre.msg);
+  const [hg, hd, bg, bd] = quatre.centres;
+  ck('  « en haut à gauche » est bien en haut ET à gauche',
+     hg[0] < quatre.milieu[0] && hg[1] < quatre.milieu[1], JSON.stringify(hg));
+  ck('  « en haut à droite » à droite, à la même hauteur',
+     hd[0] > quatre.milieu[0] && hd[1] === hg[1], JSON.stringify(hd));
+  ck('  « en bas à gauche » en dessous, du même côté',
+     bg[1] > quatre.milieu[1] && bg[0] < quatre.milieu[0], JSON.stringify(bg));
+  ck('  « en bas à droite » dans le dernier coin',
+     bd[0] > quatre.milieu[0] && bd[1] > quatre.milieu[1], JSON.stringify(bd));
+  /* Et surtout : elles ne se recouvrent plus. */
+  let mini = 1e9;
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      mini = Math.min(mini, Math.hypot(quatre.centres[i][0] - quatre.centres[j][0],
+                                       quatre.centres[i][1] - quatre.centres[j][1]));
+    }
+  }
+  ck('  aucune ne se pose sur une autre', mini > 300, `${Math.round(mini)} px entre les deux plus proches`);
+  /* « À droite » demande de la prudence : en géométrie, une droite est un objet.
+     « À droite DE A » situe par rapport à un objet, pas sur la feuille. */
+  const prudence = await faire(['Trace une droite']);
+  ck('« Trace une droite » n\'est pas un placement', prudence.ok, prudence.msg);
+
+  console.log('\n=== remplir, c\'est remplir — pas colorier le contour ===');
+  /* « Trace un carré ABCD rempli en vert » traçait un carré au TRAIT vert et
+     laissait le fond au bleu pâle que tout polygone porte par défaut : la
+     réponse disait « en vert », la figure disait autre chose. */
+  const remplir = (ph) => page.evaluate((x) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = [];
+    const r = app.executerConsigneAvec(x, false);
+    const pol = app.entities.find(e => e.constructor.name === 'Polygon');
+    const seg = app.entities.find(e => e.constructor.name === 'Segment');
+    return { msg: r.message, fond: pol ? pol.color : null, mode: pol ? pol.fillMode : null,
+             trait: seg ? seg.color : null };
+  }, ph);
+  let f = await remplir('Trace un carré ABCD rempli en vert');
+  console.log('  ' + JSON.stringify(f));
+  ck('le FOND est vert', f.fond === '#43a047', String(f.fond));
+  /* Et le trait reste noir : la phrase nomme le fond, pas le contour. Peindre
+     les deux dirait plus que ce qu'elle demande. */
+  ck('  et le trait reste noir', f.trait === '#000000', String(f.trait));
+  f = await remplir('Trace un carré hachuré en rouge');
+  ck('« hachuré » hachure, et en rouge', f.mode === 'hatch' && f.fond === '#e53935',
+     JSON.stringify([f.mode, f.fond]));
+  /* Sans mot de remplissage, « en rouge » reste ce qu'il a toujours été : la
+     couleur du TRAIT. */
+  f = await remplir('Trace un carré ABCD en rouge');
+  ck('sans « rempli », « en rouge » colore le trait',
+     f.trait === '#e53935' && f.fond !== '#e53935', JSON.stringify([f.trait, f.fond]));
+
+  console.log('\n=== les solides, en perspective cavalière ===');
+  /* Ce ne sont pas des figures en trois dimensions : c'est la représentation
+     conventionnelle du cahier. Trois règles, et la troisième est celle qu'on
+     oublie — c'est elle qui fait qu'un dessin de cube ressemble à un cube. */
+  const solide = (ph) => page.evaluate((x) => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = [];
+    const r = app.executerConsigneAvec(x, false);
+    const seg = app.entities.filter(e => e.constructor.name === 'Segment');
+    const pt = {};
+    app.entities.forEach(e => { if (e.constructor.name === 'Point' && e.label) pt[e.label] = e; });
+    const U = 50 / (app.cmScale || 1);
+    const d = (a, c) => (pt[a] && pt[c])
+      ? +(Math.hypot(pt[a].x - pt[c].x, pt[a].y - pt[c].y) / U).toFixed(2) : null;
+    /* La direction de la fuyante [AE], en degrés au-dessus de l'horizontale. */
+    let fuyante = null;
+    if (pt.A && pt.E) fuyante = +(-Math.atan2(pt.E.y - pt.A.y, pt.E.x - pt.A.x) * 180 / Math.PI).toFixed(1);
+    return { ok: r.ok, msg: r.message, astuce: r.astuce,
+             aretes: seg.length, cachees: seg.filter(e => e.dash && e.dash.length).length,
+             pts: Object.keys(pt).sort().join(''), fuyante,
+             AB: d('A', 'B'), AD: d('A', 'D'), AE: d('A', 'E'),
+             hauteurS: (pt.A && pt.E) ? null : (pt.E ? null : null) };
+  }, ph);
+  let s = await solide('Trace un cube d\'arête 4 cm');
+  console.log('  ' + JSON.stringify(s));
+  ck('un cube a huit sommets et douze arêtes',
+     s.pts === 'ABCDEFGH' && s.aretes === 12, `${s.pts} / ${s.aretes}`);
+  /* LA RÈGLE QU'ON OUBLIE : trois arêtes sont cachées derrière le solide, et se
+     dessinent en pointillés. Sans elles, le dessin n'est pas un cube. */
+  ck('  trois arêtes sont cachées, en pointillés', s.cachees === 3, String(s.cachees));
+  ck('  la face avant est en VRAIE GRANDEUR : 4 cm sur 4 cm',
+     s.AB === 4 && s.AD === 4, JSON.stringify([s.AB, s.AD]));
+  /* Les fuyantes sont RÉDUITES DE MOITIÉ, et partent à 45°. */
+  ck('  la fuyante est réduite de moitié : 2 cm', s.AE === 2, String(s.AE));
+  ck('  et elle part à 45°', Math.abs(s.fuyante - 45) < 0.1, `${s.fuyante}°`);
+  ck('  la convention est expliquée', /cavali[èe]re/.test(s.astuce) && /cach/.test(s.astuce), s.astuce);
+
+  s = await solide('Trace un pavé droit de 6 cm sur 4 cm sur 3 cm');
+  ck('un pavé droit lit ses trois dimensions',
+     s.AB === 6 && s.AD === 3 && s.AE === 2, JSON.stringify([s.AB, s.AD, s.AE]));
+  /* « parallélépipède RECTANGLE » contient le mot « rectangle » : sans garde-fou,
+     il traçait silencieusement un simple rectangle plat. */
+  s = await solide('Trace un parallélépipède rectangle');
+  ck('« parallélépipède rectangle » n\'est pas un rectangle',
+     s.aretes === 12 && s.cachees === 3, `${s.aretes} arêtes`);
+
+  s = await solide('Trace une pyramide');
+  ck('une pyramide à base carrée : cinq sommets, huit arêtes',
+     s.pts === 'ABCDE' && s.aretes === 8, `${s.pts} / ${s.aretes}`);
+  ck('  dont trois cachées', s.cachees === 3, String(s.cachees));
+  /* « de hauteur 5 cm » ne doit pas servir AUSSI de côté de base : le même
+     nombre servait deux fois, une fois par son nom et une fois par son rang. */
+  const p1 = await solide('Trace une pyramide');
+  const p2 = await solide('Trace une pyramide de hauteur 5 cm');
+  ck('  et « de hauteur 5 cm » ne change QUE la hauteur',
+     p1.AB === p2.AB && p2.AE > p1.AE, JSON.stringify([p1.AB, p2.AB, p1.AE, p2.AE]));
+  s = await solide('Trace un tétraèdre');
+  ck('un tétraèdre : quatre sommets, six arêtes, deux cachées',
+     s.pts === 'ABCD' && s.aretes === 6 && s.cachees === 2,
+     `${s.pts} / ${s.aretes} / ${s.cachees}`);
+
   console.log('\n=== ce qu\'on DICTE, et ce qu\'on écrit ===');
   /* « Trace un triangle APC tel que P égal 5 cm assez égal 6 cm et PC égal
      7 cm » : personne ne TAPE cela. C'est de la dictée vocale, et le logiciel la

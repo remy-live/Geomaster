@@ -345,6 +345,46 @@ l'hypoténuse, et l'hypoténuse est toujours le plus long côté. C'est ce que
 répond le logiciel, avec les deux longueurs sous les yeux — pas « ce triangle
 n'existe pas ».
 
+### Les solides, en perspective cavalière
+
+*« Trace un cube »*, *« un pavé droit de 6 cm sur 4 cm sur 3 cm »*, *« un
+parallélépipède rectangle »*, *« une pyramide de hauteur 5 cm »*, *« un
+tétraèdre »*.
+
+Ce ne sont **pas** des figures en trois dimensions : c'est la représentation
+conventionnelle qu'on trace au cahier, et le logiciel en suit les trois règles —
+
+- la **face avant en vraie grandeur** (4 cm sur 4 cm pour un cube d'arête 4) ;
+- les **fuyantes à 45°, réduites de moitié** (2 cm) ;
+- les **arêtes cachées en pointillés** — c'est la règle qu'on oublie, et c'est
+  elle qui fait qu'un dessin de cube ressemble à un cube.
+
+Un cube donne huit sommets, douze arêtes dont trois cachées ; une pyramide à
+base carrée cinq sommets et huit arêtes ; un tétraèdre quatre et six. La
+convention est rappelée à chaque fois, sous la consigne.
+
+*« Parallélépipède rectangle »* contient le mot « rectangle » : sans garde-fou,
+il traçait silencieusement un simple rectangle plat.
+
+### Où sur la feuille, et de quelle couleur
+
+*« Trace un carré en haut à gauche, puis un rectangle en haut à droite, puis un
+triangle en bas à gauche, puis un triangle en bas à droite »* : les quatre
+figures se posaient **au même endroit**, les unes par-dessus les autres — quatre
+centres à moins de treize pixels. Elles vont maintenant chacune dans son coin
+(396 px entre les deux plus proches).
+
+*« À droite »* demande de la prudence — en géométrie, une droite est un objet :
+seules les tournures de **place** comptent, et *« à droite de A »*, qui situe par
+rapport à un objet, n'en est pas une.
+
+**Et remplir, c'est remplir.** *« Trace un carré ABCD rempli en vert »* traçait un
+carré au **trait** vert en laissant le fond au bleu pâle par défaut : la réponse
+disait « en vert », la figure disait autre chose. Le fond est maintenant vert et
+**le trait reste noir** — la phrase nomme le fond, pas le contour. *« Hachuré en
+rouge »* hachure ; sans mot de remplissage, *« en rouge »* reste la couleur du
+trait, comme avant.
+
 ### Ce qui se dicte, et ce qui s'écrit
 
 Dictée au micro, une consigne ne ressemble pas à une consigne tapée :
