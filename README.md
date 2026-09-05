@@ -827,20 +827,25 @@ volet — tirez, ça coupe. Éteint, seuls les quatre coins se montrent, et ils
 redimensionnent. Les bords rognaient et les coins redimensionnaient sans que
 rien ne le dise, deux carrés pour deux gestes : on croyait le rognage disparu.
 
-### Deux figures qui ne sont dans aucune liste
+### Les choses cachées
 
-Elles ne servent aucun programme, et c'est bien pour cela qu'elles sont là. On
-les trouve en essayant une phrase pour voir — et ce sont de vraies mathématiques,
-pas des dessins :
+<details>
+<summary><i>Ne dépliez ceci que si vous préférez ne pas les trouver vous-même.</i></summary>
 
-- *« Trace un flocon de Koch »* (`d'ordre 1` à `4`, 3 par défaut). Le périmètre
-  augmente d'un tiers à chaque tour et ne s'arrête jamais ; l'aire reste bornée.
-- *« Trace une spirale »* — la **spirale de Théodore**, des triangles rectangles
-  enchaînés dont les rayons valent 1, √2, √3, √4… Les racines carrées se
-  construisent sous les yeux, à la règle et au compas.
+Deux règles les gouvernent, et la première n'est pas négociable : **un secret ne
+touche pas à la figure.** On tombe dessus par accident, souvent en pleine
+préparation de cours — il n'a le droit ni d'ajouter un objet, ni d'effacer, ni de
+rien changer qu'on aurait à défaire. Et il se referme d'un clic ou d'une touche.
 
-Elles ne figurent pas dans la liste de l'aide : c'est ce qui en fait des
-surprises, et une sonde vérifie qu'elles y restent.
+- **Le code Konami** — ↑ ↑ ↓ ↓ ← → ← → B A, au clavier, n'importe où.
+- **Sept clics sur la date de version**, en petit dans l'aide : le *cabinet de
+  curiosités*, qui donne le nom des deux figures ne figurant dans aucun menu —
+  le **flocon de Koch** (`d'ordre 1` à `4`) et la **spirale de Théodore**
+  (`avec 20 triangles`), dont les rayons valent 1, √2, √3, √4…
+
+C'est là, et nulle part ailleurs dans le logiciel, qu'on apprend leur nom.
+
+</details>
 
 ### Quelle version ai-je sous les yeux ?
 

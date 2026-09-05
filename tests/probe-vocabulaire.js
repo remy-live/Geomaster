@@ -403,6 +403,71 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('  et elles restent hors de la liste de l\'aide : ce sont des surprises',
      !cachees.koch && !cachees.spirale, JSON.stringify(cachees));
 
+  console.log('\n=== les choses cachées, et ce qu\'elles n\'ont PAS le droit de faire ===');
+  /* DEUX RÈGLES, et la première n'est pas négociable : un secret NE TOUCHE PAS À
+     LA FIGURE. On tombe dessus par accident, souvent en pleine préparation de
+     cours — il n'a le droit ni d'ajouter un objet, ni d'effacer, ni de rien
+     changer qu'on aurait à défaire. */
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._consignes = [];
+    app.executerConsigneAvec('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', false);
+  });
+  const avant = await page.evaluate(() => ({
+    n: window.app.entities.length, h: window.app.historyPast.length,
+    code: window.app.codeDocument(), grille: window.app.gridMode }));
+  /* LE CODE KONAMI : personne ne le tape par hasard, et tout le monde le
+     reconnaît. C'est la définition même d'un secret. */
+  for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+                   'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) {
+    await page.keyboard.press(k);
+  }
+  await page.waitForTimeout(350);
+  const kon = await page.evaluate(() => {
+    const v = document.getElementById('secretVoile');
+    return { ouvert: v.classList.contains('ouvert'),
+             texte: v.innerText.replace(/\s+/g, ' ').trim() };
+  });
+  ck('le code Konami ouvre quelque chose', kon.ouvert, kon.texte.slice(0, 50));
+  ck('  et ce quelque chose parle de π', /π/.test(kon.texte) && /3,14159265/.test(kon.texte),
+     kon.texte.slice(0, 60));
+  await page.click('#secretVoile'); await page.waitForTimeout(250);
+  const apres = await page.evaluate(() => ({
+    n: window.app.entities.length, h: window.app.historyPast.length,
+    code: window.app.codeDocument(), grille: window.app.gridMode,
+    ferme: !document.getElementById('secretVoile').classList.contains('ouvert') }));
+  ck('  il se referme d\'un clic', apres.ferme);
+  ck('  ET LA FIGURE EST INTACTE — pas un objet, pas un réglage, pas une annulation',
+     avant.n === apres.n && avant.code === apres.code
+     && avant.h === apres.h && avant.grille === apres.grille,
+     JSON.stringify({ avant: [avant.n, avant.h], apres: [apres.n, apres.h] }));
+
+  /* LA PORTE DÉROBÉE. La date de version, en petit dans l'aide, ne sert à rien
+     d'autre qu'à être lue — sauf si l'on s'acharne dessus. */
+  await page.evaluate(() => window.app.toggleHelp());
+  await page.waitForTimeout(300);
+  for (let i = 0; i < 3; i++) { await page.click('#gmVersion'); await page.waitForTimeout(60); }
+  await page.waitForTimeout(200);
+  ck('trois clics sur la version n\'ouvrent rien : ce n\'est pas un accident',
+     !(await page.evaluate(() => document.getElementById('secretVoile').classList.contains('ouvert'))));
+  for (let i = 0; i < 7; i++) { await page.click('#gmVersion'); await page.waitForTimeout(60); }
+  await page.waitForTimeout(300);
+  const cab = await page.evaluate(() => {
+    const v = document.getElementById('secretVoile');
+    return { ouvert: v.classList.contains('ouvert'),
+             texte: v.innerText.replace(/\s+/g, ' ').trim() };
+  });
+  ck('sept, oui', cab.ouvert, cab.texte.slice(0, 40));
+  /* C'est ICI, et nulle part ailleurs dans le logiciel, qu'on apprend le nom des
+     deux figures qui ne sont dans aucun menu. */
+  ck('  le cabinet donne le nom des deux figures cachées',
+     /Koch/.test(cab.texte) && /Théodore/.test(cab.texte), cab.texte.slice(0, 80));
+  ck('  et laisse entendre qu\'il y a autre chose au clavier',
+     /code que tout le monde/.test(cab.texte), cab.texte.slice(-60));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  ck('  une touche le referme aussi',
+     !(await page.evaluate(() => document.getElementById('secretVoile').classList.contains('ouvert'))));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

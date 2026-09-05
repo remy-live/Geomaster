@@ -1450,6 +1450,62 @@
            mesuré, avant de le corriger. L'aide, elle, porte des titres de section
            qui ne sont pas des .modal-titre : ils gardent leur marge. */
         /* Discrète : c'est un repère, pas une information de travail. */
+        #secretVoile {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 11000;
+            background: rgba(12, 20, 34, .82);
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            cursor: pointer;
+            animation: gmSecretEntre .28s ease-out;
+        }
+        #secretVoile.ouvert { display: flex; }
+        @keyframes gmSecretEntre { from { opacity: 0 } to { opacity: 1 } }
+        #secretBoite {
+            max-width: 560px;
+            width: 100%;
+            max-height: 88dvh;
+            overflow: auto;
+            text-align: center;
+            color: #f1f5f9;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #secretBoite h3 { margin: 0 0 14px; color: #7dd3fc; font-size: 20px; }
+        .secret-pi {
+            font-size: 96px;
+            line-height: 1;
+            color: #fbbf24;
+            font-family: Georgia, 'Times New Roman', serif;
+            animation: gmSecretTourne 2.4s ease-in-out;
+        }
+        @keyframes gmSecretTourne {
+            0% { transform: rotate(-14deg) scale(.6); opacity: 0 }
+            60% { transform: rotate(6deg) scale(1.08); opacity: 1 }
+            100% { transform: none; opacity: 1 }
+        }
+        .secret-nombre {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #94a3b8;
+            word-break: break-all;
+            margin: 10px 0 18px;
+        }
+        .secret-mot { font-size: 15px; line-height: 1.6; margin: 0 0 10px; }
+        .secret-mot span { color: #94a3b8; font-size: 13px; }
+        .secret-liste { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; }
+        .secret-liste li {
+            background: rgba(255, 255, 255, .06);
+            border-left: 3px solid #fbbf24;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+        }
+        .secret-liste b { color: #fbbf24; font-size: 15px; }
+        .secret-liste i { display: block; color: #cbd5e1; font-size: 12.5px; font-style: normal; margin-top: 4px; }
+
         .gm-version {
             font-size: 11px;
             font-weight: normal;
@@ -10480,6 +10536,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          quelque chose que personne ne découvre : c'est exactement pour cela que
          le quart de tour a fini par avoir son bouton. Le vecteur est donc une
          OPTION du segment — même geste, même sens, et la loupe le trouve. -->
+    <!-- LE VOILE DES CHOSES CACHÉES. Il ne touche à rien : ni objet ajouté, ni
+         réglage changé, ni historique remué. On tombe dessus par accident, souvent
+         en pleine préparation de cours — il n'a le droit de rien faire qu'on ait
+         à défaire. Un clic, une touche, il disparaît. -->
+    <div id="secretVoile"><div id="secretBoite"></div></div>
     <div id="segmentOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:238px; font-family:'Segoe UI', sans-serif; font-size:13px;">
         <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Segment</div>
@@ -20618,6 +20679,82 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.showToast(`✅ Image sauvegardée !`);
                     } catch (err) { console.error("Erreur sauvegarde : ", err); }
                 }, mimeType, quality);
+            }
+            /* ============================================================
+               LES CHOSES CACHÉES
+
+               Deux règles, et elles ne sont pas négociables :
+                 · un secret NE TOUCHE PAS À LA FIGURE. On tombe dessus par
+                   accident, souvent en pleine préparation de cours — il n'a le
+                   droit ni d'ajouter un objet, ni d'effacer, ni de rien changer
+                   qu'on aurait à défaire ;
+                 · il se referme d'un clic ou d'une touche, sans rien laisser.
+               Le reste n'est que du plaisir.
+               ============================================================ */
+            armerSecrets() {
+                /* LE CODE KONAMI. Personne ne le tape par hasard, et tout le monde
+                   le reconnaît : c'est la définition même d'un secret. */
+                const CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+                              'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+                let rang = 0;
+                window.addEventListener('keydown', (e) => {
+                    if (this.isTextFieldFocused && this.isTextFieldFocused()) { rang = 0; return; }
+                    const k = (e.key || '').length === 1 ? e.key.toLowerCase() : e.key;
+                    rang = (k === CODE[rang]) ? rang + 1 : (k === CODE[0] ? 1 : 0);
+                    if (rang === CODE.length) { rang = 0; this.ouvrirSecret('konami'); }
+                });
+                /* LA PORTE DÉROBÉE. La date de version, en petit dans l'aide, ne
+                   sert à rien d'autre qu'à être lue — sauf si l'on s'acharne
+                   dessus. Sept clics : assez pour que ce ne soit pas un accident,
+                   assez peu pour qu'un curieux y arrive. */
+                const v = document.getElementById('gmVersion');
+                if (v) {
+                    let n = 0, dernier = 0;
+                    v.style.cursor = 'default';
+                    v.addEventListener('click', () => {
+                        const t = Date.now();
+                        n = (t - dernier < 900) ? n + 1 : 1;
+                        dernier = t;
+                        if (n >= 7) { n = 0; this.ouvrirSecret('cabinet'); }
+                    });
+                }
+            }
+            ouvrirSecret(quoi) {
+                const v = document.getElementById('secretVoile');
+                const b = document.getElementById('secretBoite');
+                if (!v || !b) return;
+                if (quoi === 'konami') {
+                    b.innerHTML = '<div class="secret-pi">π</div>'
+                        + '<p class="secret-nombre">3,14159265358979323846264338327950288419716939937510…</p>'
+                        + '<p class="secret-mot">Il continue. Il continuera toujours.<br>'
+                        + '<span>Vous venez de taper un code vieux de quarante ans '
+                        + 'dans un logiciel de géométrie.</span></p>';
+                } else {
+                    /* LE CABINET DE CURIOSITÉS. Les deux figures qui ne sont dans
+                       aucune liste — c'est ici, et nulle part ailleurs, qu'on
+                       apprend leur nom. */
+                    b.innerHTML = '<h3>Cabinet de curiosités</h3>'
+                        + '<p class="secret-mot">Deux figures ne figurent dans aucun menu. '
+                        + 'Écrivez-les dans une consigne :</p>'
+                        + '<ul class="secret-liste">'
+                        + '<li><b>Trace un flocon de Koch</b><i>3 × 4ⁿ côtés tous égaux. '
+                        + 'Le périmètre ne s’arrête jamais, l’aire reste bornée. '
+                        + '« d’ordre 1 » à « d’ordre 4 ».</i></li>'
+                        + '<li><b>Trace une spirale</b><i>La spirale de Théodore : '
+                        + '1, √2, √3, √4… les racines carrées construites l’une après l’autre. '
+                        + '« avec 20 triangles ».</i></li>'
+                        + '</ul>'
+                        + '<p class="secret-mot"><span>Et il y a autre chose. '
+                        + 'Un code que tout le monde connaît, au clavier.</span></p>';
+                }
+                v.classList.add('ouvert');
+                const fermer = () => {
+                    v.classList.remove('ouvert');
+                    window.removeEventListener('keydown', surTouche, true);
+                };
+                const surTouche = (e) => { e.stopPropagation(); fermer(); };
+                v.onclick = fermer;
+                window.addEventListener('keydown', surTouche, true);
             }
             initShortcuts() {
                 window.addEventListener('keydown', (e) => {
@@ -35335,7 +35472,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 21h';
+        window.GM_VERSION = '2026-09-05 · 22h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
@@ -35491,6 +35628,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const v = document.getElementById('gmVersion');
             if (v) v.textContent = 'version ' + window.GM_VERSION;
         })();
+        app.armerSecrets();
         /* Une ouverture de plus. Ici et pas plus haut : « mode=lecture » vient
            d'être posé sur le corps du document, et l'interface élève ne compte
            pas — la question du don ne s'y pose jamais. */
