@@ -449,6 +449,18 @@ de 48 × 40.
 
 ---
 
+### Le document sous la figure
+
+Une photo de manuel ou un PDF se cale sous la figure, et une barre s'ouvre sous
+lui : **Cadre** (déplacer, tourner), **Page** (faire coulisser et zoomer le
+document dans son cadre), **Rogner**, l'opacité, la grille, le cadenas.
+
+**Rogner est un MODE**, comme dans tout logiciel d'image : le bouton l'allume,
+les coins deviennent des **équerres oranges** et les bords des poignées de
+volet — tirez, ça coupe. Éteint, seuls les quatre coins se montrent, et ils
+redimensionnent. Les bords rognaient et les coins redimensionnaient sans que
+rien ne le dise, deux carrés pour deux gestes : on croyait le rognage disparu.
+
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les

@@ -120,33 +120,45 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('le mode actif est signalé', ba.av.cadre === true && ba.av.page === false);
   ck('verrouillé : la barre se réduit au cadenas', ba.verrouille.aff === 'none' && ba.verrouille.verrou !== 'none');
   ck('verrouillé : le document ne répond plus aux gestes', ba.verrouille.zone === null);
-  /* ON PEUT ENCORE ROGNER — et surtout, ON LE VOIT. Le rognage est sur les
-     BORDS du cadre, le redimensionnement sur les coins. Les deux se dessinaient
-     en carré, plein d'un côté, creux de l'autre, et le code prétendait que
-     « la différence de remplissage le dit sans un mot » : on croyait le
-     rognage disparu. Et le bouton « Recadrer » renvoyait à une barre où il n'y
-     a aucune commande de rognage. */
-  console.log('\n=== rogner le document ===');
+  /* LE ROGNAGE EST UN MODE, comme dans tous les logiciels d'image. Les bords
+     rognaient et les coins redimensionnaient, sans que rien ne le dise : deux
+     gestes différents sur des poignées qui se ressemblaient, et l'on croyait
+     le rognage disparu. Un bouton l'allume ; les poignées changent alors
+     d'aspect ET de rôle. */
+  console.log('\n=== le rognage est un mode ===');
   await poser(); await page.waitForTimeout(200);
-  const rogne = await page.evaluate(() => {
+  const eteint = await page.evaluate(() => {
     const app = window.app, g = app.bgImage;
-    g.docMode = 'cadre'; app.selectedObject = g; app.render();
-    const av = { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: g.cropR };
-    // le bord droit ouvre le volet : la fenêtre rétrécit, l'image n'est pas étirée
-    const zoneBord = g.getHitZone(g.x + g.width / 2, g.y);
-    const zoneCoin = g.getHitZone(g.x + g.width / 2, g.y + g.height / 2);
-    const largeurAv = g.width;
-    app.dragTarget = g; app.dragZone = 'volet-e';
-    if (typeof g.ouvrirVolet === 'function') g.ouvrirVolet('e', -100);
-    return { av, zoneBord, zoneCoin, largeurAv: Math.round(largeurAv) };
+    g.docMode = 'cadre'; g.rognage = false; app.selectedObject = g;
+    app.majBarreDocument(); app.render();
+    const btn = document.getElementById('docRogner');
+    return { rognage: !!g.rognage,
+             coin: g.getHitZone(g.x + g.width / 2, g.y + g.height / 2),
+             bord: g.getHitZone(g.x + g.width / 2, g.y),
+             bouton: !!btn, actif: btn ? btn.classList.contains('actif') : null };
   });
-  console.log('  ' + JSON.stringify(rogne));
-  ck('le bord du cadre est une poignée de volet', rogne.zoneBord === 'volet-e', String(rogne.zoneBord));
-  ck('le coin en est une autre — il redimensionne', rogne.zoneCoin === 'coin-se', String(rogne.zoneCoin));
+  console.log('  éteint : ' + JSON.stringify(eteint));
+  ck('un bouton « Rogner » existe dans la barre', eteint.bouton === true);
+  ck('éteint : le coin redimensionne', eteint.coin === 'coin-se', String(eteint.coin));
+  ck('éteint : le bord ne rogne pas', eteint.bord === 'move', String(eteint.bord));
 
-  /* Le geste, à la souris, comme un utilisateur : on tire le bord droit vers
-     l'intérieur. La fenêtre rétrécit et la SOURCE ne bouge pas — c'est ce qui
-     distingue un rognage d'une mise à l'échelle. */
+  const allume = await page.evaluate(() => {
+    const app = window.app;
+    app.basculerRognage();
+    const g = app.bgImage;
+    return { rognage: !!g.rognage,
+             coin: g.getHitZone(g.x + g.width / 2, g.y + g.height / 2),
+             bord: g.getHitZone(g.x + g.width / 2, g.y),
+             actif: document.getElementById('docRogner').classList.contains('actif') };
+  });
+  console.log('  allumé : ' + JSON.stringify(allume));
+  ck('allumé : le bouton le montre', allume.actif === true);
+  ck('allumé : le bord rogne', allume.bord === 'volet-e', String(allume.bord));
+  ck('allumé : le coin rogne aussi', allume.coin === 'volet-se', String(allume.coin));
+
+  /* Le geste, à la souris : on tire le bord droit vers l'intérieur. La fenêtre
+     rétrécit et la SOURCE ne bouge pas — c'est ce qui distingue un rognage
+     d'une mise à l'échelle. */
   const pos = await page.evaluate(() => {
     const app = window.app, g = app.bgImage;
     const c = app.canvas.getBoundingClientRect(), z = app.view.zoom || 1;
@@ -165,31 +177,45 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await page.waitForTimeout(200);
   const apresG = await page.evaluate(() => {
     const g = window.app.bgImage;
-    return { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: +g.cropR.toFixed(3),
-             curseur: getComputedStyle(window.app.canvas).cursor };
+    return { w: Math.round(g.width), sw: Math.round(g.srcW), cropR: +g.cropR.toFixed(3) };
   });
   console.log('  ' + JSON.stringify(avantG) + ' → ' + JSON.stringify(apresG));
-  ck('tirer le bord rétrécit la fenêtre', apresG.w < avantG.w - 50,
-     `${avantG.w} → ${apresG.w}`);
+  ck('tirer le bord rétrécit la fenêtre', apresG.w < avantG.w - 50, `${avantG.w} → ${apresG.w}`);
   ck('et coupe l\'image au lieu de l\'étirer',
      apresG.cropR < avantG.cropR - 0.05 && Math.abs(apresG.sw - avantG.sw) < 2,
      `cropR ${avantG.cropR} → ${apresG.cropR}, source ${avantG.sw} → ${apresG.sw}`);
 
-  /* Le bouton « Recadrer » du menu contextuel doit DIRE le geste : il renvoyait
-     à la barre, où il n'y a rien de tel. */
+  /* Un coin, en rognage, coupe DEUX bords à la fois. */
+  const coin2 = await page.evaluate(() => {
+    const app = window.app, g = app.bgImage;
+    const av = { cropR: +g.cropR.toFixed(3), cropB: +g.cropB.toFixed(3) };
+    const l = g.toLocal(g.x + g.width / 2 - 50, g.y + g.height / 2 - 40);
+    const ec = (b2, q) => b2 === 'e' ? q.x - g.width / 2 : b2 === 's' ? q.y - g.height / 2 : 0;
+    g.ouvrirVolet('e', ec('e', l));
+    g.ouvrirVolet('s', ec('s', g.toLocal(g.x + g.width / 2 - 50, g.y + g.height / 2 - 40)));
+    app.render();
+    return { av, ap: { cropR: +g.cropR.toFixed(3), cropB: +g.cropB.toFixed(3) } };
+  });
+  console.log('  coin : ' + JSON.stringify(coin2));
+  ck('le coin coupe les deux bords',
+     coin2.ap.cropR < coin2.av.cropR && coin2.ap.cropB < coin2.av.cropB, JSON.stringify(coin2));
+
+  /* Le bouton « Recadrer » du menu contextuel allume le mode : il renvoyait à
+     la barre du document, où il n'y avait alors aucune commande de rognage. */
   const dit = await page.evaluate(() => {
     const app = window.app;
+    app.bgImage.rognage = false;
     app.selectedObject = app.bgImage;
     let message = '';
     const vrai = app.showToast;
     app.showToast = (m) => { message = m; };
     app.styleObject('image-crop');
     app.showToast = vrai;
-    return { message, mode: app.bgImage.docMode };
+    return { message, rognage: !!app.bgImage.rognage, mode: app.bgImage.docMode };
   });
   console.log('  ' + JSON.stringify(dit));
-  ck('« Recadrer » passe en mode cadre', dit.mode === 'cadre');
-  ck('et dit quel geste rogne', /BORD/.test(dit.message), dit.message);
+  ck('« Recadrer » allume le rognage', dit.rognage === true && dit.mode === 'cadre');
+  ck('et dit le geste', /bord|coin/i.test(dit.message), dit.message);
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

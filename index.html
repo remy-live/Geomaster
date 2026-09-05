@@ -3696,6 +3696,23 @@
             border-color: #fff;
         }
 
+        /* « Définir la vue » n'est pas un choix d'appareil : c'est l'ACTION de
+           cette fenêtre, celle qui met le cadrage dans le lien. Elle se
+           distingue des trois sélecteurs, et prend le vert de ce qui engage. */
+        .preview-definir {
+            background: #27ae60;
+            border-color: #27ae60;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .preview-definir:hover { background: #2ecc71; border-color: #2ecc71; }
+
+        .preview-definir.fait {
+            background: #1e8449;
+            border-color: #1e8449;
+        }
+
         #previewTaille {
             color: rgba(255, 255, 255, .7);
             font-size: 12px;
@@ -8479,6 +8496,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <path d="M12 8.5v7M8.5 12h7M12 8.5l-1.6 1.6M12 8.5l1.6 1.6M12 15.5l-1.6-1.6M12 15.5l1.6-1.6M8.5 12l1.6-1.6M8.5 12l1.6 1.6M15.5 12l-1.6-1.6M15.5 12l1.6 1.6" />
                     </svg><span>Page</span></button>
                 <i class="doc-sep"></i>
+                <!-- LE ROGNAGE EST UN MODE, comme dans tous les logiciels d'image :
+                     un bouton l'allume, les poignées deviennent des équerres, et
+                     l'on coupe. Éteint, les coins redimensionnent. -->
+                <button class="doc-btn" id="docRogner" onclick="app.basculerRognage()"
+                    data-tooltip="Rogner : tirez les bords ou les coins pour couper le document">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+                        <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+                    </svg><span>Rogner</span></button>
+                <i class="doc-sep"></i>
                 <input type="range" id="docOpacite" min="0.1" max="1" step="0.05" value="0.5"
                     data-tooltip="Opacité" style="width:70px; accent-color:#0284c7;">
                 <button class="doc-btn" id="docGrille" onclick="app.basculerGrilleDocument()"
@@ -9568,6 +9596,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                  tranche. -->
             <button class="preview-appareil" id="previewCadrer"
                 data-tooltip="Proposer un cadrage qui fait tenir la figure sur cet appareil">⤢ Cadrer</button>
+            <button class="preview-appareil preview-definir" id="previewDefinirVue"
+                data-tooltip="Enregistrer ce cadrage dans le lien : c'est ce que l'élève verra">✓ Définir la vue</button>
             <span id="previewTaille"></span>
         </div>
         <div class="preview-scene">
@@ -9600,6 +9630,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (c) c.addEventListener('click', function () {
                 var f = document.getElementById('previewFrame');
                 if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'gmCadrer' }, '*');
+            });
+            var d = document.getElementById('previewDefinirVue');
+            if (d) d.addEventListener('click', function () {
+                var f = document.getElementById('previewFrame');
+                if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'gmDefinirVue' }, '*');
+                // la réponse arrive par message ; on le dit tout de suite au doigt
+                d.classList.add('fait');
+                var av = d.textContent;
+                d.textContent = '✓ Vue enregistrée';
+                setTimeout(function () { d.textContent = av; d.classList.remove('fait'); }, 1600);
             });
         })();
     </script>
@@ -10998,6 +11038,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* 'cadre' : on manipule la fenêtre. 'page' : on manipule le document
                    derrière. Jamais sauvegardé — c'est un état de travail. */
                 this.docMode = 'cadre';
+                /* LE ROGNAGE EST UN MODE, pas une convention. Les bords rognaient
+                   et les coins redimensionnaient, sans que rien ne le dise : on
+                   croyait le rognage disparu. Un bouton l'allume, les poignées
+                   changent d'aspect ET de rôle, et l'on sait ce qu'on fait. */
+                this.rognage = false;
                 this.pdfDoc = null; this.pdfPage = 1; this.pdfPages = 0;
             }
 
@@ -11149,10 +11194,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    page vers le haut ou la gauche, il fallait déplacer la fenêtre puis
                    rattraper de l'autre côté. Les coins d'abord : ils sont à
                    l'intersection de deux bords. */
-                if (MathUtils.dist(l.x, l.y, -w2, -h2) < margin) return 'coin-nw';
-                if (MathUtils.dist(l.x, l.y, w2, -h2) < margin) return 'coin-ne';
-                if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return 'coin-se';
-                if (MathUtils.dist(l.x, l.y, -w2, h2) < margin) return 'coin-sw';
+                /* En ROGNAGE, les huit poignées coupent ; sinon les quatre coins
+                   redimensionnent et les bords ne font rien — on ne peut pas se
+                   tromper de geste, puisqu'un seul est proposé à la fois. */
+                const R = this.rognage ? 'volet' : 'coin';
+                if (MathUtils.dist(l.x, l.y, -w2, -h2) < margin) return R + '-nw';
+                if (MathUtils.dist(l.x, l.y, w2, -h2) < margin) return R + '-ne';
+                if (MathUtils.dist(l.x, l.y, w2, h2) < margin) return R + '-se';
+                if (MathUtils.dist(l.x, l.y, -w2, h2) < margin) return R + '-sw';
+                if (!this.rognage) return 'move';
                 if (Math.abs(l.x - w2) < margin && Math.abs(l.y) < h2 - 10) return 'volet-e';
                 if (Math.abs(l.x + w2) < margin && Math.abs(l.y) < h2 - 10) return 'volet-w';
                 if (Math.abs(l.y - h2) < margin && Math.abs(l.x) < w2 - 10) return 'volet-s';
@@ -11239,11 +11289,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                deviennent des BARRES posées le long du bord, avec
                                deux chevrons qui montrent de quel côté tirer —
                                la poignée d'un volet, pas un point d'ancrage. */
-                            ctx.lineWidth = 2; ctx.strokeStyle = '#2980b9';
-                            ctx.fillStyle = '#2980b9';
-                            [[-w2, -h2], [w2, -h2], [w2, h2], [-w2, h2]].forEach(([hx, hy]) => {
-                                ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill();
-                            });
+                            const enRognage = !!this.rognage;
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = enRognage ? '#f39c12' : '#2980b9';
+                            ctx.fillStyle = enRognage ? '#f39c12' : '#2980b9';
+                            if (enRognage) {
+                                /* EN ROGNAGE, les coins sont des ÉQUERRES — le
+                                   signe du recadrage sur toutes les photos du
+                                   monde — et le cadre est orange, pas bleu : on
+                                   voit d'un coup d'œil dans quel mode on est. */
+                                ctx.lineWidth = 4; ctx.lineCap = 'round';
+                                const L = 20;
+                                [[-w2, -h2, 1, 1], [w2, -h2, -1, 1], [w2, h2, -1, -1], [-w2, h2, 1, -1]]
+                                    .forEach(([hx, hy, sx, sy]) => {
+                                        ctx.beginPath();
+                                        ctx.moveTo(hx + sx * L, hy);
+                                        ctx.lineTo(hx, hy);
+                                        ctx.lineTo(hx, hy + sy * L);
+                                        ctx.stroke();
+                                    });
+                                ctx.lineCap = 'butt';
+                            } else {
+                                [[-w2, -h2], [w2, -h2], [w2, h2], [-w2, h2]].forEach(([hx, hy]) => {
+                                    ctx.beginPath(); ctx.rect(hx - 6, hy - 6, 12, 12); ctx.fill();
+                                });
+                            }
                             const volet = (hx, hy, vertical) => {
                                 const L = 26, E = 9;
                                 const w = vertical ? E : L, h = vertical ? L : E;
@@ -11251,7 +11321,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 if (ctx.roundRect) ctx.roundRect(hx - w / 2, hy - h / 2, w, h, 3);
                                 else ctx.rect(hx - w / 2, hy - h / 2, w, h);
                                 ctx.fillStyle = '#fff'; ctx.fill();
-                                ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2; ctx.stroke();
+                                ctx.strokeStyle = enRognage ? '#f39c12' : '#2980b9';
+                                ctx.lineWidth = 2; ctx.stroke();
                                 // deux chevrons : on tire vers l'intérieur ou vers l'extérieur
                                 ctx.beginPath(); ctx.lineWidth = 1.6;
                                 if (vertical) {
@@ -11263,8 +11334,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                                 ctx.stroke();
                             };
-                            volet(w2, 0, true); volet(-w2, 0, true);
-                            volet(0, h2, false); volet(0, -h2, false);
+                            /* Hors rognage, les bords ne font rien : ne pas les
+                               montrer est la seule façon honnête de le dire. */
+                            if (enRognage) {
+                                volet(w2, 0, true); volet(-w2, 0, true);
+                                volet(0, h2, false); volet(0, -h2, false);
+                            }
                         }
                     }
                 }
@@ -18357,6 +18432,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.majBarreDocument();
                 this.render();
             }
+            /* Allumer ou éteindre le rognage. Il ne vit que le temps du réglage :
+               rien n'est enregistré, c'est un état de travail comme docMode. */
+            basculerRognage() {
+                const bg = this.bgImage;
+                if (!bg) return;
+                bg.rognage = !bg.rognage;
+                if (bg.rognage) { bg.isLocked = false; bg.docMode = 'cadre'; }
+                this.majBarreDocument();
+                this.render();
+                this.showToast(bg.rognage
+                    ? "✂️ Rognage : tirez un bord ou un coin pour couper"
+                    : "Rognage terminé — les coins redimensionnent à nouveau");
+            }
             basculerGrilleDocument() {
                 if (!this.bgImage) return;
                 this.bgImage.isBehindGrid = !this.bgImage.isBehindGrid;
@@ -18385,7 +18473,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const verrou = !!bg.isLocked;
                 /* Verrouillé, la barre se réduit au cadenas : elle ne doit pas
                    encombrer la figure, mais il faut toujours un chemin de retour. */
-                barre.querySelectorAll('.doc-mode, #docOpacite, #docGrille, .doc-fermer, #docPages')
+                barre.querySelectorAll('.doc-mode, #docOpacite, #docGrille, #docRogner, .doc-fermer, #docPages')
                     .forEach(el => { el.style.display = verrou ? 'none' : (el.id === 'docPages' ? '' : ''); });
                 const pages = document.getElementById('docPages');
                 pages.style.display = (!verrou && bg.pdfDoc) ? 'inline-flex' : 'none';
@@ -18400,6 +18488,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 document.getElementById('docModeCadre').classList.toggle('actif', !verrou && bg.docMode === 'cadre');
                 document.getElementById('docModePage').classList.toggle('actif', !verrou && bg.docMode === 'page');
                 document.getElementById('docGrille').classList.toggle('actif', !!bg.isBehindGrid);
+                const br = document.getElementById('docRogner');
+                if (br) {
+                    br.style.display = verrou ? 'none' : 'inline-flex';
+                    br.classList.toggle('actif', !!bg.rognage);
+                }
                 const bv = document.getElementById('docVerrou');
                 bv.classList.toggle('actif', verrou);
                 bv.setAttribute('data-tooltip', verrou
@@ -20690,14 +20783,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.selectedObject instanceof BackgroundImage) {
                         document.getElementById('contextMenu').style.display = 'none';
                         this.choisirModeDocument('cadre');
+                        this.selectedObject.rognage = true;
+                        this.majBarreDocument();
+                        this.render();
                         /* LE MESSAGE DIT LE GESTE. Il renvoyait « à la barre sous
                            le document » — où il n'y a AUCUNE commande de rognage :
                            on cliquait « Recadrer », on lisait qu'il fallait aller
                            ailleurs, on ne trouvait rien, et l'on concluait que le
                            rognage avait disparu. Il n'avait pas disparu : il est
                            sur les bords du cadre. */
-                        this.showToast("✂️ Tirez un BORD du document pour le rogner "
-                            + "— un COIN pour le redimensionner");
+                        this.showToast("✂️ Rognage : tirez un bord ou un coin pour couper. "
+                            + "Le bouton « Rogner » de la barre l'éteint.");
                         return;
                     }
                 }
@@ -25601,12 +25697,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (mode && mode.startsWith('volet-') && w instanceof BackgroundImage) {
                         const local = w.toLocal(rx, ry);
                         const bord = mode.slice(6);
-                        // distance dont le bord saisi s'écarte de sa position actuelle
-                        const ecart = bord === 'e' ? local.x - w.width / 2
-                            : bord === 'w' ? -(local.x + w.width / 2)
-                                : bord === 's' ? local.y - w.height / 2
-                                    : -(local.y + w.height / 2);
-                        w.ouvrirVolet(bord, ecart);
+                        const ecartDe = (b2, l) => b2 === 'e' ? l.x - w.width / 2
+                            : b2 === 'w' ? -(l.x + w.width / 2)
+                                : b2 === 's' ? l.y - w.height / 2
+                                    : -(l.y + w.height / 2);
+                        /* UN COIN, EN ROGNAGE, COUPE DEUX BORDS À LA FOIS — c'est
+                           ce qu'on attend d'un coin de recadrage. Le second bord
+                           se mesure APRÈS le premier : la fenêtre a bougé, et
+                           l'écart lu avant ne vaut plus rien. */
+                        if (bord.length === 2) {
+                            const vert = bord[0] === 'n' ? 'n' : 's';
+                            const horz = bord[1] === 'w' ? 'w' : 'e';
+                            w.ouvrirVolet(horz, ecartDe(horz, local));
+                            w.ouvrirVolet(vert, ecartDe(vert, w.toLocal(rx, ry)));
+                        } else {
+                            w.ouvrirVolet(bord, ecartDe(bord, local));
+                        }
                     }
                     else if (mode === 'pageGlisser' && w instanceof BackgroundImage) {
                         const av = w.toLocal(this.dragStartMouse.x, this.dragStartMouse.y);
@@ -25830,7 +25936,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (hoveredWidget) {
                     const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
                     if (hoveredWidget instanceof ProtractorWidget) { if (zone === 'toggleLock') this.canvas.title = "Verrouiller le centre pour tracer..."; else if (zone === 'toggleDouble') this.canvas.title = "Double graduation"; else this.canvas.title = ""; } else { this.canvas.title = ""; }
-                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-w': 'ew-resize', 'volet-s': 'ns-resize', 'volet-n': 'ns-resize', 'coin-nw': 'nwse-resize', 'coin-se': 'nwse-resize', 'coin-ne': 'nesw-resize', 'coin-sw': 'nesw-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
+                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-w': 'ew-resize', 'volet-s': 'ns-resize', 'volet-n': 'ns-resize', 'volet-nw': 'nwse-resize', 'volet-se': 'nwse-resize', 'volet-ne': 'nesw-resize', 'volet-sw': 'nesw-resize', 'coin-nw': 'nwse-resize', 'coin-se': 'nwse-resize', 'coin-ne': 'nesw-resize', 'coin-sw': 'nesw-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
                     if (cursors[zone]) cursor = cursors[zone]; else cursor = 'pointer';
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
@@ -31706,44 +31812,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <button class="p-btn" onclick="app.view.zoom *= 1.1; app.render();" data-tooltip="Zoom In">+</button>
             <button class="p-btn" onclick="app.view.zoom /= 1.1; app.render();" data-tooltip="Zoom Out">-</button>
         `;
-            if (isPreview) {
-                buttonsHTML += `
-                <button class="p-btn save-view" id="btnSaveView" data-tooltip="Utiliser ce cadrage pour le lien élève">
-                     <svg viewBox="0 0 122.88 114.318" fill="currentColor" style="width:20px;height:20px;vertical-align:middle;margin-right:5px;">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M122.88,35.289L87.945,70.578v-17.58c-22.091-4.577-39.542,0.468-52.796,17.271 c2.301-34.558,25.907-51.235,52.795-52.339L87.945,0L122.88,35.289L122.88,35.289z"/>
-                        <path d="M6.908,23.746h35.626c-4.587,3.96-8.71,8.563-12.264,13.815H13.815v62.943h80.603V85.831l13.814-13.579v35.159 c0,3.814-3.093,6.907-6.907,6.907H6.908c-3.815,0-6.908-3.093-6.908-6.907V30.653C0,26.838,3.093,23.746,6.908,23.746L6.908,23.746 z"/>
-                    </svg>
-                    Définir vue
-                </button>
-            `;
-            }
+            /* « DÉFINIR VUE » A QUITTÉ LA MAQUETTE. Le bouton vivait DANS
+               l'aperçu — au fond du téléphone dessiné, entre la pagination et
+               le zoom, à 59 % de taille : on ne le voyait pas. C'est pourtant
+               le seul geste qui met le cadrage dans le lien. Il est maintenant
+               dans la barre de la fenêtre, à côté de « ⤢ Cadrer » qui le
+               propose : proposer et trancher se suivent. L'aperçu, lui, ne
+               garde que ce qu'un élève verra. */
             toolsDiv.innerHTML = buttonsHTML;
             document.body.appendChild(toolsDiv);
 
             if (isPreview) {
                 /* Le parent demande un cadrage : on le PROPOSE et on le dit. Rien
-                   n'est enregistré — « Définir vue » reste le seul geste qui pose
-                   le cadrage dans le lien de l'élève. */
+                   n'est enregistré — « ✓ Définir la vue », dans la barre de la
+                   fenêtre, reste le seul geste qui pose le cadrage dans le lien
+                   de l'élève. */
                 window.addEventListener('message', (e) => {
                     if (!e.data || e.data.type !== 'gmCadrer') return;
                     const marge = Math.max(26, Math.min(70, window.innerWidth * 0.07));
                     app.cadrerSurFigure(marge);
                     window.parent.postMessage({ type: 'gmCadre', zoom: app.view.zoom }, '*');
                 });
-                const btnSave = document.getElementById('btnSaveView');
-                if (btnSave) {
-                    btnSave.onclick = () => {
-                        const newCode = app.getCompressedString();
-                        window.parent.postMessage({ type: 'updateShareCode', code: newCode }, '*');
-                        const originalContent = btnSave.innerHTML;
-                        btnSave.innerHTML = "C'est fait !";
-                        btnSave.style.background = "#2ecc71";
-                        setTimeout(() => {
-                            btnSave.innerHTML = originalContent;
-                            btnSave.style.background = "#27ae60";
-                        }, 1500);
-                    };
-                }
+                /* Le bouton est dehors ; c'est lui qui demande, par message,
+                   le code du cadrage courant. */
+                window.addEventListener('message', (e) => {
+                    if (!e.data || e.data.type !== 'gmDefinirVue') return;
+                    window.parent.postMessage({ type: 'updateShareCode',
+                                                code: app.getCompressedString() }, '*');
+                });
             }
 
             app.resizeCanvas();
@@ -31817,7 +31913,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                professeur peut encore le déplacer à la main avant de trancher. */
             if (event.data && event.data.type === 'gmCadre') {
                 noteApercu('Cadrage proposé — déplacez-le encore si vous voulez, puis '
-                    + '<b>Définir vue</b> dans le cadre pour le garder dans le lien.');
+                    + '<b>✓ Définir la vue</b>, en haut, pour le garder dans le lien.');
                 return;
             }
             if (event.data && event.data.type === 'updateShareCode') {

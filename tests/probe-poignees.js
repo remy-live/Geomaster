@@ -20,11 +20,15 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   }));
   await page.waitForTimeout(200);
 
+  /* LE ROGNAGE EST UN MODE : les bords ne répondent que lorsqu'il est allumé,
+     et les coins changent alors de rôle. Éteint, seuls les quatre coins
+     redimensionnent — ne montrer que le geste possible est la seule façon
+     honnête de dire lequel c'est. */
   console.log('\n=== les huit poignées répondent, à plat et tourné ===');
   for (const ang of [0, 0.4]) {
     const z = await page.evaluate((ang) => {
       const g = window.app.bgImage;
-      g.angle = ang; g.docMode = 'cadre'; g.isLocked = false;
+      g.angle = ang; g.docMode = 'cadre'; g.isLocked = false; g.rognage = true;
       const w2 = g.width / 2, h2 = g.height / 2;
       const Z = (lx, ly) => { const p = g.toGlobal(lx, ly); return g.getHitZone(p.x, p.y); };
       return { nw: Z(-w2, -h2), ne: Z(w2, -h2), se: Z(w2, h2), sw: Z(-w2, h2),
@@ -32,8 +36,23 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
                rot: Z(0, -h2 - 25), dedans: Z(0, 0) };
     }, ang);
     console.log(`  angle ${ang} : ${JSON.stringify(z)}`);
-    ck(`coins (angle ${ang})`, z.nw === 'coin-nw' && z.ne === 'coin-ne' && z.se === 'coin-se' && z.sw === 'coin-sw');
+    ck(`coins, en rognage (angle ${ang})`,
+       z.nw === 'volet-nw' && z.ne === 'volet-ne' && z.se === 'volet-se' && z.sw === 'volet-sw',
+       JSON.stringify([z.nw, z.ne, z.se, z.sw]));
     ck(`bords (angle ${ang})`, z.e === 'volet-e' && z.o === 'volet-w' && z.s === 'volet-s' && z.n === 'volet-n');
+    const hors = await page.evaluate((ang2) => {
+      const g = window.app.bgImage;
+      g.angle = ang2; g.rognage = false;
+      const w2 = g.width / 2, h2 = g.height / 2;
+      const Z = (lx, ly) => { const p = g.toGlobal(lx, ly); return g.getHitZone(p.x, p.y); };
+      const r = { nw: Z(-w2, -h2), se: Z(w2, h2), e: Z(w2, 0), n: Z(0, -h2) };
+      g.rognage = true;
+      return r;
+    }, ang);
+    ck(`hors rognage, les coins redimensionnent (angle ${ang})`,
+       hors.nw === 'coin-nw' && hors.se === 'coin-se', JSON.stringify(hors));
+    ck(`hors rognage, les bords ne coupent pas (angle ${ang})`,
+       hors.e === 'move' && hors.n === 'move', JSON.stringify(hors));
     ck(`rotation et intérieur (angle ${ang})`, z.rot === 'rotate' && z.dedans === 'move');
   }
 

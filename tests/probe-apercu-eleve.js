@@ -141,10 +141,26 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   console.log('  note : ' + noteProposee);
   ck('le lien n\'a pas bougé pour autant',
      (await page.evaluate(() => document.getElementById('previewLien').value)) === lienAvant);
-  ck('et la note dit qui tranche', /Définir vue/.test(noteProposee), noteProposee);
+  ck('et la note dit qui tranche', /Définir la vue/.test(noteProposee), noteProposee);
 
-  await cadre().click('#btnSaveView');
-  await page.waitForTimeout(700);
+  /* « DÉFINIR LA VUE » A QUITTÉ LA MAQUETTE. Le bouton vivait DANS l'aperçu,
+     au fond du téléphone dessiné et à 59 % de taille : on ne le voyait pas,
+     alors que c'est le seul geste qui met le cadrage dans le lien. Il est
+     maintenant dans la barre de la fenêtre, à côté de « Cadrer » qui propose. */
+  const dehors = await page.evaluate(() => {
+    const d = document.getElementById('previewDefinirVue');
+    return d ? { visible: getComputedStyle(d).display !== 'none',
+                 boite: (() => { const r = d.getBoundingClientRect();
+                                 return [Math.round(r.width), Math.round(r.height)]; })() } : null;
+  });
+  console.log('  bouton : ' + JSON.stringify(dehors));
+  ck('« Définir la vue » est dans la barre, pas dans la maquette',
+     !!dehors && dehors.visible && dehors.boite[0] > 80, JSON.stringify(dehors));
+  const dedans = await cadre().evaluate(() => !!document.getElementById('btnSaveView'));
+  ck('et il n\'est plus dans l\'aperçu', dedans === false, String(dedans));
+
+  await page.click('#previewDefinirVue');
+  await page.waitForTimeout(900);
   const lienApres = await page.evaluate(() => document.getElementById('previewLien').value);
   const noteFinale = await page.evaluate(() => document.getElementById('previewNote').textContent);
   console.log('  note : ' + noteFinale);
