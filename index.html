@@ -2439,39 +2439,64 @@
         }
 
         /* Cartes de la bibliothèque : une vignette, un nom, une croix. */
+        /* LA BIBLIOTHÈQUE MONTRE LES FIGURES. Elle alignait des cartes de
+           texte pur — un titre gras centré, un liseré bleu, un dégradé, et
+           « 2 étapes » flottant au milieu de rien — dans un logiciel de
+           GÉOMÉTRIE. On reconnaît une médiatrice à son dessin, pas à son nom.
+           Les vignettes des exemples sont fabriquées au vol, à la première
+           ouverture : elles ne coûtent pas un octet au fichier. */
         .biblio-carte {
             position: relative;
-            width: 170px;
-            border: 1px solid #e3e6e8;
-            border-radius: 10px;
+            /* La fenêtre modale centre son texte ; une carte, non : un nom sur
+               deux lignes centrées se lit deux fois moins vite qu'aligné. */
+            text-align: left;
+            width: 132px;
+            border: 1px solid #e5e9ec;
+            border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
             background: #fff;
+            transition: border-color .15s, box-shadow .15s, transform .15s;
         }
 
         .biblio-carte:hover {
-            border-color: #2980b9;
-            box-shadow: 0 4px 14px rgba(41, 128, 185, 0.18);
+            border-color: #90caf9;
+            box-shadow: 0 3px 10px rgba(41, 128, 185, .13);
+            transform: translateY(-1px);
         }
 
-        .biblio-carte img {
+        .biblio-carte img,
+        .biblio-vue {
             display: block;
             width: 100%;
-            height: 108px;
+            height: 92px;
             /* la vignette est découpée sur la figure : elle n'a plus le format de
                l'écran, et « cover » la recouperait. On la montre entière. */
             object-fit: contain;
-            background: #fff;
+            background: #fbfcfd;
+            border-bottom: 1px solid #eef1f3;
         }
 
         .biblio-nom {
             display: block;
-            padding: 6px 8px;
+            padding: 6px 8px 2px;
             font: 600 12px 'Segoe UI', sans-serif;
-            color: #333;
-            white-space: nowrap;
+            color: #37474f;
+            line-height: 1.25;
+            /* Deux lignes au plus, et coupé proprement : « Cercle circonscrit à
+               un triangle » ne doit pas décaler la carte d'à côté. */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
             overflow: hidden;
-            text-overflow: ellipsis;
+            min-height: 32px;
+        }
+
+        .biblio-detail {
+            display: block;
+            padding: 0 8px 7px;
+            font: 11px 'Segoe UI', sans-serif;
+            color: #90a4ae;
         }
 
         .biblio-sup {
@@ -2488,45 +2513,46 @@
             line-height: 1;
             cursor: pointer;
             padding: 0;
+            opacity: 0;
+            transition: opacity .15s;
         }
+
+        .biblio-carte:hover .biblio-sup,
+        .biblio-sup:focus { opacity: 1; }
+
+        @media (pointer: coarse) { .biblio-sup { opacity: 1; } }
 
         .biblio-sup:hover {
             background: #d32f2f;
             color: #fff;
         }
 
-        /* Les exemples : pas de photo, un bandeau et deux lignes. Ils se
-           distinguent des séances de l'utilisateur, et c'est voulu. */
         .biblio-titre {
             width: 100%;
-            margin: 10px 2px 2px;
-            font: 600 11px 'Segoe UI', sans-serif;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-            color: #8e99a4;
-            border-top: 1px solid #edf0f2;
-            padding-top: 10px;
+            text-align: left;
+            margin: 14px 2px 4px;
+            font: 600 12px 'Segoe UI', sans-serif;
+            color: #78909c;
+            border-top: 1px solid #eef1f3;
+            padding-top: 12px;
         }
 
-        .biblio-carte.biblio-exemple {
-            width: 170px;
-            padding: 10px 10px 9px;
-            border-left: 4px solid #2980b9;
-            background: linear-gradient(180deg, #f7fbff 0%, #fff 60%);
+        .biblio-titre small {
+            font-weight: 400;
+            color: #b0bec5;
+            margin-left: 6px;
         }
 
-        .biblio-exemple .biblio-nom {
-            padding: 0;
-            white-space: normal;
-            line-height: 1.25;
-            min-height: 30px;
-        }
-
-        .biblio-exemple .biblio-detail {
-            display: block;
-            margin-top: 4px;
-            font: 11px 'Segoe UI', sans-serif;
-            color: #7f8c8d;
+        .biblio-vide {
+            width: 100%;
+            margin: 6px 0 2px;
+            padding: 14px;
+            border: 1px dashed #dde3e7;
+            border-radius: 8px;
+            background: #fafbfc;
+            color: #78909c;
+            font: 12.5px 'Segoe UI', sans-serif;
+            text-align: center;
         }
 
         /* Pagination de la séance. Discrète par construction : les commandes qui
@@ -9277,20 +9303,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          ou la donner à un collègue. -->
     <div id="biblioModal" class="modal-overlay" style="display:none;"
         onclick="if(event.target === this) this.style.display='none'">
-        <div class="modal-box" style="width: 620px; max-width: 96%;">
-            <h3 style="margin-top:0; color:#2980b9;">Bibliothèque</h3>
+        <div class="modal-box" style="width: 640px; max-width: 96%;">
+            <!-- Un titre de fenêtre n'est pas une bannière : il se lit à gauche,
+                 de la taille du texte, et laisse la place aux figures. -->
+            <h3 style="margin:0 0 10px; font-size:16px; color:#37474f; text-align:left;">Bibliothèque</h3>
             <div id="biblioListe"
-                style="display:flex; flex-wrap:wrap; gap:10px; max-height:52vh; overflow:auto; padding:4px; justify-content:flex-start;">
+                style="display:flex; flex-wrap:wrap; gap:10px; max-height:56vh; overflow:auto; padding:2px; justify-content:flex-start; align-content:flex-start;">
             </div>
             <input type="file" id="biblioFichier" accept="application/json,.json" style="display:none"
                 onchange="app.importerBiblio(this.files[0]); this.value='';">
+            <!-- UNE SEULE ACTION PRINCIPALE. Trois boutons pleins — deux bleus et
+                 un vert — mettaient « Exporter la collection » au même rang que
+                 « Ajouter la séance », qui est ce qu'on vient faire ici. Les
+                 deux transferts de collection passent en second plan. -->
             <div class="modal-buttons">
                 <button class="modal-btn modal-cancel"
                     onclick="document.getElementById('biblioModal').style.display='none'">Fermer</button>
+                <button class="modal-btn modal-cancel" data-tooltip="Ouvrir une collection reçue (.json)"
+                    onclick="document.getElementById('biblioFichier').click()">Importer…</button>
+                <button class="modal-btn modal-cancel" data-tooltip="Enregistrer toute la collection dans un fichier"
+                    onclick="app.exporterBiblio()">Exporter…</button>
                 <button class="modal-btn modal-confirm"
-                    onclick="document.getElementById('biblioFichier').click()">Importer une collection</button>
-                <button class="modal-btn modal-confirm" onclick="app.exporterBiblio()">Exporter la collection</button>
-                <button class="modal-btn modal-confirm" style="background:#27ae60;"
                     onclick="app.enregistrerDansBiblio()">Ajouter la séance</button>
             </div>
         </div>
@@ -17370,7 +17403,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         let pStr = "";
                         if (e.parents.length > 0) pStr = e.parents.map(p => Array.isArray(p) ? idMap.get(p[0].id) + "+" + idMap.get(p[1].id) : idMap.get(p.id)).join(",");
                         const lbl = (e.label || "").replace(/[¦;]/g, "");
-                        arr.push(f(e.x), f(e.y), lbl, pStr, e.subType || 0, this.couleurCompacte(e.color), e.pointStyle === 'cross' ? 0 : e.pointStyle, f(e.labelAngle !== undefined ? e.labelAngle : -0.79), e.visible ? 1 : 0, e.showLabel ? 1 : 0, e.fontSize || 14);
+                        arr.push(f(e.x), f(e.y), lbl, pStr, e.subType || 0, this.couleurCompacte(e.color), e.pointStyle === 'cross' ? 0 : e.pointStyle, f(e.labelAngle !== undefined ? e.labelAngle : -0.79), e.visible ? 1 : 0, e.showLabel ? 1 : 0, e.fontSize || 14,
+                            /* Le codage d'un milieu voyage AUSSI par le lien. Le
+                               fichier JSON le gardait, le code compact non : une
+                               figure partagée perdait ses marques de milieu sans
+                               que rien ne le dise. En fin de groupe, comme le
+                               reste : les liens d'avant se relisent inchangés. */
+                            e.codageMilieu || 0);
                     }
                     else if (e instanceof Segment || e instanceof Line || e instanceof Ray) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color));
@@ -17380,6 +17419,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // L'unité s'ajoute EN FIN de groupe : les enregistrements
                         // antérieurs n'ont pas ce champ et se relisent inchangés.
                         if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0);
+                        /* Le nom d'une droite voyage aussi : « Trace une droite d »
+                           partagée par lien revenait anonyme, et « la
+                           perpendiculaire à d » ne trouvait plus rien. */
+                        else arr.push(e.nomDroite || 0);
                     }
                     else if (e instanceof TextLabel) {
                         /* Les enrichissements s'ajoutent EN FIN de ligne, sous forme
@@ -17414,7 +17457,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (e instanceof ParallelLine || e instanceof PerpendicularLine) {
                         const width = e.lineWidth || 2;
                         const dash = (e.dash && e.dash.length > 0) ? 1 : 0;
-                        arr.push(idMap.get(e.p1.id), idMap.get(e.refLine.id), this.couleurCompacte(e.color), width, dash);
+                        arr.push(idMap.get(e.p1.id), idMap.get(e.refLine.id), this.couleurCompacte(e.color), width, dash, e.nomDroite || 0);
                     }
                     else if (e instanceof Arc) {
                         const width = e.lineWidth || 2;
@@ -17479,6 +17522,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (instrHtml && instrHtml.length > 10 && !(consigneIntacte && !isInstrVisible)) {
                     finalStr += "¦INSTRUCTIONS:" + (isInstrVisible ? "1" : "0") + ";" + echapper(instrHtml);
                 }
+                /* L'ÉNONCÉ VOYAGE AVEC LA FIGURE. Les lignes du panneau des
+                   consignes étaient enregistrées dans le fichier .json, mais PAS
+                   dans le code compact — celui du lien élève, de la bibliothèque
+                   et des pages. Une séance rangée le lundi rouvrait le mardi
+                   avec sa figure et sans son énoncé, et personne ne savait plus
+                   ce qu'elle demandait de construire. */
+                const lignesCsl = (this.consignesListe() || [])
+                    .filter(c => (c.texte || '').trim());
+                if (lignesCsl.length) {
+                    finalStr += "¦CONSIGNES:" + lignesCsl
+                        .map(c => (c.instruments ? '1' : '0') + (c.faite ? '1' : '0')
+                            + ';' + echapper(c.texte, true))
+                        .join('|');
+                }
                 const stepKeys = Object.keys(this.stepInstructions || {});
                 if (stepKeys.length > 0) {
                     const stepStr = stepKeys.map(k => `${k}=${echapper(this.stepInstructions[k], true)}`).join('|');
@@ -17527,7 +17584,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return (isNaN(i) ? palette[0] : (palette[i] || palette[0]));
                     };
                     const tempObjects = [];
-                    const entitiesData = parts.slice(1).filter(p => !p.startsWith("WIDGETS:") && !p.startsWith("INSTRUCTIONS:") && !p.startsWith("STEPS:") && !p.startsWith("CHAPS:") && !p.startsWith("VIEW:"));
+                    const entitiesData = parts.slice(1).filter(p => !p.startsWith("WIDGETS:") && !p.startsWith("INSTRUCTIONS:") && !p.startsWith("CONSIGNES:") && !p.startsWith("STEPS:") && !p.startsWith("CHAPS:") && !p.startsWith("VIEW:"));
                     const widgetsBlock = parts.find(p => p.startsWith("WIDGETS:"));
                     const instrBlock = parts.find(p => p.startsWith("INSTRUCTIONS:"));
                     this.stepInstructions = {};
@@ -17564,6 +17621,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.visible = (d[9] !== "0");
                             obj.showLabel = (d[10] !== "0");
                             obj.fontSize = parseInt(d[11] || 14);
+                            // absent d'un lien d'avant : le milieu est simplement sans marque
+                            if (d[12] && d[12] !== '0') obj.codageMilieu = d[12];
                         }
                         else if (typeId === 2) {
                             obj = new Segment(null, null); obj.color = idx2col(d[3]);
@@ -17571,8 +17630,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.showLength = (d[6] == "1"); obj.measureOffset = d[7] ? parseFloat(d[7]) : -15; obj.coding = (d[8] && d[8] !== "0") ? d[8] : null;
                             obj.lengthUnit = (d[9] && d[9] !== "0" && GM_UNITES.indexOf(d[9]) !== -1) ? d[9] : null;
                         }
-                        else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
-                        else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
+                        else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
+                        else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
                         else if (typeId === 5) {
                             obj = new Circle(null, null); obj.color = idx2col(d[3]);
                             obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : [];
@@ -17625,8 +17684,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.souligne = !!(bits & 4); obj.cadre = !!(bits & 8);
                             if (d[8] !== undefined && d[8] !== '') obj.fond = idx2col(d[8]);
                             if (d[9]) obj.morceaux = this.lireMorceaux(obj.text, d[9]);
-                        } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
-                        else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; }
+                        } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
+                        else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
                         else if (typeId === 12) {
                             obj = new Arc(null, parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4]));
                             obj.color = idx2col(d[5]);
@@ -17724,6 +17783,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const cy = cont ? (cont.clientHeight / 2 - this.view.y) / (this.view.zoom || 1) : 300;
                         this[champs[type]] = new fabriques[type](cx, cy);
                     });
+                    /* L'énoncé revient avec la figure — et il revient VIDE si le
+                       code n'en porte pas, plutôt que de laisser en place celui
+                       de la figure d'avant : un énoncé qui ne parle pas de ce
+                       qu'on regarde est pire que pas d'énoncé du tout. */
+                    const cslBlock = parts.find(p => p.startsWith("CONSIGNES:"));
+                    if (cslBlock) {
+                        this._consignes = cslBlock.replace("CONSIGNES:", "").split("|")
+                            .map(bout => {
+                                const i = bout.indexOf(';');
+                                if (i < 0) return null;
+                                const drapeaux = bout.substring(0, i);
+                                let texte = '';
+                                try { texte = decodeURIComponent(bout.substring(i + 1)); }
+                                catch (err) { void err; texte = bout.substring(i + 1); }
+                                if (!texte.trim()) return null;
+                                return Object.assign(this.consigneNeuve(), {
+                                    texte,
+                                    instruments: drapeaux.charAt(0) === '1',
+                                    faite: drapeaux.charAt(1) === '1',
+                                    etat: drapeaux.charAt(1) === '1' ? 'ok' : null,
+                                    signature: drapeaux.charAt(1) === '1' ? texte : '',
+                                });
+                            }).filter(Boolean);
+                        if (typeof this.majConsignes === 'function') this.majConsignes();
+                    } else if (this._consignes && this._consignes.length) {
+                        this._consignes = [];
+                        if (typeof this.majConsignes === 'function') this.majConsignes();
+                    }
                     if (instrBlock) {
                         const raw = instrBlock.replace("INSTRUCTIONS:", "");
                         const sepIdx = raw.indexOf(";");
@@ -30205,36 +30292,57 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 hote.innerHTML = '';
                 if (!liste.length) {
                     const vide = document.createElement('p');
-                    vide.style.cssText = 'color:#777; font-size:13px; text-align:center; margin:14px 0 4px; width:100%;';
+                    vide.className = 'biblio-vide';
                     vide.textContent = 'Vos séances viendront ici : « Ajouter la séance » y range le document ouvert.';
                     hote.appendChild(vide);
-                    this.ajouterExemplesBiblio(hote);
-                    return;
-                }
-                liste.forEach((e, i) => {
-                    const carte = document.createElement('div');
-                    carte.className = 'biblio-carte';
-                    carte.title = `${e.n} — ${e.p > 1 ? e.p + ' pages' : '1 page'}`;
-                    const img = document.createElement('img');
-                    img.src = e.v || ''; img.alt = '';
-                    const nom = document.createElement('span');
-                    nom.className = 'biblio-nom';
-                    nom.textContent = e.n + (e.p > 1 ? ` · ${e.p} p.` : '');
-                    const sup = document.createElement('button');
-                    sup.className = 'biblio-sup'; sup.textContent = '✕';
-                    sup.title = 'Retirer de la bibliothèque';
-                    sup.onclick = (ev) => {
-                        ev.stopPropagation();
-                        this.showModal(`Retirer « ${e.n} » de la bibliothèque ?`, () => {
-                            const l = this.lireBiblio(); l.splice(i, 1);
-                            if (this.ecrireBiblio(l)) this.majBiblio();
+                } else {
+                    liste.forEach((e, i) => {
+                        const carte = this.carteBiblio({
+                            nom: e.n, vignette: e.v,
+                            detail: e.p > 1 ? `${e.p} pages` : '1 page',
+                            ouvrir: () => this.ouvrirSeance(e.c, e.n),
                         });
-                    };
-                    carte.appendChild(img); carte.appendChild(nom); carte.appendChild(sup);
-                    carte.onclick = () => this.ouvrirSeance(e.c, e.n);
-                    hote.appendChild(carte);
-                });
+                        const sup = document.createElement('button');
+                        sup.className = 'biblio-sup'; sup.textContent = '✕';
+                        sup.title = 'Retirer de la bibliothèque';
+                        sup.setAttribute('aria-label', `Retirer ${e.n} de la bibliothèque`);
+                        sup.onclick = (ev) => {
+                            ev.stopPropagation();
+                            this.showModal(`Retirer « ${e.n} » de la bibliothèque ?`, () => {
+                                const l = this.lireBiblio(); l.splice(i, 1);
+                                if (this.ecrireBiblio(l)) this.majBiblio();
+                            });
+                        };
+                        carte.appendChild(sup);
+                        hote.appendChild(carte);
+                    });
+                }
                 this.ajouterExemplesBiblio(hote);
+            }
+            /* Une carte, une seule fabrique : une séance rangée par le
+               professeur et une construction d'exemple se ressemblaient si peu
+               qu'on aurait dit deux logiciels. */
+            carteBiblio({ nom, vignette, detail, ouvrir, exemple }) {
+                const carte = document.createElement('div');
+                carte.className = 'biblio-carte' + (exemple ? ' biblio-exemple' : '');
+                carte.title = `${nom} — ${detail}`;
+                carte.tabIndex = 0;
+                carte.setAttribute('role', 'button');
+                const vue = document.createElement('img');
+                vue.className = 'biblio-vue';
+                vue.src = vignette || '';
+                vue.alt = '';
+                if (!vignette) vue.style.visibility = 'hidden';
+                const n = document.createElement('span');
+                n.className = 'biblio-nom';
+                n.textContent = nom;
+                const d = document.createElement('span');
+                d.className = 'biblio-detail';
+                d.textContent = detail;
+                carte.appendChild(vue); carte.appendChild(n); carte.appendChild(d);
+                carte.onclick = ouvrir;
+                carte.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ouvrir(); } };
+                return carte;
             }
             ouvrirSeance(code, nom, exemple) {
                 if (!this.chargerDocument(code)) return;
@@ -30247,33 +30355,70 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ? `📐 « ${nom} » — ▶ ou Page suiv. rejoue la construction`
                     : `📚 « ${nom} » ouvert`);
             }
-            /* Les exemples n'ont pas de vignette : la fabriquer coûterait plus cher
-               en octets que les neuf constructions réunies, et leur nom dit déjà de
-               quoi il s'agit. Ils ne se suppriment pas non plus — ils font partie du
-               logiciel, pas de la collection de l'utilisateur. */
+            /* LES VIGNETTES DES EXEMPLES SE FABRIQUENT AU VOL. Les stocker
+               coûterait plus d'octets que les neuf constructions réunies —
+               c'est pourquoi les cartes n'étaient que du texte. Mais rien
+               n'oblige à les stocker : on charge chaque code hors écran, on
+               prend l'image, on remet la feuille comme elle était. Une fois
+               par session, à la première ouverture de la bibliothèque. */
+            vignettesExemples() {
+                const ex = window.GM_EXEMPLES;
+                if (!Array.isArray(ex) || !ex.length) return {};
+                if (this._vignettesEx) return this._vignettesEx;
+                const memo = {};
+                const sauve = {
+                    ents: this.entities, hist: this.historyPast, fut: this.historyFuture,
+                    cons: this.stepInstructions, idx: this.replayIndex,
+                    w: Object.assign({}, this.activeWidgets),
+                    titre: this.projectTitle,
+                };
+                try {
+                    ex.forEach(e => {
+                        const code = this.codeExemple(e);
+                        if (!code) return;
+                        try {
+                            this.loadFromCompressedString(code.split('~')[0]);
+                            this.replayIndex = null;
+                            this.render();
+                            memo[e.n] = this.vignetteCourante(132);
+                        } catch (err) { void err; }
+                    });
+                } finally {
+                    this.entities = sauve.ents; this.historyPast = sauve.hist;
+                    this.historyFuture = sauve.fut; this.stepInstructions = sauve.cons;
+                    this.replayIndex = sauve.idx; this.activeWidgets = sauve.w;
+                    this.projectTitle = sauve.titre;
+                    this.render();
+                }
+                this._vignettesEx = memo;
+                return memo;
+            }
+            /* Les exemples font partie du logiciel, pas de la collection de
+               l'utilisateur : ils ne se suppriment pas. */
             ajouterExemplesBiblio(hote) {
                 const ex = window.GM_EXEMPLES;
                 if (!Array.isArray(ex) || !ex.length) return;
                 const titre = document.createElement('div');
                 titre.className = 'biblio-titre';
-                titre.textContent = 'Constructions d\'exemple — chacune se rejoue pas à pas';
+                titre.textContent = 'Constructions d\'exemple';
+                const p = document.createElement('small');
+                p.textContent = 'chacune se rejoue pas à pas';
+                titre.appendChild(p);
                 hote.appendChild(titre);
+                const vues = this.vignettesExemples();
                 ex.forEach(e => {
                     const code = this.codeExemple(e);
                     if (!code) return;
                     const pages = code.split('~').length;
-                    const carte = document.createElement('div');
-                    carte.className = 'biblio-carte biblio-exemple';
-                    carte.title = e.n;
-                    const nom = document.createElement('span');
-                    nom.className = 'biblio-nom';
-                    nom.textContent = e.n;
-                    const det = document.createElement('span');
-                    det.className = 'biblio-detail';
-                    det.textContent = pages > 1 ? `${pages} pages` : `${e.e || 0} étapes`;
-                    carte.appendChild(nom); carte.appendChild(det);
-                    carte.onclick = () => this.ouvrirSeance(code, e.n, true);
-                    hote.appendChild(carte);
+                    /* « 1 étapes » : l'accord manquait, et c'est le genre de
+                       détail qui fait tout le reste amateur. */
+                    const n = pages > 1 ? pages : (e.e || 0);
+                    const mot = pages > 1 ? 'page' : 'étape';
+                    hote.appendChild(this.carteBiblio({
+                        nom: e.n, vignette: vues[e.n], exemple: true,
+                        detail: `${n} ${mot}${n > 1 ? 's' : ''}`,
+                        ouvrir: () => this.ouvrirSeance(code, e.n, true),
+                    }));
                 });
             }
             exporterBiblio() {

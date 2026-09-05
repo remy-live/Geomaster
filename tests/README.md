@@ -28,8 +28,9 @@ puis vérifie le résultat. Par exemple :
 | `probe-cibles-doigt.js` | au doigt, aucune commande ne descend sous 32 px — et rien ne gonfle à la souris |
 | `probe-rotation.js` | l'appui long sur la main tourne la figure sans la déformer ; partir tout de suite déplace |
 | `probe-enonce.js` | un énoncé de devoir entier, collé tel quel, donne la figure — et elle est juste |
+| `probe-voyage.js` | la figure voyage ENTIÈRE par les quatre chemins — fichier .json, code compact, lien élève, bibliothèque : nom des droites, codage des milieux, remplissages, ET l'énoncé |
 | `probe-enonce-long.js` | le vocabulaire d'un énoncé de manuel : droites nommées, pluriels qui ne débordent pas, possessifs, trapèzes, angles, phrases qui ne tracent rien — chaque figure **mesurée** |
-| `probe-codage-milieu.js` | un milieu porte ses deux traits ; le codage n'affirme que ce que la construction dit ; milieu et segment gardent chacun sa marque |
+| `probe-codage-milieu.js` | un milieu porte ses deux traits ; le codage n'affirme que ce que la construction dit ; un trait ne porte QU'UN codage |
 | `probe-consigne-tel.js` | au téléphone, les consignes prennent la moitié basse de l'écran et la feuille l'autre |
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |

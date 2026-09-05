@@ -93,6 +93,11 @@ Le texte libre de l'énoncé — gras, italique, listes — est toujours là, re
 sous la liste. Et **« Tout effacer » efface aussi l'énoncé** : des consignes
 cochées « faites » devant une feuille vide, ce serait un compte-rendu faux.
 
+**L'énoncé voyage avec la figure.** Il était enregistré dans le fichier `.json`
+mais pas dans le code compact — celui du lien élève, de la bibliothèque et des
+pages : une séance rangée le lundi rouvrait le mardi avec sa figure et sans son
+énoncé. Il suit maintenant les quatre chemins, avec l'état de chaque ligne.
+
 Chaque consigne comprise devient la **consigne de l'étape**. Un programme de
 construction tapé ici donne d'un coup la figure, le rejeu narré avec vos mots,
 et la fiche — dont la disposition « texte seul » est ce programme même.
@@ -478,7 +483,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 73 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 74 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en deux minutes.
