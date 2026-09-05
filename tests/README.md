@@ -35,6 +35,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 | `probe-transformations.js` | symétrie, translation, rotation, homothétie : la figure obtenue est **mesurée** (longueurs conservées ou multipliées par *k*, images au pixel près, sens de rotation) ; aux instruments l'image n'entre qu'à la fin ; la bulle explique la formulation ; « sans les outils » ne laisse que la figure |
+| `probe-telephone.js` | au téléphone, tout outil et toute commande sont à **un appui** : la grille les porte tous, nommés et tapables, et le bouton qui l'ouvre ne paraît que là où une bande cache vraiment quelque chose |
 | `probe-modales.js` | les treize fenêtres suivent le même patron — aucune ne fixe sa largeur ni la couleur de son titre dans un style en ligne, chacune garde la largeur qu'elle avait, et aucune ne déborde jusqu'à 320 px |
 | `probe-biblio-menus.js` | la bibliothèque se présente de trois façons, s'en souvient et compte seize constructions ; l'aperçu est sur fond blanc, quadrillage remis après ; le menu Fichier range ses icônes en quatre bandes sans un mot ni un pixel de plus par icône ; la barre des transformations sélectionne, compte, valide et désigne ; le petit trait de la graduation enjambe le bord du rapporteur |
 

@@ -2765,6 +2765,139 @@
             #barreTransfo #transfoAnnuler { width: 36px; }
         }
 
+        /* ================================================================
+           TOUS LES OUTILS, EN UN APPUI
+
+           Mesuré sur un téléphone de 390 px : la barre porte 1220 px d'outils
+           pour 390 visibles. Seize outils sur vingt-deux étaient donc hors de
+           l'écran — segment, droite, cercle, compas, règle, rapporteur compris —
+           derrière un défilement horizontal que RIEN ne signalait : ni dégradé,
+           ni flèche, ni icône coupée. On ne pouvait pas tracer un segment sans
+           découvrir seul que la barre glissait.
+
+           En paysage tout tenait déjà (barre verticale, deux colonnes) : le
+           défaut n'existait qu'à la façon dont on tient un téléphone.
+
+           La grille ne duplique rien : elle se remplit depuis la barre, à
+           l'ouverture. Un outil ajouté à la barre y est donc, sans qu'on ait à
+           y penser. Elle ne sert qu'au doigt, là où la barre déborde.
+           ================================================================ */
+        /* Ces deux boutons n'apparaissent pas à une taille d'écran donnée, mais
+           là où la bande DÉBORDE VRAIMENT — mesuré au chargement et à chaque
+           changement de taille. Un palier aurait deviné : l'en-tête déborde
+           encore de 198 px sur un téléphone couché (844 px de large), où la
+           barre d'outils, elle, tient tout entière. */
+        #btnTousOutils,
+        #btnToutesCommandes { display: none; }
+
+        #btnTousOutils.gm-deborde {
+            display: flex;
+            position: sticky;
+            right: 0;
+            z-index: 3;
+            margin-left: auto;
+            background: #fff;
+            box-shadow: -8px 0 10px -4px rgba(255, 255, 255, .95);
+        }
+
+        /* Celui de l'en-tête est FIXE et non collant : « sticky » est borné par
+           son bloc conteneur — ici .header-right, qui sort lui-même entièrement de
+           l'écran. Mesuré : le bouton restait à x = 780 pour un écran de 390,
+           c'est-à-dire nulle part. */
+        #btnToutesCommandes.gm-deborde {
+            display: flex;
+            position: fixed;
+            top: 5px;
+            right: 4px;
+            z-index: 5;
+            flex: 0 0 auto;
+            background: #fff;
+            box-shadow: -10px 0 12px -4px rgba(255, 255, 255, .95);
+        }
+
+        /* La bande garde alors la place du bouton à son extrémité, sinon la
+           dernière commande passe dessous et devient intouchable. */
+        header:has(#btnToutesCommandes.gm-deborde) { padding-right: 48px; }
+
+        .tiroir-outils {
+            position: fixed;
+            inset: 0;
+            /* Au-dessus de la télécommande de rejeu (10050) et du bouton de zoom
+               (10000) : mesuré, ils passaient PAR-DESSUS la grille et masquaient
+               deux outils — dont l'équerre, qu'on ne pouvait alors plus prendre
+               du tout puisque c'est justement la grille qui la rend atteignable. */
+            z-index: 10100;
+            display: flex;
+            align-items: flex-end;
+            background: rgba(0, 0, 0, .35);
+            animation: fadeIn .15s;
+        }
+
+        .tiroir-outils-boite {
+            width: 100%;
+            box-sizing: border-box;
+            max-height: 74vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -6px 24px rgba(0, 0, 0, .2);
+            padding: 10px 10px calc(14px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .tiroir-outils-tete {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font: 600 13px 'Segoe UI', sans-serif;
+            color: #546e7a;
+            padding: 2px 4px 8px;
+        }
+
+        .tiroir-outils-tete button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: #f1f4f6;
+            color: #78909c;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .tiroir-outils-grille {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+            gap: 4px;
+        }
+
+        /* La cible fait au moins 44 px de haut avec son nom dessous — c'est le
+           nom qui rend la grille utile : une icône seule ne vaudrait pas mieux
+           que la barre qu'elle remplace. */
+        .tiroir-outil {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 3px;
+            min-height: 62px;
+            padding: 7px 2px 5px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: #37474f;
+            font: 500 9.5px 'Segoe UI', sans-serif;
+            line-height: 1.15;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tiroir-outil svg { width: 24px; height: 24px; flex: 0 0 auto; }
+        .tiroir-outil .tiroir-signe { font: 700 19px 'Segoe UI', sans-serif; line-height: 24px; }
+        .tiroir-outil span { display: block; }
+        .tiroir-outil:active { background: #eef4f8; }
+        .tiroir-outil.actif { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+
         /* Pagination de la séance. Discrète par construction : les commandes qui
            n'ont de sens qu'à plusieurs pages restent cachées tant qu'il n'y en a
            qu'une, et la barre se réduit alors à un seul « + ». */
@@ -6061,6 +6194,8 @@
                 display: none;
             }
 
+
+
             /* Celui qui porte un onclick (« détacher la trousse ») a un
                display:flex en ligne que la règle ci-dessus ne peut pas défaire :
                il subsistait dans le dock horizontal en élément de largeur nulle.
@@ -8542,6 +8677,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 data-tooltip="Aide & Raccourcis">
                 <span style="font-weight:bold; font-size:18px;">?</span>
             </button>
+            <!-- TOUTES LES COMMANDES, EN UN APPUI. L'en-tête porte 1028 px de
+                 commandes pour 390 visibles sur un téléphone : seize étaient hors
+                 de l'écran, dont les consignes — qu'on ne pouvait donc pas ouvrir
+                 du tout. Ce bouton reste collé au bord droit pendant que la bande
+                 défile sous lui, et n'existe que là où elle déborde. -->
+            <button class="top-btn" id="btnToutesCommandes" onclick="app.ouvrirToutesLesCommandes()"
+                aria-label="Toutes les commandes" data-tooltip="Toutes les commandes">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <circle cx="5" cy="12" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="19" cy="12" r="2" />
+                </svg>
+            </button>
         </div>
     </header>
     <div class="main-container">
@@ -8579,23 +8727,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <path d="M17 10 L19 14" stroke-width="1" />
                 </svg>
             </button>
-            <div class="group-label">Transf.</div>
-            <button class="tool-btn" onclick="app.setTool('sym_axial')" aria-label="Symétrie Axiale (Miroir)"
-                data-tooltip="Symétrie Axiale (Miroir)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2v20 M4 12l4-4 M4 12l4 4 M20 12l-4-4 M20 12l-4 4" />
-                </svg>
-            </button>
-            <button class="tool-btn" onclick="app.setTool('sym_central')" aria-label="Symétrie Centrale (Rotation 180°)"
-                data-tooltip="Symétrie Centrale (Rotation 180°)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="2" fill="currentColor" />
-                    <path d="M6 12a6 6 0 0 1 12 0" stroke-dasharray="2,2" />
-                    <circle cx="4" cy="12" r="2" />
-                    <circle cx="20" cy="12" r="2" fill="currentColor" />
-                </svg>
-            </button>
-            <div class="tool-sep"></div>
             <div class="group-label">Lignes</div>
             <button class="tool-btn" onclick="app.setTool('segment')" aria-label="Segment [AB]"
                 data-tooltip="Segment [AB]">
@@ -8630,6 +8761,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <line x1="2" y1="22" x2="22" y2="2" />
                 </svg>
             </button>
+            <div class="group-label">Transf.</div>
+            <button class="tool-btn" onclick="app.setTool('sym_axial')" aria-label="Symétrie Axiale (Miroir)"
+                data-tooltip="Symétrie Axiale (Miroir)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20 M4 12l4-4 M4 12l4 4 M20 12l-4-4 M20 12l-4 4" />
+                </svg>
+            </button>
+            <button class="tool-btn" onclick="app.setTool('sym_central')" aria-label="Symétrie Centrale (Rotation 180°)"
+                data-tooltip="Symétrie Centrale (Rotation 180°)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <path d="M6 12a6 6 0 0 1 12 0" stroke-dasharray="2,2" />
+                    <circle cx="4" cy="12" r="2" />
+                    <circle cx="20" cy="12" r="2" fill="currentColor" />
+                </svg>
+            </button>
+            <div class="tool-sep"></div>
             <div class="group-label">Relat.</div>
             <button class="tool-btn" onclick="app.setTool('perpendicular')" aria-label="Perpendiculaire"
                 data-tooltip="Perpendiculaire">
@@ -8741,6 +8889,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         </svg>
                     </button>
                 </div>
+            </div>
+        
+            <!-- TOUS LES OUTILS, EN UN APPUI. En portrait, la barre cache seize
+                 outils sur vingt-deux derrière un défilement horizontal que rien
+                 ne signale : on ne pouvait pas tracer un segment sans le
+                 découvrir seul. Ce bouton reste collé au bord droit pendant que
+                 la barre défile sous lui, et ouvre la grille complète. Il ne
+                 paraît que là où la barre déborde. -->
+            <button class="tool-btn" id="btnTousOutils" onclick="app.ouvrirTousLesOutils()"
+                aria-label="Tous les outils" data-tooltip="Tous les outils">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <path d="M17.5 14v7M14 17.5h7" />
+                </svg>
+            </button>
+        </div>
+        <!-- La grille de tous les outils. Elle se remplit depuis la barre
+             elle-même : une seule source, elle ne peut pas s'en écarter. -->
+        <div id="tiroirOutils" class="tiroir-outils" style="display:none;"
+            onclick="if (event.target === this) app.fermerTousLesOutils()">
+            <div class="tiroir-outils-boite">
+                <div class="tiroir-outils-tete">
+                    <span>Tous les outils</span>
+                    <button type="button" onclick="app.fermerTousLesOutils()"
+                        aria-label="Fermer">✕</button>
+                </div>
+                <div class="tiroir-outils-grille" id="tiroirOutilsGrille"></div>
             </div>
         </div>
         <div class="canvas-container">
@@ -31682,6 +31860,107 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (dejaLa >= 0) this.showModal(`« ${nom} » existe déjà dans la bibliothèque. La remplacer ?`, poser);
                 else poser();
             }
+            /* TOUS LES OUTILS, EN GRILLE. La liste n'est écrite nulle part : on la
+               relève sur la barre à l'ouverture. Un outil ajouté à la barre est
+               donc dans la grille sans qu'on ait à y penser — et deux listes ne
+               peuvent pas diverger, puisqu'il n'y en a qu'une.
+
+               Le nom vient de l'info-bulle, coupé à sa première ponctuation :
+               « Croquis à main levée — appui long… » tient sur deux lignes sous
+               une icône, « Croquis à main levée » non. */
+            /* CE QUI DÉBORDE, ON LE MESURE — on ne le devine pas à la taille de
+               l'écran. Le bouton d'ouverture de la grille ne paraît que si sa
+               bande cache réellement quelque chose. La mesure se fait le bouton
+               MASQUÉ : sinon sa propre largeur entretiendrait le débordement
+               qu'elle est censée constater, et il ne disparaîtrait jamais. */
+            majBandesDebordantes() {
+                const paires = [['header', 'btnToutesCommandes'], ['.toolbar', 'btnTousOutils']];
+                for (const [sel, id] of paires) {
+                    const bande = document.querySelector(sel);
+                    const bouton = document.getElementById(id);
+                    if (!bande || !bouton) continue;
+                    /* La barre d'outils est une grille VERTICALE sur un écran
+                       large : rien n'y défile en largeur, et un bouton collé à
+                       droite n'y voudrait rien dire. */
+                    const enBande = getComputedStyle(bande).overflowX !== 'visible';
+                    bouton.classList.remove('gm-deborde');
+                    const deborde = enBande && (bande.scrollWidth - bande.clientWidth > 2);
+                    bouton.classList.toggle('gm-deborde', deborde);
+                }
+            }
+            armerBandesDebordantes() {
+                if (this._bandesArmees) return;
+                this._bandesArmees = true;
+                const maj = () => this.majBandesDebordantes();
+                window.addEventListener('resize', maj);
+                window.addEventListener('orientationchange', () => setTimeout(maj, 120));
+                maj();
+            }
+            ouvrirTousLesOutils() {
+                this.ouvrirGrilleCommandes('.toolbar .tool-btn', 'Tous les outils');
+            }
+            /* L'en-tête souffrait du même mal, en pire : 1028 px de commandes pour
+               390 visibles, SEIZE hors de l'écran — dont les consignes, qu'on ne
+               pouvait donc pas ouvrir du tout sur un téléphone. Même tiroir, même
+               grille ; seule la source change. Les entrées d'un menu déroulant sont
+               écartées : ce sont les déclencheurs qu'on veut, pas leur contenu. */
+            ouvrirToutesLesCommandes() {
+                this.ouvrirGrilleCommandes('header .top-btn, header .icon-btn', 'Toutes les commandes');
+            }
+            ouvrirGrilleCommandes(source, titre) {
+                const grille = document.getElementById('tiroirOutilsGrille');
+                const tiroir = document.getElementById('tiroirOutils');
+                if (!grille || !tiroir) return;
+                const t = tiroir.querySelector('.tiroir-outils-tete span');
+                if (t) t.textContent = titre;
+                grille.innerHTML = '';
+                /* LE NOM COURT, SAUF S'IL DEVIENT AMBIGU. Couper « Droite (AB) » et
+                   « Droite (Sans points) » à leur parenthèse donne DEUX CELLULES
+                   « Droite » — mesuré, et intenable : la grille ne sert qu'à
+                   reconnaître l'outil. Un nom raccourci n'est donc retenu que s'il
+                   reste unique ; sinon on garde l'intitulé entier. */
+                const outils = [...document.querySelectorAll(source)]
+                    .filter(e => e.id !== 'btnTousOutils' && e.id !== 'btnToutesCommandes'
+                        && !e.closest('.header-dropdown-content') && !e.closest('.magic-menu-content'))
+                    .map(e => {
+                        const plein = (e.getAttribute('data-tooltip') || e.getAttribute('aria-label') || '').trim();
+                        return { el: e, plein, court: plein.split(/\s[—:]|\s*\(/)[0].trim() || plein };
+                    });
+                const combien = {};
+                outils.forEach(o => { combien[o.court] = (combien[o.court] || 0) + 1; });
+                outils.forEach(o => {
+                    const src = o.el;
+                    /* Toutes les commandes ne portent pas une icône dessinée :
+                       l'aide est un « ? » écrit. Sans repli, elle disparaissait de
+                       la grille — mesuré, dix-neuf commandes sur vingt. */
+                    const svg = src.querySelector('svg');
+                    const nom = combien[o.court] > 1 ? o.plein : o.court;
+                    const cell = document.createElement('button');
+                    cell.type = 'button';
+                    cell.className = 'tiroir-outil' + (src.classList.contains('active') ? ' actif' : '');
+                    cell.setAttribute('aria-label', nom);
+                    if (svg) cell.appendChild(svg.cloneNode(true));
+                    else {
+                        const sig = document.createElement('span');
+                        sig.className = 'tiroir-signe';
+                        sig.textContent = (src.textContent || '?').trim().slice(0, 2) || '?';
+                        cell.appendChild(sig);
+                    }
+                    const t = document.createElement('span');
+                    t.textContent = nom;
+                    cell.appendChild(t);
+                    cell.addEventListener('click', () => {
+                        this.fermerTousLesOutils();
+                        src.click();
+                    });
+                    grille.appendChild(cell);
+                });
+                tiroir.style.display = 'flex';
+            }
+            fermerTousLesOutils() {
+                const t = document.getElementById('tiroirOutils');
+                if (t) t.style.display = 'none';
+            }
             ouvrirBiblio() {
                 this.presentationBiblio(this.vueBiblio());
                 const m = document.getElementById('biblioModal');
@@ -32968,6 +33247,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         }
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
+        /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
+           dire si elles cachent quelque chose. On le leur demande maintenant, puis
+           à chaque changement de taille ou d'orientation. */
+        app.armerBandesDebordantes();
         /* Contenu d'origine du cadre de consigne. Il sert de repère : tant qu'on n'y
            a pas touché, il n'a rien à faire dans le lien de partage — mesuré, ce
            texte d'exemple coûtait 155 à 180 caractères sur CHAQUE lien, soit plus de

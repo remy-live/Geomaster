@@ -392,6 +392,27 @@ Ces décisions sont maintenant au même endroit, où une exception se voit au li
 de se répéter. Vérifié : les treize fenêtres sont **identiques au pixel** avant
 et après, largeur par largeur, et aucune ne déborde jusqu'à 320 px de large.
 
+**Sur un téléphone, rien n'est plus derrière un balayage invisible.** Mesuré sur
+un écran de 390 px : la barre porte **1220 px d'outils pour 390 visibles**, et
+l'en-tête **1028 px de commandes**. Seize outils sur vingt-deux étaient donc hors
+de l'écran — segment, droite, cercle, compas, règle, rapporteur compris — et
+seize commandes avec eux, dont les consignes. Le tout derrière un défilement
+horizontal que **rien** ne signalait : ni dégradé, ni flèche, ni icône coupée. On
+ne pouvait pas tracer un segment sans découvrir seul que la barre glissait.
+
+Deux choses le règlent. Les **six places visibles servent maintenant à dessiner**
+— le groupe des transformations est passé après celui des lignes, et *Segment* et
+*Droite* sont entrés dans les premiers. Et un bouton **collé au bord**, que la
+bande ne peut pas emporter, ouvre **la grille complète, chaque outil nommé** : un
+appui pour atteindre n'importe lequel, au lieu de trois balayages à l'aveugle. La
+grille ne duplique rien — elle se remplit depuis la barre elle-même, à
+l'ouverture.
+
+Ce bouton n'apparaît pas à une taille d'écran donnée mais **là où la bande cache
+réellement quelque chose**, mesuré au chargement et à chaque rotation. Un palier
+aurait deviné : l'en-tête déborde encore de 198 px sur un téléphone couché et de
+110 px sur une **tablette** — où la barre d'outils, elle, tient tout entière.
+
 ### La fiche qu'on colle dans le cahier
 
 Une figure qui porte des consignes d'étape sort en **fiche de construction** :
