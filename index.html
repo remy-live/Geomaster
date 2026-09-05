@@ -30187,15 +30187,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    c'est une justification, et rien ne se trace. */
                 if (/\bpourquoi\b/.test(t)) return null;
                 const OUVERTURE = '(?:(?:est-ce\\s+que\\s+)?(?:tu\\s+)?(?:peux|pourrais)(?:-tu)?\\s+'
-                    + '(?:me\\s+|nous\\s+)?(?:montrer|expliquer|dire|indiquer|rappeler|apprendre)\\s*'
+                    + "(?:me\\s+|m['’]\\s*|nous\\s+)?(?:montrer|expliquer|dire|indiquer|rappeler|apprendre)\\s*"
+                    + "|(?:d[ée]cris|d[ée]crivez|donne|donnez)(?:[-\\s]+(?:moi|nous))?\\s*"
+                    + "|quelles\\s+sont\\s+|quelle\\s+est\\s+|c['’]est\\s+quoi\\s+"
                     + '|(?:je\\s+)?(?:voudrais|veux|aimerais|souhaite)\\s+(?:bien\\s+)?(?:voir|savoir)\\s+'
                     + "|j['’]aimerais\\s+(?:bien\\s+)?(?:voir|savoir)\\s+"
                     + '|(?:montre|montrez|explique|expliquez|dis|dites|rappelle|rappelez'
                     + '|apprends|apprenez|indique|indiquez|donne|donnez)'
                     + '(?:[-\\s]+(?:moi|nous))?\\s*)';
                 const CLE = '(?:comment\\s+'
-                    + '|(?:la\\s+|les\\s+)?(?:m[ée]thode|fa[çc]on|mani[èe]re|d[ée]marche|[ée]tapes)\\s+'
-                    + "(?:pour|de|d['’])\\s*)";
+                    + '|(?:la\\s+|les\\s+)?'
+                    + '(?:m[ée]thode|fa[çc]on|mani[èe]re|d[ée]marche|[ée]tapes|construction|programme)\\s+'
+                    + "(?:pour|de\\s+la|de\\s+l['’]|du|des|de|d['’])\\s*)";
                 const m = src.match(new RegExp('^' + OUVERTURE + '?\\s*,?\\s*' + CLE, 'i'));
                 if (!m) return null;
                 let reste = src.slice(m[0].length).trim();
@@ -30214,7 +30217,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* IL FAUT QU'IL SOIT QUESTION DE CONSTRUIRE. « Comment s'appelle
                    ce point ? » n'est pas une demande de méthode, et la traiter
                    comme telle donnerait un refus plus obscur que celui d'avant. */
-                if (!/\b(?:trac|construi|dessin|plac|reporte|marqu|fai(?:re|t)|obtien|report|partag|divis|prolong|relie|joind)/i.test(src)) {
+                if (!/\b(?:trac|construi|construc|dessin|plac|reporte|marqu|fai(?:re|t)|obtien|report|partag|divis|prolong|relie|joind)/i.test(src)) {
                     return null;
                 }
                 /* On remet un verbe devant, si la suite n'en a pas déjà un. */
@@ -30356,7 +30359,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const patron = this.cslPatron(brut, t, fait, rate);
                         if (patron) return patron;
                     }
-                    if (/\bcube\b|pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de|pyramide|t[ée]tra[èe]dre/.test(t)) {
+                    if (/\bcube\b|pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de|pyramide|t[ée]tra[èe]dre|\bprisme\b|\bcylindre\b|\bc[ôo]ne\b|\bsph[èe]re\b|\bboule\b/.test(t)) {
                         const solide = this.cslSolide(brut, t, fait, rate);
                         if (solide) return solide;
                     }
@@ -30378,19 +30381,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const conf = this.cslConfigurationAngles(brut, t, fait, rate);
                         if (conf) return conf;
                     }
-                    /* « Appelle O le point d'intersection des médiatrices » : ce
-                       croisement porte un nom — c'est le centre du cercle
-                       circonscrit. On pose le point, et on dit lequel c'est.
-                       Avant la règle des droites remarquables, qui retracerait
-                       les trois médiatrices au lieu de leur point commun. */
-                    if (/intersection|se\s+(?:coupent|croisent|rencontrent)|concours|concourantes/.test(t)
-                        && /m[ée]diatrices|hauteurs|m[ée]dianes|bissectrices/.test(t)) {
-                        return this.cslCentreRemarquable(brut, t, fait, rate);
-                    }
-                    /* « Étape 2 » : un titre dans l'énoncé, pas une construction.
-                       Coller un énoncé entier ne doit pas buter sur ses intertitres. */
-                    const etape = brut.match(/^[ée]tape\s*(\d+)\s*:?\s*$/i);
-                    if (etape) return { ok: true, message: `Étape ${etape[1]}`, cree: 0, astuce: '' };
+                    /* CE QUI NE TRACE RIEN PASSE EN PREMIER. « Explique pourquoi
+                       les médiatrices d'un triangle sont concourantes » partait
+                       CONSTRUIRE le centre du cercle circonscrit : la règle du
+                       croisement des droites remarquables voyait « médiatrices »
+                       et « concourantes », et ne voyait pas « Explique
+                       pourquoi ». Une phrase qui commence par un verbe de
+                       raisonnement ne construit rien, quel que soit son sujet. */
                     /* UN ÉNONCÉ NE CONTIENT PAS QUE DES CONSTRUCTIONS. « Elle passe
                        par O », « Que remarques-tu ? », « Justifie ta réponse » :
                        ces phrases-là sont dans tous les manuels, et coller un
@@ -30398,7 +30395,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        pas une consigne mal écrite, c'est une phrase qui ne
                        demande rien à tracer — on le dit, et on passe. */
                     if (/^(?:justifie|explique|d[ée]montre|prouve|d[ée]duis|conclus|compare|calcule|v[ée]rifie|observe|remarque\b|constate)\b/.test(t)
-                        || /^(?:que|qu'|qu’)\s*(?:remarque|constate|observe|obtient|peut|penses?)/.test(t)
+                        || /^(?:que|qu'|qu’)\s*(?:remarque|constate|observe|obtient|peut|penses?|en\s+d[ée]duis|est-ce)/.test(t)
+                        || /^(?:qu'|qu’)?en\s+d[ée]duis-tu/.test(t)
                         || /^(?:il|elle|on|ils|elles)\s+(?:passe|passent|est|sont|semble|semblent|doit|doivent|devrait|devraient|para[îi]t|para[îi]ssent)\b/.test(t)
                         /* UNE QUESTION QUI NE DEMANDE RIEN À TRACER. « Comment
                            s'appelle ce point ? » PLAÇAIT un point — le mot
@@ -30412,6 +30410,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return { ok: true, cree: 0, astuce: '',
                                  message: 'Remarque — rien à tracer sur cette ligne' };
                     }
+                    /* « Appelle O le point d'intersection des médiatrices » : ce
+                       croisement porte un nom — c'est le centre du cercle
+                       circonscrit. On pose le point, et on dit lequel c'est.
+                       Avant la règle des droites remarquables, qui retracerait
+                       les trois médiatrices au lieu de leur point commun. */
+                    if (/intersection|se\s+(?:coupent|croisent|rencontrent)|concours|concourantes/.test(t)
+                        && /m[ée]diatrices|hauteurs|m[ée]dianes|bissectrices/.test(t)) {
+                        return this.cslCentreRemarquable(brut, t, fait, rate);
+                    }
+                    /* « Étape 2 » : un titre dans l'énoncé, pas une construction.
+                       Coller un énoncé entier ne doit pas buter sur ses intertitres. */
+                    const etape = brut.match(/^[ée]tape\s*(\d+)\s*:?\s*$/i);
+                    if (etape) return { ok: true, message: `Étape ${etape[1]}`, cree: 0, astuce: '' };
                     /* « il coupe le cercle C1 en deux points A et B ». On laisse
                        « se coupent » et « intersection » à la règle du croisement
                        de deux droites nommées, qui les traite déjà. */
@@ -30454,7 +30465,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        de A et de B » : celles-là, et pas les trois du triangle. */
                     const plusieurs = this.cslPlusieursRemarquables(brut, t, fait, rate);
                     if (plusieurs) return plusieurs;
-                    if (/m[ée]dianes?|orthocentre|centre\s+de\s+gravit|isobarycentre|inscrit/.test(t)
+                    /* QUI EST INSCRIT DANS QUI ? « le CERCLE inscrit dans le
+                       triangle ABC » et « un HEXAGONE régulier inscrit dans un
+                       cercle » emploient le même mot pour deux figures
+                       opposées. Sans cette distinction, la seconde partait
+                       réclamer un triangle — « De quel triangle ? » — puis
+                       traçait un cercle inscrit que personne n'avait demandé. */
+                    /* Un ou deux mots peuvent s'intercaler — « un triangle
+                       ÉQUILATÉRAL inscrit », « un hexagone RÉGULIER ABCDEF
+                       inscrit ». On les laisse passer, sans franchir « cercle ». */
+                    const polygoneInscrit = /(?:carr[ée]|rectangle|losange|triangle|quadrilat[èe]re|pentagone|hexagone|heptagone|octogone|enn[ée]agone|d[ée]cagone|dod[ée]cagone|polygone)(?:\s+(?!cercle)[\wÀ-ÿ']+){0,2}\s+inscrit/.test(t)
+                        && !/cercle\s+inscrit/.test(t);
+                    if (!polygoneInscrit
+                        && /m[ée]dianes?|orthocentre|centre\s+de\s+gravit|isobarycentre|inscrit/.test(t)
                         || /milieux\s+des\s+c[ôo]t[ée]s/.test(t)
                         || /centre\s+du\s+cercle\s+circonscrit/.test(t)
                         || (/m[ée]diatrices|bissectrices|hauteurs/.test(t))
@@ -30508,6 +30531,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return rate("Je sais faire les symétries, les translations et les rotations "
                             + "— mais pas encore les homothéties.");
                     }
+                    /* « Colorie le triangle ABC », « Hachure-le » : on REMPLIT la
+                       figure, on ne la retrace pas par-dessus elle-même. Ce test
+                       passait APRÈS celui des cercles : « Colorie le disque de
+                       centre O en rouge » partait donc fabriquer un SECOND
+                       cercle et réclamait un rayon. Un verbe de remplissage ne
+                       construit jamais rien de neuf. */
+                    if (/^(?:colorie|colorier|remplis|remplir|hachure|hachurer|grise|griser|peins)\b/.test(t)) {
+                        return this.cslRemplir(brut, t, fait, rate);
+                    }
                     if ((/\bcercles?\b|\bdisques?\b/.test(t)) && !figure) return this.cslCercle(brut, t, fait, rate);
                     /* « Marque les angles du triangle ABC », « Marque les angles
                        droits » : le mot « triangle » ou « carré » envoyait la
@@ -30553,11 +30585,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return rate("Je sais effacer TOUT — écrivez « efface tout ». "
                             + "Pour un seul objet, la gomme ou Ctrl+Z.");
                     }
-                    /* « Colorie le triangle ABC », « Hachure-le » : on REMPLIT la
-                       figure, on ne la retrace pas par-dessus elle-même. */
-                    if (/^(?:colorie|colorier|remplis|remplir|hachure|hachurer|grise|griser|peins)\b/.test(t)) {
-                        return this.cslRemplir(brut, t, fait, rate);
-                    }
                     /* « Prolonge [AB] », « Partage [AB] en trois parts égales » :
                        deux verbes d'énoncé qui ne construisaient rien, tout en
                        répondant « Segment [AB] » comme si c'était fait. */
@@ -30582,7 +30609,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return this.cslPartager(brut, t, fait, rate);
                     }
                     if (/\bangles?\b/.test(t) && !figure) return this.cslAngle(brut, t, fait, rate);
-                    if (/\bcercles?\b/.test(t) && /circonscrit|inscrit/.test(t)) {
+                    if (/\bcercles?\b/.test(t) && /circonscrit|inscrit/.test(t)
+                        && !polygoneInscrit) {
                         return this.cslCercle(brut, t, fait, rate);
                     }
                     /* « Trace les diagonales de ABCD » trace des diagonales ;
@@ -30610,6 +30638,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (figure && !/perpendiculaire|parall[èe]le\s+[àa]/.test(t)) {
                         return this.cslPolygone(brut, t, figure[0], fait, rate);
                     }
+                    void polygoneInscrit;
                     if (/affiche|montre|indique/.test(t) && /longueur|mesure/.test(t)) {
                         return this.cslAfficherLongueur(brut, t, fait, rate);
                     }
@@ -33292,6 +33321,76 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         : `Pavé droit ${nom} — perspective cavalière`);
                 }
 
+                /* LE PRISME DROIT, en perspective. Deux bases identiques,
+                   décalées de la fuyante, et les arêtes latérales qui les
+                   joignent. Aucune ellipse n'est nécessaire : c'est le seul des
+                   quatre solides manquants qu'on sait vraiment dessiner. */
+                if (/\bprisme\b/.test(t)) {
+                    const nC = nommee(/(?:c[ôo]t[ée]|base|ar[êe]te)/);
+                    const nH = nommee(/hauteur|longueur/);
+                    const c = nC || rang(0) || 150;
+                    const h = nH || rang(nC ? 0 : 1) || c * 1.6;
+                    const n = /hexagonale?/.test(t) ? 6 : /carr[ée]e?/.test(t) ? 4
+                        : /pentagonale?/.test(t) ? 5 : 3;
+                    /* La base est vue de face, debout : c'est ainsi qu'on la
+                       dessine au cahier, la fuyante partant vers l'arrière. */
+                    const R = c / (2 * Math.sin(Math.PI / n));
+                    const dx = h * fx, dy = h * fy;
+                    const o0 = { x: o.x - dx / 2, y: o.y - dy / 2 };
+                    const avant = [], arriere = [];
+                    for (let i = 0; i < n; i++) {
+                        const a = -Math.PI / 2 + i * 2 * Math.PI / n
+                            + (n === 4 ? Math.PI / 4 : 0);
+                        avant.push(poser(o0.x + Math.cos(a) * R, o0.y + Math.sin(a) * R));
+                    }
+                    for (let i = 0; i < n; i++) {
+                        arriere.push(poser(avant[i].x + dx, avant[i].y + dy));
+                    }
+                    /* CE QU'ON NE VOIT PAS : la fuyante part vers le haut à
+                       droite, donc tout ce qui est du côté OPPOSÉ à la fuyante
+                       passe derrière la base avant. On le décide au produit
+                       scalaire — la normale sortante de l'arête contre le
+                       vecteur de fuite — et non « le sommet le plus à gauche »,
+                       qui ne marchait que pour le triangle. */
+                    const derriere = (p1, p2) => {
+                        const mx = (p1.x + p2.x) / 2 - o0.x, my = (p1.y + p2.y) / 2 - o0.y;
+                        return mx * fx + my * fy < -1e-6;
+                    };
+                    for (let i = 0; i < n; i++) arete(avant[i], avant[(i + 1) % n]);
+                    for (let i = 0; i < n; i++) {
+                        const j = (i + 1) % n;
+                        arete(arriere[i], arriere[j], derriere(avant[i], avant[j]));
+                    }
+                    for (let i = 0; i < n; i++) {
+                        arete(avant[i], arriere[i], derriere(avant[i], avant[i]));
+                    }
+                    this.cslDire('Perspective cavalière : la base avant est en vraie grandeur, '
+                        + 'les fuyantes à 45° sont réduites de moitié, et les arêtes cachées '
+                        + 'sont en pointillés.');
+                    const base = { 3: 'triangulaire', 4: 'carrée', 5: 'pentagonale',
+                                   6: 'hexagonale' }[n];
+                    return fait(`Prisme droit à base ${base} — ${2 * n} sommets, `
+                        + `${3 * n} arêtes — perspective cavalière`);
+                }
+                /* LE CYLINDRE, LE CÔNE, LA SPHÈRE : on ne sait pas encore les
+                   dessiner en perspective — il y faudrait des ellipses, et le
+                   logiciel n'en a pas. Ce qu'il ne faut SURTOUT pas faire, c'est
+                   ce qu'il faisait : le mot « hauteur » partait vers les droites
+                   remarquables et la réponse conseillait d'écrire « Trace la
+                   hauteur issue de A dans le triangle ABC ». Un refus qui dit
+                   vrai, et qui indique ce qu'on sait faire, vaut mieux. */
+                if (/\bcylindre\b|\bc[ôo]ne\b|\bsph[èe]re\b|\bboule\b/.test(t)) {
+                    const rond = /\bsph[èe]re\b|\bboule\b/.test(t);
+                    const nom = /\bcylindre\b/.test(t) ? 'un cylindre'
+                        : /\bc[ôo]ne\b/.test(t) ? 'un cône' : 'une sphère';
+                    const mot = /\bcylindre\b/.test(t) ? "d'un cylindre" : "d'un cône";
+                    return rate(`Je ne sais pas encore dessiner ${nom} en perspective : `
+                        + `il y faudrait des ellipses, et je n'en ai pas.`
+                        + (rond ? ` Une sphère n'a d'ailleurs pas de patron non plus : `
+                            + `sa surface est courbe dans toutes les directions.`
+                            : ` En revanche je sais tracer son PATRON — écrivez `
+                            + `« Trace le patron ${mot} de rayon 2 cm et de hauteur 5 cm ».`));
+                }
                 if (/pyramide|t[ée]tra[èe]dre/.test(t)) {
                     const tetra = /t[ée]tra[èe]dre|base\s+triangulaire/.test(t);
                     const nL = nommee(/(?:c[ôo]t[ée]|ar[êe]te|base)/);
@@ -33742,6 +33841,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     cible = polys.find(p => vises.every(v => p.points.includes(v))
                         && p.points.length === vises.length);
                 }
+                /* UN DISQUE SE COLORIE AUSSI. « Colorie le disque de centre A en
+                   rouge » répondait « Quelle figure ? Tracez-la d'abord » alors
+                   que le cercle était sous les yeux : seuls les polygones étaient
+                   cherchés. Or le disque colorié est LA figure des diagrammes
+                   circulaires et des fractions, dès la 6e. */
+                if (!cible) {
+                    const cercles = this.entities.filter(e => e instanceof Circle);
+                    const nomme = vises.length
+                        ? cercles.find(c => vises.includes(c.p1)) : null;
+                    cible = nomme || cercles[cercles.length - 1] || null;
+                    if (cible) {
+                        cible.fillMode = /hachure/.test(t) ? 'hatch' : 'solid';
+                        const lu0 = this.cslLireStyle(t);
+                        if (lu0.style && lu0.style.color) cible.fillColor = lu0.style.color;
+                        if (cible.opacity === undefined) cible.opacity = 0.25;
+                        this.saveState(); this.render();
+                        return { ok: true, cree: 0, astuce: '',
+                                 message: `${/hachure/.test(t) ? 'Hachures' : 'Remplissage'} sur `
+                                     + `le disque de centre ${cible.p1.label || '·'}` };
+                    }
+                }
                 if (!cible) cible = polys[polys.length - 1];
                 if (!cible) return rate("Quelle figure ? Tracez-la d'abord.");
                 cible.fillMode = /hachure/.test(t) ? 'hatch' : 'solid';
@@ -33997,6 +34117,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 void d;
                 return fait(`[${m[1]}${m[2]}] mesure ${m[3]}`);
             }
+            /* Un polygone régulier inscrit dans un cercle : les sommets sont SUR
+               le cercle, et le côté s'en déduit — 2 R sin(180°/n). C'est la
+               construction au compas de l'hexagone, et c'est aussi ce qui
+               explique pourquoi l'hexagone est le seul qu'on trace sans mesurer :
+               pour n = 6, le côté vaut exactement le rayon. */
+            cslPolygoneInscrit(brut, t, quoi, sommets, noms, fait) {
+                const ray = brut.match(/rayon\s*(?:de\s*|=\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
+                const dia = brut.match(/diam[èe]tre\s*(?:de\s*|=\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
+                let rayon = ray ? this.cslLongueurPx(ray[1])
+                    : dia ? this.cslLongueurPx(dia[1]) / 2 : null;
+                if (rayon === null) {
+                    const q = brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/);
+                    rayon = q ? this.cslLongueurPx(q[1]) : 150;
+                }
+                if (!(rayon > 0)) return null;
+                const o = this.cslPlaceLibre(0, 0);
+                const nomO = this.cslNomLibre(noms);
+                const centre = new Point(o.x, o.y, nomO);
+                this.addEntity(centre);
+                const bord = new Point(o.x + rayon, o.y, ''); bord.visible = false;
+                this.addEntity(bord);
+                this.addEntity(this.cslPoserStyle(new Circle(centre, bord)));
+                const pts = [];
+                for (let i = 0; i < sommets; i++) {
+                    const a = -Math.PI / 2 + i * 2 * Math.PI / sommets;
+                    const p = new Point(o.x + Math.cos(a) * rayon, o.y + Math.sin(a) * rayon,
+                                        noms[i] || '');
+                    this.addEntity(p); pts.push(p);
+                }
+                for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
+                this.cslPoserPolygone(pts);
+                this._cslSujet = noms.slice();
+                const cote = 2 * rayon * Math.sin(Math.PI / sommets);
+                const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                this.cslDire(`Les ${sommets} sommets sont sur le cercle : le côté vaut `
+                    + `2 × R × sin(180°/${sommets}) = ${String(cm(cote)).replace('.', ',')} cm`
+                    + (sommets === 6 ? ` — pour un hexagone, c'est exactement le rayon, et `
+                        + `c'est pour cela qu'il se construit au compas sans rien mesurer.` : '.'));
+                return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} `
+                    + `inscrit dans le cercle de centre ${nomO} et de rayon `
+                    + `${String(cm(rayon)).replace('.', ',')} cm`);
+            }
             cslPolygone(brut, t, quoi, fait, rate) {
                 let sommets = { 'carré': 4, 'carre': 4, 'rectangle': 4, 'losange': 4,
                                 'parallélogramme': 4, 'parallelogramme': 4, 'triangle': 3,
@@ -34044,6 +34206,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
                 const L = cote || 150;
 
+                /* INSCRIT DANS UN CERCLE : c'est le RAYON qui est donné, pas le
+                   côté. Le polygone se posait avec le rayon pris pour un côté —
+                   juste par accident pour l'hexagone (où côté = rayon), faux
+                   pour tous les autres — et le cercle, lui, n'était pas tracé du
+                   tout : il ne restait rien de « inscrit dans un cercle ».
+                   Cela passe AVANT le solveur de triangle, qui rendrait sinon un
+                   triangle équilatéral de 3 cm de côté pour « inscrit dans un
+                   cercle de rayon 3 cm ». */
+                if (/inscrit/.test(t) && /cercle/.test(t) && sommets >= 3) {
+                    let nomsI = this.cslNoms(brut);
+                    while (nomsI.length < sommets) {
+                        const n = this.cslNomLibre(nomsI); if (!n) break; nomsI.push(n);
+                    }
+                    nomsI = nomsI.slice(0, sommets);
+                    const inscrit = this.cslPolygoneInscrit(brut, t, quoi, sommets, nomsI, fait);
+                    if (inscrit) return inscrit;
+                }
                 // le triangle a son propre solveur : trois longueurs, deux
                 // longueurs et un angle, une longueur et deux angles, isocèle,
                 // rectangle, équilatéral — et leurs combinaisons
@@ -36989,7 +37168,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 05h';
+        window.GM_VERSION = '2026-09-06 · 07h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

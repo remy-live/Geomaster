@@ -70,6 +70,7 @@ const GROUPES = [
     ['Trace deux cercles', { pts: VIDE }],
     ['Trace deux cercles sécants', { pts: VIDE }],
     ['Trace deux cercles tangents', { pts: VIDE }],
+    ['Colorie le disque de centre A en rouge', { prep: ['Trace le cercle de centre A et de rayon 3 cm'], genre: 'agit' }],
   ]],
   ['Triangles', [
     'Trace un triangle ABC',
@@ -97,6 +98,9 @@ const GROUPES = [
     'Trace un pentagone ABCDE de 3 cm de côté',
     'Trace un hexagone ABCDEF de 3 cm de côté',
     'Trace un polygone régulier à 7 côtés',
+    'Trace un hexagone régulier inscrit dans un cercle de rayon 3 cm',
+    'Trace un carré inscrit dans un cercle de rayon 3 cm',
+    'Trace un triangle équilatéral inscrit dans un cercle de rayon 3 cm',
     'Trace le polygone ABCDE',
     'Trace un carré ABCD et ses diagonales',
   ]],
@@ -163,6 +167,10 @@ const GROUPES = [
     'Trace une pyramide à base carrée de côté 3 cm et de hauteur 5 cm',
     'Trace un tétraèdre',
     'Trace une pyramide à base triangulaire',
+    'Trace un prisme droit à base triangulaire de 3 cm de côté et de 5 cm de hauteur',
+    'Trace un prisme droit à base hexagonale de 2 cm de côté et de 5 cm de hauteur',
+    ['Trace un cylindre de rayon 2 cm et de hauteur 5 cm', { genre: 'refuse' }],
+    ['Trace une sphère de rayon 3 cm', { genre: 'refuse' }],
   ]],
   ['Patrons', [
     'Trace le patron d\'un cube de 3 cm',
@@ -194,6 +202,10 @@ const GROUPES = [
     'Rappelle-moi comment tracer la bissectrice',
     'Je voudrais voir comment on trace un losange',
     'Peux-tu me montrer comment on trace deux droites perpendiculaires ?',
+    ['Explique-moi la construction de la médiatrice de [AB]', { prep: ['Trace [AB]'] }],
+    ['Quelles sont les étapes de la construction du milieu de [AB] ?', { prep: ['Trace [AB]'] }],
+    "C'est quoi la méthode pour tracer une bissectrice",
+    "Tu peux m'expliquer comment on reporte une longueur au compas",
   ]],
   ['Mesures, codages, couleurs', [
     ['AB = 5 cm', { prep: ['Trace [AB]'], genre: 'agit' }],
@@ -221,6 +233,8 @@ const GROUPES = [
     'Explique pourquoi ABC est isocèle',
     'Quelle est la nature du quadrilatère ABCD ?',
     'Elle passe par O',
+    "Qu'en déduis-tu ?",
+    "Explique pourquoi les médiatrices d'un triangle sont concourantes",
   ]],
 ];
 

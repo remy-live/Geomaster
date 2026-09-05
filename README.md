@@ -486,6 +486,32 @@ passées au banc, et neuf faisaient exactement cela. Cinq sont réparées :
   triangle par-dessus. AB = 4 cm devient A′B′ = 8 cm.
 - *« Trace un demi-cercle de diamètre [AB] »* traçait le cercle **entier**.
 
+Puis un second passage, sur un corpus de **214 phrases** écrites par des lecteurs
+indépendants du code — dix de plus :
+
+- *« Trace un hexagone régulier inscrit dans un cercle de rayon 3 cm »* répondait
+  **« De quel triangle ? »** puis traçait un cercle inscrit. « Le **cercle**
+  inscrit dans le triangle » et « un **hexagone** inscrit dans un cercle »
+  emploient le même mot pour deux figures opposées. Et le rayon donné était pris
+  pour un côté — juste par accident pour l'hexagone, faux pour tous les autres.
+  Le côté vaut maintenant 2 R sin(180°/n), vérifié : 3 cm, 2,3 cm, 4,24 cm et
+  5,2 cm pour l'hexagone, l'octogone, le carré et le triangle équilatéral.
+- *« Trace un cylindre de rayon 2 cm et de hauteur 5 cm »* répondait **« Écrivez
+  *Trace la hauteur issue de A dans le triangle ABC* »**. Le cylindre, le cône et
+  la sphère sont maintenant **refusés en disant pourquoi** — il y faudrait des
+  ellipses — et le refus indique ce qu'on sait faire : leur patron.
+- Le **prisme droit**, lui, ne demande pas d'ellipse : il se dessine, à base
+  triangulaire, carrée, pentagonale ou hexagonale. Les arêtes cachées sont
+  décidées au produit scalaire contre la fuyante, pas à l'estime.
+- *« Explique pourquoi les médiatrices d'un triangle sont concourantes »*
+  **construisait** le centre du cercle circonscrit : la règle du croisement
+  voyait « médiatrices » et « concourantes », pas « Explique pourquoi ». Une
+  phrase de raisonnement ne construit rien, quel que soit son sujet.
+- *« Colorie le disque de centre A en rouge »* fabriquait un **second cercle** et
+  réclamait un rayon : le verbe de remplissage passait après le bâtisseur de
+  cercles. Un disque se colorie maintenant — c'est la figure des diagrammes
+  circulaires et des fractions.
+
 Le reste est listé dans [`IDEES.md`](IDEES.md), en tête, parce que c'est le plus
 urgent.
 
@@ -1077,14 +1103,14 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **162 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **176 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;
 celle-là ne peut pas promettre ce qui ne marche pas.
 
 [`IDEES.md`](IDEES.md) est l'autre moitié : ce qui manque encore, établi en
-essayant trente-cinq phrases de collège. Il commence par les phrases qui
+essayant d'abord trente-cinq phrases de collège, puis un corpus de 214. Il commence par les phrases qui
 répondent « oui » en traçant autre chose — les plus urgentes, parce que rien à
 l'écran ne prévient.
 

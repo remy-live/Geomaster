@@ -57,8 +57,8 @@ Classé par ce que ça coûte à écrire.
 
 ### Court
 
-- **`Trace un disque`** — fait aujourd'hui. Reste `Colorie un secteur de 90° du
-  cercle`, qui est la figure des pourcentages et des diagrammes circulaires.
+- **`Trace un disque`** et **`Colorie le disque`** — faits. Reste `Colorie un
+  secteur de 90° du cercle`, qui est la figure des pourcentages.
 - **`Trace un repère`, `Place le point A(3;2)`.** Le repère est refusé, et
   `A(3;2)` place un point *au hasard* si A existe déjà. C'est la 5e, c'est tous
   les chapitres de fonctions ensuite, et c'est une trentaine de lignes.
@@ -74,9 +74,9 @@ Classé par ce que ça coûte à écrire.
 - **Reporter un angle au compas.** Le report de *longueur* vient d'être ajouté ;
   le report d'*angle* est le geste jumeau, et c'est celui qui sert à construire
   un triangle quand on ne peut pas mesurer.
-- **Les polygones inscrits dans un cercle.** `Trace un carré inscrit dans un
-  cercle`, `un triangle équilatéral inscrit dans un cercle`, `un hexagone
-  inscrit` : trois constructions au compas, trois classiques, aucune ne marche.
+- **Les polygones inscrits sont faits** — reste à les construire **au compas**
+  plutôt qu'au calcul : pour l'hexagone, reporter six fois le rayon, ce qui est
+  la seule construction de collège où l'on ne mesure rien.
 - **La configuration de Thalès** — les deux triangles emboîtés et le « papillon ».
   C'est la figure de la 4e, et elle se dessine en dix lignes une fois qu'on a les
   parallèles (qu'on a).
@@ -98,9 +98,11 @@ Classé par ce que ça coûte à écrire.
   suite de consignes ; il pourrait **relire une figure et écrire les consignes**.
   C'est l'exercice « rédige un programme de construction » de tous les manuels, et
   c'est le seul de la liste qu'aucun autre logiciel ne fait.
-- **La sphère et le cylindre en perspective.** Il faudrait des ellipses — une
-  classe de plus, avec son enregistrement et sa sélection. Les *patrons* du
-  cylindre et du cône, eux, sont faits.
+- **La sphère, le cylindre et le cône en perspective.** Il faudrait des ellipses
+  — une classe de plus, avec son enregistrement et sa sélection. En attendant,
+  les trois sont **refusés en disant pourquoi**, et le refus renvoie au patron,
+  qui lui est fait. Le **prisme droit**, qui ne demandait pas d'ellipse, est
+  dessiné (base triangulaire, carrée, pentagonale ou hexagonale).
 - **Les aires et les volumes.** `Trace un carré d'aire 16 cm²` marche déjà.
   Manquent `Quelle est l'aire de ABCD ?` et le volume d'un solide tracé — le
   logiciel connaît toutes les dimensions, il ne lui manque que de le dire.

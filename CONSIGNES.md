@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**162 phrases**, dont 162 passent.
+**176 phrases**, dont 176 passent.
 
 Quelques principes qui valent partout :
 
@@ -76,6 +76,7 @@ Quelques principes qui valent partout :
 | Trace deux cercles | 2 cercles : (A), (B) |
 | Trace deux cercles sécants | 2 cercles sécants : (A), (B) — ils se coupent en C et D |
 | Trace deux cercles tangents | 2 cercles tangents : (A), (B) — ils se touchent en C |
+| Colorie le disque de centre A en rouge | Remplissage sur le disque de centre A |
 
 ## Triangles
 
@@ -109,6 +110,9 @@ Quelques principes qui valent partout :
 | Trace un pentagone ABCDE de 3 cm de côté | Pentagone ABCDE |
 | Trace un hexagone ABCDEF de 3 cm de côté | Hexagone ABCDEF |
 | Trace un polygone régulier à 7 côtés | Polygone régulier à 7 côtés EFGHIJK |
+| Trace un hexagone régulier inscrit dans un cercle de rayon 3 cm | Hexagone EFGHIJ inscrit dans le cercle de centre K et de rayon 3 cm |
+| Trace un carré inscrit dans un cercle de rayon 3 cm | Carré EFGH inscrit dans le cercle de centre I et de rayon 3 cm |
+| Trace un triangle équilatéral inscrit dans un cercle de rayon 3 cm | Triangle EFG inscrit dans le cercle de centre H et de rayon 3 cm |
 | Trace le polygone ABCDE | Polygone ABCD |
 | Trace un carré ABCD et ses diagonales | Carré ABCD · 2 diagonales de ABCD |
 
@@ -193,6 +197,10 @@ Quelques principes qui valent partout :
 | Trace une pyramide à base carrée de côté 3 cm et de hauteur 5 cm | Pyramide EFGHI à base carrée — perspective cavalière |
 | Trace un tétraèdre | Tétraèdre EFGH — perspective cavalière |
 | Trace une pyramide à base triangulaire | Tétraèdre EFGH — perspective cavalière |
+| Trace un prisme droit à base triangulaire de 3 cm de côté et de 5 cm de hauteur | Prisme droit à base triangulaire — 6 sommets, 9 arêtes — perspective cavalière |
+| Trace un prisme droit à base hexagonale de 2 cm de côté et de 5 cm de hauteur | Prisme droit à base hexagonale — 12 sommets, 18 arêtes — perspective cavalière |
+| Trace un cylindre de rayon 2 cm et de hauteur 5 cm | ↯ Je ne sais pas encore dessiner un cylindre en perspective : il y faudrait des ellipses, et je n'en ai pas. En revanche je sais tracer son PATRON — écrivez « Trace le patron d'un cylindre de rayon 2 cm et de hauteur 5 cm ». |
+| Trace une sphère de rayon 3 cm | ↯ Je ne sais pas encore dessiner une sphère en perspective : il y faudrait des ellipses, et je n'en ai pas. Une sphère n'a d'ailleurs pas de patron non plus : sa surface est courbe dans toutes les directions. |
 
 ## Patrons
 
@@ -230,6 +238,10 @@ Quelques principes qui valent partout :
 | Rappelle-moi comment tracer la bissectrice | Bissectrice de l'angle FEG |
 | Je voudrais voir comment on trace un losange | Losange EFGH — construction détaillée |
 | Peux-tu me montrer comment on trace deux droites perpendiculaires ? | Deux droites perpendiculaires : (d), (d') |
+| Explique-moi la construction de la médiatrice de [AB] | Médiatrice de [AB] |
+| Quelles sont les étapes de la construction du milieu de [AB] ? | E est le milieu de [AB] — construction au compas |
+| C'est quoi la méthode pour tracer une bissectrice | Bissectrice de l'angle FEG |
+| Tu peux m'expliquer comment on reporte une longueur au compas | EF reporté à partir de G : GH = 4,4 cm |
 
 ## Mesures, codages, couleurs
 
@@ -266,3 +278,5 @@ Quelques principes qui valent partout :
 | Explique pourquoi ABC est isocèle | Remarque — rien à tracer sur cette ligne |
 | Quelle est la nature du quadrilatère ABCD ? | Remarque — rien à tracer sur cette ligne |
 | Elle passe par O | Remarque — rien à tracer sur cette ligne |
+| Qu'en déduis-tu ? | Remarque — rien à tracer sur cette ligne |
+| Explique pourquoi les médiatrices d'un triangle sont concourantes | Remarque — rien à tracer sur cette ligne |

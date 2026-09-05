@@ -469,6 +469,105 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      !tri.ok && /IMPOSSIBLE/.test(tri.message) && /Wantzel/.test(tri.message),
      tri.message.slice(0, 90));
 
+  console.log('\n=== qui est inscrit dans qui ===');
+  /* « le CERCLE inscrit dans le triangle » et « un HEXAGONE inscrit dans un
+     cercle » emploient le même mot pour deux figures opposées. La seconde
+     partait réclamer un triangle. Et le rayon donné était pris pour un CÔTÉ :
+     juste par accident pour l'hexagone, faux pour tous les autres. */
+  for (const [figure, n, attendu] of [['hexagone régulier', 6, 3],
+                                      ['octogone régulier', 8, 2.3],
+                                      ['carré', 4, 4.24],
+                                      ['triangle équilatéral', 3, 5.2]]) {
+    const r = await faire(`Trace un ${figure} inscrit dans un cercle de rayon 3 cm`, false);
+    const cotes = [...new Set(r.longueurs.map(l => Math.round(l * 100) / 100))];
+    ck(`« un ${figure} inscrit dans un cercle de rayon 3 cm »`,
+       r.ok && r.cercles.length === 1 && presque(r.cercles[0], 3)
+       && r.longueurs.length === n, r.message);
+    /* Le côté d'un polygone régulier inscrit vaut 2 R sin(180°/n). */
+    ck(`  son côté vaut 2 × 3 × sin(180°/${n}) = ${attendu} cm`,
+       cotes.length === 1 && presque(cotes[0], attendu, 0.01), JSON.stringify(cotes));
+  }
+  const cInscrit = await faire('Trace le cercle inscrit dans le triangle ABC', false,
+    [[300, 520, 'A'], [640, 520, 'B'], [470, 260, 'C']]);
+  ck('mais « le cercle inscrit dans le triangle ABC » reste un cercle inscrit',
+     /Cercle inscrit/.test(cInscrit.message), cInscrit.message);
+  const cCirc = await faire('Trace le cercle circonscrit au triangle ABC', false,
+    [[300, 520, 'A'], [640, 520, 'B'], [470, 260, 'C']]);
+  ck('  et le cercle circonscrit aussi', /Cercle circonscrit/.test(cCirc.message), cCirc.message);
+
+  console.log('\n=== le prisme droit, et les trois solides qu\'on ne sait pas dessiner ===');
+  const pri3 = await faire("Trace un prisme droit à base triangulaire de 3 cm de côté "
+    + "et de 5 cm de hauteur", false);
+  console.log('  ' + pri3.message);
+  ck('le prisme droit se dessine en perspective : 9 arêtes',
+     pri3.segments === 9 && /perspective/.test(pri3.message), pri3.message);
+  ck('  dont 3 cachées, et la fuyante est réduite de moitié (2,5 cm pour 5 cm)',
+     pri3.plis === 3 && pri3.longueurs.some(l => presque(l, 2.5)),
+     pri3.plis + ' cachées, ' + JSON.stringify([...new Set(pri3.longueurs)]));
+  const pri6 = await faire("Représente un prisme droit à base hexagonale de 2 cm de côté "
+    + "et de 5 cm de hauteur", false);
+  ck('à base hexagonale : 18 arêtes, 6 cachées — le calcul suit la forme',
+     pri6.segments === 18 && pri6.plis === 6,
+     pri6.segments + ' arêtes, ' + pri6.plis + ' cachées');
+  /* Le cylindre, le cône et la sphère : on ne sait pas. Ce qui compte est de le
+     DIRE — avant, le mot « hauteur » partait vers les droites remarquables et la
+     réponse conseillait « Trace la hauteur issue de A dans le triangle ABC ». */
+  const cyl3 = await faire('Trace un cylindre de rayon 2 cm et de hauteur 5 cm', false);
+  ck('un cylindre en perspective est refusé, et le refus dit POURQUOI',
+     !cyl3.ok && /ellipses/.test(cyl3.message) && !/hauteur issue/.test(cyl3.message),
+     cyl3.message.slice(0, 80));
+  ck('  et il indique ce qu\'on sait faire : le patron',
+     /PATRON/.test(cyl3.message), cyl3.message.slice(-70));
+  const sph3 = await faire('Trace une sphère de rayon 3 cm', false);
+  ck('la sphère aussi, et l\'on rappelle qu\'elle n\'a pas de patron non plus',
+     !sph3.ok && /courbe dans toutes les directions/.test(sph3.message),
+     sph3.message.slice(0, 70));
+
+  console.log('\n=== une phrase de raisonnement ne construit rien, quel que soit son sujet ===');
+  const raison = await faire("Explique pourquoi les médiatrices d'un triangle sont concourantes",
+    false, [[300, 520, 'A'], [640, 520, 'B'], [470, 260, 'C']]);
+  ck('« Explique pourquoi les médiatrices sont concourantes » ne construit rien',
+     /rien à tracer/.test(raison.message), raison.message);
+  const deduis = await faire("Qu'en déduis-tu ?", false);
+  ck('« Qu\'en déduis-tu ? » non plus', /rien à tracer/.test(deduis.message), deduis.message);
+  const inter = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._cslSujet = null;
+    if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un triangle ABC', false);
+    const r = app.executerConsigneAvec("Appelle O le point d'intersection des médiatrices", false);
+    return { ok: r.ok, msg: r.message };
+  });
+  ck('  mais « Appelle O le point d\'intersection des médiatrices » construit encore',
+     inter.ok && !/rien à tracer/.test(inter.msg), inter.msg);
+
+  console.log('\n=== remplir ne retrace pas ===');
+  const rempl = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app._cslSujet = null;
+    if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace le cercle de centre A et de rayon 3 cm', false);
+    const n0 = app.entities.filter(e => e.constructor.name === 'Circle').length;
+    const r = app.executerConsigneAvec('Colorie le disque de centre A en rouge', false);
+    return { msg: r.message, avant: n0,
+             apres: app.entities.filter(e => e.constructor.name === 'Circle').length };
+  });
+  ck('« Colorie le disque » ne fabrique pas un SECOND cercle',
+     rempl.avant === rempl.apres && !/Quel rayon/.test(rempl.msg),
+     rempl.avant + ' → ' + rempl.apres + ' cercle(s) — ' + rempl.msg);
+  ck('  et il est vraiment rempli — le disque colorié, c\'est la 6e',
+     /disque de centre A/.test(rempl.msg), rempl.msg);
+
+  console.log('\n=== plus de façons de demander la méthode ===');
+  for (const phrase of ['Explique-moi la construction de la médiatrice de [AB]',
+                        'Quelles sont les étapes de la construction du milieu de [AB] ?',
+                        "C'est quoi la méthode pour tracer une bissectrice",
+                        "Tu peux m'expliquer comment on reporte une longueur au compas"]) {
+    const r = await faire(phrase, false, [[300, 520, 'A'], [640, 520, 'B']]);
+    ck(`« ${phrase.slice(0, 46)}${phrase.length > 46 ? '…' : ''} »`,
+       r.ok && r.arcsCompas > 0, r.message + ' — ' + r.arcsCompas + ' arcs');
+  }
+
   console.log('\n=== ce qui marchait doit marcher pareil ===');
   const nonReg = [
     ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] ABCD/],
