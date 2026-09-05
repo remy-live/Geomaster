@@ -345,6 +345,26 @@ l'hypoténuse, et l'hypoténuse est toujours le plus long côté. C'est ce que
 répond le logiciel, avec les deux longueurs sous les yeux — pas « ce triangle
 n'existe pas ».
 
+### Ce qu'il comprend en plus
+
+- **La phrase nomme ses points, il les pose.** *« Trace la parallèle à (AB)
+  passant par C »* sur une feuille vide répondait *« Je ne connais pas A »* —
+  alors qu'il créait déjà C sans rien dire. Il place ce qui manque, **trace aussi
+  la droite (AB)** (une parallèle à rien ne veut rien dire) et l'annonce.
+- **`Trace deux droites parallèles / perpendiculaires / sécantes`.** La deuxième
+  était refusée ; la première traçait deux droites de pentes **différentes**.
+  Mesuré : 0° et 90°, avec l'angle droit codé.
+- **`Trace un triangle dont les angles mesurent 40°, 60° et 80°`.** Trois angles
+  fixent la forme, pas la taille : il en choisit une et applique la loi des
+  sinus. Une somme qui ne fait pas 180° est refusée, avec le total.
+- **`Trace un losange dont les diagonales mesurent 6 cm et 4 cm`** — le côté se
+  déduit, c'est Pythagore et c'est l'exercice.
+- **`Trace un cercle de circonférence 12 cm`** — le rayon vaut C ÷ 2π, et le
+  calcul est montré.
+- **Le papier se choisit à la phrase** : *« efface le quadrillage »*, *« mets le
+  papier à points / triangulé / de cahier / à carreaux »*. Le quadrillage n'est
+  pas un objet de la figure, c'est le papier — il tombait sur la gomme.
+
 ### Donner la mesure, pas seulement la tracer
 
 Un énoncé dit « ABC tel que AB = 5 cm et  = 60° ». On **double-clique sur le
@@ -378,6 +398,15 @@ disent d'**où** à **où** la construction se rejoue ; aucune ne disait où ell
 construisait. Il glisse aussi *pendant* les animations d'outil : un trait à la
 règle dure cinq fois le pas ordinaire, et compter les étapes entières le figeait
 une seconde et demie au moment précis où il se passe quelque chose.
+
+### La figure ouverte se met sous les yeux
+
+Une figure rangée garde les coordonnées du jour où elle a été faite, sur l'écran
+de ce jour-là. Mesuré avant correction : sur un téléphone de 390 px, **les seize**
+constructions de la bibliothèque tombaient hors de l'écran — on ouvrait un
+exemple et l'on voyait une feuille blanche. Elles sont maintenant cadrées et
+centrées à l'ouverture, avec le zoom qu'il faut : **0/16 débordent**, sur
+téléphone comme sur ordinateur.
 
 ### Une séance, pas une figure
 
@@ -725,6 +754,21 @@ les coins deviennent des **équerres oranges** et les bords des poignées de
 volet — tirez, ça coupe. Éteint, seuls les quatre coins se montrent, et ils
 redimensionnent. Les bords rognaient et les coins redimensionnaient sans que
 rien ne le dise, deux carrés pour deux gestes : on croyait le rognage disparu.
+
+### Deux figures qui ne sont dans aucune liste
+
+Elles ne servent aucun programme, et c'est bien pour cela qu'elles sont là. On
+les trouve en essayant une phrase pour voir — et ce sont de vraies mathématiques,
+pas des dessins :
+
+- *« Trace un flocon de Koch »* (`d'ordre 1` à `4`, 3 par défaut). Le périmètre
+  augmente d'un tiers à chaque tour et ne s'arrête jamais ; l'aire reste bornée.
+- *« Trace une spirale »* — la **spirale de Théodore**, des triangles rectangles
+  enchaînés dont les rayons valent 1, √2, √3, √4… Les racines carrées se
+  construisent sous les yeux, à la règle et au compas.
+
+Elles ne figurent pas dans la liste de l'aide : c'est ce qui en fait des
+surprises, et une sonde vérifie qu'elles y restent.
 
 ### Quelle version ai-je sous les yeux ?
 

@@ -29845,6 +29845,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/^dessine[rz]?\b/.test(t)) {
                         this.cslDire('Formulation : en géométrie on écrit plutôt « Trace… » que « Dessine… ».');
                     }
+                    /* LE PAPIER ET LES DEUX FIGURES CACHÉES PASSENT EN PREMIER.
+                       Leurs mots sont trop spécifiques pour prêter à confusion —
+                       mais les mots VOISINS, eux, les volaient : « mets le papier
+                       à POINTS » partait poser un point, et « la spirale de
+                       Théodore avec 20 TRIANGLES » construisait un triangle.
+                       Mesuré, avant de les remonter ici. */
+                    if (/quadrillage|papier|carreaux|grille/.test(t)
+                        && /^(?:mets?|mettre|passe|passer|efface|effacer|enl[èe]ve|enlever|retire|retirer|affiche|montre|change|changer|utilise)\b/.test(t)) {
+                        return this.cslQuadrillage(brut, t, fait, rate);
+                    }
+                    if (/flocon|koch|spirale|th[ée]odore|escargot\s+de\s+pythagore/.test(t)) {
+                        const surprise = this.cslFigureCachee(brut, t, fait, rate);
+                        if (surprise) return surprise;
+                    }
                     /* « Appelle O le point d'intersection des médiatrices » : ce
                        croisement porte un nom — c'est le centre du cercle
                        circonscrit. On pose le point, et on dit lequel c'est.
@@ -29907,7 +29921,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         || (/triangle/.test(t) && /m[ée]diatrice|bissectrice|hauteur/.test(t))) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
-                    if (/perpendiculaire|parall[èe]le\s+[àa]|m[ée]diatrice|bissectrice|hauteur/.test(t)) {
+                    /* « DEUX DROITES PERPENDICULAIRES » NE PARLE D'AUCUNE DROITE
+                       EXISTANTE : elle demande les deux. Le mot au PLURIEL, sans
+                       « à … », est ce qui distingue les deux phrases — « la
+                       perpendiculaire à (AB) » se rapporte à une droite qui est
+                       déjà là ; « deux droites perpendiculaires » n'en suppose
+                       aucune. Sans ce garde-fou, la seconde recevait la réponse de
+                       la première : « à quelle droite ? ». */
+                    const deuxDroites = /\b(?:deux|trois)\s+droites\s+(?:perpendiculaires|parall[èe]les|s[ée]cantes)\b/.test(t);
+                    if (!deuxDroites
+                        && /perpendiculaire|parall[èe]le\s+[àa]|m[ée]diatrice|bissectrice|hauteur/.test(t)) {
                         return this.cslDroiteRemarquable(brut, t, fait, rate);
                     }
                     if (/intersection|se\s+coupent|point\s+commun/.test(t)) {
@@ -29946,7 +29969,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        droits » : le mot « triangle » ou « carré » envoyait la
                        phrase au bâtisseur de figures, qui RETRAÇAIT la figure
                        par-dessus elle-même au lieu de coder ses angles. */
-                    if (/\bangles\b/.test(t)
+                    /* « … DONT les angles mesurent 40°, 60° et 80° » DÉCRIT un
+                       triangle à construire ; « marque les angles du triangle ABC »
+                       code une figure déjà là. Le mot « dont » sépare les deux, et
+                       sans lui la première partait coder les angles d'un triangle
+                       qui n'existait pas encore. */
+                    const decritLesAngles = /\b(?:dont|avec)\b[^.]*\bangles?\b/.test(t)
+                        && /\b(?:triangle|quadrilat[èe]re)\b/.test(t);
+                    if (!decritLesAngles && /\bangles\b/.test(t)
                         && /^(?:marque|marquer|code|coder|indique|affiche|trace|tracer)\b/.test(t)) {
                         return this.cslTousLesAngles(brut, t, fait, rate);
                     }
@@ -29954,7 +29984,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        point C » répondait « C existe déjà » — une phrase qui n'a
                        aucun sens pour qui vient d'écrire « efface ». Une consigne
                        construit ; elle ne défait pas. */
-                    if (/^(?:efface|effacer|supprime|supprimer|enl[èe]ve|enlever|retire|retirer|gomme|nettoie|nettoyer|vide|vider)\b/.test(t)) {
+                    if (/^(?:efface|effacer|supprime|supprimer|enl[èe]ve|enlever|retire|retirer|gomme|nettoie|nettoyer|vide|vider)\b/.test(t)
+                        && !/quadrillage|papier|carreaux|grille/.test(t)) {
                         /* « EFFACE TOUT PUIS TRACE … » est une consigne ordinaire,
                            et la plus utile de toutes : on repart d'une feuille
                            propre sans lâcher le clavier. Elle ne demande pas
@@ -30398,6 +30429,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Les diagonales d'un quadrilatère — « et ses diagonales ». */
             cslDiagonales(brut, t, fait, rate) {
+                /* « Trace un losange DONT LES DIAGONALES mesurent 6 cm et 4 cm »
+                   décrit une figure à construire, et non les diagonales d'une
+                   figure déjà tracée. Le verbe et le nom de la figure le disent. */
+                if (/\b(?:dont|avec)\b/.test(t)
+                    && /\b(?:losange|carr[ée]|rectangle|parall[ée]logramme|quadrilat[èe]re)\b/.test(t)) {
+                    return this.cslPolygone(brut, t,
+                        (t.match(/losange|carr[ée]|rectangle|parall[ée]logramme|quadrilat[èe]re/) || ['losange'])[0],
+                        fait, rate);
+                }
                 let noms = this.cslNoms(brut);
                 if (noms.length < 4 && this._cslSujet) noms = this._cslSujet;
                 const pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
@@ -30863,14 +30903,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const cible = coupe1[1], tete = coupe1[0];
                 const { sources, images } = this.cslSourcesImages(tete);
                 if (!sources.length) return rate("De quels points ? Écrivez « … symétrique de A, B, C … ».");
+                /* Même règle que pour la parallèle : la phrase nomme ses points, on
+                   les pose s'ils manquent — mais SEULEMENT s'ils manquent TOUS.
+                   Compléter une figure à moitié construite reviendrait à inventer
+                   un sommet au milieu du travail de quelqu'un. */
+                const absents = sources.filter(n => !this.cslPointNomme(n));
+                if (absents.length && absents.length === sources.length) {
+                    sources.forEach(n => this.cslPoint(n));
+                    this.cslDire(absents.length > 1
+                        ? `Les points ${absents.join(', ')} n'existaient pas : ils ont été placés.`
+                        : `Le point ${absents[0]} n'existait pas : il a été placé.`);
+                }
                 const manque = sources.find(n => !this.cslPointNomme(n));
-                if (manque) return rate(`Je ne connais pas ${manque}.`);
+                if (manque) return rate(`Je ne connais pas ${manque} — placez-le d'abord.`);
                 const pts = sources.map(n => this.cslPointNomme(n));
 
                 const axe = cible.match(/\(([A-Z]'{0,2})([A-Z]'{0,2})\)/)
                     || cible.match(/droite\s+([A-Z]'{0,2})\s*([A-Z]'{0,2})/);
                 if (axe) {
-                    const a = this.cslPointNomme(axe[1]), b = this.cslPointNomme(axe[2]);
+                    const absentsAxe = [axe[1], axe[2]].filter(n => !this.cslPointNomme(n));
+                    const a = this.cslPoint(axe[1]), b = this.cslPoint(axe[2]);
+                    if (absentsAxe.length) {
+                        this.cslDire(`L'axe (${axe[1]}${axe[2]}) n'existait pas : `
+                            + `${absentsAxe.join(' et ')} ${absentsAxe.length > 1 ? 'ont été placés' : 'a été placé'}.`);
+                    }
                     if (!a || !b) return rate(`Je ne connais pas ${!a ? axe[1] : axe[2]}.`);
                     const droit = this.entities.find(e => e instanceof LinearObject
                         && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
@@ -30891,7 +30947,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         nommee, `(${nommee.nomDroite})`, fait);
                 }
                 const noms = this.cslNoms(cible);
-                const o = noms.length ? this.cslPointNomme(noms[0]) : null;
+                /* Le CENTRE aussi se pose s'il manque : « Place le symétrique de A
+                   par rapport à B » sur une feuille vide plaçait A — la ligne
+                   d'au-dessus le fait — puis butait sur B. La phrase les nomme
+                   tous les deux ; elle les mérite tous les deux. */
+                const centreAbsent = noms.length && !this.cslPointNomme(noms[0]);
+                const o = noms.length ? this.cslPoint(noms[0]) : null;
+                if (centreAbsent && o) {
+                    this.cslDire(`Le centre ${noms[0]} n'existait pas : il a été placé.`);
+                }
                 if (!o) return rate(noms.length ? `Je ne connais pas ${noms[0]}.`
                     : "Par rapport à quoi ? Un point, une droite comme (EF), ou une droite nommée comme (d).");
                 if (this.cslDetaille()) {
@@ -31135,8 +31199,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         : "À quelle droite ? Écrivez « … à (AB) passant par C ».");
                 }
                 const seg = [null, paire.a, paire.b];
-                const a = this.cslPointNomme(seg[1]), b = this.cslPointNomme(seg[2]);
+                /* LA PHRASE NOMME SES POINTS : ON LES POSE. « Trace la parallèle à
+                   (AB) passant par C » sur une feuille vide répondait « Je ne
+                   connais pas A. » — alors que la ligne d'en dessous, elle, CRÉAIT
+                   déjà C sans rien dire. Le logiciel se contredisait au sein d'une
+                   même phrase. On pose ce qui manque, et on le dit. */
+                const manquants = [seg[1], seg[2]].filter(n => !this.cslPointNomme(n));
+                const a = this.cslPoint(seg[1]), b = this.cslPoint(seg[2]);
                 if (!a || !b) return rate(`Je ne connais pas ${!a ? seg[1] : seg[2]}.`);
+                if (manquants.length) {
+                    this.cslDire(manquants.length > 1
+                        ? `Les points ${manquants.join(' et ')} n'existaient pas : ils ont été placés.`
+                        : `Le point ${manquants[0]} n'existait pas : il a été placé.`);
+                    /* ET LA DROITE DE RÉFÉRENCE AVEC EUX. Sans elle, « trace la
+                       parallèle à (AB) » sur une feuille vide donnait UNE SEULE
+                       droite et trois points : une parallèle à rien du tout, dont
+                       rien sur la figure ne disait à quoi elle est parallèle. On ne
+                       la trace que si elle n'y est pas déjà. */
+                    if (!med && !this.entities.some(e => e instanceof LinearObject
+                            && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)))) {
+                        this.addEntity(new Line(a, b, this.cslStyle()));
+                    }
+                }
                 if (med) {
                     this.cslPoserMediatrice(a, b);
                     return fait(`Médiatrice de [${seg[1]}${seg[2]}]`);
@@ -31319,6 +31403,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (dia) { const v = this.cslLongueurPx(dia[1]); if (v !== null) { r = v / 2; dit = 'de diamètre ' + dia[1].trim(); } }
                 }
                 if (r === null) {
+                    /* LA CIRCONFÉRENCE EST UNE DONNÉE COMME UNE AUTRE, et c'est
+                       même l'exercice : retrouver le rayon à partir du périmètre.
+                       Le logiciel refusait, alors qu'il n'y avait qu'à diviser par
+                       2π. On le fait, et on dit le rayon trouvé — c'est le nombre
+                       que l'élève cherchait. */
+                    const cir = brut.match(/(?:circonf[ée]rence|p[ée]rim[èe]tre)\s*(?:de\s*|est\s*|mesure\s*|:\s*|=\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)?)/i)
+                        || brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))\s+de\s+(?:circonf[ée]rence|p[ée]rim[èe]tre)/i);
+                    if (cir) {
+                        const c = this.cslLongueurPx(cir[1]);
+                        if (c !== null && c > 0) {
+                            r = c / (2 * Math.PI);
+                            dit = 'de circonférence ' + cir[1].trim();
+                            this.cslDire(`Le rayon vaut ${cir[1].trim()} ÷ 2π = `
+                                + `${this.texteEcartement(r)}.`);
+                        }
+                    }
+                }
+                if (r === null) {
                     // « Trace un cercle » tout court : un cercle honnête, au milieu
                     if (/^(trace|tracer|construis|construire|dessine)\b/.test(t) && !/de\s/.test(t)) r = 130;
                 }
@@ -31356,6 +31458,114 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this._cslMemoire;
             }
             cslOublier() { this._cslMemoire = { cercles: {}, droites: {} }; }
+            /* LE PAPIER SE CHOISIT AUSSI À LA PHRASE. « Efface le quadrillage »
+               tombait sur la gomme — « je sais effacer TOUT » —, ce qui n'a aucun
+               rapport : le quadrillage n'est pas un objet de la figure, c'est le
+               papier sur lequel on la trace. */
+            cslQuadrillage(brut, t, fait, rate) {
+                const modes = [
+                    [/blanc|sans|aucun|efface|enl[èe]ve|retire|uni|vierge/, 3, 'papier blanc'],
+                    [/point|pointill/, 1, 'papier à points'],
+                    [/triangul|isom[ée]tr/, 2, 'papier triangulé'],
+                    [/cahier|s[éè]y[èe]s|grands\s+carreaux|ligné/, 4, 'papier de cahier'],
+                    [/carreaux|carreau|quadrill|millim[ée]tr|grille/, 0, 'papier à carreaux'],
+                ];
+                const trouve = modes.find(([re]) => re.test(t));
+                if (!trouve) {
+                    return rate('Quel papier ? Écrivez « mets le papier blanc », « à carreaux », '
+                        + '« à points », « triangulé » ou « de cahier ».');
+                }
+                this.gridMode = trouve[1];
+                this.cmScale = (this.gridMode === 4) ? 0.8 : 1.0;
+                const btn = document.getElementById('btnGrid');
+                if (btn) btn.innerText = ['▦', '⁙', '△', '□', '📖'][this.gridMode];
+                this.render();
+                return fait(`Papier : ${trouve[2]}`);
+            }
+            /* ============================================================
+               DEUX FIGURES QUI NE SONT PAS DANS LA LISTE
+
+               Elles ne servent aucun programme, et c'est bien pour cela qu'elles
+               sont là : un logiciel de géométrie a le droit d'avoir deux belles
+               figures cachées, que l'on trouve en essayant une phrase pour voir.
+               Toutes deux sont de VRAIES mathématiques — un fractal et une preuve
+               visuelle des racines carrées —, pas des dessins décoratifs.
+               ============================================================ */
+            cslFigureCachee(brut, t, fait, rate) {
+                /* LE FLOCON DE KOCH. On part d'un triangle équilatéral et l'on
+                   remplace, encore et encore, le tiers du milieu de chaque côté par
+                   les deux autres côtés d'un triangle équilatéral. Le périmètre
+                   augmente d'un tiers à chaque tour et ne s'arrête jamais ; l'aire,
+                   elle, reste bornée. C'est la figure qui fait comprendre ça. */
+                if (/flocon|koch/.test(t)) {
+                    const n = Math.max(1, Math.min(4,
+                        parseInt((brut.match(/ordre\s*(\d)/i) || [])[1], 10) || 3));
+                    const L = 340;
+                    const o = this.cslPlaceLibre(0, 0);
+                    const h = L * Math.sqrt(3) / 2;
+                    let pts = [
+                        { x: o.x - L / 2, y: o.y + h / 3 },
+                        { x: o.x + L / 2, y: o.y + h / 3 },
+                        { x: o.x, y: o.y - 2 * h / 3 },
+                    ];
+                    for (let tour = 0; tour < n; tour++) {
+                        const neuf = [];
+                        for (let i = 0; i < pts.length; i++) {
+                            const a = pts[i], b = pts[(i + 1) % pts.length];
+                            const dx = (b.x - a.x) / 3, dy = (b.y - a.y) / 3;
+                            const p1 = { x: a.x + dx, y: a.y + dy };
+                            const p2 = { x: a.x + 2 * dx, y: a.y + 2 * dy };
+                            /* Le sommet de la dent : au tiers du milieu, tourné de
+                               60° — vers l'EXTÉRIEUR, l'écran faisant descendre les
+                               y, c'est une rotation dans le sens négatif. */
+                            const c = Math.cos(-Math.PI / 3), s = Math.sin(-Math.PI / 3);
+                            const sommet = { x: p1.x + dx * c - dy * s, y: p1.y + dx * s + dy * c };
+                            neuf.push(a, p1, sommet, p2);
+                        }
+                        pts = neuf;
+                    }
+                    const st = this.cslStyle();
+                    const objets = pts.map(q => { const p = new Point(q.x, q.y, ''); p.visible = false; this.addEntity(p); return p; });
+                    for (let i = 0; i < objets.length; i++) {
+                        this.addEntity(new Segment(objets[i], objets[(i + 1) % objets.length],
+                            { color: st.color, width: st.width }));
+                    }
+                    this.cslDire('Le périmètre augmente d’un tiers à chaque tour et ne s’arrête jamais ; '
+                        + 'l’aire, elle, reste bornée.');
+                    return fait(`Flocon de Koch d’ordre ${n} — ${objets.length} côtés`);
+                }
+                /* LA SPIRALE DE THÉODORE, ou escargot de Pythagore : des triangles
+                   rectangles enchaînés, dont la petite jambe vaut toujours 1 et
+                   dont l'hypoténuse vaut √2, √3, √4, … On VOIT les racines carrées
+                   se construire à la règle et au compas, l'une après l'autre. */
+                if (/spirale|th[ée]odore|escargot\s+de\s+pythagore/.test(t)) {
+                    const n = Math.max(3, Math.min(30,
+                        parseInt((brut.match(/(\d+)\s*(?:triangles?|tours?|termes?)/i) || [])[1], 10) || 16));
+                    const u = 46;                       // l'unité, en pixels
+                    const o = this.cslPlaceLibre(0, 0);
+                    const centre = new Point(o.x, o.y, 'O');
+                    this.addEntity(centre);
+                    const st = this.cslStyle();
+                    let ang = 0, prec = null;
+                    for (let k = 1; k <= n; k++) {
+                        const r = Math.sqrt(k) * u;
+                        const p = new Point(o.x + Math.cos(ang) * r, o.y + Math.sin(ang) * r, '');
+                        p.visible = false;
+                        this.addEntity(p);
+                        // le rayon, puis le petit côté qui vaut toujours 1
+                        this.addEntity(new Segment(centre, p, { color: '#b8b8b8', width: 1 }));
+                        if (prec) this.addEntity(new Segment(prec, p, { color: st.color, width: st.width }));
+                        prec = p;
+                        /* L'angle au centre du triangle suivant : sa tangente vaut
+                           1/√k, puisque la jambe vaut 1 et le rayon √k. */
+                        ang += Math.atan(1 / Math.sqrt(k));
+                    }
+                    this.cslDire('Chaque petit côté vaut 1, et le rayon suivant vaut √2, √3, √4… '
+                        + 'Les racines carrées se construisent à la règle et au compas.');
+                    return fait(`Spirale de Théodore — ${n} triangles, jusqu’à √${n + 1}`);
+                }
+                return null;
+            }
             /* La feuille se vide, l'ÉNONCÉ RESTE. clearAll() emporte aussi la
                liste des consignes — ce qui, appelé depuis une consigne, effacerait
                la phrase en train de s'exécuter. Ici on ne touche qu'au dessin, et
@@ -32052,20 +32262,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 } else if (quoi === 'carré' || quoi === 'carre') {
                     coins = [[0, 0], [L, 0], [L, L], [0, L]];
                 } else if (quoi === 'losange') {
-                    /* « … de côté 4 cm et de diagonale AC = 6 cm » : la diagonale
-                       donnée fixe la forme. Les quatre côtés restent égaux — la
-                       moitié de l'autre diagonale se déduit de Pythagore. */
-                    const dg = brut.match(/diagonale\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?\s*(?:=|de|mesure)?\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)?)/i)
-                        || brut.match(/diagonale\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
-                    const dv = dg ? this.cslLongueurPx(dg[dg.length - 1]) : null;
-                    if (dv && dv > 0 && dv < 2 * L) {
-                        const h = Math.sqrt(L * L - (dv / 2) * (dv / 2));
-                        coins = [[0, 0], [dv / 2, -h], [dv, 0], [dv / 2, h]];
-                    } else {
-                        if (dv) this.cslDire(`Impossible : une diagonale de losange est plus courte `
-                            + `que deux côtés. Diagonale ignorée.`);
-                        const h = L * Math.sin(Math.PI / 3);
-                        coins = [[0, 0], [L, 0], [L + L / 2, h], [L / 2, h]];
+                    /* SES DEUX DIAGONALES SUFFISENT, et c'est la façon dont un
+                       manuel décrit le plus souvent un losange : elles se coupent
+                       en leur milieu et à angle droit, donc les quatre sommets sont
+                       aux bouts des demi-diagonales. Le côté n'est plus une donnée,
+                       il se déduit — c'est Pythagore, et c'est l'exercice. */
+                    const deuxD = brut.match(/diagonales\s*(?:mesurent|valent|font|sont|de|:)?\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)?)\s*(?:et|,|;)\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)?)/i);
+                    if (deuxD) {
+                        /* L'unité peut n'être écrite qu'une fois — « 6 cm et 4 cm »
+                           comme « 6 et 4 cm ». On la reprend du second nombre. */
+                        const unite = (deuxD[2].match(/(mm|cm|dm|m)/) || [''])[0];
+                        const p = this.cslLongueurPx(/[a-z]/i.test(deuxD[1]) ? deuxD[1] : deuxD[1] + ' ' + unite);
+                        const q = this.cslLongueurPx(deuxD[2]);
+                        if (p > 0 && q > 0) {
+                            coins = [[0, -q / 2], [p / 2, 0], [0, q / 2], [-p / 2, 0]];
+                        }
+                    }
+                    if (!coins) {
+                        /* « … de côté 4 cm et de diagonale AC = 6 cm » : UNE seule
+                           diagonale, avec le côté, fixe aussi la forme — la moitié
+                           de l'autre se déduit de Pythagore. */
+                        const dg = brut.match(/diagonale\s*\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?\s*(?:=|de|mesure)?\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)?)/i)
+                            || brut.match(/diagonale\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
+                        const dv = dg ? this.cslLongueurPx(dg[dg.length - 1]) : null;
+                        if (dv && dv > 0 && dv < 2 * L) {
+                            const h = Math.sqrt(L * L - (dv / 2) * (dv / 2));
+                            coins = [[0, 0], [dv / 2, -h], [dv, 0], [dv / 2, h]];
+                        } else {
+                            if (dv) this.cslDire(`Impossible : une diagonale de losange est plus courte `
+                                + `que deux côtés. Diagonale ignorée.`);
+                            const h = L * Math.sin(Math.PI / 3);
+                            coins = [[0, 0], [L, 0], [L + L / 2, h], [L / 2, h]];
+                        }
                     }
                 } else if (quoi === 'parallélogramme' || quoi === 'parallelogramme') {
                     coins = [[0, 0], [L, 0], [L + L * 0.35, L * 0.6], [L * 0.35, L * 0.6]];
@@ -32163,6 +32391,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const sansChapeau = brut.normalize('NFD').replace(/[̂̃]/g, '').normalize('NFC')
                     .replace(/([A-Z]'{0,2})[ \t]*[°^]/g, '$1');
 
+                /* TROIS ANGLES SANS LEUR SOMMET. « Trace un triangle dont les
+                   angles mesurent 40°, 60° et 80° » ne nomme rien : la phrase donne
+                   la FORME, et laisse au logiciel le soin de nommer. On lit les
+                   trois nombres dans l'ordre, on les attribue à A, B, C — et la
+                   somme est vérifiée avant d'aller plus loin, parce qu'un énoncé
+                   qui ne fait pas 180° mérite qu'on le dise, pas qu'on l'arrondisse
+                   en silence. */
+                const troisAngles = brut.match(
+                    /angles?\s+(?:mesurent|valent|font|sont|de|:)?\s*(\d+(?:[.,]\d+)?)\s*°?\s*[,;etE]+\s*(\d+(?:[.,]\d+)?)\s*°?\s*(?:et\s+)?[,;]?\s*(\d+(?:[.,]\d+)?)\s*°/i);
+                if (troisAngles && angles.every(a => a === null)) {
+                    const v = [1, 2, 3].map(k => parseFloat(troisAngles[k].replace(',', '.')));
+                    const somme = v[0] + v[1] + v[2];
+                    if (Math.abs(somme - 180) > 0.6) {
+                        return rate(`Ces trois angles font ${(+somme.toFixed(1)).toString().replace('.', ',')}° `
+                            + `et non 180° : il n'y a pas de triangle.`);
+                    }
+                    v.forEach((x, i) => { angles[i] = x; });
+                }
                 // angles : « l'angle BAC = 60° », « l'angle en A mesure 60° », « 60° en A »
                 [...sansChapeau.matchAll(/angle\s+([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°?/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[4].replace(',', '.')); });
@@ -32355,6 +32601,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!cotes[j]) cotes[j] = cotes[k] ? cotes[k] * 0.72 : 190;
                         if (!cotes[k]) cotes[k] = cotes[j] * 0.72;
                         cotes[sommetDroit] = Math.hypot(cotes[j], cotes[k]);
+                    } else if (connus === 0 && angConnus >= 2) {
+                        /* TROIS ANGLES, AUCUNE LONGUEUR. « Trace un triangle dont
+                           les angles mesurent 40°, 60° et 80° » : les angles fixent
+                           la FORME, pas la taille — il manque une longueur, et
+                           l'énoncé ne la donne pas parce qu'elle n'a pas
+                           d'importance. On en choisit une, et la loi des sinus
+                           donne les deux autres. Sans cette branche, les trois
+                           angles étaient lus puis JETÉS : on retombait sur le
+                           triangle quelconque, et la figure démentait l'énoncé —
+                           mesuré 78,5° / 57,1° / 44,4° au lieu de 40 / 60 / 80. */
+                        const i0 = angles.findIndex(x => x !== null);
+                        cotes[i0] = 260;
+                        const k0 = cotes[i0] / Math.sin(rad(angles[i0]));
+                        for (let j = 0; j < 3; j++) if (!cotes[j] && angles[j] !== null) {
+                            cotes[j] = k0 * Math.sin(rad(angles[j]));
+                        }
                     } else if (connus === 0 && !equi && sommetIso === null) {
                         // rien d'imposé : un triangle quelconque, honnête
                         cotes[0] = 210; cotes[1] = 180; cotes[2] = 150;
@@ -32842,6 +33104,58 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const noms = this.cslNomsDeDroite(brut);
                     const combien = Math.max(noms.length, /\bdeux\b|\bdroites\b/.test(t) ? 2 : 1,
                                              /\btrois\b/.test(t) ? 3 : 1);
+                    /* DEUX DROITES QUI SE RÉPONDENT. « Trace deux droites
+                       perpendiculaires » était refusé — « à quelle droite ? » —
+                       alors que la phrase ne parle d'aucune droite existante : elle
+                       demande les DEUX. Et « deux droites parallèles » passait,
+                       mais posait deux droites de PENTES DIFFÉRENTES : la réponse
+                       disait « 2 droites tracées » et le dessin disait le
+                       contraire. Le mot de la phrase décide de la relation. */
+                    const relation = /perpendiculaires\b/.test(t) ? 'perp'
+                        : /parall[èe]les\b/.test(t) ? 'para'
+                        : /s[ée]cantes\b/.test(t) ? 'secantes' : null;
+                    if (relation && combien >= 2) {
+                        const o = this.cslPlaceLibre(0, 0);
+                        const cache = (x, y) => { const q = new Point(x, y, ''); q.visible = false; this.addEntity(q); return q; };
+                        const ux = 250, uy = -70;           // la direction de la première
+                        const p1 = cache(o.x - ux / 2, o.y - uy / 2);
+                        const p2 = cache(o.x + ux / 2, o.y + uy / 2);
+                        const d1 = new Line(p1, p2, this.cslStyle());
+                        d1.nomDroite = noms[0] || this.cslNomDroiteLibre();
+                        this.addEntity(d1);
+                        this.cslMemoire().droites[d1.nomDroite] = d1;
+                        let d2;
+                        if (relation === 'para') {
+                            /* La parallèle passe par un point DÉCALÉ de la première,
+                               perpendiculairement : c'est ce décalage qu'on voit. */
+                            const n = Math.hypot(ux, uy) || 1;
+                            const q = cache(o.x - uy / n * 90, o.y + ux / n * 90);
+                            d2 = new ParallelLine(q, { p1, p2 });
+                        } else if (relation === 'perp') {
+                            const q = cache(o.x, o.y);
+                            d2 = new PerpendicularLine(q, { p1, p2 });
+                        } else {
+                            const q1 = cache(o.x - 220, o.y - 120), q2 = cache(o.x + 220, o.y + 120);
+                            d2 = new Line(q1, q2, this.cslStyle());
+                        }
+                        this.cslPoserStyle(d2);
+                        d2.nomDroite = noms[1] || this.cslNomDroiteLibre();
+                        this.addEntity(d2);
+                        this.cslMemoire().droites[d2.nomDroite] = d2;
+                        if (relation === 'perp') {
+                            /* L'angle droit est LA chose que la phrase demande : la
+                               figure doit le dire, pas le laisser deviner. */
+                            const n = Math.hypot(ux, uy) || 1;
+                            const surD1 = cache(o.x + ux / n * 70, o.y + uy / n * 70);
+                            const surD2 = cache(o.x - uy / n * 70, o.y + ux / n * 70);
+                            const centre = cache(o.x, o.y);
+                            const mk = new Angle(surD1, centre, surD2);
+                            mk.isRightAngle = true;
+                            this.addEntity(mk);
+                        }
+                        const mot = { para: 'parallèles', perp: 'perpendiculaires', secantes: 'sécantes' }[relation];
+                        return fait(`Deux droites ${mot} : (${d1.nomDroite}), (${d2.nomDroite})`);
+                    }
                     const faites = [];
                     for (let k = 0; k < combien; k++) {
                         const o = this.cslPlaceLibre(0, k * 90 - (combien - 1) * 45);
@@ -33541,6 +33855,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (champ) champ.value = nom;
                 const modale = document.getElementById('biblioModal');
                 if (modale) modale.style.display = 'none';
+                /* LA FIGURE OUVERTE SE MET SOUS LES YEUX. Une figure rangée garde
+                   les coordonnées du jour où elle a été faite, sur l'écran de ce
+                   jour-là. Mesuré avant : sur un téléphone de 390 px, LES SEIZE
+                   constructions de la bibliothèque tombaient hors de l'écran — on
+                   ouvrait un exemple et l'on voyait une feuille blanche. Sur
+                   ordinateur, toutes étaient décalées de 50 à 290 px, et les deux
+                   séances de plusieurs pages complètement dehors.
+                   La modale doit être refermée AVANT : le cadrage se calcule sur
+                   la taille du conteneur, et il la mesurerait à travers une
+                   fenêtre ouverte. */
+                if (typeof this.cadrerSurFigure === 'function') this.cadrerSurFigure();
                 this.showToast(exemple
                     ? `📐 « ${nom} » — ▶ ou Page suiv. rejoue la construction`
                     : `📚 « ${nom} » ouvert`);
@@ -34734,7 +35059,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-05 · 15h';
+        window.GM_VERSION = '2026-09-05 · 18h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
