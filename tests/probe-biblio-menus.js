@@ -357,6 +357,95 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      ex.some(e => e.n === 'Les quatre transformations' && e.pages === 4),
      JSON.stringify(ex.find(e => e.n === 'Les quatre transformations')));
 
+  console.log('\n=== les transformations rangées sont RELUES, pas supposées ===');
+  /* LE PIÈGE, ET IL A COÛTÉ UNE FOIS. Ces entrées sont des figures ENREGISTRÉES :
+     du code compact, figé. Corriger un bâtisseur — passer la translation au
+     compas seul, par exemple — ne les refait PAS. Elles gardent la construction
+     du jour où elles ont été produites, et le logiciel montre alors dans sa
+     bibliothèque un geste qu'il ne fait plus nulle part ailleurs.
+     Cette section les ouvre et lit ce qu'elles contiennent vraiment. */
+  const transfos = await page.evaluate(() => {
+    const app = window.app;
+    let liste = null;
+    for (const k of Object.keys(window)) {
+      const v = window[k];
+      if (Array.isArray(v) && v.length > 5 && v[0] && typeof v[0].c === 'string' && v[0].n) { liste = v; break; }
+    }
+    const out = [];
+    for (const e of liste) {
+      if (!/ym[ée]trique par|ranslation|otation d|omoth/i.test(e.n)) continue;
+      app.entities = []; app.historyPast = [];
+      app.chargerDocument(e.c);
+      const outils = {};
+      app.entities.filter(x => x.constructor.name === 'ToolAnimation')
+        .forEach(x => { const k2 = x.widgetType || x.type; outils[k2] = (outils[k2] || 0) + 1; });
+      const P = {};
+      app.entities.forEach(x => { if (x.constructor.name === 'Point' && x.label) P[x.label] = x; });
+      const tri = ['A', 'B', 'C'].map(n => P[n]).filter(Boolean);
+      const img = ["A'", "B'", "C'"].map(n => P[n]).filter(Boolean);
+      const d = (a, c) => +Math.hypot(a.x - c.x, a.y - c.y).toFixed(1);
+      /* Le point est-il DANS le triangle ? Test du signe des trois produits
+         vectoriels — le même que pour savoir de quel côté d'un côté on est. */
+      const dedans = (X) => {
+        if (!X || tri.length < 3) return false;
+        const s = (a, bb, c) => (a.x - c.x) * (bb.y - c.y) - (bb.x - c.x) * (a.y - c.y);
+        const q = [s(X, tri[0], tri[1]), s(X, tri[1], tri[2]), s(X, tri[2], tri[0])];
+        return !(q.some(v => v < 0) && q.some(v => v > 0));
+      };
+      const r = { n: e.n, outils,
+                  dedans: ['O', 'D', 'E'].filter(n => P[n] && dedans(P[n])),
+                  cotes: null, rapport: null, ecarts: null };
+      if (tri.length === 3 && img.length === 3) {
+        const cs = [d(tri[0], tri[1]), d(tri[1], tri[2]), d(tri[2], tri[0])];
+        const ci = [d(img[0], img[1]), d(img[1], img[2]), d(img[2], img[0])];
+        r.cotes = [cs, ci];
+        r.rapport = +(ci[0] / cs[0]).toFixed(3);
+      }
+      if (P.D && P.E && /ranslation/i.test(e.n) && tri.length === 3 && img.length === 3) {
+        const vx = P.E.x - P.D.x, vy = P.E.y - P.D.y;
+        r.ecarts = tri.map((q, i) => Math.round(Math.hypot(img[i].x - q.x - vx, img[i].y - q.y - vy)));
+      }
+      out.push(r);
+    }
+    return out;
+  });
+  console.log('  ' + transfos.map(t => `${t.n} ${JSON.stringify(t.outils)}`).join('\n  '));
+  ck('les quatre transformations du triangle sont rangées', transfos.length === 4,
+     transfos.map(t => t.n).join(' | '));
+  /* L'AXE, LE CENTRE, LE VECTEUR NE SONT PAS DANS LA FIGURE. Un centre de
+     rotation posé au milieu du triangle, c'est le rapporteur à l'étroit sur le
+     dessin, et une image qui se superpose à l'originale — la figure ne montre
+     plus ce qu'elle est censée montrer. */
+  for (const t of transfos) {
+    ck(`  « ${t.n} » : l'élément est hors de la figure`,
+       t.dedans.length === 0, t.dedans.join(','));
+  }
+  /* LA TRANSLATION SE CONSTRUIT AU COMPAS SEUL. On y traçait « la parallèle au
+     vecteur à la règle » : une règle ne trace pas de parallèle. Le bâtisseur a
+     été corrigé — mais la figure rangée, elle, gardait l'ancienne, avec ses six
+     poses de règle. C'est le défaut que cette section existe pour attraper. */
+  const trans = transfos.find(t => /ranslation/i.test(t.n));
+  ck('la translation rangée n\'emploie que le compas',
+     trans && !trans.outils.ruler && !trans.outils.setsquare && !trans.outils.protractor
+     && trans.outils.compass > 0, JSON.stringify(trans && trans.outils));
+  ck('  et ses trois images sont exactes',
+     trans && trans.ecarts && trans.ecarts.every(x => x === 0),
+     JSON.stringify(trans && trans.ecarts));
+  /* Chaque figure doit ÊTRE la transformation qu'elle annonce. */
+  const sym = transfos.find(t => /ym[ée]trique/i.test(t.n));
+  const rot = transfos.find(t => /otation/i.test(t.n));
+  const hom = transfos.find(t => /omoth/i.test(t.n));
+  ck('la symétrie conserve les longueurs', sym && sym.rapport === 1, JSON.stringify(sym && sym.cotes));
+  ck('la rotation aussi', rot && rot.rapport === 1, JSON.stringify(rot && rot.cotes));
+  ck('l\'homothétie les multiplie par son rapport', hom && hom.rapport === 2,
+     JSON.stringify(hom && hom.cotes));
+  /* Et chacune emploie SES instruments : l'équerre pour la symétrie axiale (la
+     perpendiculaire à l'axe), le rapporteur pour la rotation (l'angle). */
+  ck('la symétrie axiale sort l\'équerre', sym && sym.outils.setsquare > 0,
+     JSON.stringify(sym && sym.outils));
+  ck('la rotation sort le rapporteur', rot && rot.outils.protractor > 0,
+     JSON.stringify(rot && rot.outils));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

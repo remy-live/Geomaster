@@ -726,6 +726,14 @@ volet — tirez, ça coupe. Éteint, seuls les quatre coins se montrent, et ils
 redimensionnent. Les bords rognaient et les coins redimensionnaient sans que
 rien ne le dise, deux carrés pour deux gestes : on croyait le rognage disparu.
 
+### Quelle version ai-je sous les yeux ?
+
+L'aide (`?`) porte la **date de la version** en petit à côté de son titre, et
+`window.GM_VERSION` la donne à la console. GéoMaster étant un seul fichier HTML,
+les navigateurs le gardent longtemps en cache et la page publiée met un moment à
+se reconstruire : sans ce repère, on ne peut pas dire si l'on regarde la
+correction ou l'ancienne version. `Ctrl+Maj+R` force le rechargement.
+
 ## Un seul fichier
 
 Tout est dans `index.html` : le code, les styles, l'aide, la police et les
