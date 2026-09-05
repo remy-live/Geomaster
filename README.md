@@ -117,7 +117,9 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A`, `issue du sommet A`, `relative à [BC]`, ou `les hauteurs issues de A et de B` · `les milieux des côtés`. Le triangle n'a pas à être redit d'une ligne à l'autre. |
 | **Deux d'un coup** | `Trace un triangle ABC et ses médiatrices` · `et ses diagonales` · `et son cercle circonscrit` |
 | **Points remarquables** | `le centre de gravité G` · `l'orthocentre H` · `le centre du cercle circonscrit O` · `le cercle inscrit` · `le point I intersection de (AB) et (CD)` · `un point M sur [AB]` (ou sur une droite, ou sur un cercle) |
-| **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · `l'image de A par la symétrie de centre O` |
+| **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · **`par rapport à (d)`** — l'axe peut être une droite nommée · `l'image de A par la symétrie de centre O` |
+| **Translations** | `Construis A'B'C' image de ABC par la translation de vecteur DE` · `par la translation qui transforme D en E` — c'est le même vecteur, dit deux fois, et la seconde écriture est ramenée à la première |
+| **Rotations** | `par la rotation de centre O, de sens direct et d'angle 30°` · `dans le sens des aiguilles d'une montre` · `de sens horaire` · `dans le sens inverse des aiguilles d'une montre` — un sens qui n'est pas dit est **signalé**, pas deviné en silence |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Trace un angle ABC de 40°` (les points naissent avec lui) · `Trace un angle de 60° de sommet A` · `Code l'angle droit en A` · `Marque les angles du triangle ABC` · `Marque les angles droits` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 | **Croisements nommés** | `Appelle O le point d'intersection des médiatrices` · `des hauteurs` (l'orthocentre) · `des médianes` · `des bissectrices` |
 | **Couleur et style** | `Trace [AB] en bleu` · `en rouge et en pointillés` · `en gras` · `épaisseur 4` — pour cette ligne seulement |
@@ -126,7 +128,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Sur un objet** | `place le point G sur ce segment tel que GQ = 5 cm` · `un point M sur [AB]` · `deux points A et B sur ce cercle` · `un point C sur cette droite` (une médiatrice en est une) |
 | **Possessifs** | `Trace un segment [AB] de 6 cm, place son milieu I` · `trace ses diagonales et appelle O leur point d'intersection` — la reformulation est dite à côté |
 | **Autres verbes d'énoncé** | `Colorie le triangle ABC` · `Hachure…` · `Prolonge [AB]` · `Partage [AB] en trois parts égales` (les parts sont codées) |
-| **Ce qui ne se trace pas** | `Étape 2` · `Elle passe par O` · `Que remarques-tu ?` · `Justifie ta réponse` — un énoncé de manuel ne contient pas que des constructions, et ces lignes-là ne sont pas des fautes. Ce qui n'est pas su faire est **dit** : une translation, un effacement, un triangle impossible. |
+| **Ce qui ne se trace pas** | `Étape 2` · `Elle passe par O` · `Que remarques-tu ?` · `Justifie ta réponse` — un énoncé de manuel ne contient pas que des constructions, et ces lignes-là ne sont pas des fautes. Ce qui n'est pas su faire est **dit** : une homothétie, un effacement, un triangle impossible. |
 | **Arcs** | `Trace l'arc de cercle de centre O et de rayon 3 cm de A à B` |
 
 Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
@@ -187,7 +189,12 @@ aucune longueur à reporter.
 
 Une case décide de ce que « Trace un carré » veut dire : **la figure seule**, ou
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
-d'un coup et rejouable ensuite avec ▶.
+d'un coup et rejouable ensuite avec ▶. Aux constructions magiques, la même
+décision s'appelle **Avec les outils** : décochée, elle donne la figure et rien
+d'autre. Elle ne retirait jusqu'ici que les instruments, et laissait les arcs de
+compas et les traits de construction — un rectangle entouré de la construction
+qu'on venait justement de ne pas vouloir, qui n'était ni la construction ni la
+figure.
 
 **Aux instruments, un centre ne se calcule pas non plus : il se trouve.** Le
 centre de gravité naît du croisement des trois médianes, l'orthocentre de celui
@@ -202,6 +209,25 @@ théorique.
 croisement. Il était posé d'avance, puis reposé par la construction : le même
 point figurait deux fois dans la figure, son nom était écrit deux fois, et le
 supprimer n'en retirait qu'un.
+
+**Aux instruments, une image ne se pose pas non plus : elle se construit.** La
+symétrie descend du point à l'axe à l'équerre et reporte la longueur au compas ;
+la translation trace la parallèle au vecteur à la règle et y reporte sa longueur
+au compas ; la rotation lit l'angle au **rapporteur** depuis `[OP]`, puis reporte
+`OP` au compas sur la demi-droite lue. Dans les trois cas **le point image
+n'entre qu'à la fin** : avant le report, rien sur la feuille ne dit encore où il
+tombe, et le poser d'abord pour « justifier » ensuite, c'est montrer la réponse
+avant la construction. Les trois images une fois construites, elles se relient
+comme leurs sources l'étaient — une figure image est une figure, pas trois points
+en l'air.
+
+**Ce qui se dit mal mais se comprend est fait, puis expliqué dans une bulle.**
+« A'B'C' symétrique de ABC par la translation de vecteur DE » n'est pas du
+français mathématique — un symétrique est l'image par une symétrie — mais la
+phrase se comprend : elle est exécutée, et une bulle arrondie, sous la ligne
+qu'elle montre, donne la formulation juste. Il en va de même pour « la
+translation qui transforme D en E » (c'est le vecteur `DE`) et pour une rotation
+dont le sens n'est pas dit : le sens direct est pris, et **c'est écrit**.
 
 Et **tout y passe**, quelle que soit la façon dont l'énoncé donne le triangle :
 les cinq cas se ramènent aux trois longueurs, et trois longueurs se construisent

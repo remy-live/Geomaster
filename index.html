@@ -2820,6 +2820,41 @@
         .csl-reponse.rate { display: block; color: #b71c1c; background: #fdecea; }
         .csl-reponse .note { display: block; color: #8d6e00; margin-top: 2px; }
 
+        /* LA BULLE : la phrase a été comprise, et faite — mais elle ne se dit pas
+           comme ça. « Symétrique par la translation », « la rotation qui transforme
+           D en E », un sens de rotation qu'on a dû deviner : on ne refuse pas, on
+           montre comment on l'écrit. Elle pointe la ligne dont elle parle, et elle
+           reste visible sans qu'on ait à se poser dessus — c'est une correction,
+           pas un détail qu'on va chercher. */
+        .csl-bulle {
+            position: relative;
+            margin: 5px 6px 6px 24px;
+            padding: 6px 9px;
+            background: #fff8e1;
+            border: 1px solid #f0d9a0;
+            border-radius: 11px;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #7a5c00;
+        }
+
+        .csl-bulle::before,
+        .csl-bulle::after {
+            content: '';
+            position: absolute;
+            left: 15px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+        }
+
+        .csl-bulle::before { top: -7px; border-bottom: 7px solid #f0d9a0; }
+        .csl-bulle::after { top: -6px; border-bottom: 6px solid #fff8e1; }
+        .csl-bulle p { margin: 0; }
+        .csl-bulle p + p { margin-top: 3px; }
+        .csl-bulle b { color: #5d4c00; font-weight: 700; }
+
         /* LE BANDEAU : ce que le logiciel reconnaît, pendant qu'on écrit.
            « Trace un carré de 3 cm » n'est pas assez précis pour dire quels
            sommets ; plutôt que de le deviner en silence, on montre la phrase
@@ -7555,9 +7590,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Trace le cercle inscrit dans le triangle ABC')">Cercle inscrit dans le triangle ABC</a>
             <a onclick="app.exempleConsigne('Place le point I intersection de (AB) et (CD)')">I intersection de (AB) et (CD)</a>
             <a onclick="app.exempleConsigne('Place un point M sur [AB]')">Un point M sur [AB] · sur (AB) · sur le cercle</a>
-            <div class="consigne-groupe">Symétries</div>
+            <div class="consigne-groupe">Transformations</div>
             <a onclick="app.exempleConsigne('Trace A\', B\', C\' symétriques de A, B, C par rapport à O')">A', B', C' symétriques de A, B, C par rapport à O</a>
             <a onclick="app.exempleConsigne('Trace le symétrique de A par rapport à (EF)')">Symétrique de A par rapport à (EF)</a>
+            <a onclick="app.exempleConsigne('Construis A\'B\'C\' symétrique de ABC par rapport à (d)')">A'B'C' symétrique de ABC par rapport à (d)</a>
+            <a onclick="app.exempleConsigne('Construis A\'B\'C\' image de ABC par la translation de vecteur DE')">Image de ABC par la translation de vecteur DE</a>
+            <a onclick="app.exempleConsigne('Construis A\'B\'C\' image de ABC par la rotation de centre O, de sens direct et d\'angle 30°')">Image de ABC par la rotation de centre O, de sens direct et d'angle 30°</a>
             <div class="consigne-groupe">Mesures et codages</div>
             <a onclick="app.exempleConsigne('AB = 5 cm')">AB = 5 cm</a>
             <a onclick="app.exempleConsigne('Marque l\'angle ABC')">Marque l'angle ABC</a>
@@ -8007,7 +8045,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px;">
                                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
                                 </svg>
-                                Tracés animés
+                                Avec les outils
                             </div>
                             <label class="toggle-switch" onclick="event.stopPropagation();">
                                 <input type="checkbox" id="magic-tools-toggle" checked onchange="app.magicUseTools = this.checked;">
@@ -16105,6 +16143,126 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
             }
+
+            /* LE NOM DE L'IMAGE : celui du point, plus une prime — et une prime de
+               plus tant que le nom est pris. Les trois transformations le nomment
+               de la même façon ; la consigne rebaptise ensuite si elle a dit
+               d'autres noms. */
+            nomImage(pTarget) {
+                if (!pTarget.label) return "";
+                let n = pTarget.label + "'";
+                while (this.entities.some(e => e instanceof Point && e.label === n)) n += "'";
+                return n;
+            }
+
+            /* LA TRANSLATION, À LA RÈGLE ET AU COMPAS. Le geste réel : par le point,
+               on trace la parallèle au vecteur — la règle posée dans sa direction —
+               puis on y REPORTE sa longueur au compas. Le point image n'apparaît
+               qu'à la toute fin : avant le report, rien sur la feuille ne dit encore
+               où il tombe. Le poser d'abord et « justifier » ensuite, c'est montrer
+               la réponse avant la construction. */
+            buildTranslation(points, pD, pE) {
+                let startIndex = this.entities.length;
+                this.stepInstructions[startIndex] = "Translation : par chaque point, on trace la parallèle au vecteur à la règle, puis on y reporte sa longueur au compas.";
+
+                const vx = pE.x - pD.x, vy = pE.y - pD.y;
+                const L = Math.hypot(vx, vy);
+                if (L < 1e-6) return;
+                const ang = Math.atan2(vy, vx);
+
+                /* Le vecteur lui-même, en trait léger : c'est la longueur et la
+                   direction qu'on va reporter, il doit se voir. */
+                if (!this.entities.some(e => e instanceof Segment
+                        && ((e.p1 === pD && e.p2 === pE) || (e.p1 === pE && e.p2 === pD)))) {
+                    this.addEntity(new Segment(pD, pE, { color: "#999999", width: 1 }));
+                }
+
+                for (let pTarget of points) {
+                    let pNew = new Point(pTarget.x + vx, pTarget.y + vy, this.nomImage(pTarget));
+
+                    let bout = new Point(pTarget.x + vx * 1.18, pTarget.y + vy * 1.18, "");
+                    bout.visible = false;
+                    this.addEntity(bout);
+
+                    let pose = { x: pTarget.x, y: pTarget.y, angle: ang };
+                    let venir = new ToolAnimation('move', pose, pose);
+                    venir.widgetType = 'ruler';
+                    this.addEntity(venir);
+                    let trace = new ToolAnimation('trace', pose, pose);
+                    trace.widgetType = 'ruler';
+                    this.addEntity(trace);
+                    this.addEntity(new Segment(pTarget, bout, { color: "#b8b8b8", width: 1, dash: true }));
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
+                    let ouvre = new ToolAnimation('move', { x: pTarget.x, y: pTarget.y, angle: ang, radius: 10 },
+                                                          { x: pTarget.x, y: pTarget.y, angle: ang, radius: L });
+                    ouvre.widgetType = 'compass';
+                    this.addEntity(ouvre);
+                    let arcTrace = new CompassArc(pTarget, L, ang - 0.2, ang + 0.2, false);
+                    arcTrace.color = "#ff9900";
+                    let animC = new ToolAnimation('trace', { x: pTarget.x, y: pTarget.y, angle: ang - 0.2, radius: L },
+                                                           { x: pTarget.x, y: pTarget.y, angle: ang + 0.2, radius: L });
+                    animC.widgetType = 'compass';
+                    this.addEntity(animC); this.addEntity(arcTrace);
+                    this.addEntity(new ToolAnimation('compassHide', {}, {}));
+
+                    this.addEntity(pNew);
+                }
+
+                this.saveState();
+                this.replayIndex = startIndex; this.fastForward(startIndex);
+                this.playStepLoop(startIndex, this.entities.length);
+            }
+
+            /* LA ROTATION, AU RAPPORTEUR ET AU COMPAS. On trace [OP], on lit
+               l'angle au rapporteur depuis ce rayon, on reporte OP au compas sur la
+               demi-droite lue — et le point image tombe au bout, à la fin.
+               `signe` vaut +1 pour le sens direct (celui des mathématiques, inverse
+               des aiguilles d'une montre) et −1 pour le sens horaire. Sur l'écran
+               les y descendent : le sens direct y est donc un angle NÉGATIF. */
+            buildRotation(points, pO, deg, signe) {
+                let startIndex = this.entities.length;
+                this.stepInstructions[startIndex] = `Rotation de ${deg}° : on lit l'angle au rapporteur depuis [O${points[0] && points[0].label ? points[0].label : ''}], puis on reporte la longueur au compas.`;
+
+                for (let pTarget of points) {
+                    const r = Math.hypot(pTarget.x - pO.x, pTarget.y - pO.y);
+                    if (r < 1e-6) { this.addEntity(new Point(pO.x, pO.y, this.nomImage(pTarget))); continue; }
+                    const a0 = Math.atan2(pTarget.y - pO.y, pTarget.x - pO.x);
+                    const a1 = a0 - signe * deg * Math.PI / 180;
+                    let pNew = new Point(pO.x + Math.cos(a1) * r, pO.y + Math.sin(a1) * r, this.nomImage(pTarget));
+
+                    // le rayon [OP], celui qu'on fait tourner
+                    this.addEntity(new Segment(pO, pTarget, { color: "#b8b8b8", width: 1, dash: true }));
+
+                    // le rapporteur, centré en O, lit l'angle depuis [OP]
+                    this.cslPoserRapporteur(pO, pTarget, deg, -signe, null);
+                    let bout = new Point(pO.x + Math.cos(a1) * r * 1.18, pO.y + Math.sin(a1) * r * 1.18, "");
+                    bout.visible = false;
+                    this.addEntity(bout);
+                    this.addEntity(new Segment(pO, bout, { color: "#b8b8b8", width: 1, dash: true }));
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
+                    // le compas prend OP et le reporte sur la demi-droite lue
+                    let ouvre = new ToolAnimation('move', { x: pO.x, y: pO.y, angle: a0, radius: 10 },
+                                                          { x: pO.x, y: pO.y, angle: a0, radius: r });
+                    ouvre.widgetType = 'compass';
+                    this.addEntity(ouvre);
+                    let arcTrace = new CompassArc(pO, r, a0, a1, signe > 0);
+                    arcTrace.color = "#ff9900";
+                    let animC = new ToolAnimation('trace', { x: pO.x, y: pO.y, angle: a0, radius: r },
+                                                           { x: pO.x, y: pO.y, angle: a1, radius: r });
+                    animC.widgetType = 'compass';
+                    this.addEntity(animC); this.addEntity(arcTrace);
+                    this.addEntity(new ToolAnimation('compassHide', {}, {}));
+
+                    this.addEntity(pNew);
+                    this.addEntity(new Angle(pTarget, pO, pNew));
+                }
+
+                this.saveState();
+                this.replayIndex = startIndex; this.fastForward(startIndex);
+                this.playStepLoop(startIndex, this.entities.length);
+            }
             getCurrentInstruction() {
                 let text = "";
                 let exactMatch = false;
@@ -19762,6 +19920,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.showPencil = true;
                 this.view = { x: 0, y: 0, zoom: 1 };
                 this.isMagicConstructing = false;
+                /* AVEC LES OUTILS : la construction se montre — la règle, le
+                   compas, les arcs. Décochée, la case donne la figure et rien
+                   d'autre : un rectangle au tableau n'a pas toujours à montrer
+                   comment il a été construit. `sansOutil` est le même réglage dit
+                   dans l'autre sens ; c'est celui qu'on lit dans le code, parce
+                   qu'on y demande toujours « faut-il sauter cet objet ? ». */
                 this.magicUseTools = true;
                 this.croquisCodage = true;
                 this.croquisDroiteLongue = true;
@@ -20319,8 +20483,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const b = document.getElementById('bulleRotation');
                 if (b) b.style.display = 'none';
             }
+            /* CE QUI RACONTE LA CONSTRUCTION, par opposition à ce qui EST la
+               figure : les instruments, les arcs de compas, et les traits légers —
+               gris ou pointillés — que les bâtisseurs tracent pour se guider. Un
+               côté de la figure est plein et noir ; on ne risque pas de le prendre
+               pour un trait de construction. */
+            get sansOutil() { return !this.magicUseTools; }
+            set sansOutil(v) { this.magicUseTools = !v; }
+            estTraceDeConstruction(e) {
+                if (e instanceof ToolAnimation) return true;
+                if (e instanceof CompassArc) return true;
+                if (e instanceof LinearObject) {
+                    if (e.dash && e.dash.length) return true;
+                    /* Les deux gris des bâtisseurs. Ils s'écrivent en hexadécimal et
+                       pas en rgba() : le code compact ne sait transmettre qu'une
+                       couleur hexadécimale, et un trait de construction en
+                       rgba(0,0,0,0.28) revenait NOIR PLEIN du lien de partage — le
+                       trait léger qu'on efface au crayon devenait un trait de la
+                       figure. */
+                    const c = String(e.color || '').replace(/\s/g, '').toLowerCase();
+                    if (c === '#999999' || c === '#999' || c === '#b8b8b8') return true;
+                }
+                return false;
+            }
             addEntity(entity) {
-                if (this.isMagicConstructing && !this.magicUseTools && entity instanceof ToolAnimation) {
+                /* SANS LES OUTILS, la figure et rien d'autre. Cette case ne
+                   retirait que les instruments : il restait les arcs de compas et
+                   les traits légers, c'est-à-dire un rectangle entouré de la
+                   construction qu'on venait justement de ne pas vouloir — ni la
+                   construction (sans les outils, elle ne s'explique plus) ni la
+                   figure. Elle retire maintenant tout ce qui RACONTE la
+                   construction. Les points invisibles restent : ils ne se voient
+                   pas, et d'autres objets s'appuient sur eux. */
+                if (this.isMagicConstructing && this.sansOutil && this.estTraceDeConstruction(entity)) {
                     return;
                 }
                 /* RANGER DEUX FOIS LE MÊME INSTRUMENT NE LE RANGE PAS DEUX FOIS.
@@ -27481,8 +27676,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     [/perpendiculaire/, ['Trace la perpendiculaire à (AB) passant par C']],
                     [/parall[èe]le/, ['Trace la parallèle à (AB) passant par C']],
                     [/milieu/, ['Place le milieu I de [AB]']],
+                    [/translation|vecteur/, ["Construis A'B'C' image de ABC par la translation de vecteur DE",
+                                             "Construis A'B'C' image de ABC par la translation qui transforme D en E"]],
+                    [/rotation|sens\s+direct|aiguilles/, ["Construis A'B'C' image de ABC par la rotation de centre O, de sens direct et d'angle 30°",
+                                                          "Construis A'B'C' image de ABC par la rotation de centre O, dans le sens des aiguilles d'une montre et d'angle 90°"]],
                     [/sym[ée]tri|image/, ['Trace le symétrique de A par rapport à O',
-                                          'Trace le symétrique de A par rapport à (EF)']],
+                                          'Trace le symétrique de A par rapport à (EF)',
+                                          "Construis A'B'C' symétrique de ABC par rapport à (d)"]],
                     [/intersection|se\s+coupent/, ['Place le point I intersection de (AB) et (CD)',
                                                    'Appelle O le point d\'intersection des médiatrices']],
                     [/orthocentre|gravit[ée]|circonscrit|inscrit/, ['Place l\'orthocentre H du triangle ABC',
@@ -27545,18 +27745,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslBatir(noms, fn) {
                 const avantPts = this.entities.filter(e => e instanceof Point);
                 const memo = this.magicAnimate;
+                /* La case « avec les instruments » de LA LIGNE l'emporte sur le
+                   réglage général « sans les outils » : on vient de la cocher pour
+                   cette consigne-là, ce serait la trahir que de la vider. */
+                const memoNu = this.sansOutil;
                 this.isMagicConstructing = true;
                 this.magicAnimate = false;
+                this.sansOutil = false;
                 try { fn(); }
-                finally { this.magicAnimate = memo; this.isMagicConstructing = false; }
+                finally { this.magicAnimate = memo; this.sansOutil = memoNu; this.isMagicConstructing = false; }
+                const neufs = this.entities.filter(e => e instanceof Point && e.visible !== false
+                    && e.label && !avantPts.includes(e));
                 if (noms && noms.length) {
-                    const neufs = this.entities.filter(e => e instanceof Point && e.visible !== false
-                        && e.label && !avantPts.includes(e));
                     let k = 0;
                     for (const p of neufs) {
                         while (k < noms.length && this.cslPointNomme(noms[k])) k++;
                         if (k >= noms.length) break;
                         p.label = noms[k++];
+                    }
+                }
+                return neufs;
+            }
+            /* LA FIGURE IMAGE EST UNE FIGURE. La construction aux instruments
+               posait les trois points images et s'arrêtait là : trois points en
+               l'air, alors que la source était un triangle. On les relie comme
+               leurs sources étaient reliées — à la fin, une fois les trois
+               construits, comme au crayon. */
+            cslLierImages(pts, neufs) {
+                if (!neufs || neufs.length !== pts.length) return;
+                for (let i = 0; i < pts.length; i++) {
+                    for (let j = i + 1; j < pts.length; j++) {
+                        const lien = this.entities.find(e => e instanceof Segment
+                            && ((e.p1 === pts[i] && e.p2 === pts[j]) || (e.p1 === pts[j] && e.p2 === pts[i])));
+                        if (lien) this.cslSegment(neufs[i], neufs[j]);
                     }
                 }
             }
@@ -27760,8 +27981,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     /* « l'image DU triangle ABC » autant que « l'image DE A » :
                        le « du » n'était pas prévu, et la phrase retombait sur le
                        bâtisseur de figures, qui retraçait le triangle en silence. */
-                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b/.test(t)) {
-                        return this.cslSymetrique(brut, t, fait, rate);
+                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)) {
+                        return this.cslTransformation(brut, t, fait, rate);
                     }
                     /* Les droites remarquables D'UN TRIANGLE, au pluriel comme au
                        singulier : « les médiatrices du triangle ABC », « la hauteur
@@ -27809,13 +28030,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (dans) return dans;
                     }
                     /* Une transformation qu'on ne sait pas faire doit se dire.
-                       « Trace la translation du triangle ABC » retraçait le
+                       « Trace l'homothétie du triangle ABC » retraçait le
                        triangle par-dessus lui-même, et répondait « Triangle ABC »
-                       comme si la translation avait eu lieu. */
-                    if (/\btranslation\b|\brotation\s+d|\bhomoth[ée]tie\b/.test(t)) {
-                        return rate("Je sais faire les symétries — « le symétrique de A par rapport à O » "
-                            + "ou « par rapport à (EF) » — mais pas encore les translations, "
-                            + "rotations et homothéties.");
+                       comme si l'homothétie avait eu lieu. */
+                    if (/\bhomoth[ée]tie\b/.test(t)) {
+                        return rate("Je sais faire les symétries, les translations et les rotations "
+                            + "— mais pas encore les homothéties.");
                     }
                     if (/\bcercles?\b/.test(t) && !figure) return this.cslCercle(brut, t, fait, rate);
                     /* « Marque les angles du triangle ABC », « Marque les angles
@@ -28463,6 +28683,142 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(m);
                 return fait(`${nom} est le milieu de [${s[1]}${s[2]}]`);
             }
+            /* LES TRANSFORMATIONS. Une seule porte d'entrée : le mot qui nomme la
+               transformation décide, pas la tournure de la phrase. « Construis
+               A'B'C' image de ABC par la translation de vecteur DE », « … par la
+               rotation de centre O, de sens direct et d'angle 30° », « … symétrique
+               de ABC par rapport à (d) ». */
+            cslTransformation(brut, t, fait, rate) {
+                /* L'homothétie se dit AVANT tout le reste : « l'image de ABC par
+                   l'homothétie… » contient « image de », et partait se faire
+                   refuser par la symétrie, qui parlait d'axes et de centres sans
+                   jamais dire que c'était l'homothétie qui manquait. */
+                if (/\bhomoth[ée]tie\b/.test(t)) {
+                    return rate("Je sais faire les symétries, les translations et les rotations "
+                        + "— mais pas encore les homothéties.");
+                }
+                if (/\btranslation\b/.test(t)) return this.cslTranslation(brut, t, fait, rate);
+                if (/\brotation\b/.test(t)) return this.cslRotation(brut, t, fait, rate);
+                return this.cslSymetrique(brut, t, fait, rate);
+            }
+            /* CE QUI EST À GAUCHE DE « de », CE QUI EST À DROITE. « Construis
+               A'B'C', image de ABC » : les noms de l'image d'abord, ceux de la
+               source ensuite. Les trois transformations lisent leur tête de phrase
+               de la même façon — c'était déjà le cas, mais recopié. */
+            cslSourcesImages(tete) {
+                const coupe = (/image\s+d[eu]\s+|image\s+des\s+/i.test(tete)
+                    ? tete.split(/image\s+d[eu]\s+|image\s+des\s+/i)
+                    : tete.split(/\bd[eu]\s+|\bdes\s+/i));
+                const sources = this.cslNoms(coupe.length > 1 ? coupe.slice(1).join(' ') : tete);
+                const images = (coupe.length > 1 ? this.cslNoms(coupe[0]) : [])
+                    .filter(n => !sources.includes(n));
+                return { sources, images };
+            }
+            /* « SYMÉTRIQUE PAR LA TRANSLATION » n'est pas du français mathématique :
+               un symétrique, c'est l'image par une symétrie. La phrase se comprend
+               quand même — on la fait, et on dit comment on l'écrit. */
+            cslMotImage(t, sources, comment) {
+                if (/sym[ée]trique/.test(t)) {
+                    this.cslDire(`Formulation : on dit « l'IMAGE de ${sources.join('')} ${comment} » `
+                        + `— « symétrique » ne se dit que pour une symétrie.`);
+                }
+            }
+            cslTranslation(brut, t, fait, rate) {
+                const coupe = brut.split(/par\s+(?:la\s+|une\s+)?translation\s*/i);
+                if (coupe.length < 2) {
+                    return rate("Quelle translation ? Écrivez « … par la translation de vecteur DE » "
+                        + "ou « … par la translation qui transforme D en E ».");
+                }
+                const reste = coupe.slice(1).join(' ');
+                const { sources, images } = this.cslSourcesImages(coupe[0]);
+                if (!sources.length) return rate("Quels points ? Écrivez « … image de A, B, C par la translation… ».");
+                const manque = sources.find(n => !this.cslPointNomme(n));
+                if (manque) return rate(`Je ne connais pas ${manque}.`);
+                const pts = sources.map(n => this.cslPointNomme(n));
+
+                /* Le vecteur se donne de deux façons, également courantes : par son
+                   nom (« de vecteur DE ») ou par ce qu'il fait (« qui transforme D
+                   en E »). C'est le même vecteur, dit deux fois. */
+                let v = reste.match(/vecteur\s+\(?\s*([A-Z]'{0,2})\s*,?\s*([A-Z]'{0,2})\s*\)?/);
+                let ditPar = 'de vecteur';
+                if (!v) {
+                    v = reste.match(/transforme\s+([A-Z]'{0,2})\s+en\s+([A-Z]'{0,2})/);
+                    ditPar = 'qui transforme';
+                }
+                if (!v) {
+                    return rate("Quelle translation ? Écrivez « … par la translation de vecteur DE » "
+                        + "ou « … par la translation qui transforme D en E ».");
+                }
+                const d = this.cslPointNomme(v[1]), e = this.cslPointNomme(v[2]);
+                if (!d || !e) return rate(`Je ne connais pas ${!d ? v[1] : v[2]}.`);
+                if (Math.hypot(e.x - d.x, e.y - d.y) < 1e-6) {
+                    return rate(`${v[1]} et ${v[2]} sont au même endroit : ce vecteur ne déplace rien.`);
+                }
+                this.cslMotImage(t, sources, `par la translation de vecteur ${v[1]}${v[2]}`);
+                if (ditPar === 'qui transforme') {
+                    this.cslDire(`Formulation : « la translation qui transforme ${v[1]} en ${v[2]} », `
+                        + `c'est « la translation de vecteur ${v[1]}${v[2]} ».`);
+                }
+                if (this.cslDetaille()) {
+                    this.cslLierImages(pts, this.cslBatir(images, () => this.buildTranslation(pts, d, e)));
+                    return fait(`Image${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} `
+                        + `par la translation de vecteur ${v[1]}${v[2]}`);
+                }
+                const vx = e.x - d.x, vy = e.y - d.y;
+                return this.cslPoserImages(pts, images, (p) => ({ x: p.x + vx, y: p.y + vy }),
+                    sources, fait, `par la translation de vecteur ${v[1]}${v[2]}`);
+            }
+            cslRotation(brut, t, fait, rate) {
+                const coupe = brut.split(/par\s+(?:la\s+|une\s+)?rotation\s*/i);
+                if (coupe.length < 2) {
+                    return rate("Quelle rotation ? Écrivez « … par la rotation de centre O, "
+                        + "de sens direct et d'angle 30° ».");
+                }
+                const reste = coupe.slice(1).join(' ');
+                const { sources, images } = this.cslSourcesImages(coupe[0]);
+                if (!sources.length) return rate("Quels points ? Écrivez « … image de A, B, C par la rotation… ».");
+                const manque = sources.find(n => !this.cslPointNomme(n));
+                if (manque) return rate(`Je ne connais pas ${manque}.`);
+                const pts = sources.map(n => this.cslPointNomme(n));
+
+                const mc = reste.match(/centre\s+\(?([A-Z]'{0,2})\)?/);
+                if (!mc) return rate("Quel centre ? Écrivez « … par la rotation de centre O, "
+                    + "de sens direct et d'angle 30° ».");
+                const o = this.cslPointNomme(mc[1]);
+                if (!o) return rate(`Je ne connais pas ${mc[1]}.`);
+                const ma = reste.match(/angle\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*°?/)
+                    || reste.match(/(\d+(?:[.,]\d+)?)\s*°/);
+                if (!ma) return rate("De quel angle ? Écrivez « … et d'angle 30° ».");
+                const deg = parseFloat(ma[1].replace(',', '.'));
+                if (!(deg > 0) || deg >= 360) return rate("L'angle d'une rotation est entre 0° et 360°.");
+
+                /* LE SENS SE DIT DE QUATRE FAÇONS et l'ordre des tests compte :
+                   « dans le sens INVERSE des aiguilles d'une montre » contient le
+                   mot « aiguilles » tout en désignant le sens direct. */
+                const contraire = /(?:contraire|inverse|oppos[ée])\s+(?:de\s+celui\s+)?(?:[àa]\s+celui\s+)?des\s+aiguilles/.test(t);
+                const horaire = !contraire
+                    && /\bhoraire\b|aiguilles?\s+d['’]?\s*une\s+montre|\bindirect\b|\bn[ée]gatif\b|\br[ée]trograde\b/.test(t);
+                const dit = contraire || horaire || /\bdirect\b|trigonom|\bpositif\b|\bantihoraire\b/.test(t);
+                const signe = horaire ? -1 : 1;
+                if (!dit) {
+                    this.cslDire("Précision : le sens n'est pas dit — j'ai pris le sens direct. "
+                        + "Écrivez « de sens direct » ou « dans le sens des aiguilles d'une montre ».");
+                }
+                const nomSens = signe > 0 ? 'de sens direct' : 'dans le sens des aiguilles d\'une montre';
+                this.cslMotImage(t, sources, `par la rotation de centre ${mc[1]}, ${nomSens} et d'angle ${deg}°`);
+                if (this.cslDetaille()) {
+                    const neufs = this.cslBatir(images, () => this.buildRotation(pts, o, deg, signe));
+                    this.cslLierImages(pts, neufs);
+                    return fait(`Image${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} par la rotation `
+                        + `de centre ${mc[1]}, ${nomSens} et d'angle ${deg}°`);
+                }
+                const th = -signe * deg * Math.PI / 180;
+                const co = Math.cos(th), si = Math.sin(th);
+                return this.cslPoserImages(pts, images, (p) => {
+                    const dx = p.x - o.x, dy = p.y - o.y;
+                    return { x: o.x + dx * co - dy * si, y: o.y + dx * si + dy * co };
+                }, sources, fait, `par la rotation de centre ${mc[1]}, ${nomSens} et d'angle ${deg}°`);
+            }
             cslSymetrique(brut, t, fait, rate) {
                 /* « Trace A', B', C' symétriques de A, B, C par rapport à O » : les
                    images à gauche, les sources après « de », le centre ou l'axe après
@@ -28479,48 +28835,66 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + "« … par rapport à (EF) » ou « … par la symétrie de centre O ».");
                 }
                 const cible = coupe1[1], tete = coupe1[0];
-                const coupe2 = (/image\s+d[eu]\s+|image\s+des\s+/i.test(tete)
-                    ? tete.split(/image\s+d[eu]\s+|image\s+des\s+/i)
-                    : tete.split(/\bd[eu]\s+|\bdes\s+/i));
-                const sources = this.cslNoms(coupe2.length > 1 ? coupe2.slice(1).join(' ') : tete);
+                const { sources, images } = this.cslSourcesImages(tete);
                 if (!sources.length) return rate("De quels points ? Écrivez « … symétrique de A, B, C … ».");
                 const manque = sources.find(n => !this.cslPointNomme(n));
                 if (manque) return rate(`Je ne connais pas ${manque}.`);
                 const pts = sources.map(n => this.cslPointNomme(n));
-                const images = (coupe2.length > 1 ? this.cslNoms(coupe2[0]) : [])
-                    .filter(n => !sources.includes(n));
 
                 const axe = cible.match(/\(([A-Z]'{0,2})([A-Z]'{0,2})\)/)
                     || cible.match(/droite\s+([A-Z]'{0,2})\s*([A-Z]'{0,2})/);
                 if (axe) {
                     const a = this.cslPointNomme(axe[1]), b = this.cslPointNomme(axe[2]);
                     if (!a || !b) return rate(`Je ne connais pas ${!a ? axe[1] : axe[2]}.`);
-                    if (this.cslDetaille()) {
-                        const seg = this.entities.find(e => e instanceof LinearObject
-                            && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)))
-                            || this.cslSegment(a, b);
-                        this.cslBatir(images, () => this.buildSymAxiale(pts, seg));
-                        return fait(`Symétrique${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} `
-                            + `par rapport à (${axe[1]}${axe[2]})`);
-                    }
-                    const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
-                    return this.cslPoserImages(pts, images, (p) => {
-                        const k = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
-                        return { x: 2 * (a.x + k * dx) - p.x, y: 2 * (a.y + k * dy) - p.y };
-                    }, sources, fait);
+                    const droit = this.entities.find(e => e instanceof LinearObject
+                        && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)));
+                    return this.cslSymetrieAxiale(pts, images, sources, a, b,
+                        droit, `(${axe[1]}${axe[2]})`, fait);
+                }
+                /* L'AXE PEUT PORTER UN NOM. « … symétrique de ABC par rapport à
+                   (d) » est la forme la plus courante des manuels ; on n'y lisait
+                   que deux majuscules, donc rien, et on répondait « par rapport à
+                   quoi ? » devant une droite tracée juste au-dessus. */
+                const nommee = this.cslDroiteCitee(cible);
+                if (nommee) {
+                    const po = this.cslPorteeLineaire(nommee);
+                    if (!po) return rate(`La droite ${nommee.nomDroite} n'a pas de direction connue.`);
+                    const a = { x: po.p.x, y: po.p.y };
+                    const b = { x: po.p.x + po.u.x, y: po.p.y + po.u.y };
+                    return this.cslSymetrieAxiale(pts, images, sources, a, b,
+                        nommee, `(${nommee.nomDroite})`, fait);
                 }
                 const noms = this.cslNoms(cible);
                 const o = noms.length ? this.cslPointNomme(noms[0]) : null;
                 if (!o) return rate(noms.length ? `Je ne connais pas ${noms[0]}.`
-                    : "Par rapport à quoi ? Un point, ou une droite comme (EF).");
+                    : "Par rapport à quoi ? Un point, une droite comme (EF), ou une droite nommée comme (d).");
                 if (this.cslDetaille()) {
-                    this.cslBatir(images, () => pts.forEach(p => this.buildSymCentrale(p, o)));
+                    this.cslLierImages(pts, this.cslBatir(images, () => pts.forEach(p => this.buildSymCentrale(p, o))));
                     return fait(`Symétrique${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} par rapport à ${o.label}`);
                 }
                 return this.cslPoserImages(pts, images, (p) => ({ x: 2 * o.x - p.x, y: 2 * o.y - p.y }),
-                    sources, fait);
+                    sources, fait, `par rapport à ${o.label}`);
             }
-            cslPoserImages(pts, images, image, sources, fait) {
+            /* LA SYMÉTRIE PAR RAPPORT À UNE DROITE, qu'elle soit donnée par deux
+               points ou par son nom : la construction est la même, seul le mot
+               qu'on répond change. */
+            cslSymetrieAxiale(pts, images, sources, a, b, support, ditAxe, fait) {
+                if (this.cslDetaille()) {
+                    /* Une perpendiculaire ou une parallèle nommée n'a qu'un point :
+                       l'axe, pour la construction, c'est sa direction. */
+                    const seg = (support && support.p1 && support.p2) ? support
+                        : support ? { p1: a, p2: b } : this.cslSegment(a, b);
+                    this.cslLierImages(pts, this.cslBatir(images, () => this.buildSymAxiale(pts, seg)));
+                    return fait(`Symétrique${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} `
+                        + `par rapport à ${ditAxe}`);
+                }
+                const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+                return this.cslPoserImages(pts, images, (p) => {
+                    const k = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
+                    return { x: 2 * (a.x + k * dx) - p.x, y: 2 * (a.y + k * dy) - p.y };
+                }, sources, fait, `par rapport à ${ditAxe}`);
+            }
+            cslPoserImages(pts, images, image, sources, fait, ditPar) {
                 const neufs = [];
                 pts.forEach((p, i) => {
                     let nom = images[i];
@@ -28542,8 +28916,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (lien) this.cslSegment(neufs[i], neufs[j]);
                     }
                 }
+                /* On répond avec le NOM de la transformation : « image de A, B, C
+                   par la translation de vecteur DE » et non « symétriques de A, B,
+                   C », qui disait le contraire de ce qu'on venait de faire. */
+                if (ditPar && !/par rapport/.test(ditPar)) {
+                    return fait(`${neufs.map(p => p.label).join(', ')} — image${neufs.length > 1 ? 's' : ''} `
+                        + `de ${sources.join(', ')} ${ditPar}`);
+                }
                 return fait(`${neufs.map(p => p.label).join(', ')} — symétrique${neufs.length > 1 ? 's' : ''} `
-                    + `de ${sources.join(', ')}`);
+                    + `de ${sources.join(', ')}${ditPar ? ' ' + ditPar : ''}`);
             }
             /* LE TRIANGLE DONT ON PARLE, quand la phrase ne le nomme pas.
                « Trace un triangle ABC tel que… puis trace la hauteur issue de A » :
@@ -30049,7 +30430,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const bout = new Point(depuis.x + dx * 1.22, depuis.y + dy * 1.22, '');
                     bout.visible = false;
                     this.addEntity(bout);
-                    const seg = new Segment(depuis, bout, { color: 'rgba(0,0,0,0.28)', width: 1, dash: true });
+                    const seg = new Segment(depuis, bout, { color: '#b8b8b8', width: 1, dash: true });
                     this.addEntity(seg);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 };
@@ -30109,7 +30490,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const boutC = new Point(sommet.x + dxC * 1.22, sommet.y + dyC * 1.22, '');
                 boutC.visible = false;
                 this.addEntity(boutC);
-                this.addEntity(new Segment(sommet, boutC, { color: 'rgba(0,0,0,0.28)', width: 1, dash: true }));
+                this.addEntity(new Segment(sommet, boutC, { color: '#b8b8b8', width: 1, dash: true }));
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 // le report de la longueur au compas, sur la demi-droite ouverte
                 const r = MathUtils.dist(versC.x, versC.y, pC.x, pC.y);
@@ -30435,8 +30816,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     rep.textContent = (c.etat === 'ok' ? '✓ ' : '✗ ') + c.message;
                     /* La notation est un point de cours, pas une faute de frappe :
                        [AB] le segment, (AB) la droite, [AB) la demi-droite. La
-                       consigne est faite quand même, et l'écriture juste rappelée. */
-                    if (c.astuce) {
+                       consigne est faite quand même, et l'écriture juste rappelée.
+                       Quand elle est ratée, l'astuce reste collée au refus : c'est
+                       souvent elle qui l'explique. Quand elle est FAITE, l'astuce
+                       part dans la bulle, sous la ligne, où elle se voit. */
+                    if (c.astuce && c.etat !== 'ok') {
                         const n = document.createElement('span');
                         n.className = 'note';
                         n.textContent = '✎ ' + c.astuce;
@@ -30448,10 +30832,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 mod.className = 'csl-modeles';
 
                 el.append(tete, rep, mod);
+                if (c.astuce && c.etat === 'ok') el.insertBefore(this.bulleConsigne(c.astuce), mod);
                 /* Une ligne faite n'a plus besoin qu'on lui montre le modèle :
                    le bandeau ne parle que tant qu'on cherche ses mots. */
                 if (c.texte && !c.faite) this.bandeauConsigne(el, c.texte);
                 return el;
+            }
+            /* LA BULLE D'UNE LIGNE FAITE. Les astuces arrivent collées bout à bout,
+               chacune ouverte par son mot — « Formulation : », « Notation : »… On
+               les remet une par ligne, le mot en gras : c'est ce mot qui dit de
+               quoi on parle. */
+            bulleConsigne(astuce) {
+                const b = document.createElement('div');
+                b.className = 'csl-bulle';
+                const mots = 'Formulation|Notation|Pr[ée]cision|Vocabulaire|Attention|Impossible';
+                const bouts = String(astuce).split(new RegExp(`(?=(?:${mots})\\s*:)`))
+                    .map(x => x.trim()).filter(Boolean);
+                for (const bout of bouts) {
+                    const p = document.createElement('p');
+                    const m = bout.match(new RegExp(`^(${mots})\\s*:\\s*`));
+                    if (m) {
+                        const g = document.createElement('b');
+                        g.textContent = m[1] + ' — ';
+                        p.append(g, document.createTextNode(bout.slice(m[0].length)));
+                    } else {
+                        p.textContent = bout;
+                    }
+                    b.appendChild(p);
+                }
+                return b;
             }
             /* Descendre d'une ligne, en en ouvrant une s'il n'y en a plus. */
             ligneSuivante(i) {

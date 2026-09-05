@@ -338,10 +338,17 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      par-dessus lui-même et répondait « Triangle ABC ».
      ================================================================ */
   console.log('\n=== une transformation inconnue ne fait pas semblant ===');
+  /* « Trace la translation du triangle ABC » ne dit pas DE QUEL VECTEUR : la
+     translation se fait maintenant, mais pas celle-là — et on demande le
+     vecteur au lieu de retracer le triangle par-dessus lui-même. */
   r = await fig(['Trace un triangle ABC', 'Trace la translation du triangle ABC']);
   ck('elle est refusée, et expliquée',
-     r.res[1].ok === false && /translations/.test(r.res[1].m), r.res[1].m);
+     r.res[1].ok === false && /vecteur/.test(r.res[1].m), r.res[1].m);
   ck('et le triangle n\'a pas été retracé', r.objets.Polygon === 1, String(r.objets.Polygon));
+  r = await fig(['Trace un triangle ABC', 'Trace l\'image de ABC par l\'homothétie de centre A et de rapport 2']);
+  ck('une transformation qu\'on ne sait pas faire se nomme',
+     r.res[1].ok === false && /homoth/i.test(r.res[1].m), r.res[1].m);
+  ck('et là non plus le triangle n\'est pas retracé', r.objets.Polygon === 1, String(r.objets.Polygon));
   r = await fig([T, 'Trace l\'image du triangle ABC par la symétrie de centre A']);
   ck('« l\'image DU triangle » est bien une symétrie',
      r.res[1].ok && r.objets.Polygon === 1, `${r.res[1].m} / ${r.objets.Polygon}`);

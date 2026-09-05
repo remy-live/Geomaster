@@ -34,6 +34,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-consigne-tel.js` | au téléphone, les consignes prennent la moitié basse de l'écran et la feuille l'autre |
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
+| `probe-transformations.js` | symétrie, translation, rotation : la figure obtenue est **mesurée** (longueurs conservées, images au pixel près, sens de rotation) ; aux instruments l'image n'entre qu'à la fin ; la bulle explique la formulation ; « sans les outils » ne laisse que la figure |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
 quelqu'un a pensé. Elles protègent **ce qui a déjà été vérifié une fois**, pour
