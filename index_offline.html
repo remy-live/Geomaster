@@ -2232,6 +2232,25 @@
            immobile pendant que la figure se construisait. Ce curseur-ci ne se
            tire pas — il rend compte. D'où le trait fin plutôt qu'une pastille :
            on ne doit pas croire qu'il s'attrape. */
+        /* LE MODE VECTEUR SE VOIT. Il est retenu d'une séance à l'autre : sans
+           marque, on rouvrirait le logiciel et l'on tracerait des flèches sans
+           l'avoir voulu. Une pointe dans le coin du bouton, de la couleur des
+           outils actifs — on lit le mode sans avoir à ouvrir les options. */
+        .tool-btn.gm-mode-vecteur { position: relative; }
+        .tool-btn.gm-mode-vecteur::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 8px solid #2980b9;
+            transform: rotate(45deg);
+            pointer-events: none;
+        }
+
         .cs-progress {
             position: absolute;
             top: 50%;
@@ -8539,6 +8558,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </svg>
                         </div>
 
+                        <!-- LE DESSIN QU'ON PEUT ENCORE CORRIGER. Une image dans un
+                             document LaTeX reste une image : on ne peut plus ni la
+                             mettre à l'échelle du texte, ni changer un nom de point.
+                             Un dessin TikZ, si — et c'est le format dans lequel un
+                             devoir de maths se rédige. -->
+                        <div class="icon-btn" onclick="app.requestExport('tikz')" aria-label="Exporter en TikZ (LaTeX)"
+                            data-libelle="TikZ" data-tooltip="Exporter en TikZ — code LaTeX à coller dans un document">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <g transform="translate(0, -4) scale(0.8) translate(3, 3)">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </g>
+                                <text x="12" y="24" text-anchor="middle" font-family="sans-serif" font-size="8"
+                                    font-weight="bold" fill="currentColor" stroke="none">TikZ</text>
+                            </svg>
+                        </div>
                         <div class="icon-btn" onclick="app.requestExport('pdf')" aria-label="Exporter PDF" data-libelle="PDF"
                             data-tooltip="Exporter en PDF vectoriel">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -9091,8 +9128,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </svg>
             </button>
             <div class="group-label">Lignes</div>
-            <button class="tool-btn" onclick="app.setTool('segment')" aria-label="Segment [AB]"
-                data-tooltip="Segment [AB]">
+            <button class="tool-btn" id="btn-segment" onclick="app.setTool('segment')" aria-label="Segment [AB]"
+                data-tooltip="Segment [AB] — appui long : options">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round">
                     <line x1="5" y1="19" x2="19" y2="5" />
@@ -10414,6 +10451,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 onchange="app.reglerCroquis('droiteLongue', this.checked)"><span>Trait long → droite<i>au-delà d'un demi-écran</i></span></label>
         <label class="croquis-opt"><input type="checkbox" id="optCroquisBord" checked
                 onchange="app.reglerCroquis('bord', this.checked)"><span>Vers le bord → demi-droite<i>les deux bords → droite</i></span></label>
+    </div>
+    <!-- LE VECTEUR VIT ICI, et pas derrière un geste muet. L'appui long sur un
+         bouton d'outil veut déjà dire « options de cet outil » — le croquis et le
+         stylo le disent dans leur infobulle. Lui faire dire « un autre outil »
+         donnerait deux sens au même geste, et cacherait un objet entier derrière
+         quelque chose que personne ne découvre : c'est exactement pour cela que
+         le quart de tour a fini par avoir son bouton. Le vecteur est donc une
+         OPTION du segment — même geste, même sens, et la loupe le trouve. -->
+    <div id="segmentOptions"
+        style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:238px; font-family:'Segoe UI', sans-serif; font-size:13px;">
+        <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Segment</div>
+        <label class="croquis-opt"><input type="checkbox" id="optSegmentFleche"
+                onchange="app.reglerSegment('fleche', this.checked)"><span>Vecteur<i>une pointe au bout : <span style="font-style:normal">u⃗</span>, un sens de A vers B</i></span></label>
     </div>
     <div id="styloOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:246px; font-family:'Segoe UI', sans-serif; font-size:13px;">
@@ -12359,6 +12409,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            Il était recopié dans le segment et dans l'angle ; le milieu en a besoin
            à son tour. Le repère est déjà translaté et tourné quand on l'appelle :
            il ne reste qu'à tracer, dans un chemin déjà ouvert. */
+        /* LA POINTE D'UN VECTEUR, au bout du trait et dans son sens. Un seul
+           endroit la dessine — le canevas — et l'export SVG reprend les mêmes
+           nombres : deux dessins d'une même flèche finissent toujours par
+           diverger. Elle grossit avec le trait, et avec le mode projection, pour
+           rester visible du fond de la salle. */
+        function gmPointeFleche(ctx, p1, p2, couleur, epaisseur) {
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const L = Math.hypot(dx, dy);
+            if (L < 1) return;
+            const gros = (typeof gmGros === 'function') ? gmGros() : 1;
+            const l = Math.min(L * 0.34, (9 + 2.6 * (epaisseur || 2)) * gros);
+            const a = Math.atan2(dy, dx), ouv = 0.42;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(p2.x, p2.y);
+            ctx.lineTo(p2.x - Math.cos(a - ouv) * l, p2.y - Math.sin(a - ouv) * l);
+            ctx.lineTo(p2.x - Math.cos(a + ouv) * l, p2.y - Math.sin(a + ouv) * l);
+            ctx.closePath();
+            ctx.fillStyle = couleur;
+            ctx.fill();
+            ctx.restore();
+        }
         function gmTracerMarque(ctx, coding, h) {
             if (coding === 'mark-1') {
                 ctx.moveTo(0, -h); ctx.lineTo(0, h);
@@ -13475,6 +13547,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const s = this.getStyle("blue", isHovered, isToDelete);
                 this.drawInfinite(ctx, 0, 1, s);
                 if (!this.p1 || !this.p2) return;
+                /* LE VECTEUR EST UN SEGMENT QUI POINTE. Une classe entière aurait
+                   fait payer à tout le reste — enregistrement, export, aimantation,
+                   codage, mesures — la reconnaissance d'un type de plus, pour une
+                   seule différence : la pointe. C'est donc un drapeau, écrit EN FIN
+                   de groupe dans le code compact, où les fichiers antérieurs n'en
+                   ont pas et se relisent inchangés. */
+                if (this.fleche) gmPointeFleche(ctx, this.p1, this.p2, s.color, s.width || this.lineWidth || 2);
                 /* UN TRAIT NE PORTE QU'UN CODAGE. Quand son milieu est codé, ce
                    sont ses deux moitiés qui parlent : le trait est déjà marqué.
                    Une marque de longueur en plus, au centre, dirait autre chose
@@ -18125,6 +18204,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 header.addEventListener('pointercancel', () => isDragging = false);
             }
             requestExport(format) {
+                /* Le TikZ ne pose aucune des deux questions : les instruments n'y
+                   vont pas, et une police ne s'embarque pas dans du LaTeX — c'est
+                   le document qui la choisit. */
+                if (format === 'tikz') { this.executeExport(format, false, 'text'); return; }
                 const hasTools = this.activeWidgets.ruler || this.activeWidgets.setsquare || this.activeWidgets.protractor || this.activeWidgets.compass;
                 // Le SVG a lui aussi une question à poser : embarquer la police.
                 const questionPolice = (format === 'svg' && !!window.gmCssPolice);
@@ -18170,7 +18253,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
             }
             executeExport(format, includeTools, numbersMode, police) {
-                if (format === 'svg') this.exportSVG(includeTools, numbersMode, police);
+                if (format === 'tikz') this.exportTikZ();
+                else if (format === 'svg') this.exportSVG(includeTools, numbersMode, police);
                 else if (format === 'pdf') this.exportPDF(includeTools, numbersMode);
                 else this.exportImage(format, includeTools, numbersMode);
                 /* Un fichier vient de partir vers une photocopieuse : le logiciel
@@ -18994,7 +19078,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         arr.push(width, dash);
                         // L'unité s'ajoute EN FIN de groupe : les enregistrements
                         // antérieurs n'ont pas ce champ et se relisent inchangés.
-                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0);
+                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0, e.fleche ? 1 : 0);
                         /* Le nom d'une droite voyage aussi : « Trace une droite d »
                            partagée par lien revenait anonyme, et « la
                            perpendiculaire à d » ne trouvait plus rien. */
@@ -19227,6 +19311,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : [];
                             obj.showLength = (d[6] == "1"); obj.measureOffset = d[7] ? parseFloat(d[7]) : -15; obj.coding = (d[8] && d[8] !== "0") ? d[8] : null;
                             obj.lengthUnit = (d[9] && d[9] !== "0" && GM_UNITES.indexOf(d[9]) !== -1) ? d[9] : null;
+                            obj.fleche = (d[10] === "1");
                         }
                         else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
                         else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
@@ -21447,6 +21532,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         pan.style.display = 'none';
                     }, true);
                 }
+                /* Le segment, même geste que le croquis et le stylo. */
+                const btnSg = document.getElementById('btn-segment');
+                if (btnSg) {
+                    let minSg = null;
+                    const armerSg = () => {
+                        clearTimeout(minSg);
+                        minSg = setTimeout(() => { minSg = null; this.ouvrirOptionsSegment(btnSg); }, 500);
+                    };
+                    const desSg = () => { clearTimeout(minSg); minSg = null; };
+                    btnSg.addEventListener('pointerdown', armerSg);
+                    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btnSg.addEventListener(t, desSg));
+                    btnSg.addEventListener('contextmenu', (e) => { e.preventDefault(); desSg(); this.ouvrirOptionsSegment(btnSg); });
+                    document.addEventListener('pointerdown', (e) => {
+                        const pan = document.getElementById('segmentOptions');
+                        if (!pan || pan.style.display === 'none') return;
+                        if (pan.contains(e.target) || btnSg.contains(e.target)) return;
+                        pan.style.display = 'none';
+                    }, true);
+                    this.majBoutonSegment();
+                }
                 const btnCr = document.getElementById('btnCroquis');
                 if (btnCr) {
                     let minCr = null;
@@ -22793,6 +22898,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.p1Id = e.p1?.id;
                         data.p2Id = e.p2?.id;
                         if (e.coding) data.coding = e.coding;
+                        if (e.fleche) data.fleche = true;
                     } else if (e instanceof Angle) {
                         data.p1Id = e.p1?.id;
                         data.p2Id = e.p2?.id;
@@ -22941,6 +23047,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 obj.measureOffset = data.measureOffset || -15;
                                 obj.coding = data.coding || null;
                                 obj.lengthUnit = (data.lengthUnit && GM_UNITES.indexOf(data.lengthUnit) !== -1) ? data.lengthUnit : null;
+                                obj.fleche = !!data.fleche;
                             }
                             if (obj instanceof Angle) {
                                 obj.isCounterClockwise = data.isCCW;
@@ -23992,6 +24099,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 } else if (quoi === 'droiteLongue') this.croquisDroiteLongue = valeur;
                 else if (quoi === 'bord') this.croquisBordDemiDroite = valeur;
                 else if (quoi === 'nommer') this.croquisNommer = valeur;
+            }
+            /* LE SEGMENT ET SES OPTIONS. Une seule pour l'instant — la pointe —
+               mais elle vaut d'être là plutôt que d'être un vingt-troisième bouton
+               dans une barre qui en porte déjà vingt-deux. Le choix est retenu
+               d'une séance à l'autre, ET SIGNALÉ SUR LE BOUTON : un mode qui
+               persiste sans se voir, c'est tracer des flèches sans l'avoir voulu. */
+            get segmentFleche() {
+                try { return localStorage.getItem('gm_segment_fleche') === '1'; }
+                catch (e) { void e; return false; }
+            }
+            set segmentFleche(v) {
+                try { localStorage.setItem('gm_segment_fleche', v ? '1' : '0'); } catch (e) { void e; }
+                this.majBoutonSegment();
+            }
+            reglerSegment(quoi, valeur) {
+                if (quoi === 'fleche') this.segmentFleche = !!valeur;
+            }
+            majBoutonSegment() {
+                const b = document.getElementById('btn-segment');
+                if (!b) return;
+                const v = this.segmentFleche;
+                b.classList.toggle('gm-mode-vecteur', v);
+                b.setAttribute('data-tooltip', v
+                    ? 'Vecteur — appui long : options'
+                    : 'Segment [AB] — appui long : options');
+            }
+            ouvrirOptionsSegment(btn) {
+                const pan = document.getElementById('segmentOptions');
+                if (!pan || !btn) return;
+                document.getElementById('optSegmentFleche').checked = this.segmentFleche;
+                pan.style.display = 'block';
+                const b = btn.getBoundingClientRect(), p = pan.getBoundingClientRect();
+                let x = b.right + 8, y = b.top;
+                if (x + p.width > window.innerWidth - 6) x = Math.max(6, b.left - p.width - 8);
+                y = Math.max(6, Math.min(y, window.innerHeight - p.height - 6));
+                pan.style.left = Math.round(x) + 'px';
+                pan.style.top = Math.round(y) + 'px';
             }
             ouvrirOptionsCroquis(btn) {
                 const pan = document.getElementById('croquisOptions');
@@ -25837,6 +25981,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 const mx = (c.p1.x + c.p2.x) / 2;
                                 const my = (c.p1.y + c.p2.y) / 2;
                                 const angleDeg = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x) * 180 / Math.PI;
+                                /* La pointe du vecteur, aux MÊMES nombres qu'au
+                                   canevas — sans quoi la flèche du PDF finirait par
+                                   ne plus ressembler à celle de l'écran. */
+                                if (e.fleche) {
+                                    const dxF = c.p2.x - c.p1.x, dyF = c.p2.y - c.p1.y;
+                                    const LF = Math.hypot(dxF, dyF);
+                                    if (LF >= 1) {
+                                        const lF = Math.min(LF * 0.34, 9 + 2.6 * (e.lineWidth || 2));
+                                        const aF = Math.atan2(dyF, dxF), ouvF = 0.42;
+                                        const ax = c.p2.x - Math.cos(aF - ouvF) * lF, ay = c.p2.y - Math.sin(aF - ouvF) * lF;
+                                        const bx = c.p2.x - Math.cos(aF + ouvF) * lF, by = c.p2.y - Math.sin(aF + ouvF) * lF;
+                                        svgContent += `<polygon points="${c.p2.x},${c.p2.y} ${ax},${ay} ${bx},${by}" fill="${color}" />`;
+                                    }
+                                }
                                 /* La même règle qu'au canevas : quand le milieu du
                                    trait est codé, ce sont ses deux moitiés qui
                                    parlent, et le trait n'a pas de marque à lui. */
@@ -25974,6 +26132,255 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const css = window.gmCssPolice(gras);
                 return svg.replace(/^(<svg[^>]*>)/, (m) =>
                     m + '<style type="text/css"><![CDATA[' + css + ']]></style>');
+            }
+            /* ================================================================
+               L'EXPORT TikZ
+
+               Une image dans un document LaTeX, c'est une image : on ne peut plus
+               ni la corriger, ni la mettre à l'échelle du texte, ni changer un
+               nom. Un dessin TikZ, si — et c'est le format dans lequel un devoir
+               de maths se rédige vraiment.
+
+               DEUX PARTIS PRIS, tous deux pour que le code se RELISE :
+                 · les points deviennent des \coordinate NOMMÉES — on lit
+                   « \draw (A) -- (B) », pas « \draw (2.4,3.1) -- (7.2,3.1) », et
+                   déplacer A corrige toute la figure d'un seul nombre ;
+                 · l'origine est le coin de la figure, et l'unité le centimètre :
+                   les nombres sont petits, positifs, et disent la vraie longueur.
+                   L'écran fait descendre les y, TikZ les fait monter — on retourne.
+
+               Les instruments ne sortent pas : ce sont des objets d'écran, ils
+               n'ont rien à faire dans un document. Ce qui n'est pas rendu est
+               écrit en commentaire dans le fichier, plutôt que passé sous
+               silence.
+               ================================================================ */
+            genererTikZ() {
+                const ents = (this.entities || []).filter(e => e && !(e instanceof ToolAnimation));
+                if (!ents.length) return null;
+                const echelle = (this.cmScale || 1);
+                const enCm = (px) => (px / UNIT) * echelle;
+                // le coin de la figure, pour que les nombres restent petits
+                const bornes = this.getSceneBounds(false);
+                if (!bornes) return null;
+                const X = (x) => +(enCm(x - bornes.minX)).toFixed(3);
+                const Y = (y) => +(enCm(bornes.maxY - y)).toFixed(3);   // l'écran descend, TikZ monte
+
+                /* Les couleurs. TikZ en connaît huit ou dix par leur nom ; tout le
+                   reste se déclare, une fois, en tête du dessin. */
+                const couleurs = new Map();
+                const nomCouleur = (c) => {
+                    let h = (c || '#000000').toLowerCase();
+                    if (!/^#[0-9a-f]{6}$/.test(h)) {
+                        const d = document.createElement('span');
+                        d.style.color = h; document.body.appendChild(d);
+                        const m = getComputedStyle(d).color.match(/\d+/g);
+                        d.remove();
+                        h = m ? '#' + m.slice(0, 3).map(v => (+v).toString(16).padStart(2, '0')).join('') : '#000000';
+                    }
+                    if (h === '#000000') return 'black';
+                    if (!couleurs.has(h)) couleurs.set(h, 'gmcoul' + (couleurs.size + 1));
+                    return couleurs.get(h);
+                };
+                const style = (e, extra) => {
+                    const o = [];
+                    const c = nomCouleur(e.color);
+                    if (c !== 'black') o.push(c);
+                    const w = e.lineWidth || 2;
+                    if (w !== 2) o.push(`line width=${(w * 0.4).toFixed(2)}pt`);
+                    if (e.dash && e.dash.length) o.push('dashed');
+                    if (extra) o.push(extra);
+                    return o.length ? `[${o.join(',')}]` : '';
+                };
+
+                /* Les points NOMMÉS deviennent des coordonnées nommées ; les autres
+                   reçoivent un numéro. Un nom LaTeX ne prend que des lettres :
+                   A' devient Ap, A'' Apap — laid, mais compilable, et l'étiquette
+                   affichée reste « A' ». */
+                const idNom = new Map();
+                const pris = new Set();
+                let n = 0;
+                const points = ents.filter(e => e instanceof Point);
+                for (const p of points) {
+                    let nom = (p.label || '').replace(/'/g, 'p').replace(/[^A-Za-z0-9]/g, '');
+                    if (!nom || pris.has(nom)) nom = 'P' + (++n);
+                    pris.add(nom);
+                    idNom.set(p, nom);
+                }
+                const ref = (p) => idNom.has(p) ? `(${idNom.get(p)})` : `(${X(p.x)},${Y(p.y)})`;
+
+                const L = [];
+                L.push('% Figure produite par GéoMaster — https://remy-live.github.io/Geomaster/');
+                L.push('% Il faut \\usepackage{tikz} dans le préambule.');
+                L.push('');
+                const corps = [];
+
+                // 1. les coordonnées, toutes en tête : la figure se relit d'un bloc
+                corps.push('  % --- les points ---');
+                for (const p of points) corps.push(`  \\coordinate (${idNom.get(p)}) at (${X(p.x)},${Y(p.y)});`);
+
+                // 2. les surfaces d'abord, pour qu'elles passent SOUS les traits
+                const polys = ents.filter(e => e instanceof Polygon && e.fillMode && e.fillMode !== 'none');
+                if (polys.length) {
+                    corps.push('  % --- les surfaces ---');
+                    for (const e of polys) {
+                        const pts = (e.points || []).filter(Boolean);
+                        if (pts.length < 3) continue;
+                        const c = nomCouleur(e.color || '#888888');
+                        const op = (e.opacity !== undefined && e.opacity !== null) ? e.opacity : 0.3;
+                        corps.push(`  \\fill[${c},opacity=${(+op).toFixed(2)}] ${pts.map(ref).join(' -- ')} -- cycle;`);
+                    }
+                }
+
+                // 3. les traits
+                corps.push('  % --- les traits ---');
+                let rendus = 0, ignores = new Set();
+                for (const e of ents) {
+                    const nomC = e.constructor.name;
+                    if (e instanceof Point || e instanceof Polygon || e instanceof ToolAnimation) continue;
+                    if (e instanceof Segment) {
+                        /* Le vecteur porte sa pointe : c'est « -> », le mot même de
+                           TikZ pour cela. */
+                        corps.push(`  \\draw${style(e, e.fleche ? '->' : null)} ${ref(e.p1)} -- ${ref(e.p2)};`);
+                        rendus++;
+                    } else if (e instanceof Ray) {
+                        /* Une demi-droite ne s'arrête nulle part : on la prolonge
+                           franchement au-delà de la figure, comme à l'écran. */
+                        const d = MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y) || 1;
+                        const k = 1 + (enCm(Math.hypot(bornes.maxX - bornes.minX, bornes.maxY - bornes.minY)) * UNIT / echelle) / d;
+                        const bx = e.p1.x + (e.p2.x - e.p1.x) * k, by = e.p1.y + (e.p2.y - e.p1.y) * k;
+                        corps.push(`  \\draw${style(e)} ${ref(e.p1)} -- (${X(bx)},${Y(by)});`);
+                        rendus++;
+                    } else if (e instanceof Line || e instanceof ParallelLine || e instanceof PerpendicularLine) {
+                        const c = MathUtils.getLineCoords(e);
+                        if (!c || !c.p1 || !c.p2) { ignores.add(nomC); continue; }
+                        const dx = c.p2.x - c.p1.x, dy = c.p2.y - c.p1.y;
+                        const d = Math.hypot(dx, dy) || 1;
+                        const diag = Math.hypot(bornes.maxX - bornes.minX, bornes.maxY - bornes.minY);
+                        const k = diag / d;
+                        corps.push(`  \\draw${style(e)} (${X(c.p1.x - dx * k)},${Y(c.p1.y - dy * k)})`
+                            + ` -- (${X(c.p2.x + dx * k)},${Y(c.p2.y + dy * k)});`);
+                        rendus++;
+                    } else if (e instanceof CompassCircle || e instanceof Circle) {
+                        const centre = e.p1 || e.center;
+                        if (!centre) { ignores.add(nomC); continue; }
+                        const r = e.getRadius ? e.getRadius() : MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y);
+                        corps.push(`  \\draw${style(e)} ${ref(centre)} circle (${enCm(r).toFixed(3)});`);
+                        rendus++;
+                    } else if (e instanceof CompassArc || e instanceof Arc) {
+                        const centre = e.center || e.p1;
+                        if (!centre) { ignores.add(nomC); continue; }
+                        /* Les angles de TikZ tournent dans le sens direct et se
+                           comptent en degrés : l'écran descend, donc on change de
+                           signe — sans quoi l'arc part du bon côté et arrive à
+                           l'opposé. */
+                        const a1 = -e.startAngle * 180 / Math.PI, a2 = -e.endAngle * 180 / Math.PI;
+                        const r = enCm(e.radius).toFixed(3);
+                        corps.push(`  \\draw${style(e)} ${ref(centre)} ++(${a1.toFixed(2)}:${r})`
+                            + ` arc (${a1.toFixed(2)}:${a2.toFixed(2)}:${r});`);
+                        rendus++;
+                    } else if (e instanceof Angle) {
+                        const s = e.p2;
+                        if (!s || !e.p1 || !e.p3) { ignores.add(nomC); continue; }
+                        const a1 = -Math.atan2(e.p1.y - s.y, e.p1.x - s.x) * 180 / Math.PI;
+                        const a2 = -Math.atan2(e.p3.y - s.y, e.p3.x - s.x) * 180 / Math.PI;
+                        let d = a2 - a1;
+                        while (d > 180) d -= 360;
+                        while (d < -180) d += 360;
+                        const droit = Math.abs(Math.abs(d) - 90) < 0.6;
+                        const r = droit ? 0.28 : 0.5;
+                        /* LES POINTS SE CALCULENT ICI, PAS DANS LATEX. La syntaxe
+                           « ($(A)+(30:1)$) » demande \usetikzlibrary{calc} : le
+                           fichier ne compilerait pas chez qui ne l'a pas chargée,
+                           et il ne l'apprendrait qu'à l'erreur. Les coordonnées,
+                           on les a déjà — on les écrit. */
+                        const cx = X(s.x), cy = Y(s.y);
+                        const vers = (ang, ray) => `(${(cx + Math.cos(ang * Math.PI / 180) * ray).toFixed(3)},`
+                            + `${(cy + Math.sin(ang * Math.PI / 180) * ray).toFixed(3)})`;
+                        if (droit) {
+                            /* L'angle droit se code par un CARRÉ, pas par un arc :
+                               c'est la convention du cahier, et TikZ ne la connaît
+                               pas tout seul. */
+                            const coin = `(${(cx + (Math.cos(a1 * Math.PI / 180) + Math.cos(a2 * Math.PI / 180)) * r).toFixed(3)},`
+                                + `${(cy + (Math.sin(a1 * Math.PI / 180) + Math.sin(a2 * Math.PI / 180)) * r).toFixed(3)})`;
+                            corps.push(`  \\draw${style(e)} ${vers(a1, r)} -- ${coin} -- ${vers(a2, r)};`);
+                        } else {
+                            corps.push(`  \\draw${style(e)} ${vers(a1, r)}`
+                                + ` arc (${a1.toFixed(2)}:${(a1 + d).toFixed(2)}:${r});`);
+                        }
+                        if (e.showValue && !droit) {
+                            corps.push(`  \\node${style(e)} at ${vers(a1 + d / 2, r + 0.28)}`
+                                + ` {\\small $${Math.round(Math.abs(d))}^\\circ$};`);
+                        }
+                        rendus++;
+                    } else if (!(e instanceof TextLabel)) {
+                        ignores.add(nomC);
+                    }
+                }
+
+                // 4. les points et leurs noms, par-dessus tout le reste
+                corps.push('  % --- les noms ---');
+                for (const p of points) {
+                    if (p.visible === false) continue;
+                    const c = nomCouleur(p.color || '#000000');
+                    const opt = (c === 'black') ? '' : `[${c}]`;
+                    const nom = p.label || '';
+                    /* LE NOM VA OÙ IL EST À L'ÉCRAN. Chaque point porte son
+                       labelAngle — on le déplace à la main quand il gêne un trait —
+                       et tout ramener à « above right » aurait rendu au professeur
+                       un dessin dont les noms sont à replacer un par un. TikZ pose
+                       une étiquette par un angle : c'est exactement la même idée,
+                       au signe près, l'écran faisant descendre les y. */
+                    const a = (p.labelAngle !== undefined) ? p.labelAngle : -Math.PI / 4;
+                    const deg = Math.round(-a * 180 / Math.PI);
+                    const etiquette = (p.showLabel !== false && nom)
+                        ? ` node[label={[label distance=-2pt]${deg}:$${nom}$}] {}` : '';
+                    corps.push(`  \\fill${opt} ${ref(p)} circle (1.2pt)${etiquette};`);
+                }
+                const textes = ents.filter(e => e instanceof TextLabel);
+                if (textes.length) {
+                    corps.push('  % --- les textes ---');
+                    for (const e of textes) {
+                        const t = String(e.texteBrut ? e.texteBrut() : (e.text || ''))
+                            .replace(/[\\{}&%$#_^~]/g, (m) => '\\' + m);
+                        if (!t.trim()) continue;
+                        const c = nomCouleur(e.color || '#000000');
+                        corps.push(`  \\node[anchor=north west${c === 'black' ? '' : ',' + c}] at (${X(e.x)},${Y(e.y)}) {${t}};`);
+                    }
+                }
+
+                // les couleurs déclarées, en tête
+                for (const [hex, nom] of couleurs) {
+                    L.push(`\\definecolor{${nom}}{HTML}{${hex.slice(1).toUpperCase()}}`);
+                }
+                if (couleurs.size) L.push('');
+                if (ignores.size) {
+                    L.push(`% Non rendus dans ce dessin : ${[...ignores].join(', ')}.`);
+                }
+                const outils = (this.activeWidgets && (this.activeWidgets.ruler || this.activeWidgets.compass
+                    || this.activeWidgets.setsquare || this.activeWidgets.protractor));
+                if (outils) L.push('% Les instruments de géométrie ne sont pas exportés : ce sont des objets d\'écran.');
+                /* « line join=round » et « line cap=round » : les mêmes bouts de
+                   traits qu'à l'écran, sinon les angles d'un triangle sortent
+                   écornés. Le repère est en centimètres réels. */
+                L.push('\\begin{tikzpicture}[x=1cm,y=1cm,line join=round,line cap=round,thick]');
+                L.push(...corps);
+                L.push('\\end{tikzpicture}');
+                void rendus;
+                return L.join('\n') + '\n';
+            }
+            exportTikZ() {
+                const code = this.genererTikZ();
+                if (!code) { this.showToast("La feuille est vide !"); return; }
+                const blob = new Blob([code], { type: 'text/x-tex' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.getSafeFilename('tex');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast("📐 Dessin TikZ exporté — à coller dans votre document");
             }
             exportSVG(includeTools = false, numbersMode = 'text', embarquerPolice = false) {
                 let svgContent = this.generateSVGString(includeTools, numbersMode);
@@ -27732,6 +28139,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     }
                                     let newObj;
                                     if (this.currentTool === 'segment') newObj = new Segment(this.creationStartPoint, endPoint);
+                                    if (newObj && this.segmentFleche) newObj.fleche = true;
                                     if (this.currentTool === 'line' || this.currentTool === 'line_clean') newObj = new Line(this.creationStartPoint, endPoint);
                                     if (this.currentTool === 'ray') newObj = new Ray(this.creationStartPoint, endPoint);
                                     if (this.currentTool === 'circle') newObj = new Circle(this.creationStartPoint, endPoint);
@@ -27887,6 +28295,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                         let newObj;
                         if (this.currentTool === 'segment') newObj = new Segment(this.creationStartPoint, endPoint);
+                        if (newObj && this.segmentFleche) newObj.fleche = true;
                         if (this.currentTool === 'line' || this.currentTool === 'line_clean') newObj = new Line(this.creationStartPoint, endPoint);
                         if (this.currentTool === 'ray') newObj = new Ray(this.creationStartPoint, endPoint);
                         if (this.currentTool === 'circle') newObj = new Circle(this.creationStartPoint, endPoint);

@@ -596,11 +596,42 @@ compositeur de **formules** — fractions, puissances, racines, vecteurs, angles
 Et un stylo d'annotation dont l'encre **s'accroche à la figure** : une marque
 posée sur un angle le suit quand on le déplace ou qu'on le tourne.
 
+### Le vecteur
+
+Le segment porte une **option** : *appui long* sur son bouton (clic droit à la
+souris) et la case **Vecteur** ajoute une pointe au bout du trait. Un vecteur
+n'est pas un outil de plus — c'est un segment qui pointe —, et l'appui long sur
+un bouton d'outil veut déjà dire « options de cet outil » pour le croquis et le
+stylo : lui faire dire « un autre outil » aurait donné deux sens au même geste.
+
+Le mode **se voit** : une pointe bleue marque le bouton, l'infobulle change, et
+la loupe (`Ctrl+K`) trouve « Vecteur » — un réglage retenu d'une séance à l'autre
+sans marque visible, c'est tracer des flèches sans l'avoir voulu.
+
 ### Importer, exporter
 
 Import d'une image ou d'un **PDF** en fond, page par page, recadrable. Export en
 **PDF vectoriel** (police embarquée, texte au même endroit qu'à l'écran), en
 **SVG** (police embarquée en option) et en image.
+
+**Et en TikZ**, pour un document LaTeX. Une image insérée dans un `.tex` reste
+une image : on ne peut plus ni la mettre à l'échelle du texte, ni corriger un nom
+de point. Le fichier produit est du vrai dessin TikZ, et il est écrit pour être
+**relu et modifié** :
+
+- les points deviennent des `\coordinate` **nommées** — on lit `\draw (A) -- (B)`,
+  pas une paire de nombres, et déplacer A corrige toute la figure d'un seul
+  endroit ;
+- l'unité est le **centimètre réel** et l'origine le coin de la figure : les
+  nombres sont petits, positifs, et disent la vraie longueur — `AB = 5 cm` dans
+  l'énoncé fait 5 dans le fichier ;
+- l'angle droit sort en **carré** (la convention du cahier, que TikZ ne connaît
+  pas seul), les angles mesurés portent leur valeur, un vecteur devient `->` ;
+- rien qu'un `\usepackage{tikz}` : aucune coordonnée n'est écrite dans une
+  syntaxe qui exigerait une bibliothèque de plus.
+
+Les instruments ne sortent pas — ce sont des objets d'écran — et ce qui n'est pas
+rendu est écrit en commentaire dans le fichier plutôt que passé sous silence.
 
 ### Trouver une commande
 
