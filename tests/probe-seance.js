@@ -354,9 +354,17 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   exemples.forEach(e => console.log(`  ${e.n} — ${e.objets} objets, ${e.etapes} étapes, ${(e.outils||[]).join(' ')}`));
   ck('la bibliothèque n\'est pas vide au premier lancement', exemples.length >= 8, String(exemples.length));
   ck('chaque exemple s\'ouvre', exemples.every(e => !e.err && e.objets > 5), JSON.stringify(exemples.filter(e => e.err || e.objets <= 5)));
+  /* Une construction aux instruments n'est pas forcément une construction au
+     COMPAS : « une longueur et deux angles » se fait au rapporteur, et rien n'y
+     est à reporter. On exige donc un instrument, et l'on vérifie à part que la
+     collection montre bien les deux gestes. */
   ck('chacun est une vraie construction aux instruments',
-     exemples.every(e => (e.outils || []).includes('compass')),
-     JSON.stringify(exemples.filter(e => !(e.outils || []).includes('compass')).map(e => e.n)));
+     exemples.every(e => (e.outils || []).length > 0),
+     JSON.stringify(exemples.filter(e => !(e.outils || []).length).map(e => e.n)));
+  ck('la collection montre le compas ET le rapporteur',
+     exemples.some(e => (e.outils || []).includes('compass'))
+     && exemples.some(e => (e.outils || []).includes('protractor')),
+     JSON.stringify(exemples.map(e => (e.outils || []).join('+'))));
   ck('et se rejoue en plusieurs étapes', exemples.every(e => e.etapes >= 2),
      JSON.stringify(exemples.map(e => e.etapes)));
   ck('l\'une d\'elles est une séance de plusieurs pages',

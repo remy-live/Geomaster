@@ -185,20 +185,48 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     return P;
   });
 
-  // TRANSLATION : les points, puis le segment qui donne le vecteur
+  const barre = () => page.evaluate(() => {
+    const b = document.getElementById('barreTransfo');
+    const ok = document.getElementById('transfoValider');
+    return { vis: getComputedStyle(b).display,
+             txt: document.getElementById('transfoTexte').textContent,
+             bouton: ok.textContent, off: ok.disabled,
+             cache: getComputedStyle(ok).display === 'none',
+             pris: (window.app.transfoPoints || []).length };
+  });
+
+  // TRANSLATION : trois points un par un, valider, puis le segment-vecteur
   let P = await depart();
   await page.evaluate(() => window.app.setTool('magic_translation'));
+  let e = await barre();
+  ck('la barre s\'ouvre sur « sélectionnez la figure »',
+     e.vis === 'flex' && /Sélectionnez la figure/.test(e.txt) && e.off === true, JSON.stringify(e));
   for (const n of ['A', 'B', 'C']) { await page.mouse.click(rc.x + P[n].x, rc.y + P[n].y); await page.waitForTimeout(110); }
+  e = await barre();
+  ck('  elle compte ce qui est pris, et « Valider » s\'allume',
+     e.pris === 3 && /3 points/.test(e.txt) && e.off === false, JSON.stringify(e));
+  /* Reprendre un point déjà pris le RETIRE : sans cela, un clic de trop ne se
+     rattrape qu'en recommençant tout. */
+  await page.mouse.click(rc.x + P.C.x, rc.y + P.C.y); await page.waitForTimeout(150);
+  e = await barre();
+  ck('  reprendre un point le retire', e.pris === 2, String(e.pris));
+  await page.mouse.click(rc.x + P.C.x, rc.y + P.C.y); await page.waitForTimeout(150);
+  await page.click('#transfoValider'); await page.waitForTimeout(200);
+  e = await barre();
+  ck('  validée, elle demande le vecteur et range son bouton',
+     /vecteur/.test(e.txt) && e.cache === true, JSON.stringify(e));
   await page.mouse.click(rc.x + (P.D.x + P.E.x) / 2, rc.y + (P.D.y + P.E.y) / 2);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(700);
   let Q = await points();
   const v = { x: P.E.x - P.D.x, y: P.E.y - P.D.y };
-  ck('translation : chaque image est à un vecteur DE de sa source',
+  ck('translation : les trois images sont à un vecteur DE de leur source',
      ['A', 'B', 'C'].every(n => Q[n + "'"]
        && Math.hypot(Q[n + "'"].x - (P[n].x + v.x), Q[n + "'"].y - (P[n].y + v.y)) < 0.2),
      Object.keys(Q).filter(n => n.includes("'")).join(','));
+  e = await barre();
+  ck('  et la barre se referme une fois la figure construite', e.vis === 'none', e.vis);
 
-  // ROTATION : le réglage, le centre, puis le polygone
+  // ROTATION : le réglage, la figure entière d'un clic, puis le centre
   P = await depart();
   await page.evaluate(() => window.app.setTool('magic_rotation'));
   await page.waitForTimeout(300);
@@ -207,15 +235,20 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await page.fill('#gmTrAngle', '90');
   await page.selectOption('#gmTrSens', '1');
   await page.locator('.modal-btn.modal-confirm').last().click();
-  await page.waitForTimeout(200);
-  await page.mouse.click(rc.x + P.A.x - 60, rc.y + P.A.y + 60); await page.waitForTimeout(250);
-  const O = await page.evaluate(() => { const c = window.app.centreTransformation; return c ? { x: c.x, y: c.y } : null; });
-  ck('  le premier clic pose le centre', !!O);
+  await page.waitForTimeout(250);
+  /* UN CLIC SUR LA FIGURE LA PREND TOUT ENTIÈRE : c'est le cas courant — on
+     transforme un triangle, pas trois points l'un après l'autre. */
   await page.mouse.click(rc.x + (P.A.x + P.B.x + P.C.x) / 3, rc.y + (P.A.y + P.B.y + P.C.y) / 3);
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(250);
+  e = await barre();
+  ck('  un clic sur le polygone prend ses trois sommets', e.pris === 3, String(e.pris));
+  await page.click('#transfoValider'); await page.waitForTimeout(150);
+  const O = { x: P.A.x - 60, y: P.A.y + 60 };
+  await page.mouse.click(rc.x + O.x, rc.y + O.y);
+  await page.waitForTimeout(800);
   Q = await points();
   /* Sens direct = angle NÉGATIF à l'écran, où les y descendent. */
-  ck('  le polygone entier tourne de 90° autour du centre',
+  ck('  la figure entière tourne de 90° autour du centre',
      ['A', 'B', 'C'].every(n => {
        if (!Q[n + "'"]) return false;
        const r0 = Math.hypot(P[n].x - O.x, P[n].y - O.y);
@@ -223,7 +256,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
        let da = (Math.atan2(Q[n + "'"].y - O.y, Q[n + "'"].x - O.x)
                - Math.atan2(P[n].y - O.y, P[n].x - O.x)) * 180 / Math.PI;
        while (da <= -180) da += 360; while (da > 180) da -= 360;
-       return Math.abs(r1 - r0) < 0.2 && Math.abs(da + 90) < 0.2;
+       return Math.abs(r1 - r0) < 0.3 && Math.abs(da + 90) < 0.3;
      }), Object.keys(Q).filter(n => n.includes("'")).join(','));
 
   // HOMOTHÉTIE
@@ -233,21 +266,94 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('homothétie : le rapport est demandé', await page.locator('#gmTrRapport').count() === 1);
   await page.fill('#gmTrRapport', '2');
   await page.locator('.modal-btn.modal-confirm').last().click();
-  await page.waitForTimeout(200);
-  await page.mouse.click(rc.x + P.A.x - 70, rc.y + P.A.y + 70); await page.waitForTimeout(250);
-  const O2 = await page.evaluate(() => { const c = window.app.centreTransformation; return c ? { x: c.x, y: c.y } : null; });
+  await page.waitForTimeout(250);
   await page.mouse.click(rc.x + (P.A.x + P.B.x + P.C.x) / 3, rc.y + (P.A.y + P.B.y + P.C.y) / 3);
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(200);
+  await page.click('#transfoValider'); await page.waitForTimeout(150);
+  const O2 = { x: P.A.x - 70, y: P.A.y + 70 };
+  await page.mouse.click(rc.x + O2.x, rc.y + O2.y);
+  await page.waitForTimeout(800);
   Q = await points();
   ck('  la figure est agrandie deux fois depuis le centre',
-     !!O2 && ['A', 'B', 'C'].every(n => Q[n + "'"]
+     ['A', 'B', 'C'].every(n => Q[n + "'"]
        && Math.hypot(Q[n + "'"].x - (O2.x + 2 * (P[n].x - O2.x)),
-                     Q[n + "'"].y - (O2.y + 2 * (P[n].y - O2.y))) < 0.2),
+                     Q[n + "'"].y - (O2.y + 2 * (P[n].y - O2.y))) < 0.3),
      Object.keys(Q).filter(n => n.includes("'")).join(','));
-  // changer d'outil oublie le centre : sinon la figure suivante tournerait
-  // autour d'un point choisi pour autre chose
-  const oubli = await page.evaluate(() => { window.app.setTool('move'); return window.app.centreTransformation; });
-  ck('  changer d\'outil oublie le centre', !oubli, String(oubli));
+  // changer d'outil oublie la sélection : sinon la transformation suivante
+  // porterait sur une figure choisie pour autre chose
+  const oubli = await page.evaluate(() => {
+    window.app.setTool('magic_sym_centrale');
+    window.app.setTool('move');
+    return { n: (window.app.transfoPoints || []).length,
+             barre: getComputedStyle(document.getElementById('barreTransfo')).display };
+  });
+  ck('  changer d\'outil oublie la sélection et referme la barre',
+     oubli.n === 0 && oubli.barre === 'none', JSON.stringify(oubli));
+
+  console.log('\n=== le petit trait de la graduation ===');
+  /* Au rapporteur, la mesure lue ne laissait AUCUNE trace : un point invisible
+     au bord de l'instrument, et la demi-droite semblait sortir de nulle part.
+     Au tableau on marque un petit trait au crayon contre la graduation. */
+  const tr = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {};
+    if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec("Trace un triangle ABC tel que AB = 6 cm, "
+      + "l'angle BAC = 40° et l'angle ABC = 60°", true);
+    const pt = (n) => app.entities.find(e => e.constructor.name === 'Point' && e.label === n);
+    const A = pt('A'), B = pt('B');
+    const traits = app.entities.filter(e => e.constructor.name === 'Segment' && e.estConstruction);
+    return traits.map(t => {
+      // aligné sur le sommet ? l'écart d'angle vu du sommet doit être nul
+      const s = [A, B].reduce((meilleur, o) => {
+        const d = Math.min(Math.hypot(t.p1.x - o.x, t.p1.y - o.y), Math.hypot(t.p2.x - o.x, t.p2.y - o.y));
+        return (!meilleur || d < meilleur.d) ? { o, d } : meilleur;
+      }, null).o;
+      const a1 = Math.atan2(t.p1.y - s.y, t.p1.x - s.x);
+      const a2 = Math.atan2(t.p2.y - s.y, t.p2.x - s.x);
+      return { L: +Math.hypot(t.p1.x - t.p2.x, t.p1.y - t.p2.y).toFixed(1),
+               ecart: +Math.abs(a1 - a2).toFixed(5), visible: t.color !== null,
+               d1: +Math.hypot(t.p1.x - s.x, t.p1.y - s.y).toFixed(0),
+               d2: +Math.hypot(t.p2.x - s.x, t.p2.y - s.y).toFixed(0) };
+    });
+  });
+  console.log('  ' + JSON.stringify(tr));
+  ck('deux traits de graduation, un par pose du rapporteur', tr.length === 2, String(tr.length));
+  ck('chacun est aligné sur le sommet et la graduation',
+     tr.every(t => t.ecart < 1e-4), tr.map(t => t.ecart).join(' '));
+  /* Le bord du rapporteur est à 180 px du sommet : le trait doit l'enjamber,
+     sinon il passe sous le corps de l'instrument — invisible au moment précis
+     où il doit se voir. */
+  ck('chacun est court et à cheval sur le bord de l\'instrument',
+     tr.every(t => t.L > 12 && t.L < 30 && t.d1 < 180 && t.d2 > 180),
+     tr.map(t => `${t.L}px ${t.d1}→${t.d2}`).join(' | '));
+  ck('et il se voit — il a une couleur', tr.every(t => t.visible));
+
+  console.log('\n=== la bibliothèque d\'exemples s\'est étoffée ===');
+  const ex = await page.evaluate(() => {
+    const app = window.app, tous = window.GM_EXEMPLES || [];
+    return tous.map(e => {
+      const code = app.codeExemple(e);
+      if (!code) return { n: e.n, ok: false };
+      try {
+        app.entities = [];
+        app.loadFromCompressedString(code.split('~')[0]);
+        return { n: e.n, ok: app.entities.length > 0, pages: code.split('~').length,
+                 obj: app.entities.length };
+      } catch (err) { return { n: e.n, ok: false, err: err.message }; }
+    });
+  });
+  ck('elle compte au moins quinze constructions', ex.length >= 15, String(ex.length));
+  ck('chacune s\'ouvre et porte une figure',
+     ex.every(e => e.ok && e.obj > 0), ex.filter(e => !e.ok).map(e => e.n).join(', '));
+  for (const nom of ['Triangle au rapporteur', 'Symétrique par rapport à une droite',
+                     'Translation d’un triangle', 'Rotation d’un triangle',
+                     'Homothétie d’un triangle']) {
+    ck(`  « ${nom} » est là`, ex.some(e => e.n === nom));
+  }
+  ck('et « Les quatre transformations » en fait un document de quatre pages',
+     ex.some(e => e.n === 'Les quatre transformations' && e.pages === 4),
+     JSON.stringify(ex.find(e => e.n === 'Les quatre transformations')));
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

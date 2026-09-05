@@ -35,7 +35,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |
 | `probe-transformations.js` | symétrie, translation, rotation, homothétie : la figure obtenue est **mesurée** (longueurs conservées ou multipliées par *k*, images au pixel près, sens de rotation) ; aux instruments l'image n'entre qu'à la fin ; la bulle explique la formulation ; « sans les outils » ne laisse que la figure |
-| `probe-biblio-menus.js` | la bibliothèque se présente de trois façons et s'en souvient ; l'aperçu est sur fond blanc, quadrillage remis après ; le menu Fichier range ses icônes en quatre bandes sans un mot ni un pixel de plus par icône ; les trois nouveaux outils de transformation construisent juste |
+| `probe-biblio-menus.js` | la bibliothèque se présente de trois façons, s'en souvient et compte seize constructions ; l'aperçu est sur fond blanc, quadrillage remis après ; le menu Fichier range ses icônes en quatre bandes sans un mot ni un pixel de plus par icône ; la barre des transformations sélectionne, compte, valide et désigne ; le petit trait de la graduation enjambe le bord du rapporteur |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
 quelqu'un a pensé. Elles protègent **ce qui a déjà été vérifié une fois**, pour

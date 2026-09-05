@@ -2639,6 +2639,64 @@
             text-align: center;
         }
 
+        /* LA BARRE DES TRANSFORMATIONS. En haut au centre de la feuille, là où
+           l'on regarde en travaillant, et seulement pendant l'une des cinq. Elle
+           ne dit que l'étape en cours et ce qu'il reste à faire. */
+        #barreTransfo {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 70;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 6px 6px 12px;
+            background: rgba(255, 255, 255, .97);
+            border: 1px solid #dfe4e8;
+            border-radius: 22px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, .13);
+            font: 13px 'Segoe UI', sans-serif;
+            color: #37474f;
+            white-space: nowrap;
+            max-width: calc(100% - 24px);
+        }
+
+        #barreTransfo #transfoTexte { overflow: hidden; text-overflow: ellipsis; }
+        #barreTransfo b { color: #8e44ad; }
+
+        #barreTransfo button {
+            flex: 0 0 auto;
+            min-height: 30px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 16px;
+            background: #8e44ad;
+            color: #fff;
+            font: 600 12.5px 'Segoe UI', sans-serif;
+            cursor: pointer;
+        }
+
+        #barreTransfo button:disabled { background: #e6e9ec; color: #9aa5ad; cursor: default; }
+        #barreTransfo button:not(:disabled):hover { background: #7d3c98; }
+
+        #barreTransfo #transfoAnnuler {
+            width: 30px;
+            padding: 0;
+            background: #f1f4f6;
+            color: #78909c;
+            font-size: 14px;
+        }
+
+        #barreTransfo #transfoAnnuler:hover { background: #e3e8eb; color: #37474f; }
+
+        /* Au doigt, la barre descend sous l'en-tête et grossit ses cibles. */
+        @media (pointer: coarse) {
+            #barreTransfo { gap: 6px; padding: 5px 5px 5px 10px; font-size: 12.5px; }
+            #barreTransfo button { min-height: 36px; }
+            #barreTransfo #transfoAnnuler { width: 36px; }
+        }
+
         /* Pagination de la séance. Discrète par construction : les commandes qui
            n'ont de sens qu'à plusieurs pages restent cachées tant qu'il n'y en a
            qu'une, et la barre se réduit alors à un seul « + ». */
@@ -8232,7 +8290,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </div>
                             <!-- Une flèche, et la même forme deux fois : c'est ce que
                                  fait une translation, glisser sans tourner. -->
-                            <div class="magic-grid-item" onclick="app.setTool('magic_translation')" data-libelle="Translation" data-tooltip="Translation : les points, puis le segment-vecteur">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_translation')" data-libelle="Translation" data-tooltip="Translation : la figure, puis le segment qui donne le vecteur">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <polygon points="3,16 8,16 5.5,10" />
                                     <polygon points="15,16 20,16 17.5,10" stroke-dasharray="2 2" />
@@ -8241,7 +8299,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 </svg>
                             </div>
                             <!-- Un arc fléché autour d'un centre marqué. -->
-                            <div class="magic-grid-item" onclick="app.setTool('magic_rotation')" data-libelle="Rotation" data-tooltip="Rotation : le centre, puis les points">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_rotation')" data-libelle="Rotation" data-tooltip="Rotation : la figure, puis le centre">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none" />
                                     <path d="M12 13 L19 13" />
@@ -8252,7 +8310,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </div>
                             <!-- Deux triangles emboîtés depuis un même centre : la
                                  figure et son agrandissement. -->
-                            <div class="magic-grid-item" onclick="app.setTool('magic_homothetie')" data-libelle="Homothétie" data-tooltip="Homothétie : le centre, puis les points">
+                            <div class="magic-grid-item" onclick="app.setTool('magic_homothetie')" data-libelle="Homothétie" data-tooltip="Homothétie : la figure, puis le centre">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M3 21 L15 3.5 M3 21 L22 12.5" stroke-width="0.9" opacity="0.5" />
                                     <polygon points="6.6,17.6 12.5,17.6 9.5,13.3" />
@@ -8618,6 +8676,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </div>
         </div>
         <div class="canvas-container">
+            <!-- LA BARRE DES TRANSFORMATIONS. Elle ne s'ouvre que pendant l'une des
+                 cinq, et elle dit les deux temps du geste : ce qu'on transforme
+                 (autant de points qu'on veut, ou une figure entière d'un clic),
+                 puis par quoi. Sans elle, rien ne pouvait dire quand la sélection
+                 s'arrêtait — et l'on ne pouvait transformer qu'un point. -->
+            <div id="barreTransfo" style="display:none;">
+                <span id="transfoTexte">Sélectionnez la figure</span>
+                <button type="button" id="transfoValider" onclick="app.validerSelectionTransfo()">Valider</button>
+                <button type="button" id="transfoAnnuler" onclick="app.setTool('move')"
+                    aria-label="Annuler la transformation" data-tooltip="Annuler">✕</button>
+            </div>
             <!-- Les pages de la séance, en bas à gauche : le haut est déjà chargé, et
                  c'est ici qu'on regarde quand on travaille. Tant qu'il n'y a qu'une
                  page, seul le « + » se voit — une pagination n'aurait rien à paginer. -->
@@ -9502,12 +9571,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </div>
     <!-- SÉANCES D'EXEMPLE. Une bibliothèque vide n'apprend rien : on ne sait ni
          ce qu'on peut y ranger, ni à quoi ressemble une construction rejouable.
-         Ces neuf-là sont fabriquées PAR LE LOGICIEL — chacune est la sortie
+         Ces quinze-là sont fabriquées PAR LE LOGICIEL — chacune est la sortie
          exacte de son bâtisseur, instruments et consignes d'étape compris — et
-         stockées telles qu'un lien les transporterait : 6,4 Ko en tout.
+         stockées telles qu'un lien les transporterait : 13 Ko en tout.
 
-         La dernière ne coûte rien : elle ne stocke aucun code, elle assemble
-         quatre des précédentes en un document de quatre pages. -->
+         Les deux dernières ne coûtent rien : elles ne stockent aucun code, elles
+         assemblent des précédentes en documents de quatre pages. -->
     <script>
         window.GM_EXEMPLES = [
         { n: "Médiatrice d'un segment", e: 2, c: "HIewtg3ADNBlCMEBMSYBZUQIIWnmAtPAHQCsA7AhAGxrqYBCuMLEax58sSeX8AzBADG4AA4BDAM6TkmDC2L8AHMgCcaWfRgl4KpOohE41PPo1RFKnSpgBiAGb3VqqDB5QEgkWAnTNbTGs1DRQtQyCzcLgBYTEpGVCAwgiDRPlDC2VgqI8TNwMiYl0MyzwHJxc3aK84vzTMAky9A1owpA5ybKMPGO9fGVak5A7swfSSVU7Ioy4TREj28k6J5Yhy51dkatifeJo6IZXRg-TCya7EHprdvzGGo8i7wkWpgsRZiHm34nOCF8+1o4NlUrjt+gAJACWABMAKb4BGsVjdKhofgwahIUgcEzMBGFCjRNjo5DwdhIDR45EkQmggBOAFcADawunEjFYnHhMiddAkzHY8gmAm8nKwQTwUifExKTwQRksulQuGI1XUolosJUvAiuCrQJS7SfbimVjuHWSiBgcR0gDWRBNgVM+Mt1rtDpiCtZyvhSLVFrgAGUACoAUQACoGAFz8AC8AGEQAA7SQAF0ZQlTkOTAAI4TmmeIc2AAJfQyHidOQoSwgA+qFjABki6Xy5W6dXYTnYWmc6JWf2k+WhMzxJC6V3xAyc5JYQBzMCwpOp7tJme5sCQpmQ2EM4iwABqAElQwB1KOXXjwcg8JRoVRAA" },
@@ -9518,7 +9587,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         { n: "Hexagone régulier", e: 3, c: "HIewtg3ADNBlCMEDMAOGBWAbDAghaBMAtPAHToDsCEWG2EAQvjCxACykXywBMB38JBADG4AA4BDAM5TkaGvVao6rePJJxBI8dNnKFq+ftoRMpHighriiKLEz95MMxYIBiAJxfvEPna2iYJIyciqOYSZkFB5W6rYIQoHBsiaRnDHWBlk8pEgZcXAOiJlRMTl5BJZ+1GwUMFzopCiWzIQQJORUATohqfTl+TC19fCNzb5NbLE2mok9ssMQDU1Vk9PsdUujK8ikbFOZGnYOgxMoU0h7UzBVmr4eI2MtbTadCdpBuhuPO5f76zwHlsnu0Busju8kl9AT9xkQwZkYcCdh1ouD4kUhIcwaiYjdfHceFAwq1WB1KJD5vdYZZcQDiVkOkh0OjZh9kr4GSYmSzEVz6EQoJxeQVjlYKOjcizBcLKgT-NT2FAOPA+KSCOSunNPiEiWEZRQRTAkWxlaRVe0hVjRZSdbITWaLTLrcagaaVX5cqyxTxiuordAvfjqohFu7zWqXu0yBTunaABIASwAJgBTKOsTPRtkAJwArgAbVM5rImHJQPGl-qkCsa+J8RAed75os5pNpjOdiFaFvF77I8aXeDXfvLQfmkcQvgZJDNwvF9vprPLuu5+clpFj2nlyub7ZwneruwNrFaiC9tsppedrPdoQXzn6shQFnG-mvF9H3ji3wCe-rxcbyjO9z3XRVwwtVgHQ9Nop1-Xx0DnVtAJXFcQIfMNHQbGtX37CDsM-GZjwQqwkIXK8gNvesrAgXdYNGCAwAkHMAGsSG-GcCD8OsWSY1j2JPH9jXo3jmLY7gGwlX0uJExixIE+CeFw7ibFE-iJJI2x5R4uT1NgABlAAVABRAAFfSAC4kAAXgAeQAOwAAjEHNU3s5NHILCRPJAeyAHM81TPMc0c5M80cnMJAAT18xyJHCqEpAAGmcvNEykRzYoAF0i4RU08-K8pzYQi1IAAfTA7KcvzmLTTyAHIAEvhGYrLUzANyssc1Muti1yxBAHM2oKiLotizBHIAMxAdLHKkYKRqKkrU3KngKCqiLUwLRN8qLDKJqkcAOqyjKBoW6acw6kKC3qgALVMAA8JD83z8pzRqAu24tSFgAA1ABJYyAHULK0mB4HgCg+HODwgA" },
         { n: "Symétrique d'un point", e: 1, c: "HIewtg3ADNBlCMEAsA2G8AcMCCFr5igWTQhVICE9D8BaAZgDp4lYAmfeY+qGetmAGFqBCLXiMArAHZiKaUikd+METXFTpcRKj4C8omBpnb6EAM4BTAC7mAjgFcAhgCdLJPTBSM2GfLogVMh8-I0QiZWQIAGIATniEiEQueDMrW0dXSwAJAEsAE3caYsMxcIQzAGNwAAcnc3MPQP0mFiSYAKDWpCTScVMIarA6hqau5h74Uk79WigfXrCBoZHGmaN5jimO0iDNxbK4FAhJA7mF-ZhogDNr+N4IDiJUwdr68zzC0pL1cq0YU5mGgpMgtfSCADkajoEhksAAygAVACiAAV4QAuJAAXnhAE8wABL6wuXKWAAETgAHrknAAbCkY8kgAB25JJTkqFLpTnJNUsLn5LPyuUqDh5uTclIAbpZKuS6RDCY4BW4ADR8hy5czMtluGogFzWbm8umsgDmDksDhcMrlCopK3qjFgADUAJLIgDqGPCnHg0g4GCQsSAA" },
         { n: "Cercle circonscrit à un triangle", e: 3, c: "HIewtg3ADNBlCMEDMUYFYBsMCCFr5gFp4A6DAdgQnNQjQCYYAhPGNiAFjPio4A4Y9DjADCrAhEJQylevh5zE9WHLlQESCAGNwABwCGAZ0PJamNiXp8IV0h1PosEUlGu2S94nAz5396VbOJK74AMQAZuEAnFG0ahraekYmKI4wLm58dg50TsSW5DZZHpKI6vCaOmAGxjnmpQVF2am5RNIchX6l3r7FnqT0hVIehTAR0bGCcBWJ1cl1ee2dfdRmjDYyTSVe5ZVJtTTo6-SbXYd066R8y9lePD5KKycUQdfOEOMxcdN7cwdr6RIbzOAMkJygN22ZQSVRqJnODCI4Mh9gR60IJ2BKzusAeW08yLBQMKiE+kxsP1mcIAEgBLAAmAFMJOxWfgdlQ0PAomRqEg0CQoj5xOx8mhRrwBCUkBwuFB7CL2aRxZSAE4AVwANozVXRubzyPzBT58i90PqfIaBUKGmbuupFNZuR9Il90s4Ehrtaq6UyWf7RdCZrD5miiFcfEIefRLaD8lBIxxoyboXio5YU0DMwmwlEAEZofORykh-5HcPBRPJ1blyRIDxKJMZ+0w-bwuP1jiN6thokYbvNjlppsxusNvtlD75wt54u7KmhuPPAej-iCYTQEhoTTp0cc4NtzgCGwb6Tbk-VtcntqNXcpj3Fu+b8-DQbvULTosU+elkxXoQ3m+T7-hu4JuCO94-oeIGCME4GXseAFBIET44o+EEbCEAxOlOBZfvEB5-IYvrMmyZFKtM1CDCQ8CdOQJz0HIioViq5ScAwQKaPw5AkOQ1jMQ0rGelqOpUTxtE2PRliqB41gwPR4l0QxMn8BRDrIGgyA+B+eGzu8PAzF6OokQGpn7pwUSkPR7E8YxEAAPICWKlCEXCFlWXIHDitJGwYJpMBJh5Nk+c8mn0LRW6aPuvxuYFvGed5dmhTYEXnnF1lebZch8IKO6pVFqacII+W+ZpOVRJo7AETFyQmeR5Ecp5bKIJOxCaWA+iqgA1sQKhFe87qtfA7WdT1Cj9Wo+lKiN3W9QAygAKgAogACnNABcGAALz2QAdgABDou2GAALhqtInftmr6PtYAAJf0rS+hnbSWiMvtTL7QA2tgTAALokIDAA+9BIFtgMkLo6q0oYV03fdj3Paqr3vZ9X1MCIAP7QAMoy6qqvttK7SdOqGIyWgnbSIAHYyp1Xe9b3E6qqPqodOpaNqh20qqR2GFoyMnSQQNdltuNs0z7205dd0AI7Q49p36MTH20-tSD7YY4BgIyJ2w+t+3U-tZ36G99NszznNaNzvP8xdJCwAAagAkktADq62TuktHZUmQA" },
+        { n: "Triangle au rapporteur", e: 1, c: "CoJwlghgdg5gNgUwAQQK5JBADlg9iAFwVRAG4AGCgMoEZSAWegNlIFYaAmAOkdIEFSFIZQC0NLqwDspOrPrUaAZlIhUiMoxbtuvSpU1tOPeXtJiFpSc0M75AIUGnR4qTLc0TVDkI61lq9QAJMAATBGEIpyFzcj9SLBBcAkwAYwJ8BmttYwiDbN1ouli6KSYuDmV6ckUuGhZHCLEJaUo5C1YmMo5pehoXbwbTJtdWmU8SgA4XAE5SRWmJriZpQcLmoTbY72kJ0gBiVghDw5klxppWUgBbCBAAazE4hKTU9I0sowL9D9tzhWVnskIGl8MEwpEIUMinEAgh3lpPvIROQuC1MgjfsjUYULExptwOnNyKwJJdVs51qMPNRvK1lHsAEYTJlM9wwtRwsHhKI8nHFAGJIEgshWDE5GrUyiimzi2omMzQuidOiKJgkjh0ckKynucakTqSCRzSRlegrCHDNGbWj6qRGxSsaa1MkWlxWsY0mS7GizA5Hf2nFhQy43e6PJTxQWvDLS-LyCXy2OIuZyvlPKPAt5cyE5mLs9SWH45ETccizKVF3glrhltNKjhlQmKYmkwSunXW7xd+SM5l9tkR2EgbO83l5pX0Ra1xT0bgTFgAYS1lvcHv5Kg58JlVZRaLyyaxaLztNI3XznNC3JzUXH-k3hbFVdL5Yf26Rz7TXdPknPw8v19dahdnIAAaDgwJ-aQT26CIaCoNEu3dOCAGVgAAUQABWQgAucgAF5QGBZBUCgJBkkgWBECQPg7AXMiEDgJAAEdUGQGikDwpAmCQFIrhApA4AAcmgeBkDsPg6M4qoAAakAQAgBOEyi2NojiuPIaSqAANQASTQgB1bCig2H1vAmehpiAA" },
+        { n: "Deux côtés et l’angle entre eux", e: 1, c: "CIUwrgHgBAxgLwFwJcGcogVANoTAICGAdgOZYjoEIBOZ4EA3AAyMBlAjHQCwDs7HAnKwB0rLnQCCdRlKYBaIQFZR7ZRxasAzHUphSlTj04Dhopk268jI6XTlq6XAEwWhVgEKTTUuYMV1lf1QZmBykHNk1tXQAJAEsAExBrT2SvdiCNOgAHSgB7KjwYBBy9c0MXEylS-nLrW3S6eXkANjp1DnVBPlUPWoUKlTt5fh9WxsEQns9vXyYB+sa+EfV1LkEADjXJJJs+qTng+zpNgGJ5PDOzv0Em8Kzc-MLi-WdjayrLCtk02+y8ygKipRYgltikpt8MpEQCUDNVXt4GPJKrCPjtBIjUoM+JoHFxFmsWpNUj5+gEWCFZppjgAjNa02l+Py3KFA+KJMGgnZqTQwHIAW0yeBQKGeZXhQg4SNYZhRNW8kroDgYX25dF5AqFIvecolSKVMpeVhkDGueuVXKCLSY+rRCuNpqkxwAZk6+HxzRTburBcLgezOSk6mwGgZ1CJOi0AMJEr4kxn7SE6aGiuFGoQYg1itPopEqoIUxXpCJJ1kgjkcoOJ3Qh9hh1Z8K3rK011rhhuMJuY-OFxXMkt+gPbIObBgAGgc46CogLSusrGYAGUACoAUQACguAFwMAC8S-+MDIYAIUCoMUIJDIYlckdPICwUAAjmAr64oDuoPJYHzR1AxLePw4b90EwLAAHIL1IKBXH-d8oCaBgAAbmAANQASRXAB1Tc0j2Vg+BCNZ+CAA" },
+        { n: "Symétrique par rapport à une droite", e: 3, c: "MoTwtglwLgTglgRwK4FMAEAHAhjNMsYYD2MUaAB2kgHboAmMRcUKA3AAwcBlAjKwCwBOAGwCA7PwB0AVlYBBVhyWcAtDxljWfbf259hI8VNkAhRZwus1GrbZ672vVtMMBmYQCZJmgMLnlVurSmtpaDlweSjwRtpGccUpqsmA4ANZqMQnxAUmsKTDp0QAcHAA0PKUeTvxiovzSRTKKAapBmpw6eqxiPKKuguxN-pbWwVFh3K7drCXZnHTVYtIyfPzsXjwlw4lt4-ZdQoOukfVS-LrbrTYdE448UwDOKFAPyDhsh5LHAtJnuuoeQRKT7fU6Sc5aSSAnbcBI8PgAYkEyJRdl4j2eryQ7wEAy+J1+4P+UKBnBBBL+AiJMLuGJebxgHzxoMJEMpZOZFOp7MCsK02k4SJRyLR91YT3p2MZAAk4HQ2JZFS1ebTWABjIhgbAPB64o5ciEAoE8Dn6n6Uo2sDyDIqyNR6KYarVYHV6-Hm6mW62SW1ulmUlRediyb2++2qp3a3Xkj0QwOSYNWm2yGNguPqYQh5MqriieFJn12oN2jOyQUAM3LyPYc3R6s1Udl8uVSpGfEcmhC7YC0VWRSkwim-FcUn68gA5JdAjZQvs7qxhPxGtJIq52MJJIILsrRu07OF9EtwSn2OoRVPd3sD3SsTjhEf6gJT5vjSSlPflo+1mfX9DWny+A8UQhWFUUbwZNgP2PJ8f0hP8FwfE9YJ5cM6wlW9GQQz8kJfKkIU4KCv2fEUUPbTJRA8WQQNRbQ0MxCCmwVFsdzIsVIxdXVCJwkVLRNLDoO-XDLSPVxNFQtiGw4-iiNg4TllE6TuKBeNExEsTWMdSTXS4mDcJU2Q1MU3SRWsTNunk9TuAo0RDP06czIrKsBlrCTnR1RjmNbHNOytPMeycTMpEEPhjkEcEShMScWJnfcukXVwZBKaQ10kYQ+AvXYbjnAKeC8DxVh4MLguaJVLyy69xXoqVINyqECqKvhrF9AjavygRCs3Rr1GanNIhORFhR4rQ6MlO9Wvqzrpx6tK8om4rLX-VV0Ighdxvahq4NJVbZvWyaFt69qn1Yaiht7cDqo8ryvPEzS3M4tb+A64qmtkPiZrq3bnu62QXHBUQbvrO7to+x6Npe5wwv4UR3ra0G9oTIFfqhnNXKjYHYae7QEYhv70bmrGhBx5HULqPgkbzbH1EJxzqxc27GzlJirpyMifMeq09gCjxGn4E4xDESRctYHwotK3ZZ3CPrdH6TJdF+JQskCZI0gyVdEYcDm22VgoMmAAAVABRAAFYAAC52AAXj1-A1XQGg0FgOAsGoABzAAbdA5BMHwHZQN20GQT2TDQC20H4NA1TAUo0DkH3Q9cCOwDQZ40G9kO0ATyOAB8xCtm27doNAGCYFgi6zk0LZ8IhqAeWAkDgB4Y-HSKRbQB5wGgeBA6LoOfewXB8EIEgyEoAAKOgAEouAANQASQNgB1U3uw6QrIn7QQgA" },
+        { n: "Translation d’un triangle", e: 3, c: "CoJwhgdgzgNmAuBLA9hABAE0JgEBXd8RFIBzGAUwG4AGagMoEYKAWATgDZmB2JgOgFYKAQQrVRNALT1+nCozlM6jNuy68BAIRE1tFSdNkH6Cqgwp8VAZjYAmHjIDCWsbql8Zc2cdrXR9bwZ8aQNFJAQBbMBAAa0l-YKDnUIoI6NiADmoAGnpM61MbCx40nyZ6FjtGABEnHT03Q09FMxU+a3KBAFEakNd3Qy8fGQyAYhYx8dlTJjZC+hk2Kl4qAW6JXt9Gk3oLChAcchBmFSZuflki4NYOE7Vz4p7FHb2Do+vTgSl7mivVM8-gyR0YL0GjDABGaQhEIaa3CkRieW2u32ZBAAAlEBhKDocc41o8KABjZBhAAOYCgUFevw+F1k32O7zuPno2x41g4gK2O2JZIpVJ+Nz+PBssjZHOpQoEtioLPFnMYJg4NFZhQlUlFMuCwwAZjqxlQEtyiSTyZSMVi8Vbaoqpmw0jx6Bk+GleG0hAByVYufQeIxNNgzR3zRY8ZYiK11GQqzYMJ4ow7KN63f6iJM05kPY3PVEUdNSzM0fNM1P4kwsijWUFQyEZDyw5Lw8SI+MHC3Y62R21I3lmqnFlN0kF5xmD+6q9kKgm9-kj5PC0UTiUDs5asVqqdKwzy86asPavUGo1xk1882Yju4q8uAP2x3O13slgUdReru+-pNPhBuZHWzWFZ33qGN-WzBNmg4KxbHcOkaHMSCbDsQsbzAl54IoKCkNLCCMMQmCvhQuIMOrWtoXrFw4VSFtkTbC9O2vLkTxnSkcMw-CWTgyw8MzJdNyY01Z3QtjdzlDdWO4tdeMIjhRMnETK33URdX1FhDUracBPPS1rwY7szDvJ0uFsVgKHsN9cSjBpQP8MpKxYGznwsZ8jR6SiYj8Hx3Sc0R4goxtUj8ABlYAOgABUCgAuKgAF5QDAQkyDQPA0AIIgIFIRLBHUewUrIGA0AARxwTL1DQaK0CYNBCTCTI0EEHLyosKqwjQMh4DQbKyrQJrqoAH04aLQrgBK0HIKA0FJZBEAgeBxsqVr2o6XqWGi+xUCgAgcEQcbBA9V8zLQRAImIRKsTqzryRAUawBS8BoDgJBUEwRKADcyEJeAyBwK7Kg6WgADUAEkOgAdQixVfDKHxXRYIA" },
+        { n: "Rotation d’un triangle", e: 3, c: "EoewLghmCWIHYAIAmhMAgK6LAJ2hOBzAGwFMBuABgoDKBGUgFgE4A2BgdnoDoBWUgQVIUhlALQ0ebUnWn1qdZi3ZdeAIUGUNpMRKm6as8rVLdFAZmYAmTpIDC64VvHdJ0qQaoWhND7s+U-QmK8ALYQWADWYj4B-g5BpKERUQAcFAA0NGkWRias9BbKpADy9praznpu1J6SlADEAEbJTU2VojQhYZHZNKakAA5Y4FgQAMZgIFjGivmFVsyplLkMBTyk84uOcqTMbFbkfc7MPLylgU61eu7yzMcWdNzMXIx9Z+06lDLbu9ycNKzcZJWZJ0N6OD5XapSaSeOrcCDw+FSTisModBJdESmWh9QbDMYTKbLWZrDZCYmrXhk9pyXFDbAEyYACWgSDImg5Dhphl6pCwaBIRJmlORNDoS2FhXEYvO324vG4+TWYPKly+hhqUkkjWaurajk6SRAOL5AuIWBZbK51rRtNIoxAwX6EAAzi7pnkRWSaBLPXMUakxeJUmI7Q6na73RT-QtocGPSspX9pGLOCHxVRWC5U6lvcndHUAGaFxiMcixHl9cPOt2W9k262hnk7egAkV8ADkKoulX01EukgKDm8mroOpagd07UN3RNeIZ40mCZJvHInFb5MlazXG+5Rl2+z6Fj269OjZ7nyqzdudzoFmSXHIkm7EPV+7Yv3+61uf0YgnPr5XtEf6mPUiIIhAyKoucM5YnO9IjIuQp+tu67QdGqG7lslYDAhjIWqy9acsR2EmvygrLiK2gyr6iZrNR4qkfI8qkKBxxnpyqpeEBmqmLw456q404YkaZFmgRVokSRTYmtWkaUYUO6sD6CmYcpOZMVWjo1lGW6rmhcZpqpvAMYZ6bUFmZkUAZpljsWpblusYbaZGdYNtJGbyBupgiioXYARUrh9oYLikJI+TDj4g6kAJrTSPB+JIcZ4IVLRK4pZcMl0PkKEcXEF6Qs29CmH+6UvqlhVGPQNClSK5Vqjx7AMKkcIQUi4jQcJiSRNivLzohhLJVxaVUQVWV0olhJuVJ552uR5rJaYfwGIty2ys23AWEtT50XlaKAcFUXGH0sWTt4vLzRJRHuetskuW6Q09ipGEmT2zDxuN9r3bpuUZTs8YvVoS19u9RkyZZoPpjoWJrXZJZlhWd0RrWhE3ZxnnHVwnjpTY-nozoQXuNFkjMJyI7rLI+TRLIpNCDEBoiZE5MRbTFYwYzUQAMoACoAKIAAqcwAXOQAC83OIcQCAYAg2C4AQJAIHwKg2LLxCEAgACOaBS8rCCiwg9AIKMwRpErqsG6YxvBAgxBgAgKv6wgVsmwAPmwov84QYxSzL-QgNAcD20UrvJKLNjwC62BoNALpKx2fm4wg0ChPgUtskrjvOlgCDewg9JQLAiAZ6MxBB1gUtFGbGcumXcdINAFfjLb9tIB2eBEFLZYAA1UAAagAkrzADqQuMZ8NWeA+jBAA" },
+        { n: "Homothétie d’un triangle", e: 3, c: "BIewtiAuAWCXkEsCmACAJoTAICuA7FkAnBAQxwHMAbJAbgAY6AygRmoBYBOANjYHZWA6AKzUAgtToT6AWiZCe1FotaMWnLrwHCAQuPp7qMuQuNNltZtUHqAzJwBM-eQGFdkg7MHzFCswzsSmP2N-ehCJGWEwYgIAaxkgsNC3COoo2PiADjoAGiZsuwsrblY7TWoAeVd9Q08THxVqW3pBEqFxN2kPeXolFWtqAiwqAkt1ErKHTizmsdK2yen3PoGhpBGitjnhBYkN8fn+KfCWczCsgGIAIwzr67rOyOi4gqZ+weHgBDQafV+OpfMr2oAGNwAAHYgAZ0ho2KW2oOyYMzhE0OWTsdmshxYMmWoLAEOhsM2qNY6Mx2OJ+22-Ay5KxnBxJwY3HkGIZLAcZIRtMW5wAZvz2OxaElAf18YTIZ9vv8-tVmSxrOpBPCRAByKrHIzeUwNDLWfwtBzCLWdIw9erilbDKnw2j8VjcZEktoOp3HZbvNZ2sru52+t2OgO404mC63G5ZbwPVJPKQvN6rAgyn5y-6h5gS8FQmF7e3BhQu6l0QvsymZoGS3OB4QOuzccuM2ulziNinNzOshEdk78ButgMCoUisVZkE56Gp9PygEWHgq+FaTUZrp1PWA4l2HgZQ7KM3uC0mXxA73rWZlGrdFtXz3Ws83tfF+G3zqMfwfiNRu6Kcdn6ezrOlbZgSNb5pea5Io+Oq9nOVaTnmF5tIYPBeLB4HIbI1hoRyc7dkwsEofIhjYRIw7CqKCJ4ghAEzskirEtYoq0uw1BOCufy3rqvj+EwbI8EEfGNNeiTuI86TWAk8ikWKxziXEkkAMoACoAKIAAqKQAXLQAC8ykEMQwKoLg+BEKQlCoCIWhOPgSAUCgACOWBWVoKC6SgrAoMCYDZCgIi2R51jeWAKBIJAKA2e5KDBT5AA+PC6epFBGSZeBgiACA4BF5RxRkulOCAOCQoQWAIJC-nqsu7EoAgURkKg3z+VFEIECgFDqtA4BQHAiCNagxnZQQqDlGFEVNYZYIZQQEUFAAagAkqpADqWknAETDsP4GQcEAA" },
             { n: "Constructions au compas", r: [0, 1, 2, 5] },
+            { n: "Les quatre transformations", r: [10, 11, 12, 13] },
         ];
     </script>
     <!-- La bibliothèque : les séances rangées dans le logiciel, avec leur
@@ -10665,18 +10741,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             magic_bisector: "Un angle, ou 3 points (2e = sommet)",
             magic_circumcircle: "3 points du cercle, ou un angle",
             // transformations
-            magic_sym_centrale: "Le point, puis le centre",
-            magic_sym_axiale: "Les points, puis l'axe",
-            magic_translation: "Les points, puis le segment-vecteur",
-            /* Le centre d'abord : sinon rien ne distinguerait « encore un point à
-               transformer » de « et voilà le centre ». Une fois le centre posé,
-               chaque clic donne son image — sur un polygone, la figure entière. */
-            magic_rotation: "Le centre, puis les points (ou un polygone)",
-            magic_homothetie: "Le centre, puis les points (ou un polygone)",
+            magic_sym_centrale: "La figure, puis le centre",
+            magic_sym_axiale: "La figure, puis l'axe",
+            magic_translation: "La figure, puis le vecteur",
+            magic_rotation: "La figure, puis le centre",
+            magic_homothetie: "La figure, puis le centre",
             magic_croquis: "Dessinez la figure d'un trait",
         };
         const GM_CONSIGNE_CROQUIS = "Dessinez la figure d'un trait";
         const GM_CONSIGNE_MAGIE_DEFAUT = "Un segment, ou 2 points";
+
+        /* LES CINQ TRANSFORMATIONS, ET CE QU'IL LEUR FAUT. Elles se ressemblent
+           toutes : une figure, puis UNE chose — un point (centre), une droite
+           (axe) ou un segment (vecteur). `cible` dit laquelle, `mot` la nomme à
+           l'écran, `reglage` dit s'il faut demander un nombre d'abord. */
+        const GM_TRANSFOS = {
+            magic_sym_axiale:   { cible: 'droite', mot: "l'axe de symétrie", verbe: 'Symétrie axiale' },
+            magic_sym_centrale: { cible: 'point',  mot: 'le centre de symétrie', verbe: 'Symétrie centrale' },
+            magic_translation:  { cible: 'droite', mot: 'le segment qui donne le vecteur', verbe: 'Translation' },
+            magic_rotation:     { cible: 'point',  mot: 'le centre de rotation', verbe: 'Rotation', reglage: true },
+            magic_homothetie:   { cible: 'point',  mot: "le centre de l'homothétie", verbe: 'Homothétie', reglage: true },
+        };
 
         /* ============================================================
            RECONNAISSANCE DE CROQUIS À MAIN LEVÉE
@@ -14073,7 +14158,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (Math.abs(l.x) < 12 && l.y >= -85 && l.y <= -61) return 'toggleSwap';
                 if (Math.abs(l.x) < 12 && l.y >= -113 && l.y <= -89) return 'toggleDouble';
                 
-                if (this.isLocked) { if (d < 30) return 'traceAngle'; return null; }
+                /* BLOQUÉ, LE BORD SERT À MARQUER LA GRADUATION. Le rapporteur est
+                   posé sur le sommet, il ne bouge plus : la seule chose qu'on ait
+                   encore à faire avec lui, c'est marquer la mesure lue. Le bord ne
+                   servait alors à rien — la zone rendait null. */
+                if (this.isLocked) {
+                    if (d < 30) return 'traceAngle';
+                    if (d > this.radius - 42 && d < this.radius + 14 && l.y <= 0) return 'graduation';
+                    return null;
+                }
                 
                 if (Math.hypot(l.x - (-this.radius - 20), l.y) < 20) return 'rotate';
                 if (Math.hypot(l.x - (this.radius + 20), l.y) < 20) return 'rotate';
@@ -14394,6 +14487,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (c) { if (libelle === null) ignorer = true; ou = libelle || ''; conteneur = c; break; }
                     }
                     if (ignorer) return;
+                    /* La barre des transformations répond à une situation, comme une
+                       boîte de dialogue : fermée, son « Annuler » n'annule rien — et
+                       il passait devant le vrai Ctrl+Z quand on cherchait « annuler ». */
+                    const barreTr = e.closest('#barreTransfo');
+                    if (barreTr && getComputedStyle(barreTr).display === 'none') return;
                     /* Les réponses d'une boîte de dialogue (Confirmer, Annuler) et les
                        commandes du menu d'un objet ne veulent rien dire hors contexte :
                        elles répondent à une situation, on ne les invoque pas de but en
@@ -20725,11 +20823,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                gris ou pointillés — que les bâtisseurs tracent pour se guider. Un
                côté de la figure est plein et noir ; on ne risque pas de le prendre
                pour un trait de construction. */
+            /* MARQUER LA GRADUATION À LA MAIN. Le rapporteur bloqué sur le sommet,
+               on appuie contre le bord, à la mesure voulue : un petit trait au
+               crayon reste, aligné sur le centre. C'est le geste de la classe — on
+               marque, on enlève le rapporteur, on rejoint à la règle — et il
+               manquait : le bord de l'instrument bloqué ne répondait à rien. */
+            marquerGraduation(w, mx, my) {
+                const ang = Math.atan2(my - w.y, mx - w.x);
+                const t = this.traitDeGraduation(w, ang, w.radius);
+                t.estConstruction = false;   // posé à la main : c'est un trait de la figure
+                t.color = this.globalStyle && this.globalStyle.color ? this.globalStyle.color : '#5a5a5a';
+                // ce que dit la graduation : 0 au bord gauche, 180 au bord droit
+                const l = w.toLocal(mx, my);
+                let i = Math.round((Math.atan2(l.y, l.x) + Math.PI) * 180 / Math.PI);
+                i = Math.max(0, Math.min(180, i));
+                this.showToast(`✏️ Graduation ${w.isReversed ? 180 - i : i}° marquée`);
+                this.saveState();
+                this.render();
+            }
             get sansOutil() { return !this.magicUseTools; }
             set sansOutil(v) { this.magicUseTools = !v; }
             estTraceDeConstruction(e) {
                 if (e instanceof ToolAnimation) return true;
                 if (e instanceof CompassArc) return true;
+                // le bâtisseur peut le dire lui-même, sans qu'on ait à deviner
+                if (e && e.estConstruction) return true;
                 if (e instanceof LinearObject) {
                     if (e.dash && e.dash.length) return true;
                     /* Les deux gris des bâtisseurs. Ils s'écrivent en hexadécimal et
@@ -22066,11 +22184,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.departAccroche = false;
                 this.isDraggingCreation = false;
                 this.referenceObject = null;
-                /* Le centre d'une rotation ou d'une homothétie ne survit pas au
-                   changement d'outil : le reprendre pour la transformation
-                   suivante ferait tourner la figure autour d'un point choisi pour
-                   autre chose, sans que rien ne le dise. */
-                this.centreTransformation = null;
+                /* La sélection d'une transformation ne survit pas au changement
+                   d'outil : la reprendre pour la suivante transformerait une
+                   figure choisie pour autre chose, sans que rien ne le dise. La
+                   barre se referme avec elle. */
+                this.transfoOutil = null;
+                this.transfoPoints = [];
+                this.transfoEtape = null;
+                if (this.majBarreTransfo) this.majBarreTransfo();
                 this.polygonPoints = [];
                 this.anglePoints = [];
                 this.draggedWidgetMode = null;
@@ -22160,8 +22281,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        le clic ne peut pas donner : on le demande tout de suite,
                        avant de toucher à la feuille. Refuser, c'est renoncer à
                        l'outil — on revient donc à la main. */
-                    if (toolName === 'magic_rotation' || toolName === 'magic_homothetie') {
-                        this.demanderReglageTransformation(toolName);
+                    if (GM_TRANSFOS[toolName]) {
+                        this.demarrerTransformation(toolName);
+                        if (GM_TRANSFOS[toolName].reglage) this.demanderReglageTransformation(toolName);
                     }
                 } else if (toolName !== 'pan' && toolName !== 'move') {
                     this.canvas.style.cursor = 'crosshair';
@@ -23916,6 +24038,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 }
+                /* CE QU'ON A CHOISI SE VOIT. Sans marque, on ne savait plus quels
+                   points étaient pris — et le compte de la barre ne disait pas
+                   LESQUELS. Un anneau violet, la couleur de la transformation. */
+                if (this.transfoEtape && (this.transfoPoints || []).length) {
+                    this.ctx.save();
+                    this.ctx.strokeStyle = '#8e44ad';
+                    this.ctx.lineWidth = 2 / (this.view.zoom || 1);
+                    this.ctx.setLineDash([]);
+                    for (const p of this.transfoPoints) {
+                        if (!p) continue;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, 9 / (this.view.zoom || 1), 0, Math.PI * 2);
+                        this.ctx.stroke();
+                    }
+                    this.ctx.restore();
+                }
                 if (this.draggedWidget instanceof ProtractorWidget && this.draggedWidgetMode === 'traceAngle') {
                     const w = this.draggedWidget;
                     const start = {
@@ -25019,6 +25157,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (zone === 'toggleLock' && targetWidget instanceof ProtractorWidget) targetWidget.isLocked = !targetWidget.isLocked;
                         else if (zone === 'toggleDouble' && targetWidget instanceof ProtractorWidget) targetWidget.showDouble = !targetWidget.showDouble;
                         else if (zone === 'toggleSlide' && targetWidget instanceof SetSquareWidget) targetWidget.slideMode = !targetWidget.slideMode;
+                        else if (zone === 'graduation' && targetWidget instanceof ProtractorWidget) {
+                            this.marquerGraduation(targetWidget, mousePos.x, mousePos.y);
+                        }
                         else {
                             this.draggedWidget = targetWidget; this.draggedWidgetMode = zone;
                             this.widgetStartState = this.getWidgetState(targetWidget); this.draggedWidgetType = wType;
@@ -25333,65 +25474,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 this.setTool('move');
                             }
                         }
-                    } else if (this.currentTool === 'magic_sym_centrale') {
-                        let pt = closestPoint ? closestPoint : this.createPointAt(x, y);
-                        if (this.anglePoints.length === 0 || this.anglePoints[0] !== pt) this.anglePoints.push(pt);
-                        if (this.anglePoints.length === 2) {
-                            this.buildSymCentrale(this.anglePoints[0], this.anglePoints[1]);
-                            this.setTool('move');
-                        }
-                    } else if (this.currentTool === 'magic_rotation' || this.currentTool === 'magic_homothetie') {
-                        const poly = !closestPoint
-                            ? this.entities.find(e => e instanceof Polygon && e.isNear && e.isNear(x, y))
-                            : null;
-                        this.magieAutourDunCentre(this.currentTool, x, y, closestPoint, poly);
-                    } else if (this.currentTool === 'magic_translation') {
-                        if (!this.anglePoints) this.anglePoints = [];
-                        /* Le vecteur, c'est un SEGMENT de la figure — de sa première
-                           extrémité vers la seconde. Comme pour l'axe d'une symétrie,
-                           on ne lit le clic comme « le vecteur » que si aucun point
-                           existant n'est visé : un point cliqué est presque toujours
-                           le bout d'un trait déjà tracé. */
-                        const vecteur = (!closestPoint && (clickedLinear instanceof Segment
-                            || clickedLinear instanceof Ray)) ? clickedLinear : null;
-                        if (vecteur) {
-                            if (this.anglePoints.length > 0) {
-                                const pts = this.anglePoints.slice();
-                                const avant = this.entities.filter(e => e instanceof Point);
-                                this.buildTranslation(pts, vecteur.p1, vecteur.p2);
-                                this.cslLierImages(pts, this.entities.filter(e => e instanceof Point
-                                    && e.visible !== false && e.label && !avant.includes(e)));
-                                this.anglePoints = [];
-                                this.setTool('move');
-                            } else {
-                                this.showToast("🪄 Cliquez d'abord les points à transformer, "
-                                    + "puis le segment qui donne le vecteur");
-                            }
-                        } else {
-                            let pt = closestPoint ? closestPoint : this.createPointAt(x, y);
-                            if (this.anglePoints.length === 0 || this.anglePoints[this.anglePoints.length - 1] !== pt) {
-                                this.anglePoints.push(pt);
-                            }
-                        }
-                    } else if (this.currentTool === 'magic_sym_axiale') {
-                        if (!this.anglePoints) this.anglePoints = [];
-                        // Un point cliqué est presque toujours l'extrémité d'un segment déjà tracé :
-                        // on ne doit interpréter le clic comme "l'axe" que si aucun point existant n'est visé.
-                        const segment = (!closestPoint && (clickedLinear instanceof Segment || clickedLinear instanceof Line || clickedLinear instanceof Ray)) ? clickedLinear : null;
-                        if (segment) {
-                            if (this.anglePoints.length > 0) {
-                                this.buildSymAxiale(this.anglePoints, segment);
-                                this.anglePoints = [];
-                                this.setTool('move');
-                            } else {
-                                this.showToast("🪄 Cliquez d'abord sur le(s) point(s) à transformer, puis sur l'axe");
-                            }
-                        } else {
-                            let pt = closestPoint ? closestPoint : this.createPointAt(x, y);
-                            if (this.anglePoints.length === 0 || this.anglePoints[this.anglePoints.length-1] !== pt) {
-                                this.anglePoints.push(pt);
-                            }
-                        }
+                    } else if (GM_TRANSFOS[this.currentTool]) {
+                        /* LES CINQ TRANSFORMATIONS PARTAGENT LE MÊME GESTE :
+                           on choisit CE QU'ON TRANSFORME, on valide, puis on
+                           désigne PAR QUOI. Chacune avait sa grammaire — un point
+                           puis le centre, les points puis l'axe, le centre puis les
+                           points — et aucune ne disait laquelle : on ne pouvait pas
+                           deviner quand la sélection s'arrêtait, donc on ne pouvait
+                           transformer qu'un point. La barre le dit et le valide. */
+                        this.clicTransformation(x, y, closestPoint, clickedLinear);
                     } else if (this.currentTool === 'magic_mediatrice') {
                         const segment = clickedLinear instanceof Segment ? clickedLinear : null;
                         if (segment) {
@@ -26413,7 +26504,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (hoveredWidget) {
                     const zone = hoveredWidget.getHitZone(rawMouse.x, rawMouse.y);
                     if (hoveredWidget instanceof ProtractorWidget) { if (zone === 'toggleLock') this.canvas.title = "Verrouiller le centre pour tracer..."; else if (zone === 'toggleDouble') this.canvas.title = "Double graduation"; else this.canvas.title = ""; } else { this.canvas.title = ""; }
-                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-w': 'ew-resize', 'volet-s': 'ns-resize', 'volet-n': 'ns-resize', 'volet-nw': 'nwse-resize', 'volet-se': 'nwse-resize', 'volet-ne': 'nesw-resize', 'volet-sw': 'nesw-resize', 'coin-nw': 'nwse-resize', 'coin-se': 'nwse-resize', 'coin-ne': 'nesw-resize', 'coin-sw': 'nesw-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
+                    const cursors = { 'move': 'move', 'volet-e': 'ew-resize', 'volet-w': 'ew-resize', 'volet-s': 'ns-resize', 'volet-n': 'ns-resize', 'volet-nw': 'nwse-resize', 'volet-se': 'nwse-resize', 'volet-ne': 'nesw-resize', 'volet-sw': 'nesw-resize', 'coin-nw': 'nwse-resize', 'coin-se': 'nwse-resize', 'coin-ne': 'nesw-resize', 'coin-sw': 'nesw-resize', 'pageGlisser': 'grab', 'resize': 'ew-resize', 'resizeWidth': 'ew-resize', 'resizeHeight': 'ns-resize', 'slideY': 'col-resize', 'slideX': 'row-resize', 'crop-nw': 'nwse-resize', 'crop-se': 'nwse-resize', 'crop-ne': 'nesw-resize', 'crop-sw': 'nesw-resize', 'crop-n': 'ns-resize', 'crop-s': 'ns-resize', 'crop-e': 'ew-resize', 'crop-w': 'ew-resize', 'rotate': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 24 24%22 fill=%22none%22%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22white%22 stroke-width=%224%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M8.22673 13.3292C8.51492 14.1471 9.06116 14.8493 9.78313 15.3298C10.5051 15.8103 11.3637 16.0432 12.2296 15.9934C13.0954 15.9436 13.9216 15.6137 14.5837 15.0535C15.2458 14.4933 15.7078 13.7332 15.9003 12.8876C16.0927 12.042 16.0051 11.1567 15.6507 10.3652C15.2962 9.57374 14.6941 8.91887 13.9351 8.4993C13.176 8.07974 12.3012 7.91819 11.4424 8.03902C10.0777 8.23101 9.0827 9.23345 8 10M8 10V7M8 10H11%22 stroke=%22black%22 stroke-width=%221.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E') 16 16, auto", 'trace': "url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22 viewBox=%220 0 512 512%22%3E%3Cpath fill=%22black%22 stroke=%22black%22 stroke-width=%2235%22 d=%22M500.1 71.1l-59.2-59.2c-15.9-15.8-41.5-15.9-57.4 0l-38.4 38.4L57.3 338.2c-7.8 7.8-13.7 17.2-17.4 27.5L1.8 471.5c-4 11-1.2 23.4 7.1 31.7 8.3 8.3 20.6 11 31.7 7.1l105.8-38c10.3-3.7 19.7-9.7 27.5-17.4l277.9-277.9.1.1 10-10 38.4-38.4C515.9 112.6 516 86.9 500.1 71.1z M136.7 445.5l-67.4 24.2-27-27 24.2-67.4c.2-.5.4-1 .6-1.4l71 71c-.3.4-.8.6-1.4.6z M153.8 434.7c-1 1-2 1.8-3 2.7L74.6 361.3c.9-1 1.7-2.1 2.7-3L363.8 71.7l76.4 76.4L153.8 434.7z M480 108.4L451.7 136.7l-1.4 1.4-76.4-76.4 29.8-29.8c4.8-4.7 12.5-4.7 17.2 0l59.2 59.2c4.7 4.7 4.7 12.4-.1 17.3z%22/%3E%3C/svg%3E') 0 20, auto", 'traceAngle': 'crosshair', 'graduation': 'crosshair', 'toggleLock': 'pointer', 'toggleSwap': 'pointer', 'toggleSlide': 'pointer' };
                     if (cursors[zone]) cursor = cursors[zone]; else cursor = 'pointer';
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
@@ -30729,18 +30820,46 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             /* Poser le rapporteur sur un sommet, marquer une mesure, et tracer la
                demi-droite : le geste se répète, il vaut une fonction. */
+            /* LE PETIT TRAIT DE LA GRADUATION. Dans le prolongement du centre et de
+               la graduation lue, à cheval sur le bord du rapporteur : c'est le
+               geste du crayon contre l'instrument. Il se voit — c'est tout son
+               objet — et il fait partie de la construction : « sans les outils »
+               l'emporte donc, comme pour un arc de compas. */
+            traitDeGraduation(sommet, ang, R) {
+                const bout = (k) => {
+                    const p = new Point(sommet.x + Math.cos(ang) * k, sommet.y + Math.sin(ang) * k, '');
+                    p.visible = false;
+                    this.addEntity(p);
+                    return p;
+                };
+                /* À CHEVAL SUR LE BORD, et un peu plus dehors que dedans : le
+                   crayon marque CONTRE l'instrument, et ce qui dépasse est ce
+                   qu'on voit pendant qu'on le fait. Entièrement à l'intérieur, le
+                   trait passait sous le corps du rapporteur — donc invisible au
+                   moment précis où il devait se voir. */
+                const a = bout(R - 9), b = bout(R + 11);
+                const t = new Segment(a, b, { color: '#5a5a5a', width: 1.6 });
+                t.estConstruction = true;
+                this.addEntity(t);
+                return t;
+            }
             cslPoserRapporteur(sommet, versLaBase, deg, sens, jusque) {
                 const base = Math.atan2(versLaBase.y - sommet.y, versLaBase.x - sommet.x);
                 const pose = { x: sommet.x, y: sommet.y, angle: base };
                 const venir = new ToolAnimation('move', pose, pose);
                 venir.widgetType = 'protractor';
                 this.addEntity(venir);
-                // la graduation lue, marquée d'un petit point comme au crayon
+                /* LA GRADUATION SE MARQUE AU CRAYON, ET ÇA SE VOIT. On posait un
+                   point INVISIBLE au bord du rapporteur : la mesure lue ne laissait
+                   aucune trace, et la demi-droite semblait sortir de nulle part.
+                   Au tableau on fait un PETIT TRAIT contre la graduation, aligné
+                   sur le centre — c'est lui qu'on rejoindra ensuite à la règle. */
                 const vise = base + sens * deg * Math.PI / 180;
                 const R = 170;
                 const marque = new Point(sommet.x + Math.cos(vise) * R, sommet.y + Math.sin(vise) * R, '');
                 marque.visible = false;
                 this.addEntity(marque);
+                this.traitDeGraduation(sommet, vise, 180);   // le bord du rapporteur
                 const tenir = new ToolAnimation('move', pose, pose);
                 tenir.widgetType = 'protractor';
                 this.addEntity(tenir);
@@ -31729,7 +31848,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 boite.innerHTML = rot
                     ? '<h3 style="margin-top:0; color:#8e44ad;">Rotation</h3>'
                       + '<p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">'
-                      + 'Le centre au premier clic, puis chaque point — ou un polygone entier.</p>'
+                      + 'Ensuite : sélectionnez la figure, validez, puis cliquez le centre.</p>'
                       + '<label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px;">'
                       + 'Angle <input id="gmTrAngle" type="number" min="0" max="359" step="1" '
                       + 'style="flex:1; box-sizing:border-box; border:1px solid #d7dbe0; border-radius:8px; padding:6px;"> °</label>'
@@ -31739,7 +31858,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                       + '<option value="-1">horaire (sens des aiguilles)</option></select></label>'
                     : '<h3 style="margin-top:0; color:#8e44ad;">Homothétie</h3>'
                       + '<p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">'
-                      + 'Le centre au premier clic, puis chaque point — ou un polygone entier.<br>'
+                      + 'Ensuite : sélectionnez la figure, validez, puis cliquez le centre.<br>'
                       + 'Un rapport négatif retourne la figure ; −1, c\'est la symétrie centrale.</p>'
                       + '<label style="display:flex; align-items:center; gap:8px; font-size:13px;">Rapport '
                       + '<input id="gmTrRapport" type="number" step="0.1" '
@@ -31775,8 +31894,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.reglageTransformation = rot
                         ? { deg: v, signe: parseInt(sens.value, 10) === -1 ? -1 : 1 }
                         : { k: v };
-                    this.centreTransformation = null;
                     fermer();
+                    this.demarrerTransformation(outil);
                     this.showToast('🪄 ' + GM_CONSIGNES_MAGIE[outil]);
                 };
                 annuler.addEventListener('click', renoncer);
@@ -31787,36 +31906,121 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (e.key === 'Escape') { e.preventDefault(); renoncer(); }
                 });
             }
-            /* LE CLIC D'UNE TRANSFORMATION À CENTRE. Le premier pose le centre —
-               il n'y a rien à transformer tant qu'on ne sait pas autour de quoi.
-               Ensuite, un polygone donne ses sommets d'un coup (et l'image est
-               reliée comme lui), un point donne le sien. L'outil reste armé : on
-               transforme autant de points qu'on veut autour du même centre. */
-            magieAutourDunCentre(outil, x, y, pointVise, polygoneVise) {
-                if (!this.centreTransformation) {
-                    this.centreTransformation = pointVise || this.createPointAt(x, y);
-                    this.showToast(`🪄 Centre en ${this.centreTransformation.label || '·'} — `
-                        + `cliquez maintenant les points, ou un polygone`);
+            /* ============================================================
+               LES TRANSFORMATIONS À LA MAIN : DEUX TEMPS, UNE BARRE
+
+               1. on choisit CE QU'ON TRANSFORME — un point, plusieurs points, ou
+                  une figure entière d'un seul clic dessus ;
+               2. on valide, puis on désigne PAR QUOI — le centre, l'axe, le
+                  vecteur, selon la transformation.
+
+               Chacune des cinq avait sa propre grammaire de clics, et aucune ne
+               la disait : rien ne pouvait signaler la fin de la sélection, donc
+               on ne pouvait transformer qu'UN point. La barre porte les deux
+               temps et le compte de ce qui est pris.
+               ============================================================ */
+            demarrerTransformation(outil) {
+                this.transfoOutil = outil;
+                this.transfoPoints = [];
+                this.transfoEtape = 'figure';
+                this.majBarreTransfo();
+            }
+            arreterTransformation() {
+                this.transfoOutil = null;
+                this.transfoPoints = [];
+                this.transfoEtape = null;
+                this.majBarreTransfo();
+            }
+            majBarreTransfo() {
+                const barre = document.getElementById('barreTransfo');
+                if (!barre) return;
+                const t = GM_TRANSFOS[this.transfoOutil];
+                if (!t || !this.transfoEtape) { barre.style.display = 'none'; return; }
+                barre.style.display = 'flex';
+                const txt = document.getElementById('transfoTexte');
+                const ok = document.getElementById('transfoValider');
+                const n = (this.transfoPoints || []).length;
+                if (this.transfoEtape === 'figure') {
+                    txt.innerHTML = `<b>${t.verbe}</b> · Sélectionnez la figure`
+                        + (n ? ` — ${n} point${n > 1 ? 's' : ''}` : '');
+                    ok.style.display = '';
+                    ok.textContent = n ? `Valider (${n})` : 'Valider';
+                    ok.disabled = (n === 0);
+                } else {
+                    txt.innerHTML = `<b>${t.verbe}</b> · Cliquez ${t.mot}`;
+                    ok.style.display = 'none';
+                }
+            }
+            /* Un clic pendant une transformation. En phase « figure » il ajoute ou
+               retire ; en phase « cible » il désigne, et la construction part. */
+            clicTransformation(x, y, pointVise, lineaireVise) {
+                const outil = this.currentTool;
+                const t = GM_TRANSFOS[outil];
+                if (!t) return;
+                if (this.transfoOutil !== outil) this.demarrerTransformation(outil);
+                if (this.transfoEtape === 'figure') {
+                    /* Un clic SUR une figure la prend tout entière : c'est le cas
+                       courant — on transforme un triangle, pas trois points. */
+                    const poly = !pointVise
+                        ? this.entities.find(e => e instanceof Polygon && e.isNear && e.isNear(x, y))
+                        : null;
+                    if (poly) {
+                        (poly.points || poly.vertices || []).forEach(p => {
+                            if (p && !this.transfoPoints.includes(p)) this.transfoPoints.push(p);
+                        });
+                    } else {
+                        const p = pointVise || this.createPointAt(x, y);
+                        const k = this.transfoPoints.indexOf(p);
+                        // reprendre un point déjà pris, c'est le retirer
+                        if (k >= 0) this.transfoPoints.splice(k, 1);
+                        else this.transfoPoints.push(p);
+                    }
+                    this.majBarreTransfo();
                     this.render();
                     return;
                 }
-                const o = this.centreTransformation;
-                let cibles = [];
-                if (polygoneVise) cibles = (polygoneVise.points || polygoneVise.vertices || []).slice();
-                else {
-                    const p = pointVise || this.createPointAt(x, y);
-                    if (p === o) { this.showToast("Le centre est son propre image."); return; }
-                    cibles = [p];
+                // phase « cible »
+                const pts = (this.transfoPoints || []).filter(Boolean);
+                if (!pts.length) { this.transfoEtape = 'figure'; this.majBarreTransfo(); return; }
+                if (t.cible === 'droite') {
+                    const lin = (lineaireVise instanceof Segment || lineaireVise instanceof Line
+                        || lineaireVise instanceof Ray) ? lineaireVise : null;
+                    if (!lin) {
+                        this.showToast(`🪄 Cliquez ${t.mot} — un trait déjà tracé`);
+                        return;
+                    }
+                    this.executerTransformation(outil, pts, lin);
+                    return;
                 }
-                cibles = cibles.filter(Boolean);
-                if (!cibles.length) return;
+                const o = pointVise || this.createPointAt(x, y);
+                if (pts.includes(o)) {
+                    this.showToast("Ce point fait partie de la figure : choisissez-en un autre.");
+                    return;
+                }
+                this.executerTransformation(outil, pts, o);
+            }
+            executerTransformation(outil, pts, cible) {
                 const r = this.reglageTransformation || {};
                 const avant = this.entities.filter(e => e instanceof Point);
-                if (outil === 'magic_rotation') this.buildRotation(cibles, o, r.deg || 90, r.signe === -1 ? -1 : 1);
-                else this.buildHomothetie(cibles, o, r.k || 2);
+                this.isMagicConstructing = true;
+                try {
+                    if (outil === 'magic_sym_axiale') this.buildSymAxiale(pts, cible);
+                    else if (outil === 'magic_sym_centrale') pts.forEach(p => this.buildSymCentrale(p, cible));
+                    else if (outil === 'magic_translation') this.buildTranslation(pts, cible.p1, cible.p2);
+                    else if (outil === 'magic_rotation') this.buildRotation(pts, cible, r.deg || 90, r.signe === -1 ? -1 : 1);
+                    else if (outil === 'magic_homothetie') this.buildHomothetie(pts, cible, r.k || 2);
+                } finally { this.isMagicConstructing = false; }
                 const neufs = this.entities.filter(e => e instanceof Point && e.visible !== false
                     && e.label && !avant.includes(e));
-                this.cslLierImages(cibles, neufs);
+                this.cslLierImages(pts, neufs);
+                this.setTool('move');
+            }
+            validerSelectionTransfo() {
+                if (!this.transfoOutil || this.transfoEtape !== 'figure') return;
+                if (!(this.transfoPoints || []).length) return;
+                this.transfoEtape = 'cible';
+                this.majBarreTransfo();
+                this.showToast('🪄 ' + `Cliquez ${GM_TRANSFOS[this.transfoOutil].mot}`);
             }
             ouvrirModaleCode() {
                 const m = document.getElementById('codeModal');

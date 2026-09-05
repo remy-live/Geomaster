@@ -176,8 +176,13 @@ donne le second — les deux extrémités n'apparaissent plus toutes faites avan
 les instruments ne sortent. Ensuite, trois longueurs se construisent au
 **compas** : un arc depuis A, un autre depuis B, et le sommet est leur
 croisement. Une longueur et deux angles se construisent au **rapporteur** :
-on le pose en A, on lit la mesure, on tire un trait léger ; on recommence en B ;
-le sommet est là où les deux traits se coupent. Deux longueurs et l'angle entre
+on le pose en A, on **marque la graduation d'un petit trait au crayon** — à
+cheval sur le bord de l'instrument, dans le prolongement du centre — et l'on
+tire le trait jusque-là ; on recommence en B ; le sommet est là où les deux
+traits se coupent. La mesure lue ne laissait aucune trace : un point invisible
+au bord du rapporteur, et la demi-droite semblait sortir de nulle part. Le même
+trait se pose **à la main** : rapporteur bloqué sur le sommet, on appuie contre
+le bord à la mesure voulue. Deux longueurs et l'angle entre
 elles : **rapporteur puis report de longueur au compas**. Et deux longueurs
 avec l'angle qui fait face à l'une d'elles : on trace `[EF]`, on ouvre l'angle en
 E, on plante le compas **sur F** avec la longueur donnée, et G est là où l'arc
@@ -195,10 +200,16 @@ décision s'appelle **Avec les outils** : décochée, elle donne la figure et ri
 d'autre. Ces constructions-là comptent maintenant **cinq
 transformations** dans leur propre bande — symétrie axiale, symétrie centrale,
 translation, rotation, homothétie — au lieu des deux symétries perdues au bout
-de la rangée des médiatrices. La translation prend les points puis le segment
-qui donne le vecteur ; la rotation et l'homothétie demandent leur nombre — angle
-et sens, ou rapport — puis prennent le centre au premier clic et transforment
-ensuite chaque point, ou un polygone entier d'un coup. Elle ne retirait jusqu'ici que les instruments, et laissait les arcs de
+de la rangée des médiatrices.
+
+Et les cinq se font **du même geste, en deux temps** : on sélectionne ce qu'on
+transforme — autant de points qu'on veut, ou une figure entière d'un seul clic
+dessus, un point repris étant retiré — on **valide**, puis on désigne l'axe, le
+centre ou le vecteur. Une barre le dit et compte ce qui est pris. Chacune avait
+sa propre grammaire de clics, et aucune ne la disait : rien ne pouvait signaler
+la fin de la sélection, donc on ne pouvait transformer qu'**un** point. La
+rotation et l'homothétie demandent leur nombre — angle et sens, ou rapport —
+avant de toucher à la feuille. Elle ne retirait jusqu'ici que les instruments, et laissait les arcs de
 compas et les traits de construction — un rectangle entouré de la construction
 qu'on venait justement de ne pas vouloir, qui n'était ni la construction ni la
 figure.
@@ -353,10 +364,11 @@ figure. Le papier est un réglage de travail — il aide à construire, il
 n'appartient pas au dessin ; on le met en blanc le temps de la prise de vue, et
 on le remet.
 
-Elle n'est pas vide au premier lancement : neuf **constructions d'exemple** y
+Elle n'est pas vide au premier lancement : seize **constructions d'exemple** y
 attendent — médiatrice, bissectrice, triangle équilatéral, carré, losange,
-hexagone, symétrique d'un point, cercle circonscrit, et une séance de quatre
-pages. Chacune est la sortie exacte du bâtisseur du logiciel, instruments et
+hexagone, cercle circonscrit ; le triangle au rapporteur et celui à deux côtés
+et l'angle entre eux ; les quatre transformations, symétrie centrale, symétrie
+axiale, translation, rotation et homothétie ; et deux séances de quatre pages. Chacune est la sortie exacte du bâtisseur du logiciel, instruments et
 consignes comprises : on l'ouvre, on appuie sur ▶ ou sur *Page suivante*, et la
 construction se refait sous les yeux de la classe.
 
