@@ -1494,6 +1494,20 @@
         #donateModal .modal-box { width: 420px; max-width: 95%; }
         #donateModal .modal-buttons { flex-wrap: wrap; }
 
+        /* Le chiffre : celui de la personne qui lit, et rien d'autre. Un trait
+           bleu à gauche, comme une citation — c'est un fait qu'on lui rapporte. */
+        #donChiffre {
+            margin: 12px 0 0;
+            padding: 8px 12px;
+            border-left: 3px solid #2980b9;
+            background: #f2f8fc;
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: #444;
+            text-align: left;
+        }
+        #donChiffre b { color: #2980b9; }
+
         /* La porte de sortie honorable : on n'a pas les moyens, on a un collègue.
            Elle est en retrait — un cadre gris clair, sous la ligne des boutons —
            parce qu'elle ne doit pas concurrencer le don, seulement exister. */
@@ -10045,6 +10059,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     à faire tourner, tout se passe dans votre navigateur.<br>
                     <b>Ce que vous soutenez, c'est le temps passé à l'écrire.</b>
                 </p>
+                <!-- LE CHIFFRE. Pas une somme inventée, pas une jauge de collecte :
+                     le SIEN. Combien de fois ce logiciel lui a servi, combien de
+                     séances il lui garde. C'est vrai, c'est vérifiable sur sa
+                     propre machine, et ça répond tout seul à la question qu'il se
+                     pose — « est-ce que je m'en sers vraiment ? ». Rien n'en sort. -->
+                <p id="donChiffre"></p>
+                <!-- ▼ FACULTATIF, À VOUS : un montant suggéré (« le prix d'un
+                     café », trois boutons 3 / 5 / 10 €) fait donner davantage.
+                     C'est VOTRE prix, il ne peut pas être décidé ici. ▲ -->
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-cancel" onclick="app.donPlusTard()">Plus tard</button>
@@ -15179,11 +15202,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 try { if (window.self !== window.top) return true; } catch (e) { return true; }
                 return false;
             }
+            /* AU TABLEAU, ON NE DEMANDE RIEN. Le mode projection et le plein écran
+               veulent dire une chose : la figure est devant une classe. Demander
+               de l'argent à ce moment-là, sur trois mètres de mur et devant trente
+               élèves, serait la pire idée du logiciel. Le compteur, lui, continue
+               de tourner : la séance a bien eu lieu. */
+            donDevantLaClasse() {
+                if ((this.facteurProjection || 1) > 1) return true;
+                return !!(document.fullscreenElement || document.webkitFullscreenElement);
+            }
             /* Demander une fois, APRÈS que le logiciel a rendu service : jamais au
                démarrage, jamais les premières fois, jamais deux fois dans la même
                séance. Dix ouvertures, c'est un professeur qui s'en sert vraiment. */
             donPeutDemander() {
-                if (this.donHorsJeu() || this.donDemandeFaite) return false;
+                if (this.donHorsJeu() || this.donDevantLaClasse() || this.donDemandeFaite) return false;
                 const e = this.donLire();
                 if (e.etat) return false;
                 return e.ouvertures >= 10 && e.ouvertures >= e.prochain;
@@ -15220,6 +15252,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (typeof closeDonateModal === 'function') closeDonateModal();
                 if (!versPayPal) this.showToast('Merci — cette fenêtre ne reviendra plus.');
                 return true;
+            }
+            /* LE CHIFFRE, ET IL EST VRAI. Une somme suggérée serait un choix
+               d'auteur ; une jauge de collecte serait invérifiable. Le seul chiffre
+               que ce logiciel puisse donner honnêtement est celui de la personne
+               qui le lit : ce qu'il lui a servi. Il ne sort pas de la machine, et
+               il ne s'affiche pas tant qu'il ne dit rien — deux ouvertures ne
+               plaident pas. */
+            majChiffreDon() {
+                const p = document.getElementById('donChiffre');
+                if (!p) return;
+                const e = this.donLire();
+                const seances = this.lireBiblio().length;
+                if (e.ouvertures < 5) { p.textContent = ''; p.style.display = 'none'; return; }
+                const bouts = [`vous avez ouvert GéoMaster <b>${e.ouvertures} fois</b>`];
+                if (seances > 0) bouts.push(`il vous garde <b>${seances} séance${seances > 1 ? 's' : ''}</b>`);
+                p.style.display = '';
+                p.innerHTML = 'Sur cette machine, ' + bouts.join(' et ') + '.';
             }
             /* La porte de sortie honorable : pour ce public, un collègue vaut un
                don. Le bouton dit lui-même que c'est fait — un toast se perdrait
@@ -33777,6 +33826,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
         }
         function openDonateModal() {
+            if (window.app && window.app.majChiffreDon) window.app.majChiffreDon();
             document.getElementById('donateModal').style.display = 'flex';
             if (window.app) window.app.lockInterface(true);
         }

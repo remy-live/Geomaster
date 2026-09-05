@@ -173,6 +173,52 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('  et c\'est bien l\'adresse du logiciel',
      /index\.html$/.test(copie.presse) && !/\?/.test(copie.presse), JSON.stringify(copie.presse));
 
+  console.log('\n=== le chiffre est vrai, et c\'est le sien ===');
+  /* Une somme suggérée serait un choix d'auteur, une jauge de collecte serait
+     invérifiable. Le seul chiffre honnête est celui de la personne qui lit :
+     ce que le logiciel lui a servi, lisible sur sa propre machine. */
+  await p.evaluate(() => { localStorage.setItem('gm_ouvertures', '47');
+    localStorage.setItem('gm_biblio', JSON.stringify(
+      [1, 2, 3].map(i => ({ n: 'Séance ' + i, c: 'x', v: '', d: Date.now(), p: 1 })))); });
+  await ouvrir();
+  await p.evaluate(() => openDonateModal());
+  await p.waitForTimeout(200);
+  const chiffre = await p.evaluate(() => {
+    const e = document.getElementById('donChiffre');
+    return { texte: e.innerText.replace(/\s+/g, ' ').trim(),
+             visible: getComputedStyle(e).display !== 'none' };
+  });
+  ck('elle dit combien de fois le logiciel a servi, et ce qu\'il garde',
+     chiffre.visible && /48 fois/.test(chiffre.texte) && /3 séances/.test(chiffre.texte),
+     JSON.stringify(chiffre.texte));
+  await p.evaluate(() => closeDonateModal());
+  /* Mais deux ouvertures ne plaident pas : le chiffre se tait. */
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('gm_ouvertures', '2'); });
+  await p.evaluate(() => openDonateModal());
+  await p.waitForTimeout(200);
+  const muet = await p.evaluate(() => ({
+    texte: document.getElementById('donChiffre').innerText.trim(),
+    visible: getComputedStyle(document.getElementById('donChiffre')).display !== 'none' }));
+  ck('  et se tait quand il ne dirait rien', !muet.visible && muet.texte === '', JSON.stringify(muet));
+  await p.evaluate(() => closeDonateModal());
+
+  console.log('\n=== jamais devant une classe ===');
+  /* Le mode projection et le plein écran veulent dire une chose : la figure est
+     sur trois mètres de mur, devant trente élèves. C'est le pire moment
+     possible. La séance a bien eu lieu, elle — le compteur, lui, continue. */
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('gm_ouvertures', '30'); });
+  await ouvrir();
+  const avantProjection = (await memoire()).ouvertures;
+  await p.evaluate(() => window.app.basculerProjection(true));
+  await momentDeValeur();
+  ck('au tableau, on ne demande rien', !(await fenetreOuverte()));
+  ck('  mais la séance est comptée quand même',
+     avantProjection === 31, String(avantProjection));
+  await p.evaluate(() => window.app.basculerProjection(false));
+  await momentDeValeur();
+  ck('le projecteur éteint, la question redevient possible', await fenetreOuverte());
+  await p.evaluate(() => closeDonateModal());
+
   console.log('\n=== l\'élève n\'a rien à financer ===');
   {
     const c2 = await b.newContext({ viewport: { width: 900, height: 700 },
