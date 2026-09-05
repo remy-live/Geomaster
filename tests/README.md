@@ -39,6 +39,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-premiere-minute.js` | une feuille vide invite (la phrase, en clair) au lieu de commander (la télécommande de rejeu) ; la phrase trace ET se range dans les consignes ; elle ne mange pas le premier clic ; le vocabulaire est celui d'un professeur |
 | `probe-telephone.js` | au téléphone, tout outil et toute commande sont à **un appui** : la grille les porte tous, nommés et tapables, et le bouton qui l'ouvre ne paraît que là où une bande cache vraiment quelque chose |
 | `probe-modales.js` | les treize fenêtres suivent le même patron — aucune ne fixe sa largeur ni la couleur de son titre dans un style en ligne, chacune garde la largeur qu'elle avait, et aucune ne déborde jusqu'à 320 px |
+| `probe-don.js` | on ne demande qu'après avoir servi (dix ouvertures) et qu'à un moment de valeur, jamais deux fois dans la même séance ni par-dessus une autre fenêtre ; « plus tard » recule de vingt ouvertures puis vaut non ; **« j'ai déjà donné » est cru sur parole, sans preuve, pour de bon** ; l'élève ne compte rien |
 | `probe-biblio-menus.js` | la bibliothèque se présente de trois façons, s'en souvient et compte seize constructions ; l'aperçu est sur fond blanc, quadrillage remis après ; le menu Fichier range ses icônes en quatre bandes sans un mot ni un pixel de plus par icône ; la barre des transformations sélectionne, compte, valide et désigne ; le petit trait de la graduation enjambe le bord du rapporteur |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi

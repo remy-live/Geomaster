@@ -75,7 +75,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      valoir exactement ce qu'elles valaient, sinon le rangement a coûté un
      changement invisible à la relecture mais bien réel à l'écran. */
   const attendu = { helpModal: 850, pagesModal: 720, recordPreviewModal: 700, biblioModal: 640,
-                    pdfSelectorModal: 500, codeModal: 460, qrModal: 420 };
+                    pdfSelectorModal: 500, codeModal: 460, qrModal: 420, donateModal: 420 };
   const mesure = await page.evaluate((att) => {
     const out = {};
     for (const id of Object.keys(att)) {

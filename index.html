@@ -1488,6 +1488,42 @@
 
         #ficheModal .modal-titre { margin-bottom: 8px; }
 
+        /* LA FENÊTRE DU DON. Trois boutons au lieu de deux : sur un téléphone de
+           390 px ils ne tiennent plus sur une ligne, alors ils passent à la
+           suivante au lieu de sortir de la boîte. */
+        #donateModal .modal-box { width: 420px; max-width: 95%; }
+        #donateModal .modal-buttons { flex-wrap: wrap; }
+
+        /* La porte de sortie honorable : on n'a pas les moyens, on a un collègue.
+           Elle est en retrait — un cadre gris clair, sous la ligne des boutons —
+           parce qu'elle ne doit pas concurrencer le don, seulement exister. */
+        #donPartage {
+            margin-top: 14px;
+            padding: 10px 12px;
+            background: #f7f7f7;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+        #donPartage button {
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #2980b9;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 6px 12px;
+            min-height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        #donPartage button:hover { background: #eaf4fb; }
+
         .modal-btn {
             padding: 8px 16px;
             border-radius: 8px;
@@ -9990,24 +10026,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="modal-box">
             <div class="modal-text" style="margin-bottom: 15px;">
                 <h3 class="modal-titre rouge">Vous aimez GéoMaster ?</h3>
+                <!-- ▼▼▼ À REMPLACER PAR VOS MOTS ▼▼▼
+                     Un professeur ne donne pas à un projet, il donne à QUELQU'UN.
+                     Une phrase à la première personne — qui vous êtes, pourquoi vous
+                     l'avez écrit — vaut plus que toute la mise en page. Je ne peux
+                     pas l'inventer à votre place : elle doit être vraie.
+                     ▲▲▲ -->
+                <p id="donAuteur" style="font-size:14px; color:#555; line-height:1.5;">
+                    J'ai écrit GéoMaster pour mes classes, et je le partage tel quel.
+                </p>
+                <!-- CE QUE L'ON FINANCE, DIT EXACTEMENT. « Soutenir ma démarche » ne
+                     se chiffre pas ; et ce logiciel a un argument que presque aucun
+                     autre n'a — il ne coûte RIEN à faire tourner. L'appel honnête
+                     n'est donc pas « aidez-moi à payer l'hébergement », c'est « ce
+                     que vous soutenez, c'est le temps passé à l'écrire ». -->
                 <p style="font-size:14px; color:#555; line-height:1.5;">
-                    Cet outil est développé bénévolement pour aider professeurs et élèves.<br>
-                    Il n'y a pas de pub, pas d'inscription. Juste des maths !<br>
-                    Si vous souhaitez soutenir ma démarche et l'évolution du projet, vous pouvez faire un don libre
-                    ci-dessous.
+                    Il n'y a ni publicité, ni inscription, ni compte : GéoMaster ne coûte rien
+                    à faire tourner, tout se passe dans votre navigateur.<br>
+                    <b>Ce que vous soutenez, c'est le temps passé à l'écrire.</b>
                 </p>
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-cancel" onclick="closeDonateModal()">Plus tard</button>
+                <button class="modal-btn modal-cancel" onclick="app.donPlusTard()">Plus tard</button>
+                <!-- ON NE PEUT PAS SAVOIR QUI A DONNÉ — et c'est voulu : pas de
+                     serveur, pas de compte, et PayPal ne dit rien au logiciel. La
+                     seule réponse honnête est donc de CROIRE LA PERSONNE SUR PAROLE.
+                     Qui ment pour éviter une fenêtre n'aurait de toute façon pas
+                     donné ; qui a donné mérite d'être cru tout de suite. -->
+                <button class="modal-btn modal-cancel" onclick="app.donDejaFait()">J'ai déjà donné</button>
                 <a href="https://www.paypal.com/donate/?hosted_button_id=VKZXDC5BM2GHA" target="_blank"
                     class="modal-btn modal-confirm danger"
                     style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;"
-                    onclick="closeDonateModal()">
+                    onclick="app.donDejaFait(true)">
                     Faire un don
                 </a>
             </div>
             <div style="margin-top:10px; font-size:10px; color:#999;">
-                🔒 Paiement sécurisé via PayPal
+                🔒 Paiement sécurisé via PayPal · « J'ai déjà donné » ferme la fenêtre pour de bon
+            </div>
+            <!-- LA PORTE DE SORTIE HONORABLE. Pour ce public, le don le plus
+                 précieux n'est pas de l'argent : c'est un collègue. Elle ne coûte
+                 rien à celui qui la prend, et elle convertit mieux. -->
+            <div id="donPartage">
+                <span>Vous ne pouvez pas donner ? Parlez-en à un collègue — c'est aussi utile.</span>
+                <button type="button" onclick="app.copierLienGeomaster(this)">Copier le lien</button>
             </div>
             <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
             <p style="font-size:13px; color:#777;">
@@ -15076,6 +15138,106 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             /* ============================================================
+               LE DON : demander une fois, au bon moment, et savoir se taire.
+
+               Le logiciel NE PEUT PAS SAVOIR qui a donné, et c'est voulu : pas de
+               serveur, pas de compte, et PayPal ne lui dit rien. La seule réponse
+               honnête à « j'ai déjà donné, je ne veux plus voir cette fenêtre »
+               est donc de croire la personne sur parole. Qui mentirait pour éviter
+               une fenêtre n'allait de toute façon pas donner ; qui a donné mérite
+               d'être cru tout de suite, sans preuve à fournir.
+
+               Trois nombres dans le navigateur, rien d'autre, et rien qui sorte de
+               la machine :
+                 gm_ouvertures  — combien de fois le logiciel a servi ;
+                 gm_don_etat    — '' | 'fait' (jamais plus) | 'refuse' (jamais plus) ;
+                 gm_don_prochain— l'ouverture à partir de laquelle on peut redemander.
+               ============================================================ */
+            donLire() {
+                const n = (k) => { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; }
+                    catch (e) { void e; return 0; } };
+                let etat = '';
+                try { etat = localStorage.getItem('gm_don_etat') || ''; } catch (e) { void e; }
+                return { ouvertures: n('gm_ouvertures'), prochain: n('gm_don_prochain'),
+                    reports: n('gm_don_reports'), etat };
+            }
+            donEcrire(cle, valeur) {
+                try { localStorage.setItem(cle, String(valeur)); } catch (e) { void e; }
+            }
+            /* Une ouverture = une fois où le logiciel a servi. On ne compte pas
+               l'interface élève ni l'aperçu dans son cadre : ce n'est pas le même
+               public, et l'élève n'a rien à financer. */
+            compterOuverture() {
+                if (this.donHorsJeu()) return;
+                const e = this.donLire();
+                this.donEcrire('gm_ouvertures', e.ouvertures + 1);
+            }
+            /* Les écrans où la question ne se pose pas : l'élève, et l'aperçu que
+               le professeur regarde dans un cadre à l'intérieur du logiciel. */
+            donHorsJeu() {
+                if (document.body.classList.contains('mode-lecture')) return true;
+                try { if (window.self !== window.top) return true; } catch (e) { return true; }
+                return false;
+            }
+            /* Demander une fois, APRÈS que le logiciel a rendu service : jamais au
+               démarrage, jamais les premières fois, jamais deux fois dans la même
+               séance. Dix ouvertures, c'est un professeur qui s'en sert vraiment. */
+            donPeutDemander() {
+                if (this.donHorsJeu() || this.donDemandeFaite) return false;
+                const e = this.donLire();
+                if (e.etat) return false;
+                return e.ouvertures >= 10 && e.ouvertures >= e.prochain;
+            }
+            /* Appelée aux moments de valeur — un export parti, un lien copié, une
+               séance rangée. Le geste vient d'aboutir : c'est là, et seulement là,
+               que la question a un sens. Le petit délai laisse voir le résultat. */
+            proposerDon() {
+                if (!this.donPeutDemander()) return;
+                this.donDemandeFaite = true;
+                setTimeout(() => {
+                    /* Rien ne doit s'ouvrir par-dessus une autre fenêtre. */
+                    const occupe = Array.from(document.querySelectorAll('.modal-overlay'))
+                        .some(m => getComputedStyle(m).display !== 'none');
+                    if (occupe) return;
+                    if (typeof openDonateModal === 'function') openDonateModal();
+                }, 1200);
+            }
+            /* « Plus tard » une fois : on repart pour vingt ouvertures. Une deuxième
+               fois, la réponse est claire — on ne redemande plus jamais. */
+            donPlusTard() {
+                const e = this.donLire();
+                const reports = e.reports + 1;
+                this.donEcrire('gm_don_reports', reports);
+                if (reports >= 2) this.donEcrire('gm_don_etat', 'refuse');
+                else this.donEcrire('gm_don_prochain', e.ouvertures + 20);
+                if (typeof closeDonateModal === 'function') closeDonateModal();
+            }
+            /* Sur parole. « Faire un don » passe par ici aussi : le lien PayPal
+               s'ouvre dans un autre onglet, et on n'ira pas redemander à quelqu'un
+               qu'on vient d'envoyer payer. */
+            donDejaFait(versPayPal) {
+                this.donEcrire('gm_don_etat', 'fait');
+                if (typeof closeDonateModal === 'function') closeDonateModal();
+                if (!versPayPal) this.showToast('Merci — cette fenêtre ne reviendra plus.');
+                return true;
+            }
+            /* La porte de sortie honorable : pour ce public, un collègue vaut un
+               don. Le bouton dit lui-même que c'est fait — un toast se perdrait
+               derrière la fenêtre ouverte. */
+            copierLienGeomaster(bouton) {
+                const url = window.location.origin + window.location.pathname;
+                const dire = (ok) => {
+                    if (!bouton) { this.showToast(ok ? '🔗 Lien copié !' : '⚠️ Copie impossible'); return; }
+                    const memo = bouton.textContent;
+                    bouton.textContent = ok ? '✓ Lien copié' : '⚠️ Copie impossible';
+                    setTimeout(() => { bouton.textContent = memo; }, 2500);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(() => dire(true), () => dire(false));
+                } else dire(false);
+            }
+
+            /* ============================================================
                LA CONSIGNE ÉCLAIR : une phrase, tout de suite.
 
                La phrase part quand même se ranger dans la liste des consignes.
@@ -17889,6 +18051,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (format === 'svg') this.exportSVG(includeTools, numbersMode, police);
                 else if (format === 'pdf') this.exportPDF(includeTools, numbersMode);
                 else this.exportImage(format, includeTools, numbersMode);
+                /* Un fichier vient de partir vers une photocopieuse : le logiciel
+                   a servi, pour de bon. C'est un des trois moments où l'on ose
+                   poser la question — et jamais au démarrage. */
+                this.proposerDon();
             }
             toggleHitZones() {
                 if (this.isFlashingZones) {
@@ -27686,6 +27852,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         : "🔗 Lien copié ! (" + code.length + " chars)");
                 });
                 window.history.pushState({}, "", "?fig=" + code);
+                this.proposerDon();
             }
 
             /* Lien de partage de la vue courante. Un seul endroit qui le fabrique,
@@ -32302,6 +32469,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.ecrireBiblio(liste)) {
                         this.showToast(`📚 « ${nom} » ${dejaLa >= 0 ? 'mis à jour' : 'ajouté'} à la bibliothèque`);
                         this.majBiblio();
+                        this.proposerDon();
                     }
                 };
                 if (dejaLa >= 0) this.showModal(`« ${nom} » existe déjà dans la bibliothèque. La remplacer ?`, poser);
@@ -33866,6 +34034,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (figData) setTimeout(() => app.chargerDocument(figData), 100);
         }
         app.majBarrePages();
+        /* Une ouverture de plus. Ici et pas plus haut : « mode=lecture » vient
+           d'être posé sur le corps du document, et l'interface élève ne compte
+           pas — la question du don ne s'y pose jamais. */
+        app.compterOuverture();
 
         function noteApercu(html) {
             const n = document.getElementById('previewNote');

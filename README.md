@@ -575,6 +575,41 @@ cercles circonscrits, constructions remarquables (rosace, étoile à six branche
 graine de vie, yin-yang, Pythagoras), codage automatique des longueurs égales et
 des angles droits, mesures affichées, mode enregistrement d'écran.
 
+### Soutenir le projet
+
+Le cœur de la barre du haut ouvre la fenêtre de don, à tout moment. Elle se
+propose aussi d'elle-même, mais avec trois garde-fous mesurés par
+`tests/probe-don.js` :
+
+- **jamais avant dix ouvertures** — le logiciel demande après avoir servi, pas
+  avant ;
+- **jamais au démarrage** : seulement à un *moment de valeur*, quand un geste
+  vient d'aboutir — un export parti, un lien d'élève copié, une séance rangée
+  dans la bibliothèque ;
+- **jamais deux fois dans la même séance**, ni par-dessus une autre fenêtre.
+
+« Plus tard » repousse la question de vingt ouvertures ; dit deux fois, c'est un
+non, et on ne redemande plus jamais.
+
+**« J'ai déjà donné » est cru sur parole.** Le logiciel ne *peut pas* savoir qui
+a donné : pas de serveur, pas de compte, et PayPal ne lui dit rien. Demander une
+preuve serait mentir sur ce qu'il sait faire. Le bouton ferme donc la fenêtre
+pour de bon, sans rien vérifier — et la fenêtre le dit en toutes lettres. Partir
+vers PayPal vaut la même chose : on ne redemande pas à quelqu'un qu'on vient
+d'envoyer payer.
+
+Pour qui ne peut pas donner, la fenêtre propose l'autre don : **en parler à un
+collègue**, avec un bouton qui copie l'adresse.
+
+Trois nombres dans le navigateur, et rien qui sorte de la machine :
+`gm_ouvertures`, `gm_don_etat` (`''`, `fait` ou `refuse`), `gm_don_prochain`.
+L'interface élève, elle, ne compte rien et ne demande rien.
+
+> **À remplir.** Le paragraphe `#donAuteur` de la fenêtre est un texte
+> d'attente : un professeur ne donne pas à un projet, il donne à quelqu'un. Une
+> phrase à la première personne — qui vous êtes, pourquoi vous l'avez écrit —
+> vaut plus que toute la mise en page, et elle doit être vraie.
+
 ---
 
 ## Sur tablette et téléphone
