@@ -214,6 +214,14 @@ compas et les traits de construction — un rectangle entouré de la constructio
 qu'on venait justement de ne pas vouloir, qui n'était ni la construction ni la
 figure.
 
+**L'écartement du compas se lit pendant le rejeu.** Il ne s'affichait qu'en
+tirant la pastille à la main : la construction jouée devant la classe montrait
+le compas s'ouvrir *sans dire de combien*, alors que c'est justement la mesure
+qu'on est en train de prendre. La même étiquette — « 4 cm », le rayon en
+pointillés — apparaît maintenant pendant l'animation et à chaque étape d'un
+rejeu ; elle disparaît dès qu'on revient au travail libre, et ne part pas à
+l'export.
+
 **Aux instruments, un centre ne se calcule pas non plus : il se trouve.** Le
 centre de gravité naît du croisement des trois médianes, l'orthocentre de celui
 des hauteurs, le centre du cercle circonscrit des médiatrices, celui du cercle

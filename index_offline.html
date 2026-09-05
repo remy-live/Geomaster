@@ -13933,9 +13933,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.beginPath(); ctx.moveTo(-3.5, -3.5); ctx.lineTo(-7, 0); ctx.lineTo(-3.5, 3.5); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(3.5, -3.5); ctx.lineTo(7, 0); ctx.lineTo(3.5, 3.5); ctx.stroke();
                     ctx.restore(); ctx.restore();
-                    if (typeof app !== 'undefined' && app.draggedWidgetMode === 'resize' && app.draggedWidget === this) {
+                    /* L'ÉCARTEMENT SE LIT AUSSI PENDANT LE REJEU. On ne l'affichait
+                       qu'en tirant la pastille à la main : la construction jouée
+                       devant la classe montrait donc le compas s'ouvrir SANS DIRE
+                       DE COMBIEN, alors que c'est précisément la mesure qu'on est
+                       en train de prendre. Même étiquette, mêmes centimètres. */
+                    /* « Pendant un rejeu » et non « après » : à la fin, l'index vaut
+                       le nombre d'objets et l'on est revenu au travail libre — le
+                       compas repris à la main ne doit pas traîner son étiquette. */
+                    const enRejeu = typeof app !== 'undefined' && app
+                        && (app.isToolAnimating || app.isPlaying
+                            || (app.replayIndex !== null && app.replayIndex !== undefined
+                                && app.replayIndex < (app.entities ? app.entities.length : 0)));
+                    const aLaMain = typeof app !== 'undefined' && app
+                        && app.draggedWidgetMode === 'resize' && app.draggedWidget === this;
+                    if (aLaMain || enRejeu) {
                         ctx.save(); ctx.beginPath(); ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.moveTo(0, 0); ctx.lineTo(this.radius, 0); ctx.stroke();
-                        ctx.translate(this.radius / 2, -40); ctx.rotate(-this.angle); const val = Math.round(this.radius / 5) / 10; const text = val + " cm"; ctx.font = "bold 13px Segoe UI, sans-serif";
+                        ctx.translate(this.radius / 2, -40); ctx.rotate(-this.angle);
+                        const text = (typeof app !== 'undefined' && app && app.texteEcartement)
+                            ? app.texteEcartement(this.radius)
+                            : (Math.round(this.radius / 5) / 10) + " cm";
+                        ctx.font = "bold 13px Segoe UI, sans-serif";
                         const w = ctx.measureText(text).width + 12; ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; ctx.shadowColor = "rgba(0,0,0,0.2)"; ctx.shadowBlur = 4;
                         ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-w / 2, -12, w, 24, 4); else ctx.fillRect(-w / 2, -12, w, 24); ctx.fill();
                         ctx.shadowBlur = 0; ctx.fillStyle = "#2c3e50"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(text, 0, 1); ctx.restore();
@@ -20828,6 +20846,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                crayon reste, aligné sur le centre. C'est le geste de la classe — on
                marque, on enlève le rapporteur, on rejoint à la règle — et il
                manquait : le bord de l'instrument bloqué ne répondait à rien. */
+            /* L'ÉCARTEMENT DU COMPAS, DANS L'UNITÉ DE LA FEUILLE. L'étiquette
+               divisait par 5 en dur — bon pour des centimètres à l'échelle 1, faux
+               dès que la feuille est à une autre échelle. C'est la même mesure
+               qu'une longueur de segment : elle se lit de la même façon. */
+            texteEcartement(rayon) {
+                const echelle = this.cmScale || 1;
+                const cm = (rayon / UNIT) * echelle;
+                return (Math.round(cm * 10) / 10).toFixed(1).replace(/\.0$/, '') + ' cm';
+            }
             marquerGraduation(w, mx, my) {
                 const ang = Math.atan2(my - w.y, mx - w.x);
                 const t = this.traitDeGraduation(w, ang, w.radius);

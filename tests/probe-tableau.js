@@ -174,6 +174,53 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('et le mode normal n\'a pas bougé d\'un pixel',
      retour.lettre === av.lettre && retour.blanc === av.blanc, JSON.stringify(retour));
 
+  console.log('\n=== l\'écartement du compas se lit pendant le rejeu ===');
+  /* On ne l'affichait qu'en tirant la pastille à la main : la construction
+     jouée devant la classe montrait le compas s'ouvrir SANS DIRE DE COMBIEN,
+     alors que c'est justement la mesure qu'on est en train de prendre. On
+     espionne fillText : c'est le seul moyen sûr de dire si l'étiquette est
+     peinte, plutôt que de compter des pixels sur le corps de l'instrument. */
+  await page.evaluate(() => {
+    const proto = CanvasRenderingContext2D.prototype;
+    const vrai = proto.fillText;
+    window.__cm = [];
+    proto.fillText = function (t, ...r) { window.__cm.push(String(t)); return vrai.call(this, t, ...r); };
+  });
+  const mesures = () => page.evaluate(() => {
+    window.__cm = []; window.app.render();
+    return window.__cm.filter(t => /\d\s*cm$/.test(t));
+  });
+  await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; app.stepInstructions = {};
+    if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', true);
+    app.isPlaying = false; app.isLooping = false;
+    // on se pose juste après l'animation qui OUVRE le compas
+    const i = app.entities.findIndex(e => e.constructor.name === 'ToolAnimation'
+      && e.widgetType === 'compass' && e.startState && e.endState
+      && Math.abs((e.endState.radius || 0) - (e.startState.radius || 0)) > 20);
+    app.replayIndex = i + 1; app.fastForward(i + 1);
+  });
+  const pendant = await mesures();
+  ck('pendant le rejeu, l\'écartement est écrit', pendant.length === 1 && /^4\s*cm$/.test(pendant[0]),
+     JSON.stringify(pendant));
+  /* Et il ne traîne pas après : le rejeu fini, le compas repris à la main est
+     un instrument libre, comme avant. */
+  await page.evaluate(() => {
+    const app = window.app;
+    app.replayIndex = app.entities.length; app.fastForward(app.entities.length);
+    app.activeWidgets.compass = true;
+    app.compassWidget.x = 600; app.compassWidget.y = 500;
+    app.compassWidget.angle = 0; app.compassWidget.radius = 200;
+  });
+  ck('le rejeu fini, le compas à la main n\'écrit rien', (await mesures()).length === 0);
+  await page.evaluate(() => { window.app.replayIndex = null; });
+  ck('hors de tout rejeu non plus', (await mesures()).length === 0);
+  await page.evaluate(() => { window.app.isExporting = true; window.app.replayIndex = 3; });
+  ck('et l\'étiquette ne part pas à l\'export', (await mesures()).length === 0);
+  await page.evaluate(() => { window.app.isExporting = false; });
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
