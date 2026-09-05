@@ -2766,6 +2766,105 @@
         }
 
         /* ================================================================
+           LA PREMIÈRE MINUTE
+
+           Rien, sur une feuille vide, ne disait ce que ce logiciel sait faire de
+           mieux : écrire une phrase et voir la figure se construire aux
+           instruments. Le panneau des consignes était fermé, derrière une icône
+           sans étiquette. On ouvrait donc GéoMaster sur vingt-deux icônes muettes
+           et une télécommande de rejeu — et l'on n'avait aucune raison de deviner.
+
+           La phrase est là, écrite en clair et modifiable. Elle s'efface au
+           premier objet posé : elle ne coûte donc rien à qui sait déjà.
+           ================================================================ */
+        #premiereLigne {
+            position: absolute;
+            top: 38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 7px;
+            width: min(560px, calc(100% - 32px));
+            box-sizing: border-box;
+            /* Le bloc ne prend pas les clics — seuls le champ et le bouton en
+               prennent. Sans cela, l'invitation posée au milieu d'une feuille vide
+               MANGERAIT le premier clic de qui veut dessiner à la main, c'est-à-dire
+               exactement le geste qu'elle est censée ne pas gêner. */
+            pointer-events: none;
+        }
+
+        .pl-saisie,
+        #premiereLigneGo { pointer-events: auto; }
+
+        #premiereLigne label {
+            font: 600 13px 'Segoe UI', sans-serif;
+            color: #78909c;
+            letter-spacing: .2px;
+        }
+
+        .pl-saisie {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            padding: 5px 5px 5px 6px;
+            box-sizing: border-box;
+            background: #fff;
+            border: 1px solid #dbe2e7;
+            border-radius: 12px;
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .10);
+        }
+
+        #premiereLigneChamp {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 7px 6px;
+            font: 14px 'Segoe UI', sans-serif;
+            color: #37474f;
+        }
+
+        #premiereLigneGo {
+            flex: 0 0 auto;
+            min-height: 36px;
+            padding: 0 15px;
+            border: none;
+            border-radius: 9px;
+            background: #2980b9;
+            color: #fff;
+            font: 600 13.5px 'Segoe UI', sans-serif;
+            cursor: pointer;
+        }
+
+        #premiereLigneGo:hover { background: #236f9f; }
+
+        .pl-note {
+            font: 12px 'Segoe UI', sans-serif;
+            color: #b0bec5;
+        }
+
+        @media (pointer: coarse) {
+            #premiereLigneGo { min-height: 44px; }
+            #premiereLigneChamp { font-size: 16px; }   /* sous 16px, iOS zoome à la saisie */
+        }
+
+        /* La télécommande de rejeu attend qu'il y ait quelque chose à rejouer —
+           et le gros ▶ du lecteur tactile avec elle : c'est la même commande,
+           dans l'habit du téléphone. */
+        #replayBar.gm-rien-a-rejouer,
+        body.gm-rien-a-rejouer #gm-player-fab { display: none !important; }
+
+        /* Au doigt, la palette de style flotte en haut à droite de la feuille et
+           recouvrait le bouton « Tracer » de l'invitation — mesuré sur 390 px.
+           On descend l'invitation sous elle. */
+        @media (pointer: coarse) { #premiereLigne { top: 46%; } }
+
+        /* ================================================================
            TOUS LES OUTILS, EN UN APPUI
 
            Mesuré sur un téléphone de 390 px : la barre porte 1220 px d'outils
@@ -8922,6 +9021,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </div>
         </div>
         <div class="canvas-container">
+            <!-- LA PREMIÈRE MINUTE. Une feuille vide et vingt-deux icônes muettes
+                 ne disent pas ce que ce logiciel sait faire de mieux : écrire une
+                 phrase et voir la figure se construire aux instruments. Elle est
+                 écrite là, en clair, modifiable. On tape par-dessus, on valide, et
+                 la phrase part se ranger dans le panneau des consignes — qui
+                 s'ouvre : on a fait le geste ET appris où il vit.
+                 Elle disparaît dès qu'un objet existe, et ne paraît jamais dans un
+                 lien élève. -->
+            <div id="premiereLigne" style="display:none;">
+                <label for="premiereLigneChamp">Écrivez ce que vous voulez tracer</label>
+                <div class="pl-saisie">
+                    <input id="premiereLigneChamp" type="text" autocomplete="off" spellcheck="false"
+                        value="Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm"
+                        aria-label="Écrivez ce que vous voulez tracer">
+                    <button type="button" id="premiereLigneGo" onclick="app.lancerPremiereLigne()"
+                        aria-label="Tracer">Tracer</button>
+                </div>
+                <span class="pl-note">…ou prenez un outil à gauche.</span>
+            </div>
+
             <!-- LA BARRE DES TRANSFORMATIONS. Elle ne s'ouvre que pendant l'une des
                  cinq, et elle dit les deux temps du geste : ce qu'on transforme
                  (autant de points qu'on veut, ou une figure entière d'un clic),
@@ -9229,10 +9348,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <div class="drawer-content">
                         <div
                             style="font-size:12px; color:#555; display:flex; justify-content:space-between; align-items:center; width:100%;">
-                            <span>Début : <b id="lblLoopStart">0</b></span>
-                            <span style="color:#2980b9; font-weight:800; font-size:10px; letter-spacing:1px;">ZONE DE
-                                BOUCLE</span>
-                            <span>Fin : <b id="lblLoopEnd">MAX</b></span>
+                            <!-- « Zone de boucle », « Début : 0 / Fin : MAX » : la langue
+                                 d'un banc de montage vidéo, dans un logiciel de géométrie
+                                 pour professeurs. On dit ce que ça fait. -->
+                            <span>De l'étape <b id="lblLoopStart">0</b></span>
+                            <span style="color:#2980b9; font-weight:800; font-size:10px; letter-spacing:1px;">REJOUER
+                                EN BOUCLE</span>
+                            <span>à <b id="lblLoopEnd">la fin</b></span>
                         </div>
                         <div class="custom-slider-area" id="customSliderArea">
                             <div class="cs-track"></div>
@@ -9241,7 +9363,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 <div class="cs-tooltip" id="csTooltipStart">0</div>
                             </div>
                             <div class="cs-thumb" id="csThumbEnd">
-                                <div class="cs-tooltip" id="csTooltipEnd">MAX</div>
+                                <div class="cs-tooltip" id="csTooltipEnd">fin</div>
                             </div>
                         </div>
                     </div>
@@ -9271,7 +9393,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
                         </svg>
                     </button>
-                    <button class="replay-btn" id="btnCut" onclick="app.toggleTimelineDrawer()" data-tooltip="Définir la zone de boucle">
+                    <button class="replay-btn" id="btnCut" onclick="app.toggleTimelineDrawer()" data-tooltip="Choisir le passage à rejouer en boucle">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                             <circle cx="6" cy="6" r="3"></circle>
                             <circle cx="6" cy="18" r="3"></circle>
@@ -9286,7 +9408,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <input type="range" id="speedSlider" min="1" max="10" value="5" oninput="app.setSpeed(this.value)">
                 </div>
                 <div class="replay-control-group slider-container">
-                    <span class="slider-icon">Pause</span>
+                    <span class="slider-icon">Attente</span>
                     <input type="range" id="pauseSlider" min="0" max="3000" step="100" value="1000"
                         oninput="app.setLoopDelay(this.value)">
                 </div>
@@ -19094,11 +19216,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 fill.style.left = sPerc + '%';
                 fill.style.width = (ePerc - sPerc) + '%';
                 document.getElementById('csTooltipStart').innerText = sVal;
-                document.getElementById('csTooltipEnd').innerText = eVal;
+                // « MAX » sur la poignée disait la même chose que « la fin » sous elle
+                document.getElementById('csTooltipEnd').innerText = (eVal >= total) ? 'fin' : eVal;
                 const lblS = document.getElementById('lblLoopStart');
                 const lblE = document.getElementById('lblLoopEnd');
                 if (lblS) lblS.innerText = sVal;
-                if (lblE) lblE.innerText = eVal;
+                /* « à MAX » ne veut rien dire pour qui n'a jamais monté de vidéo ;
+                   « à la fin » dit exactement la même chose. */
+                if (lblE) lblE.innerText = (eVal >= total) ? 'la fin' : eVal;
             }
             updateSliderBounds() {
                 if (this.loopEndIndex === 0 || this.loopEndIndex >= this.entities.length) {
@@ -22530,6 +22655,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 this.currentTool = toolName;
                 this.resetInteraction();
+                // l'invitation de la feuille vide s'efface dès qu'on prend un outil
+                if (this.majFeuilleVide) this.majFeuilleVide();
                 const btnPan = document.getElementById('btnPan');
                 if (btnPan) {
                     if (toolName === 'pan') btnPan.classList.add('active');
@@ -24384,7 +24511,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             render(targetCtx = null) {
                 const grossi = (!targetCtx && !this.isExporting) ? this.ouvrirLoupeProjection() : false;
                 try { return this.dessinerTout(targetCtx); }
-                finally { if (grossi) this.fermerLoupeProjection(); }
+                finally {
+                    if (grossi) this.fermerLoupeProjection();
+                    if (!targetCtx && !this.isExporting) this.majFeuilleVide();
+                }
+            }
+            /* CE QUI N'A RIEN À FAIRE SUR UNE FEUILLE VIDE. Deux choses s'y
+               montraient : la télécommande de rejeu — ▶ ◀ ■ ↻ ✂, vitesse, attente —
+               qui est l'élément le plus intimidant de l'écran et qui ne peut rien
+               rejouer tant qu'il n'y a rien ; et rien du tout ne disait ce que le
+               logiciel sait faire de mieux. On échange les deux : la télécommande
+               attend qu'il y ait une construction, et la feuille vide porte la
+               phrase qui suffit à tout déclencher.
+
+               C'est la règle déjà appliquée à la barre des pages : une commande qui
+               ne peut rien faire ne se montre pas — elle ne se contente pas d'être
+               grisée, elle n'est pas là. */
+            majFeuilleVide() {
+                const vide = !this.entities || this.entities.length === 0;
+                const lecture = document.body.classList.contains('mode-lecture');
+                /* Prendre un outil, c'est avoir choisi de tracer à la main :
+                   l'invitation n'a plus rien à proposer et s'efface, même si la
+                   feuille est encore vide. */
+                const aLaMain = this.currentTool && this.currentTool !== 'move';
+                const barre = document.getElementById('replayBar');
+                if (barre) barre.classList.toggle('gm-rien-a-rejouer', vide);
+                document.body.classList.toggle('gm-rien-a-rejouer', vide);
+                const ligne = document.getElementById('premiereLigne');
+                if (ligne) {
+                    const montrer = vide && !lecture && !aLaMain;
+                    if (montrer !== (ligne.style.display !== 'none')) {
+                        ligne.style.display = montrer ? 'flex' : 'none';
+                    }
+                }
             }
             dessinerTout(targetCtx = null) {
                 const ctx = targetCtx || this.ctx;
@@ -31896,6 +32055,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 window.addEventListener('orientationchange', () => setTimeout(maj, 120));
                 maj();
             }
+            /* LA PREMIÈRE PHRASE. Elle ne se contente pas de tracer : elle va se
+               RANGER dans le panneau des consignes, qui s'ouvre. Sans cela on
+               aurait fait le geste une fois par magie, sans savoir où le refaire —
+               et c'est justement ce qu'on veut apprendre. */
+            lancerPremiereLigne() {
+                const champ = document.getElementById('premiereLigneChamp');
+                if (!champ) return;
+                const phrase = (champ.value || '').trim();
+                if (!phrase) { champ.focus(); return; }
+                const liste = this.consignesListe();
+                let i = liste.findIndex(c => !(c.texte || '').trim());
+                if (i < 0) { liste.push(this.consigneNeuve()); i = liste.length - 1; }
+                liste[i].texte = phrase;
+                liste[i].faite = false;
+                liste[i].etat = null;
+                const boite = document.getElementById('instructionBox');
+                if (boite && (boite.style.display === 'none' || boite.style.display === '')) {
+                    this.toggleInstructions();
+                }
+                this.majConsignes(i);
+                this.validerConsigne(i);
+                this.render();
+            }
             ouvrirTousLesOutils() {
                 this.ouvrirGrilleCommandes('.toolbar .tool-btn', 'Tous les outils');
             }
@@ -33251,6 +33433,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            dire si elles cachent quelque chose. On le leur demande maintenant, puis
            à chaque changement de taille ou d'orientation. */
         app.armerBandesDebordantes();
+        /* Entrée vaut « Tracer » : c'est la seule chose qu'on essaie dans un champ
+           qui porte déjà une phrase. */
+        (function () {
+            const champ = document.getElementById('premiereLigneChamp');
+            if (!champ) return;
+            champ.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); app.lancerPremiereLigne(); }
+            });
+            /* La phrase d'exemple s'efface au premier caractère tapé : elle est là
+               pour montrer la forme, pas pour être complétée à la main. */
+            champ.addEventListener('focus', function () { this.select(); }, { once: false });
+        })();
         /* Contenu d'origine du cadre de consigne. Il sert de repère : tant qu'on n'y
            a pas touché, il n'a rien à faire dans le lien de partage — mesuré, ce
            texte d'exemple coûtait 155 à 180 caractères sur CHAQUE lien, soit plus de

@@ -392,6 +392,27 @@ Ces décisions sont maintenant au même endroit, où une exception se voit au li
 de se répéter. Vérifié : les treize fenêtres sont **identiques au pixel** avant
 et après, largeur par largeur, et aucune ne déborde jusqu'à 320 px de large.
 
+**La première minute.** Le logiciel s'ouvrait sur son tableau de bord et non sur
+ce qu'il sait faire : une feuille vide, vingt-deux icônes muettes, et — le plus
+intimidant — une télécommande de rejeu, ▶ ◀ ■ ↻ ✂ *vitesse* *attente*, sur une
+feuille où il n'y avait rien à rejouer. Le seul texte à l'écran était « ZONE DE
+BOUCLE · Début : 0 · Fin : MAX ». Écrire une phrase et voir la figure se
+construire aux instruments — ce que ce logiciel fait de mieux — se cachait
+derrière une icône sans étiquette.
+
+Les deux ont changé de place. Une feuille vide porte maintenant **la phrase, en
+clair et modifiable** : on tape par-dessus, on valide, la figure naît — et la
+phrase **part se ranger dans le panneau des consignes, qui s'ouvre**. On a fait
+le geste *et* appris où le refaire ; sans cela on aurait vu un tour de magie, pas
+une commande. Elle s'efface au premier objet posé, et dès qu'on prend un outil :
+elle ne coûte rien à qui sait déjà, et ne mange pas le premier clic de qui veut
+tracer à la main. La télécommande, elle, attend qu'il y ait une construction —
+la règle déjà appliquée à la barre des pages.
+
+Et le vocabulaire est celui d'un professeur : *De l'étape 0 à la fin*, *rejouer
+en boucle*, *attente*. Pas *zone de boucle*, *MAX* et *pause*, qui sont la langue
+d'un banc de montage vidéo.
+
 **Sur un téléphone, rien n'est plus derrière un balayage invisible.** Mesuré sur
 un écran de 390 px : la barre porte **1220 px d'outils pour 390 visibles**, et
 l'en-tête **1028 px de commandes**. Seize outils sur vingt-deux étaient donc hors
