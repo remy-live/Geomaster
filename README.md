@@ -112,7 +112,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de 3 cm de rayon` · `de rayon [AC]` · `de diamètre [AB]` · `de 6 cm de diamètre` · `circonscrit au triangle ABC` (ou `le cercle circonscrit` tout court) · `le cercle passant par A, B et C` |
 | **Dans un cercle** | `un rayon` · `un diamètre` · `une corde` · `la tangente au cercle en A` — ce sont des traits, et non des cercles |
 | **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `losange de côté 4 cm et de diagonale AC = 6 cm` · `parallélogramme` · `trapèze` · `trapèze rectangle` · `trapèze isocèle` · `pentagone` · `hexagone` · `octogone` · `polygone régulier à 7 côtés` · `polygone ABCDE` · `les diagonales de ABCD` |
-| **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · l'angle s'écrit aussi sans le mot : `ABC = 40°`, et **par son seul sommet** : `A = 30°`, `Â = 30°`, `A° = 30°` · `équilatéral` · `isocèle en A` · `rectangle en A` · `rectangle isocèle en B` dans les deux ordres |
+| **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · `EF = 5 cm, GF = 8 cm et l'angle FEG = 60°` (deux longueurs et l'angle qui fait face à l'une d'elles — loi des sinus ; si deux triangles répondent, il le dit) · l'angle s'écrit aussi sans le mot : `ABC = 40°`, et **par son seul sommet** : `A = 30°`, `Â = 30°`, `A° = 30°` · `équilatéral` · `isocèle en A` · `rectangle en A` · `rectangle isocèle en B` dans les deux ordres |
 | **Droites remarquables** | `médiatrice de [AB]` · `les médiatrices de [AB] et [AC]` (celles-là, pas les trois du triangle) · `perpendiculaire à (AB) passant par C` · `qui passe par C` · `parallèle à…` · `bissectrice de l'angle ABC` |
 | **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A`, `issue du sommet A`, `relative à [BC]`, ou `les hauteurs issues de A et de B` · `les milieux des côtés`. Le triangle n'a pas à être redit d'une ligne à l'autre. |
 | **Deux d'un coup** | `Trace un triangle ABC et ses médiatrices` · `et ses diagonales` · `et son cercle circonscrit` |
@@ -172,7 +172,11 @@ on trace `[AB]` à la règle, un arc depuis A, un autre depuis B, et le sommet e
 leur croisement. Une longueur et deux angles se construisent au **rapporteur** :
 on le pose en A, on lit la mesure, on tire un trait léger ; on recommence en B ;
 le sommet est là où les deux traits se coupent. Deux longueurs et l'angle entre
-elles : **rapporteur puis report de longueur au compas**.
+elles : **rapporteur puis report de longueur au compas**. Et deux longueurs
+avec l'angle qui fait face à l'une d'elles : on trace `[EF]`, on ouvre l'angle en
+E, on plante le compas **sur F** avec la longueur donnée, et G est là où l'arc
+coupe le trait — le compas se plante sur le sommet dont l'énoncé donne la
+distance, pas sur celui qui porte l'angle.
 
 Le logiciel ramenait *tout* à trois longueurs pour tout tracer au compas — la
 figure était juste, la leçon fausse : un élève à qui l'on donne deux angles n'a

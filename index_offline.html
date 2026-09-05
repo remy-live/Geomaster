@@ -29679,9 +29679,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (angles[manque] !== null) {
                             const u = cotes[(manque + 1) % 3], v = cotes[(manque + 2) % 3];
                             cotes[manque] = Math.sqrt(u * u + v * v - 2 * u * v * Math.cos(rad(angles[manque])));
+                        } else if (angles.some((x, k) => x !== null && cotes[k])) {
+                            /* DEUX CÔTÉS ET UN ANGLE QUI N'EST PAS ENTRE EUX.
+                               « EF = 5 cm, GF = 8 cm et FEG = 60° » : l'angle est
+                               en E, et le côté qui lui fait face — [GF] — est
+                               donné. C'est la LOI DES SINUS qui ferme le
+                               triangle, et cela se construit très bien : on
+                               ouvre l'angle au rapporteur, puis on plante le
+                               compas sur F avec 8 cm ; l'arc coupe le trait.
+                               Le logiciel refusait, en réclamant « l'angle entre
+                               elles » — mais l'énoncé n'était pas incomplet. */
+                            const k = angles.findIndex((x, i2) => x !== null && cotes[i2]);
+                            const l = [0, 1, 2].find(i2 => i2 !== k && cotes[i2]);
+                            const sinL = cotes[l] * Math.sin(rad(angles[k])) / cotes[k];
+                            if (!(sinL <= 1)) {
+                                return rate(`Ce triangle n'existe pas : avec ${noms[k]} = ${Math.round(angles[k])}°, `
+                                    + `le côté opposé est trop court pour rejoindre l'autre.`);
+                            }
+                            const aigu = Math.asin(sinL) * 180 / Math.PI;
+                            const obtus = 180 - aigu;
+                            /* DEUX TRIANGLES peuvent répondre à un tel énoncé —
+                               c'est le « cas ambigu » du cours. On en construit
+                               un, et on dit que l'autre existe : se taire
+                               laisserait croire que la figure est la seule. */
+                            const deux = (angles[k] + obtus < 179.9) && Math.abs(aigu - obtus) > 0.2;
+                            if (deux) {
+                                this.cslDire(`Attention : deux triangles répondent à cet énoncé — `
+                                    + `${noms[l]} peut valoir ${aigu.toFixed(1)}° ou ${obtus.toFixed(1)}°. `
+                                    + `Voici celui où ${noms[l]} est aigu.`);
+                            }
+                            angles[l] = aigu;
+                            angles[manque] = 180 - angles[k] - angles[l];
+                            if (angles[manque] <= 0) return rate("La somme des angles d'un triangle vaut 180°.");
+                            cotes[manque] = cotes[k] * Math.sin(rad(angles[manque])) / Math.sin(rad(angles[k]));
                         } else {
-                            return rate("Avec deux longueurs, il me faut l'angle entre elles — "
-                                + `« l'angle ${noms[(manque + 1) % 3]}${noms[manque]}${noms[(manque + 2) % 3]} = 60° ».`);
+                            return rate("Avec deux longueurs, il me faut un angle — celui entre elles "
+                                + `« l'angle ${noms[(manque + 1) % 3]}${noms[manque]}${noms[(manque + 2) % 3]} = 60° », `
+                                + `ou celui qui fait face à l'une d'elles.`);
                         }
                     } else if (connus === 1 && angConnus >= 2) {
                         // une longueur et deux angles : loi des sinus
@@ -29876,6 +29910,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const iAng = (d && d.angles) ? d.angles.findIndex(Boolean) : 0;
                 const sommet = [pA, pB, pC][iAng] || pA;
                 const versB = (sommet === pA) ? pB : pA;
+                /* OÙ PLANTER LE COMPAS ? Sur le sommet dont la distance au point
+                   cherché est DONNÉE. « EF = 5 cm, GF = 8 cm, FEG = 60° » ouvre
+                   l'angle en E mais reporte 8 cm depuis F : planter le compas en
+                   E aurait reporté une longueur que l'énoncé ne donne pas.
+                   cotes[1] = |CA|, cotes[0] = |CB|. */
+                const versC = (d && d.cotes && d.cotes[1]) ? pA
+                    : ((d && d.cotes && d.cotes[0]) ? pB : sommet);
                 const deg = (angles && angles[iAng]) || 60;
                 const cote = Math.sign((pB.x - pA.x) * (pC.y - pA.y) - (pB.y - pA.y) * (pC.x - pA.x)) || 1;
                 const sens = (sommet === pA) ? cote : -cote;
@@ -29888,15 +29929,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new Segment(sommet, boutC, { color: 'rgba(0,0,0,0.28)', width: 1, dash: true }));
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 // le report de la longueur au compas, sur la demi-droite ouverte
-                const r = MathUtils.dist(sommet.x, sommet.y, pC.x, pC.y);
-                const vise = Math.atan2(pC.y - sommet.y, pC.x - sommet.x);
-                const pose = (ang, ray) => ({ x: sommet.x, y: sommet.y, angle: ang, radius: ray });
+                const r = MathUtils.dist(versC.x, versC.y, pC.x, pC.y);
+                const vise = Math.atan2(pC.y - versC.y, pC.x - versC.x);
+                const pose = (ang, ray) => ({ x: versC.x, y: versC.y, angle: ang, radius: ray });
                 const ouvrir = new ToolAnimation('move', pose(vise - 0.4, 10), pose(vise - 0.4, r));
                 ouvrir.widgetType = 'compass';
                 this.addEntity(ouvrir);
                 const tracer = new ToolAnimation('trace', pose(vise - 0.4, r), pose(vise + 0.4, r));
                 tracer.widgetType = 'compass';
-                const arc = new CompassArc(sommet, r, vise - 0.4, vise + 0.4, false);
+                const arc = new CompassArc(versC, r, vise - 0.4, vise + 0.4, false);
                 arc.color = '#ff9900';
                 this.addEntity(tracer); this.addEntity(arc);
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));

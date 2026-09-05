@@ -473,6 +473,52 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('équilatéral → COMPAS', !!u.o.compass && !u.o.protractor, JSON.stringify(u.o));
 
   /* ================================================================
+     17 bis. DEUX CÔTÉS ET UN ANGLE QUI N'EST PAS ENTRE EUX.
+     « EF = 5 cm, GF = 8 cm et FEG = 60° » : l'angle est en E et le
+     côté qui lui fait face est donné. C'est la loi des sinus, et cela
+     se construit — le logiciel réclamait « l'angle entre elles »,
+     comme si l'énoncé était incomplet.
+     ================================================================ */
+  console.log('\n=== deux côtés et l\'angle d\'en face (loi des sinus) ===');
+  r = await fig(["Trace un triangle EFG tel que EF = 5 cm, GF = 8 cm et l'angle FEG = 60°"]);
+  ck('la phrase passe', r.res[0].ok, r.res[0].m);
+  if (r.res[0].ok) {
+    ck('EF = 5 cm et GF = 8 cm',
+       Math.abs(cm(r.pts, 'E', 'F') - 5) < 0.05 && Math.abs(cm(r.pts, 'G', 'F') - 8) < 0.05,
+       `${cm(r.pts, 'E', 'F')} / ${cm(r.pts, 'G', 'F')}`);
+    ck('l\'angle en E vaut 60°', Math.abs(ang(r.pts, 'F', 'E', 'G') - 60) < 0.5,
+       ang(r.pts, 'F', 'E', 'G') + '°');
+    // loi des sinus : sin Ĝ = 5·sin60/8 → Ĝ = 32,77°, F̂ = 87,23°
+    ck('et les deux autres suivent la loi des sinus',
+       Math.abs(ang(r.pts, 'E', 'G', 'F') - 32.77) < 0.3
+       && Math.abs(ang(r.pts, 'E', 'F', 'G') - 87.23) < 0.3,
+       `Ĝ=${ang(r.pts, 'E', 'G', 'F')}° F̂=${ang(r.pts, 'E', 'F', 'G')}°`);
+  }
+  u = await outils("Trace un triangle EFG tel que EF = 5 cm, GF = 8 cm et l'angle FEG = 60°");
+  ck('aux instruments : rapporteur puis compas',
+     !!u.o.protractor && !!u.o.compass, JSON.stringify(u.o));
+  const centre = await page.evaluate(() => {
+    const app = window.app;
+    const a = app.entities.find(e => e.constructor.name === 'CompassArc');
+    if (!a) return null;
+    const p = app.entities.filter(e => e.constructor.name === 'Point' && e.label)
+      .find(e => Math.abs(e.x - a.center.x) < 1 && Math.abs(e.y - a.center.y) < 1);
+    return { sur: p ? p.label : '?', r: +(a.radius / 50).toFixed(2) };
+  });
+  /* Le compas se plante sur F avec 8 cm — pas sur E, dont l'énoncé ne donne
+     aucune distance au point cherché. */
+  ck('et le compas est planté sur F, à 8 cm',
+     centre && centre.sur === 'F' && Math.abs(centre.r - 8) < 0.05, JSON.stringify(centre));
+
+  console.log('\n=== le cas ambigu se dit, il ne se cache pas ===');
+  r = await fig(["Trace un triangle ABC tel que AB = 5 cm, BC = 3 cm et l'angle BAC = 30°"]);
+  ck('deux triangles répondent, et il le dit',
+     r.res[0].ok && /deux triangles/i.test(r.res[0].a), r.res[0].a);
+  r = await fig(["Trace un triangle ABC tel que AB = 5 cm, BC = 1 cm et l'angle BAC = 60°"]);
+  ck('et un énoncé impossible est refusé avec sa raison',
+     r.res[0].ok === false && /trop court/.test(r.res[0].m), r.res[0].m);
+
+  /* ================================================================
      18. UN ANGLE NOMMÉ QUI N'EXISTE PAS ENCORE.
      « Trace un angle ABC de 40° » répondait « Je ne connais pas tous
      ces points » — ce qui est vrai, et n'aide personne : on lui
