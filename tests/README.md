@@ -44,6 +44,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-vecteur.js` | l'appui long sur le segment ouvre ses **options** (le sens que ce geste a déjà ailleurs), le mode se **voit** sur le bouton et survit au rechargement, la pointe est peinte et survit aux quatre chemins d'enregistrement, et la loupe trouve « Vecteur » |
 | `probe-angle-droit.js` | l'angle droit se pose à l'**équerre**, pas au rapporteur, et le compas donne le sommet — figures **mesurées** (90°, longueurs données, Pythagore) ; le triangle impossible dit *pourquoi* ; « efface tout puis … » s'exécute et reste annulable ; « … et ses diagonales » marche aussi aux instruments |
 | `probe-don.js` | on ne demande qu'après avoir servi (dix ouvertures) et qu'à un moment de valeur, jamais deux fois dans la même séance ni par-dessus une autre fenêtre ; « plus tard » recule de vingt ouvertures puis vaut non ; **« j'ai déjà donné » est cru sur parole, sans preuve, pour de bon** ; l'élève ne compte rien ; jamais devant une classe (projection, plein écran) ; le chiffre affiché est **le sien**, vrai et vérifiable |
+| `probe-patrons.js` | **les patrons** — le mot ne donne plus une perspective ; six faces tiennent par cinq plis, et le pli en pointillés reste la figure ; les mesures sont **vraies** (cube 3 cm → 9 sur 12 cm, 19 arêtes toutes à 3 cm) ; le cylindre a 2πr = 12,57 cm, le cône un secteur de 185,2° et une génératrice de 5,83 cm, la pyramide son apothème 6,32 cm distingué de l'arête 6,63 cm ; la sphère est refusée **pour la bonne raison** ; **les configurations d'angles** — correspondants, alternes, opposés par le sommet sont ÉGAUX et de même couleur, supplémentaires et complémentaires font 180° et 90° en deux couleurs ; **« montre-moi comment »** force les instruments alors que la case est décochée, « explique pourquoi » ne trace toujours rien, et une méthode sans données pose son propre exemple ; la parallèle sort la règle ET l'équerre, et la figure obtenue est **mesurée** à 0° et 90° |
 | `probe-biblio-menus.js` | la bibliothèque se présente de trois façons, s'en souvient et compte seize constructions ; l'aperçu est sur fond blanc, quadrillage remis après ; le menu Fichier range ses icônes en quatre bandes sans un mot ni un pixel de plus par icône ; **les quatre transformations rangées sont RELUES** — axe, centre et vecteur hors de la figure, translation au compas seul, longueurs conservées ou multipliées par le rapport ; la barre des transformations sélectionne, compte, valide et désigne ; le petit trait de la graduation enjambe le bord du rapporteur |
 
 Elles ne prouvent pas que le logiciel est bon : elles ne vérifient que ce à quoi
@@ -81,3 +82,20 @@ C'est le code de sortie — 0 ou non — que le lanceur regarde.
 
 Les fichiers dont une sonde a besoin (comme le PDF de trois pages) sont dans
 `fixtures/`.
+
+## Le catalogue
+
+`catalogue.js` n'est pas une sonde : c'est lui qui **écrit** `CONSIGNES.md`, à la
+racine. Il exécute réellement 156 phrases dans un navigateur et recopie la
+réponse du logiciel en face de chacune.
+
+```bash
+node tests/catalogue.js          # réécrit CONSIGNES.md
+node tests/catalogue.js --check  # vérifie sans écrire
+```
+
+Une liste de ce qu'un logiciel sait faire, tenue à la main, ment au bout de trois
+semaines : on ajoute une phrase et l'on oublie la liste, ou l'on écrit dans la
+liste une phrase que le logiciel ne comprend plus. Après avoir touché au lecteur
+de consignes, relancer `node tests/catalogue.js` et regarder le diff : c'est le
+résumé le plus court de ce qui a changé pour l'utilisateur.

@@ -366,6 +366,105 @@ convention est rappelée à chaque fois, sous la consigne.
 *« Parallélépipède rectangle »* contient le mot « rectangle » : sans garde-fou,
 il traçait silencieusement un simple rectangle plat.
 
+### Les patrons
+
+*« Dessine le patron d'un cube de 3 cm »*, *« … d'un pavé droit de 5 cm sur 3 cm
+sur 2 cm »*, *« … d'une pyramide à base carrée de côté 4 cm et de hauteur 6 cm »*,
+*« … d'un cylindre de rayon 2 cm et de hauteur 5 cm »*, *« … d'un cône de rayon
+3 cm et de hauteur 5 cm »*, *« … d'un prisme droit »*, *« … d'un tétraèdre »*.
+*« Développement »* se dit aussi.
+
+Un patron n'est pas une perspective, et c'est pourtant ce qu'on obtenait : le mot
+« patron » était purement ignoré. Il gagne maintenant sur le nom du solide — *le
+patron d'un cube* n'est pas un cube.
+
+**Deux sortes de traits, et c'est tout ce qu'un patron a à dire.** Le contour se
+découpe, trait plein ; les arêtes intérieures se plient, en pointillés. On ne les
+choisit pas à la main : une arête partagée par deux faces est un pli, une arête
+vue une seule fois est une découpe. La règle est écrite une fois et vaut pour
+tous les patrons — six faces posées à plat tiennent toujours par **cinq** plis.
+
+**Les mesures sont vraies.** Rien n'est remis à l'échelle pour tenir dans
+l'écran : le patron d'un cube de 3 cm mesure 9 cm sur 12 cm, celui d'un cube de
+5 cm déborde. On imprime, on découpe, on mesure — remettre à l'échelle serait
+mentir sur la seule chose qui compte. L'encombrement est annoncé sous la
+consigne.
+
+Et les mathématiques sont dites, parce que c'est là qu'est l'exercice :
+
+- le **cylindre** : la longueur du rectangle est le **périmètre du disque**,
+  2 × π × 2 = 12,57 cm — c'est ce qui fait qu'il s'enroule exactement ;
+- le **cône** : la génératrice √(r² + h²) = 5,83 cm est le rayon du secteur, et
+  son angle vaut 360° × r ÷ g = **185,2°**, sans quoi le cône ne se referme pas ;
+- la **pyramide** : les triangles ont pour hauteur l'**apothème** √(h² + (c/2)²)
+  = 6,32 cm, à ne pas confondre avec l'arête latérale, 6,63 cm. C'est *la* faute
+  du patron de pyramide, et un patron bâti sur la seconde ne se referme pas.
+
+**La sphère est refusée**, et pour la bonne raison : elle n'a pas de patron, sa
+surface est courbe dans toutes les directions. C'est pour cela qu'une carte du
+monde déforme toujours quelque chose.
+
+### Les configurations d'angles
+
+*« Trace des angles correspondants »*, *« … alternes-internes »*,
+*« … alternes-externes »*, *« deux angles opposés par le sommet »*,
+*« … supplémentaires »*, *« … complémentaires »*, *« … adjacents »*, et la
+configuration nue : *« deux droites parallèles coupées par une sécante »*.
+
+C'est le cœur du programme de 5e, et une figure ne sert à rien si l'on ne voit
+pas **de quels deux angles** on parle : ils sont donc peints en plein.
+
+La couleur dit la propriété. Deux angles **égaux** — correspondants,
+alternes-internes, alternes-externes, opposés par le sommet — reçoivent la
+**même** couleur et le **même codage**. Deux angles dont la **somme** est
+remarquable — supplémentaires, complémentaires, adjacents — en reçoivent deux
+**différentes**, et la réponse écrit la somme : *« 114° + 66° = 180° »*.
+
+### Montre-moi la méthode
+
+*« Montre-moi comment on trace deux droites parallèles »*, *« Explique comment on
+trace la médiatrice de [AB] »*, *« Montre-moi la méthode pour tracer un carré »*,
+*« Comment construit-on un hexagone régulier ? »*, *« Comment reporter une
+longueur au compas ? »*
+
+Cette phrase-là ne demande pas une figure : elle demande la **méthode**. Elle
+force donc les instruments, même si la case est décochée — c'est exactement ce
+qu'on vient de réclamer.
+
+Avant, *« montre-moi comment on trace deux droites parallèles »* rendait deux
+droites parallèles et rien d'autre : mesuré, **zéro animation d'instrument**. Et
+*« explique comment on trace la médiatrice »* était avalée par la règle des
+phrases de remarque — elle ne traçait rien en répondant que tout allait bien.
+
+**La frontière est le mot qui suit.** *Comment* demande à voir faire ; *pourquoi*
+demande une justification, et cela reste une remarque. *« Explique pourquoi ABC
+est isocèle »* ne trace toujours rien.
+
+**Une méthode se montre sur un exemple.** *« Comment place-t-on le milieu d'un
+segment ? »* ne nomme aucun segment, et la réponse était « De quoi ? Écrivez
+Place le milieu I de [AB] » — une leçon de rédaction à qui demande une leçon de
+géométrie. Le logiciel pose maintenant l'exemple lui-même, et le dit.
+
+### La parallèle et la perpendiculaire se tracent au geste
+
+La parallèle n'était pas construite du tout : elle apparaissait. Elle se trace
+maintenant **à la règle et à l'équerre**, et le geste est tout l'enseignement —
+l'équerre se pose le long de la droite, la règle sert de rail perpendiculaire,
+l'équerre **glisse** le long du rail sans tourner (c'est ce glissement qui garde
+l'écart constant), et l'on trace au bord de l'équerre arrivée.
+
+On n'a pas pris la construction « deux perpendiculaires successives » : elle est
+juste, mais ce n'est pas le geste qu'on montre en classe.
+
+Le **milieu**, lui, se posait au calcul, pile au milieu, sans un geste. Aux
+instruments il s'obtient au compas : les deux arcs donnent la médiatrice, qui
+coupe le segment en son milieu.
+
+Et *« Reporte la longueur AB à partir de C »* — le premier geste du compas, celui
+qu'on apprend avant tout le reste — ne traçait rien et répondait « Je n'ai pas
+compris ». Le compas prend l'écartement, se plante en C, trace son arc ; les deux
+traits portent la même marque.
+
 ### Où sur la feuille, et de quelle couleur
 
 *« Trace un carré en haut à gauche, puis un rectangle en haut à droite, puis un
@@ -940,10 +1039,10 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 74 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 86 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
-(`.github/workflows/tests.yml`), en deux minutes.
+(`.github/workflows/tests.yml`), en cinq minutes.
 
 ```bash
 npm install --no-save playwright && npx playwright install chromium
@@ -951,6 +1050,19 @@ node tests/lancer.js
 ```
 
 Voir [`tests/README.md`](tests/README.md).
+
+## Ce que le logiciel comprend
+
+[`CONSIGNES.md`](CONSIGNES.md) liste **156 phrases** avec, en face de chacune, la
+réponse du logiciel. Le fichier n'est pas écrit à la main : `node
+tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
+recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;
+celle-là ne peut pas promettre ce qui ne marche pas.
+
+[`IDEES.md`](IDEES.md) est l'autre moitié : ce qui manque encore, établi en
+essayant trente-cinq phrases de collège. Il commence par les phrases qui
+répondent « oui » en traçant autre chose — les plus urgentes, parce que rien à
+l'écran ne prévient.
 
 ---
 

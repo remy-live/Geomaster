@@ -8321,6 +8321,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Trace un triangle équilatéral ABC de 4 cm de côté')">Triangle équilatéral · rectangle en A · isocèle en A</a>
             <a onclick="app.exempleConsigne('Trace un hexagone ABCDEF de 3 cm de côté')">Pentagone · hexagone réguliers</a>
             <a onclick="app.exempleConsigne('Trace le polygone ABCDE')">Trace le polygone ABCDE</a>
+            <div class="consigne-groupe">Solides et patrons</div>
+            <a onclick="app.exempleConsigne('Trace un cube de 4 cm')">Cube · pavé droit en perspective cavalière</a>
+            <a onclick="app.exempleConsigne('Trace une pyramide à base carrée de côté 3 cm et de hauteur 5 cm')">Pyramide à base carrée · tétraèdre</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'un cube de 3 cm')">Patron d'un cube de 3 cm</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'un pavé droit de 5 cm sur 3 cm sur 2 cm')">Patron d'un pavé droit 5 × 3 × 2 cm</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'une pyramide à base carrée de côté 4 cm et de hauteur 6 cm')">Patron d'une pyramide à base carrée</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'un cylindre de rayon 2 cm et de hauteur 5 cm')">Patron d'un cylindre</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'un cône de rayon 3 cm et de hauteur 5 cm')">Patron d'un cône</a>
+            <a onclick="app.exempleConsigne('Trace le patron d\'un prisme droit à base triangulaire de 3 cm de côté et de 5 cm de hauteur')">Patron d'un prisme droit · d'un tétraèdre</a>
+            <div class="consigne-groupe">Configurations d'angles</div>
+            <a onclick="app.exempleConsigne('Trace des angles correspondants')">Angles correspondants</a>
+            <a onclick="app.exempleConsigne('Trace des angles alternes-internes')">Angles alternes-internes · alternes-externes</a>
+            <a onclick="app.exempleConsigne('Trace deux angles opposés par le sommet')">Angles opposés par le sommet</a>
+            <a onclick="app.exempleConsigne('Trace deux angles supplémentaires')">Angles supplémentaires (180°) · complémentaires (90°)</a>
+            <a onclick="app.exempleConsigne('Trace deux angles adjacents')">Angles adjacents</a>
+            <a onclick="app.exempleConsigne('Trace deux droites parallèles coupées par une sécante')">Deux parallèles coupées par une sécante</a>
+            <div class="consigne-groupe">Montrer la méthode</div>
+            <a onclick="app.exempleConsigne('Montre-moi comment on trace deux droites parallèles')">Montre-moi comment on trace…</a>
+            <a onclick="app.exempleConsigne('Montre-moi la méthode pour tracer un carré')">Montre-moi la méthode pour tracer…</a>
+            <a onclick="app.exempleConsigne('Comment reporter une longueur au compas ?')">Comment reporter une longueur au compas ?</a>
             <div class="consigne-groupe">Droites remarquables</div>
             <a onclick="app.exempleConsigne('Trace la médiatrice de [AB]')">Médiatrice de [AB]</a>
             <a onclick="app.exempleConsigne('Trace la perpendiculaire à (AB) passant par C')">Perpendiculaire à (AB) passant par C</a>
@@ -8349,6 +8369,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('L\'angle ABC mesure 60°')">L'angle ABC mesure 60°</a>
             <a onclick="app.exempleConsigne('Affiche la longueur de [AB]')">Affiche la longueur de [AB]</a>
             <a onclick="app.exempleConsigne('Code les longueurs égales')">Code les longueurs égales</a>
+            <a onclick="app.exempleConsigne('Reporte la longueur AB à partir de C')">Reporte la longueur AB à partir de C</a>
+            <a onclick="app.exempleConsigne('Trace un angle de 60°')">Trace un angle de 60°</a>
         </div>
         <div id="consigneLignes"></div>
         <div class="csl-pied">
@@ -13827,6 +13849,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.stroke();
             }
         }
+        /* REMPLIR UN ANGLE « EN PLEIN », quelle que soit l'écriture de sa couleur.
+           Le remplissage se faisait par `color.replace('0.2', '0.4')` : cela ne
+           marche que si la couleur est écrite en rgba(…, 0.2). Une couleur
+           hexadécimale — celle que donne une consigne « en rouge » — passait
+           telle quelle, et le secteur se peignait OPAQUE : on ne voyait plus ni
+           les droites ni le codage dessous. On garde le vieux comportement pour
+           les rgba (rien à casser) et l'on éclaircit les autres. */
+        function gmRemplirAngle(ctx, couleur) {
+            if (couleur && /rgba?\(/i.test(couleur)) {
+                ctx.fillStyle = couleur.replace('0.2', '0.4');
+                ctx.fill();
+                return;
+            }
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = couleur || 'rgb(39, 174, 96)';
+            ctx.fill();
+            ctx.restore();
+        }
         class Angle extends GeometryObject {
             constructor(p1, p2, p3, id = null) {
                 super(p1, p2, id);
@@ -13927,8 +13968,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ctx.lineTo(this.p2.x + vx, this.p2.y + vy);
                         if (this.isFilled) {
                             ctx.lineTo(this.p2.x, this.p2.y);
-                            ctx.fillStyle = this.color ? this.color.replace('0.2', '0.4') : "rgba(39, 174, 96, 0.3)";
-                            ctx.fill();
+                            gmRemplirAngle(ctx, this.color);
                         }
                         ctx.stroke();
                     }
@@ -13938,10 +13978,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.moveTo(this.p2.x, this.p2.y);
                     ctx.arc(this.p2.x, this.p2.y, baseRadius, a1, a2, !this.isCounterClockwise);
                     ctx.closePath();
-                    if (this.isFilled) {
-                        ctx.fillStyle = this.color ? this.color.replace('0.2', '0.4') : "rgba(39, 174, 96, 0.3)";
-                        ctx.fill();
-                    }
+                    if (this.isFilled) gmRemplirAngle(ctx, this.color);
                     ctx.stroke();
 
                     // Arcs supplémentaires (si > 1)
@@ -30126,7 +30163,92 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return clair;
             }
+            /* ============================================================
+               « MONTRE-MOI COMMENT ON TRACE… »
+
+               Cette phrase-là ne demande pas une figure : elle demande LA
+               MÉTHODE. Elle mérite donc les instruments, même si la case est
+               décochée — c'est exactement ce qu'on vient de réclamer.
+
+               Mesuré avant : « Montre-moi comment on trace deux droites
+               parallèles » rendait deux droites parallèles et RIEN d'autre (zéro
+               animation), et « Explique comment on trace la médiatrice de [AB] »
+               était avalée par la règle des phrases de remarque — elle ne
+               traçait rien en répondant que tout allait bien.
+
+               La frontière est le mot qui suit : COMMENT (ou « la méthode pour »)
+               demande à voir faire ; POURQUOI demande une justification, et cela
+               reste une remarque, sans rien tracer.
+               ============================================================ */
+            cslDemandeDeMethode(phrase) {
+                const src = (phrase || '').trim();
+                const t = src.toLowerCase();
+                /* « Explique POURQUOI ABC est isocèle » n'est pas une méthode :
+                   c'est une justification, et rien ne se trace. */
+                if (/\bpourquoi\b/.test(t)) return null;
+                const OUVERTURE = '(?:(?:est-ce\\s+que\\s+)?(?:tu\\s+)?(?:peux|pourrais)(?:-tu)?\\s+'
+                    + '(?:me\\s+|nous\\s+)?(?:montrer|expliquer|dire|indiquer|rappeler|apprendre)\\s*'
+                    + '|(?:je\\s+)?(?:voudrais|veux|aimerais|souhaite)\\s+(?:bien\\s+)?(?:voir|savoir)\\s+'
+                    + "|j['’]aimerais\\s+(?:bien\\s+)?(?:voir|savoir)\\s+"
+                    + '|(?:montre|montrez|explique|expliquez|dis|dites|rappelle|rappelez'
+                    + '|apprends|apprenez|indique|indiquez|donne|donnez)'
+                    + '(?:[-\\s]+(?:moi|nous))?\\s*)';
+                const CLE = '(?:comment\\s+'
+                    + '|(?:la\\s+|les\\s+)?(?:m[ée]thode|fa[çc]on|mani[èe]re|d[ée]marche|[ée]tapes)\\s+'
+                    + "(?:pour|de|d['’])\\s*)";
+                const m = src.match(new RegExp('^' + OUVERTURE + '?\\s*,?\\s*' + CLE, 'i'));
+                if (!m) return null;
+                let reste = src.slice(m[0].length).trim();
+                /* Ce qui suit « comment » est de la mécanique de question :
+                   « on trace », « fait-on pour tracer », « construit-on ». */
+                reste = reste
+                    .replace(/^(?:l['’]on|on)\s+/i, '')
+                    .replace(/^il\s+faut\s+/i, '')
+                    .replace(/^(?:faire\s+pour|s['’]y\s+prendre\s+pour)\s+/i, '')
+                    .replace(/^(?:fait|trace|construit|dessine|place|s['’]y\s+prend)-(?:t-)?on\s+(?:pour\s+)?/i, '')
+                    .replace(/^(?:peut-on|doit-on)\s+/i, '')
+                    .replace(/^(?:faire\s+pour)\s+/i, '')
+                    .replace(/\s*[?？]\s*$/, '')
+                    .trim();
+                if (!reste) return null;
+                /* IL FAUT QU'IL SOIT QUESTION DE CONSTRUIRE. « Comment s'appelle
+                   ce point ? » n'est pas une demande de méthode, et la traiter
+                   comme telle donnerait un refus plus obscur que celui d'avant. */
+                if (!/\b(?:trac|construi|dessin|plac|reporte|marqu|fai(?:re|t)|obtien|report)/i.test(src)) {
+                    return null;
+                }
+                /* On remet un verbe devant, si la suite n'en a pas déjà un. */
+                if (!/^(?:trace|tracer|construis|construire|dessine|dessiner|place|placer|marque|marquer|reporte|reporter|relie|joins)\b/i.test(reste)) {
+                    reste = 'Trace ' + reste;
+                }
+                reste = reste
+                    .replace(/^tracer\b/i, 'Trace').replace(/^construire\b/i, 'Construis')
+                    .replace(/^dessiner\b/i, 'Dessine').replace(/^placer\b/i, 'Place')
+                    .replace(/^marquer\b/i, 'Marque').replace(/^reporter\b/i, 'Reporte');
+                return reste;
+            }
             executerConsigne(phrase) {
+                const methode = this.cslDemandeDeMethode(this.cslNettoyer(phrase));
+                if (methode !== null) {
+                    const memo = this._cslDetailleForce;
+                    this._cslDetailleForce = true;
+                    /* UNE MÉTHODE SE MONTRE SUR UN EXEMPLE. « Comment place-t-on le
+                       milieu d'un segment ? » ne nomme aucun segment, et la
+                       réponse était « De quoi ? Écrivez Place le milieu I de
+                       [AB] » — on répond par une leçon de rédaction à qui demande
+                       une leçon de géométrie. Quand la phrase demande la méthode,
+                       les bâtisseurs ont le droit de poser eux-mêmes l'exemple. */
+                    this._cslExempleLibre = true;
+                    try {
+                        const r = this.executerConsigne(methode);
+                        if (r && r.ok) {
+                            const dit = 'Vous avez demandé la MÉTHODE : la construction est faite '
+                                + 'aux instruments, étape par étape. ▶ la rejoue.';
+                            r.astuce = r.astuce ? r.astuce + ' ' + dit : dit;
+                        }
+                        return r;
+                    } finally { this._cslDetailleForce = memo; this._cslExempleLibre = false; }
+                }
                 const bouts = this.cslDecouper(this.cslNettoyer(phrase));
                 /* UNE SEULE PROPOSITION A DROIT AUX MÊMES POSSESSIFS. « Appelle O
                    leur point d'intersection » écrit sur SA ligne ne passait pas
@@ -30220,6 +30342,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        en tête, il traçait silencieusement un simple rectangle —
                        mesuré, quatre points et quatre segments au lieu d'un
                        solide. Le mot le plus précis gagne. */
+                    /* LE PATRON GAGNE SUR LE SOLIDE. « Le patron d'un cube » n'est
+                       pas un cube : le mot le plus précis l'emporte, et il doit
+                       passer AVANT cslSolide — sans quoi « patron » était
+                       purement ignoré et l'on obtenait une perspective. Il passe
+                       aussi avant « hauteur », qui envoyait « le patron d'un
+                       cylindre de rayon 2 cm et de hauteur 5 cm » vers les
+                       droites remarquables : la réponse conseillait alors
+                       d'écrire « Trace la hauteur issue de A ». */
+                    if (/\bpatrons?\b|d[ée]veloppement/.test(t)) {
+                        const patron = this.cslPatron(brut, t, fait, rate);
+                        if (patron) return patron;
+                    }
                     if (/\bcube\b|pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de|pyramide|t[ée]tra[èe]dre/.test(t)) {
                         const solide = this.cslSolide(brut, t, fait, rate);
                         if (solide) return solide;
@@ -30227,6 +30361,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/flocon|koch|spirale|th[ée]odore|escargot\s+de\s+pythagore/.test(t)) {
                         const surprise = this.cslFigureCachee(brut, t, fait, rate);
                         if (surprise) return surprise;
+                    }
+                    /* LES CONFIGURATIONS D'ANGLES PASSENT TÔT. Leurs mots sont
+                       sans ambiguïté, mais les règles suivantes les volaient
+                       toutes : « angles correspondants » partait coder les angles
+                       d'une figure (le mot « angles » avec le verbe « trace »),
+                       et « deux parallèles coupées par une sécante » partait vers
+                       les droites remarquables à cause de « parallèles ». */
+                    if (/correspondants?|alternes?[\s-]*(?:internes?|externes?)/.test(t)
+                        || /oppos[ée]s?\s+par\s+le\s+sommet/.test(t)
+                        || (/\bangles?\b/.test(t)
+                            && /suppl[ée]mentaires?|compl[ée]mentaires?|adjacents?/.test(t))
+                        || (/s[ée]cante/.test(t) && /parall[èe]les/.test(t))) {
+                        const conf = this.cslConfigurationAngles(brut, t, fait, rate);
+                        if (conf) return conf;
                     }
                     /* « Appelle O le point d'intersection des médiatrices » : ce
                        croisement porte un nom — c'est le centre du cercle
@@ -30249,7 +30397,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        demande rien à tracer — on le dit, et on passe. */
                     if (/^(?:justifie|explique|d[ée]montre|prouve|d[ée]duis|conclus|compare|calcule|v[ée]rifie|observe|remarque\b|constate)\b/.test(t)
                         || /^(?:que|qu'|qu’)\s*(?:remarque|constate|observe|obtient|peut|penses?)/.test(t)
-                        || /^(?:il|elle|on|ils|elles)\s+(?:passe|passent|est|sont|semble|semblent|doit|doivent|devrait|devraient|para[îi]t|para[îi]ssent)\b/.test(t)) {
+                        || /^(?:il|elle|on|ils|elles)\s+(?:passe|passent|est|sont|semble|semblent|doit|doivent|devrait|devraient|para[îi]t|para[îi]ssent)\b/.test(t)
+                        /* UNE QUESTION QUI NE DEMANDE RIEN À TRACER. « Comment
+                           s'appelle ce point ? » PLAÇAIT un point — le mot
+                           « point » suffisait à l'envoyer au poseur de points, et
+                           la réponse « Point A placé » n'avait rien à voir avec la
+                           question. Les demandes de méthode, elles, sont déjà
+                           parties plus haut : ce qui arrive ici n'a aucun verbe de
+                           construction. */
+                        || (/^(?:comment|quel|quelle|quels|quelles|qui|o[ùu]|combien|quand|est-ce)\b/.test(t)
+                            && !/\b(?:trac|construi|dessin|plac|reporte|marqu|relie|joins|code)/.test(t))) {
                         return { ok: true, cree: 0, astuce: '',
                                  message: 'Remarque — rien à tracer sur cette ligne' };
                     }
@@ -30261,6 +30418,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return this.cslCoupe(brut, t, fait, rate);
                     }
                     if (/\barcs?\s+de\s+cercle\b/.test(t)) return this.cslArc(brut, t, fait, rate);
+                    /* LA DROITE DES MILIEUX est un théorème de 4e à elle seule :
+                       elle joint les milieux de deux côtés, elle est PARALLÈLE au
+                       troisième et elle en mesure la MOITIÉ. La phrase répondait
+                       « De quoi ? Écrivez Place le milieu I de [AB] ». */
+                    if (/droite\s+des\s+milieux|th[ée]or[èe]me\s+des\s+milieux/.test(t)) {
+                        return this.cslDroiteDesMilieux(brut, t, fait, rate);
+                    }
                     if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
@@ -30268,7 +30432,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     /* « l'image DU triangle ABC » autant que « l'image DE A » :
                        le « du » n'était pas prévu, et la phrase retombait sur le
                        bâtisseur de figures, qui retraçait le triangle en silence. */
-                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)) {
+                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)
+                        /* AGRANDIR ET RÉDUIRE sont des transformations, et les mots
+                           du collège avant « homothétie ». Sans ce passage ici,
+                           « un agrandissement du TRIANGLE ABC » partait vers le
+                           bâtisseur de figures, qui retraçait le triangle. */
+                        || /agrandiss|r[ée]duction/.test(t)) {
                         return this.cslTransformation(brut, t, fait, rate);
                     }
                     /* Les droites remarquables D'UN TRIANGLE, au pluriel comme au
@@ -30333,7 +30502,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return rate("Je sais faire les symétries, les translations et les rotations "
                             + "— mais pas encore les homothéties.");
                     }
-                    if (/\bcercles?\b/.test(t) && !figure) return this.cslCercle(brut, t, fait, rate);
+                    if ((/\bcercles?\b|\bdisques?\b/.test(t)) && !figure) return this.cslCercle(brut, t, fait, rate);
                     /* « Marque les angles du triangle ABC », « Marque les angles
                        droits » : le mot « triangle » ou « carré » envoyait la
                        phrase au bâtisseur de figures, qui RETRAÇAIT la figure
@@ -30387,6 +30556,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        deux verbes d'énoncé qui ne construisaient rien, tout en
                        répondant « Segment [AB] » comme si c'était fait. */
                     if (/^(?:prolonge|prolonger)\b/.test(t)) return this.cslProlonger(brut, t, fait, rate);
+                    /* « Reporte la longueur AB à partir de C » : le premier geste
+                       du compas, et il ne traçait rien. */
+                    if (/^(?:reporte|reporter|report)\b/.test(t)
+                        || (/\breport(?:e|er)\b/.test(t) && /longueur|[ée]cartement/.test(t))) {
+                        return this.cslReporter(brut, t, fait, rate);
+                    }
                     if (/^(?:partage|partager|divise|diviser|coupe\s+en)\b/.test(t)
                         && /\bparts?\b|\bparties\b|\bsegments\s+[ée]gaux\b|\b[ée]gales?\b/.test(t)) {
                         return this.cslPartager(brut, t, fait, rate);
@@ -31052,13 +31227,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 // le milieu appartient à un SEGMENT : (AB) serait la droite entière
                 const coupe = brut.split(/\bde\s+/i);
-                const p = this.cslPaire(coupe.length > 1 ? coupe.slice(1).join(' de ') : brut, 'segment');
+                let p = this.cslPaire(coupe.length > 1 ? coupe.slice(1).join(' de ') : brut, 'segment');
+                /* « Comment place-t-on le milieu d'un segment ? » ne nomme aucun
+                   segment : on en trace un, et l'on montre dessus. */
+                if (!p && (this._cslExempleLibre || /\bd['’]un\s+segment\b/.test(t))) {
+                    const o = this.cslPlaceLibre(0, 0);
+                    const A = new Point(o.x - 170, o.y, this.cslNomLibre([]));
+                    this.addEntity(A);
+                    const B = new Point(o.x + 170, o.y, this.cslNomLibre([A.label]));
+                    this.addEntity(B);
+                    this.cslSegment(A, B);
+                    p = { a: A.label, b: B.label, genre: 'segment' };
+                    this.cslDire(`Aucun segment n'était donné : on trace `
+                        + `[${A.label}${B.label}], et l'on montre dessus.`);
+                }
                 if (!p) return rate("De quoi ? Écrivez « Place le milieu I de [AB] ».");
                 const s = [null, p.a, p.b];
                 const a = this.cslPointNomme(s[1]), b = this.cslPointNomme(s[2]);
                 if (!a || !b) return rate(`Je ne connais pas ${!a ? s[1] : s[2]}.`);
                 const autres = this.cslNoms(brut).filter(n => n !== s[1] && n !== s[2]);
                 const nom = autres[0] || this.cslNomLibre([]);
+                /* AUX INSTRUMENTS, UN MILIEU SE CONSTRUIT. Il se posait au calcul,
+                   pile au milieu, sans un geste — et « Montre-moi comment placer le
+                   milieu de [AB] » ne montrait donc RIEN : mesuré, zéro animation.
+                   Le milieu s'obtient au compas : les deux arcs donnent la
+                   médiatrice, qui coupe [AB] en son milieu. C'est la construction
+                   du cours, et le point trouvé est celui-là même. */
+                if (this.cslDetaille()) {
+                    const seg = this.entities.find(e => e instanceof Segment
+                        && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)))
+                        || this.cslSegment(a, b);
+                    const avant = this.entities.length;
+                    this.cslBatir(null, () => this.buildMediatrice(seg, (a.x + b.x) / 2,
+                                                                   (a.y + b.y) / 2, a, b));
+                    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                    const trouve = this.entities.slice(avant).find(e => e instanceof Point
+                        && Math.hypot(e.x - mx, e.y - my) < 0.5);
+                    if (trouve) {
+                        trouve.label = nom;
+                        trouve.visible = true;
+                        this.cslDire(`Le milieu se construit au compas : la médiatrice de `
+                            + `[${s[1]}${s[2]}] le coupe en son milieu, et c'est ${nom}.`);
+                        return fait(`${nom} est le milieu de [${s[1]}${s[2]}] — construction au compas`);
+                    }
+                }
                 const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, nom, [a, b]);
                 /* Un milieu se CODE : un trait sur chaque moitié. On ne le pose que
                    si le trait existe — deux marques flottant dans le vide ne
@@ -31080,6 +31292,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    traiter par la symétrie, qui parlait d'axes et de centres sans
                    jamais voir qu'on ne lui demandait pas une symétrie. */
                 if (/\bhomoth[ée]tie\b/.test(t)) return this.cslHomothetie(brut, t, fait, rate);
+                if (/agrandiss|agrandi[rs]?\b|r[ée]duction|r[ée]dui[rst]?\b/.test(t)) {
+                    return this.cslAgrandissement(brut, t, fait, rate);
+                }
                 if (/\btranslation\b/.test(t)) return this.cslTranslation(brut, t, fait, rate);
                 if (/\brotation\b/.test(t)) return this.cslRotation(brut, t, fait, rate);
                 return this.cslSymetrique(brut, t, fait, rate);
@@ -31150,6 +31365,100 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const vx = e.x - d.x, vy = e.y - d.y;
                 return this.cslPoserImages(pts, images, (p) => ({ x: p.x + vx, y: p.y + vy }),
                     sources, fait, `par la translation de vecteur ${v[1]}${v[2]}`);
+            }
+            /* AGRANDIR ET RÉDUIRE, c'est le mot du collège ; « homothétie » n'arrive
+               qu'après. « Trace un agrandissement du triangle ABC de rapport 2 »
+               répondait « Triangle ABC » et RETRAÇAIT le triangle par-dessus
+               lui-même : la réponse avait l'air juste et la figure ne bougeait
+               pas. On traduit la phrase en homothétie — c'est la même chose — et
+               l'on pose le centre s'il manque, hors de la figure pour qu'on voie
+               les deux. */
+            /* La droite des milieux : deux milieux reliés, et la propriété qui
+               s'en déduit — parallèle au troisième côté, moitié moins longue. On
+               ne la dit pas seulement : on la MESURE et on affiche le résultat. */
+            cslDroiteDesMilieux(brut, t, fait, rate) {
+                let noms = this.cslNoms(brut);
+                let pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
+                if (pts.length < 3) {
+                    const neuf = noms.length >= 3 ? this.cslTriangleAbsent(noms) : null;
+                    if (neuf) pts = neuf;
+                }
+                if (pts.length < 3) {
+                    const tri = this.cslTriangleCourant();
+                    if (tri) { pts = tri; noms = tri.map(p => p.label); }
+                }
+                if (pts.length < 3) {
+                    return rate("De quel triangle ? Écrivez « Trace la droite des milieux "
+                        + "du triangle ABC ».");
+                }
+                const [A, B, C] = pts;
+                /* On relie les milieux de [AB] et [AC] : la droite obtenue est
+                   parallèle à (BC). Le côté épargné est nommé dans la réponse. */
+                const I = this.poserMilieu(A, B, this.cslNomLibre(noms));
+                const J = this.poserMilieu(A, C, this.cslNomLibre(noms.concat([I.label])));
+                const seg = this.cslSegment(I, J);
+                const ij = MathUtils.dist(I.x, I.y, J.x, J.y);
+                const bc = MathUtils.dist(B.x, B.y, C.x, C.y);
+                const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                void seg;
+                this.cslDire(`Théorème des milieux : (${I.label}${J.label}) est PARALLÈLE à `
+                    + `(${B.label}${C.label}), et ${I.label}${J.label} = `
+                    + `${String(cm(ij)).replace('.', ',')} cm vaut la MOITIÉ de `
+                    + `${B.label}${C.label} = ${String(cm(bc)).replace('.', ',')} cm.`);
+                return fait(`Droite des milieux (${I.label}${J.label}) du triangle `
+                    + `${noms.slice(0, 3).join('')} — parallèle à (${B.label}${C.label})`);
+            }
+            cslAgrandissement(brut, t, fait, rate) {
+                const reduit = /r[ée]duction|r[ée]duit|r[ée]duis/.test(t);
+                let k = null;
+                const mk = brut.match(/(?:rapport|coefficient|[ée]chelle)\s*(?:de\s+|:\s*|=\s*)?([-−–]?\s*\d+(?:[.,]\d+)?)(?:\s*\/\s*(\d+(?:[.,]\d+)?))?/i);
+                if (mk) {
+                    const nb = (s) => parseFloat(String(s).replace(/\s/g, '')
+                        .replace(/[−–]/g, '-').replace(',', '.'));
+                    k = nb(mk[1]);
+                    if (mk[2]) { const bas = nb(mk[2]); if (bas) k = k / bas; }
+                } else {
+                    const fois = brut.match(/(\d+(?:[.,]\d+)?)\s*fois\s+plus\s+(grand|petit)/i);
+                    if (fois) {
+                        k = parseFloat(fois[1].replace(',', '.'));
+                        if (/petit/i.test(fois[2])) k = 1 / k;
+                    }
+                }
+                if (k === null) {
+                    return rate(`De quel rapport ? Écrivez « Trace un ${reduit ? 'e réduction' : 'agrandissement'} `
+                        + `du triangle ABC de rapport ${reduit ? '0,5' : '2'} ».`);
+                }
+                if (reduit && Math.abs(k) > 1) k = 1 / k;   // « réduction de rapport 2 » : on divise
+                const noms = this.cslNoms(brut);
+                const centreDit = (brut.match(/centre\s+\(?([A-Z]'{0,2})\)?/) || [])[1];
+                const sources = noms.filter(n => n !== centreDit && this.cslPointNomme(n));
+                let pts = sources.map(n => this.cslPointNomme(n));
+                if (pts.length < 2) {
+                    const tri = this.cslTriangleCourant();
+                    if (tri) pts = tri;
+                }
+                if (pts.length < 2) {
+                    return rate("Quelle figure agrandir ? Tracez-la d'abord, ou nommez ses sommets.");
+                }
+                let centre = centreDit ? this.cslPointNomme(centreDit) : null;
+                if (!centre) {
+                    /* Hors de la figure : sinon l'image se pose dessus et l'on ne
+                       voit plus rien — la même règle que pour l'axe d'une symétrie. */
+                    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+                    const nom = centreDit || this.cslNomLibre(pts.map(p => p.label).filter(Boolean));
+                    centre = new Point(Math.min(...xs) - 140, Math.max(...ys) + 90, nom);
+                    this.addEntity(centre);
+                    this.cslDire(`Aucun centre n'était donné : ${nom} a été posé hors de la figure, `
+                        + `pour qu'on voie l'original et son image.`);
+                }
+                const ditK = String(+k.toFixed(4)).replace('.', ',').replace('-', '−');
+                const listeS = pts.map(p => p.label).filter(Boolean).join('');
+                this.cslDire(`Un ${reduit ? 'e réduction' : 'agrandissement'} de rapport ${ditK}, `
+                    + `c'est l'HOMOTHÉTIE de centre ${centre.label} et de rapport ${ditK} : `
+                    + `les longueurs sont multipliées par ${ditK}, et les angles ne changent pas.`);
+                const phrase = `Construis l'image de ${listeS} par l'homothétie de centre `
+                    + `${centre.label} et de rapport ${String(k).replace('.', ',')}`;
+                return this.cslHomothetie(phrase, phrase.toLowerCase(), fait, rate);
             }
             cslHomothetie(brut, t, fait, rate) {
                 const coupe = brut.split(/par\s+(?:l['’]\s*|une\s+)?homoth[ée]tie\s*/i);
@@ -31464,6 +31773,300 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return null;
             }
+            /* ============================================================
+               LES CONFIGURATIONS D'ANGLES
+
+               C'est le cœur du programme de 5e : deux droites parallèles
+               coupées par une sécante, et le vocabulaire qui va avec —
+               correspondants, alternes-internes, alternes-externes. On y ajoute
+               ce qui se dit dès la 6e : opposés par le sommet, supplémentaires,
+               complémentaires, adjacents.
+
+               La figure ne sert à rien si l'on ne voit pas DE QUELS DEUX ANGLES
+               on parle : ils sont donc peints en plein. Deux angles ÉGAUX
+               reçoivent la même couleur et le même codage — c'est ce que dit la
+               propriété. Deux angles dont la SOMME est remarquable reçoivent
+               deux couleurs différentes, et la bulle donne la somme.
+               ============================================================ */
+            cslConfigurationAngles(brut, t, fait, rate) {
+                const VERT = '#2e7d32', ROUGE = '#c62828', BLEU = '#1565c0';
+                const o = this.cslPlaceLibre(0, 0);
+                const st = this.cslStyle();
+                const cache = (x, y) => {
+                    const p = new Point(x, y, ''); p.visible = false; this.addEntity(p); return p;
+                };
+                const nommer = (x, y, nom) => {
+                    const p = new Point(x, y, nom); this.addEntity(p); return p;
+                };
+                const angle = (a, s, b, couleur, marque) => {
+                    const g = new Angle(a, s, b);
+                    g.isFilled = true;
+                    g.color = couleur;
+                    g.showValue = true;
+                    if (marque) g.coding = marque;
+                    this.addEntity(g);
+                    return g;
+                };
+                const droite = (p1, p2) => {
+                    const d = new Line(p1, p2, st); this.addEntity(d); return d;
+                };
+
+                /* ---- deux parallèles coupées par une sécante ---- */
+                const correspondants = /correspondants?/.test(t);
+                const alterneInt = /alternes?[\s-]*internes?/.test(t);
+                const alterneExt = /alternes?[\s-]*externes?/.test(t);
+                if (correspondants || alterneInt || alterneExt
+                    || (/s[ée]cante/.test(t) && /parall[èe]les/.test(t))) {
+                    const DEMI = 320, ECART = 115, BIAIS = 78;
+                    const yH = o.y - ECART, yB = o.y + ECART;
+                    /* Les deux parallèles sont horizontales : c'est la figure du
+                       manuel, celle qu'on reconnaît d'un coup d'œil. La sécante
+                       est franchement oblique, sans quoi les huit angles se
+                       ressemblent tous et la figure n'apprend rien. */
+                    const I = nommer(o.x - BIAIS, yH, 'I'), J = nommer(o.x + BIAIS, yB, 'J');
+                    const d1 = droite(cache(o.x - DEMI, yH), cache(o.x + DEMI, yH));
+                    d1.nomDroite = 'd'; this.cslMemoire().droites['d'] = d1;
+                    const d2 = droite(cache(o.x - DEMI, yB), cache(o.x + DEMI, yB));
+                    d2.nomDroite = "d'"; this.cslMemoire().droites["d'"] = d2;
+                    const vx = J.x - I.x, vy = J.y - I.y;
+                    const n = Math.hypot(vx, vy) || 1;
+                    const ex = vx / n, ey = vy / n;
+                    const sec = droite(cache(I.x - ex * 190, I.y - ey * 190),
+                                       cache(J.x + ex * 190, J.y + ey * 190));
+                    sec.nomDroite = 'Δ'; this.cslMemoire().droites['Δ'] = sec;
+                    // les poignées : sur les parallèles, et le long de la sécante
+                    const Ig = cache(I.x - 150, yH), Id = cache(I.x + 150, yH);
+                    const Jg = cache(J.x - 150, yB), Jd = cache(J.x + 150, yB);
+                    const Ih = cache(I.x - ex * 150, I.y - ey * 150);   // vers l'extérieur, en haut
+                    const Ib = cache(I.x + ex * 150, I.y + ey * 150);   // vers J, entre les droites
+                    const Jh = cache(J.x - ex * 150, J.y - ey * 150);   // vers I, entre les droites
+                    const Jb = cache(J.x + ex * 150, J.y + ey * 150);   // vers l'extérieur, en bas
+                    let g1, g2, nom;
+                    if (correspondants) {
+                        /* Même position par rapport à chaque parallèle et du même
+                           côté de la sécante : à droite, sous la droite. */
+                        g1 = angle(Id, I, Ib, VERT, 'mark-1');
+                        g2 = angle(Jd, J, Jb, VERT, 'mark-1');
+                        nom = 'correspondants';
+                        this.cslDire('Deux angles CORRESPONDANTS sont du même côté de la sécante, '
+                            + "l'un au-dessus d'une parallèle, l'autre au-dessus de l'autre. "
+                            + 'Quand les droites sont parallèles, ils sont ÉGAUX — et réciproquement, '
+                            + "s'ils sont égaux, les droites sont parallèles.");
+                    } else if (alterneInt) {
+                        g1 = angle(Id, I, Ib, VERT, 'mark-1');
+                        g2 = angle(Jg, J, Jh, VERT, 'mark-1');
+                        nom = 'alternes-internes';
+                        this.cslDire('Deux angles ALTERNES-INTERNES sont de part et d\'autre de la '
+                            + 'sécante (alternes) et entre les deux parallèles (internes). '
+                            + 'Quand les droites sont parallèles, ils sont ÉGAUX.');
+                    } else if (alterneExt) {
+                        g1 = angle(Ig, I, Ih, VERT, 'mark-1');
+                        g2 = angle(Jd, J, Jb, VERT, 'mark-1');
+                        nom = 'alternes-externes';
+                        this.cslDire('Deux angles ALTERNES-EXTERNES sont de part et d\'autre de la '
+                            + 'sécante et à l\'EXTÉRIEUR des deux parallèles. '
+                            + 'Quand les droites sont parallèles, ils sont ÉGAUX.');
+                    } else {
+                        /* « deux parallèles coupées par une sécante » sans autre
+                           mot : la figure entière, sans rien peindre — c'est le
+                           support, on nomme les huit angles ensuite. */
+                        this.cslDire('Deux parallèles coupées par une sécante : huit angles. '
+                            + 'Demandez « des angles correspondants », « alternes-internes » '
+                            + 'ou « alternes-externes » pour voir lesquels vont deux par deux.');
+                        return fait("Deux parallèles (d) et (d') coupées par la sécante (Δ)");
+                    }
+                    const v1 = Math.round(g1.getAngleValue()), v2 = Math.round(g2.getAngleValue());
+                    return fait(`Angles ${nom} en I et en J — ${v1}° et ${v2}°`);
+                }
+
+                /* ---- opposés par le sommet ---- */
+                if (/oppos[ée]s?\s+par\s+le\s+sommet/.test(t)) {
+                    const O = nommer(o.x, o.y, 'O');
+                    const R = 210, a1 = -0.30, a2 = -1.55;
+                    const A = nommer(O.x + Math.cos(a1) * R, O.y + Math.sin(a1) * R, 'A');
+                    const B = nommer(O.x + Math.cos(a2) * R, O.y + Math.sin(a2) * R, 'B');
+                    const A2 = nommer(O.x - Math.cos(a1) * R, O.y - Math.sin(a1) * R, "A'");
+                    const B2 = nommer(O.x - Math.cos(a2) * R, O.y - Math.sin(a2) * R, "B'");
+                    droite(A, A2); droite(B, B2);
+                    const g1 = angle(A, O, B, VERT, 'mark-1');
+                    const g2 = angle(A2, O, B2, VERT, 'mark-1');
+                    this.cslDire('Deux angles OPPOSÉS PAR LE SOMMET ont le même sommet et leurs '
+                        + 'côtés sont dans le prolongement l\'un de l\'autre. Ils sont toujours ÉGAUX.');
+                    return fait(`Angles AOB et A'OB' opposés par le sommet — `
+                        + `${Math.round(g1.getAngleValue())}° et ${Math.round(g2.getAngleValue())}°`);
+                }
+
+                /* ---- supplémentaires : leur somme fait 180° ---- */
+                if (/suppl[ée]mentaires?/.test(t)) {
+                    const O = nommer(o.x, o.y + 60, 'O');
+                    const R = 230;
+                    const A = nommer(O.x - R, O.y, 'A');
+                    const B = nommer(O.x + R, O.y, 'B');
+                    const aC = -1.15;
+                    const C = nommer(O.x + Math.cos(aC) * R, O.y + Math.sin(aC) * R, 'C');
+                    droite(A, B);
+                    this.cslSegment(O, C);
+                    const g1 = angle(A, O, C, VERT);
+                    const g2 = angle(C, O, B, ROUGE);
+                    const s = Math.round(g1.getAngleValue()) + Math.round(g2.getAngleValue());
+                    this.cslDire('Deux angles SUPPLÉMENTAIRES ont pour somme 180°. Ici ils sont '
+                        + 'aussi ADJACENTS — même sommet, le côté [OC) en commun — et leurs deux '
+                        + 'autres côtés forment la droite (AB) : c\'est l\'angle plat.');
+                    return fait(`Angles AOC et COB supplémentaires — `
+                        + `${Math.round(g1.getAngleValue())}° + ${Math.round(g2.getAngleValue())}° = ${s}°`);
+                }
+
+                /* ---- complémentaires : leur somme fait 90° ---- */
+                if (/compl[ée]mentaires?/.test(t)) {
+                    const O = nommer(o.x - 60, o.y + 110, 'O');
+                    const R = 260;
+                    const A = nommer(O.x + R, O.y, 'A');
+                    const B = nommer(O.x, O.y - R, 'B');
+                    const aC = -0.62;
+                    const C = nommer(O.x + Math.cos(aC) * R, O.y + Math.sin(aC) * R, 'C');
+                    this.cslSegment(O, A); this.cslSegment(O, B); this.cslSegment(O, C);
+                    const g1 = angle(A, O, C, VERT);
+                    const g2 = angle(C, O, B, ROUGE);
+                    const droitAngle = new Angle(A, O, B);
+                    droitAngle.isRightAngle = true; this.addEntity(droitAngle);
+                    const s = Math.round(g1.getAngleValue()) + Math.round(g2.getAngleValue());
+                    this.cslDire('Deux angles COMPLÉMENTAIRES ont pour somme 90°. Ensemble ils '
+                        + 'remplissent exactement l\'angle droit AOB.');
+                    return fait(`Angles AOC et COB complémentaires — `
+                        + `${Math.round(g1.getAngleValue())}° + ${Math.round(g2.getAngleValue())}° = ${s}°`);
+                }
+
+                /* ---- adjacents ---- */
+                if (/adjacents?/.test(t)) {
+                    const O = nommer(o.x, o.y + 90, 'O');
+                    const R = 250;
+                    const A = nommer(O.x + Math.cos(-0.15) * R, O.y + Math.sin(-0.15) * R, 'A');
+                    const B = nommer(O.x + Math.cos(-1.00) * R, O.y + Math.sin(-1.00) * R, 'B');
+                    const C = nommer(O.x + Math.cos(-2.05) * R, O.y + Math.sin(-2.05) * R, 'C');
+                    this.cslSegment(O, A); this.cslSegment(O, B); this.cslSegment(O, C);
+                    const g1 = angle(A, O, B, VERT);
+                    const g2 = angle(B, O, C, BLEU);
+                    this.cslDire('Deux angles ADJACENTS ont le même sommet, un côté commun — ici '
+                        + '[OB) — et ils sont de part et d\'autre de ce côté commun : ils ne se '
+                        + 'chevauchent pas.');
+                    return fait(`Angles AOB et BOC adjacents, de côté commun [OB) — `
+                        + `${Math.round(g1.getAngleValue())}° et ${Math.round(g2.getAngleValue())}°`);
+                }
+                return null;
+            }
+            /* ============================================================
+               LA PARALLÈLE ET LA PERPENDICULAIRE, AU GESTE
+
+               « Montre-moi comment on trace deux droites parallèles » recevait
+               deux droites parallèles — et rien d'autre. Mesuré : zéro
+               ToolAnimation, zéro arc. La phrase demande la MÉTHODE, on ne lui
+               rendait que le résultat.
+
+               La parallèle se trace À LA RÈGLE ET À L'ÉQUERRE, et le geste est
+               tout l'enseignement : l'équerre se pose le long de la droite, la
+               règle sert de rail perpendiculaire, l'équerre GLISSE le long du
+               rail sans tourner — c'est ce glissement qui garde l'écart
+               constant — et l'on trace au bord de l'équerre arrivée.
+
+               On n'a pas pris la construction « deux perpendiculaires
+               successives » : elle est juste, mais ce n'est pas le geste qu'on
+               montre en classe, et la phrase demande le geste.
+               ============================================================ */
+            cslRailParallele(F, C, u) {
+                /* Le rail va du pied de la perpendiculaire jusqu'au point. Si le
+                   point EST sur la droite, il n'y a pas de rail : on en fabrique
+                   un, perpendiculaire, de la longueur d'un décalage visible. */
+                let vx = C.x - F.x, vy = C.y - F.y;
+                if (Math.hypot(vx, vy) < 1) {
+                    const n = Math.hypot(u.x, u.y) || 1;
+                    vx = -u.y / n * 90; vy = u.x / n * 90;
+                }
+                return { x: vx, y: vy };
+            }
+            cslGesteParallele(C, a, b) {
+                const u = { x: b.x - a.x, y: b.y - a.y };
+                const len2 = u.x * u.x + u.y * u.y || 1;
+                const k = ((C.x - a.x) * u.x + (C.y - a.y) * u.y) / len2;
+                const F = { x: a.x + k * u.x, y: a.y + k * u.y };
+                const rail = this.cslRailParallele(F, C, u);
+                const aU = Math.atan2(u.y, u.x);
+                const aRail = Math.atan2(rail.y, rail.x);
+                const poseSur = { x: F.x, y: F.y, angle: aU };
+                const poseArrivee = { x: C.x, y: C.y, angle: aU };
+
+                this.stepInstructions[this.entities.length] =
+                    "On pose l'équerre le long de la droite : son bord gradué est dessus.";
+                const a1 = new ToolAnimation('move', poseSur, poseSur);
+                a1.widgetType = 'setsquare'; this.addEntity(a1);
+
+                this.stepInstructions[this.entities.length] =
+                    "La règle sert de rail : on la pose contre l'équerre, perpendiculairement.";
+                const a2 = new ToolAnimation('move', { x: F.x, y: F.y, angle: aRail },
+                                                     { x: F.x, y: F.y, angle: aRail });
+                a2.widgetType = 'ruler'; this.addEntity(a2);
+                /* L'ÉCART SE VOIT. C'est lui qui est constant, et c'est pour cela
+                   que les deux droites sont parallèles : un trait léger le dit. */
+                const pF = new Point(F.x, F.y, ''); pF.visible = false; this.addEntity(pF);
+                const ecart = new Segment(pF, C, { color: '#b8b8b8', width: 1 });
+                ecart.dash = [5, 5]; ecart.estConstruction = true; this.addEntity(ecart);
+
+                this.stepInstructions[this.entities.length] =
+                    "L'équerre GLISSE le long de la règle sans tourner : l'écart reste le même.";
+                const a3 = new ToolAnimation('move', poseSur, poseArrivee);
+                a3.widgetType = 'setsquare'; this.addEntity(a3);
+
+                this.stepInstructions[this.entities.length] =
+                    "On trace au bord de l'équerre arrivée : la parallèle.";
+                const a4 = new ToolAnimation('trace', poseArrivee, poseArrivee);
+                a4.widgetType = 'setsquare'; this.addEntity(a4);
+                const d = this.cslPoserStyle(new ParallelLine(C, { p1: a, p2: b }));
+                this.addEntity(d);
+                this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                return d;
+            }
+            /* La perpendiculaire suit le geste déjà retenu ailleurs : l'équerre
+               descend du point jusqu'à la droite, puis LA RÈGLE SE COUCHE SUR LE
+               TRAIT DÉJÀ FAIT et le prolonge. On ne fait pas basculer l'équerre :
+               rien ne garantirait qu'elle retombe sur la même droite. */
+            cslGestePerpendiculaire(C, a, b) {
+                const u = { x: b.x - a.x, y: b.y - a.y };
+                const len2 = u.x * u.x + u.y * u.y || 1;
+                const k = ((C.x - a.x) * u.x + (C.y - a.y) * u.y) / len2;
+                let F = { x: a.x + k * u.x, y: a.y + k * u.y };
+                if (Math.hypot(C.x - F.x, C.y - F.y) < 1) {
+                    const n = Math.hypot(u.x, u.y) || 1;
+                    F = { x: C.x + u.y / n * 90, y: C.y - u.x / n * 90 };
+                }
+                const aVers = Math.atan2(C.y - F.y, C.x - F.x);
+                const pF = new Point(F.x, F.y, ''); pF.visible = false; this.addEntity(pF);
+
+                this.stepInstructions[this.entities.length] =
+                    "L'équerre descend du point jusqu'à la droite, à angle droit.";
+                const a1 = new ToolAnimation('trace', { x: F.x, y: F.y, angle: aVers },
+                                                      { x: F.x, y: F.y, angle: aVers });
+                a1.widgetType = 'setsquare'; this.addEntity(a1);
+                const trait = new Segment(pF, C, { color: '#b8b8b8', width: 1 });
+                trait.dash = [5, 5]; trait.estConstruction = true; this.addEntity(trait);
+                this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
+
+                this.stepInstructions[this.entities.length] =
+                    "La règle se couche sur le trait déjà fait et le prolonge.";
+                const pose = { x: C.x, y: C.y, angle: aVers + Math.PI };
+                const a2 = new ToolAnimation('move', pose, pose);
+                a2.widgetType = 'ruler'; this.addEntity(a2);
+                const a3 = new ToolAnimation('trace', pose, pose);
+                a3.widgetType = 'ruler'; this.addEntity(a3);
+                const d = this.cslPoserStyle(new PerpendicularLine(C, { p1: a, p2: b }));
+                this.addEntity(d);
+                this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                /* L'angle droit est ce que la phrase demande : la figure le dit. */
+                const n = Math.hypot(u.x, u.y) || 1;
+                const surD = new Point(F.x + u.x / n * 70, F.y + u.y / n * 70, '');
+                surD.visible = false; this.addEntity(surD);
+                const mk = new Angle(surD, pF, C); mk.isRightAngle = true; this.addEntity(mk);
+                return d;
+            }
             cslDroiteRemarquable(brut, t, fait, rate) {
                 const med = /m[ée]diatrice/.test(t);
                 const bis = /bissectrice/.test(t);
@@ -31471,7 +32074,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const perp = /perpendiculaire/.test(t);
 
                 if (bis) {
-                    const noms = this.cslNoms(brut);
+                    let noms = this.cslNoms(brut);
+                    /* « Montre-moi comment tracer la bissectrice » ne nomme aucun
+                       angle : on en pose un, et l'on montre. */
+                    if (noms.length < 3 && (this._cslExempleLibre || /\bd['’]un\s+angle\b/.test(t))) {
+                        const o = this.cslPlaceLibre(0, 0);
+                        const R = 230;
+                        const B = new Point(o.x - 60, o.y + 110, this.cslNomLibre([]));
+                        this.addEntity(B);
+                        const A = new Point(B.x + R, B.y, this.cslNomLibre([B.label]));
+                        this.addEntity(A);
+                        const aC = -1.05;
+                        const C = new Point(B.x + Math.cos(aC) * R, B.y + Math.sin(aC) * R,
+                                            this.cslNomLibre([B.label, A.label]));
+                        this.addEntity(C);
+                        this.cslSegment(B, A); this.cslSegment(B, C);
+                        this.addEntity(new Angle(A, B, C));
+                        noms = [A.label, B.label, C.label];
+                        this.cslDire(`Aucun angle n'était donné : on en pose un, `
+                            + `${noms.join('')}, et l'on montre dessus.`);
+                    }
                     if (noms.length < 3) return rate("De quel angle ? Écrivez « Trace la bissectrice de l'angle ABC ».");
                     const [a, b, c] = noms.map(n => this.cslPointNomme(n));
                     if (!a || !b || !c) return rate("Je ne connais pas tous ces points.");
@@ -31602,9 +32224,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/\ben\s+([A-Z]'{0,2})\b/);
                 if (!par) return rate("Par quel point ? Écrivez « … passant par C ».");
                 const c = this.cslPoint(par[1]);
-                const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, { p1: a, p2: b })
-                                                 : new ParallelLine(c, { p1: a, p2: b }));
-                this.addEntity(d);
+                if (this.cslDetaille()) {
+                    this.cslBatir(null, () => (perp ? this.cslGestePerpendiculaire(c, a, b)
+                                                    : this.cslGesteParallele(c, a, b)));
+                } else {
+                    const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, { p1: a, p2: b })
+                                                     : new ParallelLine(c, { p1: a, p2: b }));
+                    this.addEntity(d);
+                }
                 return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
             }
             /* CE QU'ON TRACE DANS UN CERCLE : un rayon, un diamètre, une corde,
@@ -31797,17 +32424,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        il est en tête de la phrase et vaut pour tous les morceaux.
                        Sans cela, le cercle d'une énumération réclamait un rayon que
                        ses voisines n'avaient pas eu à donner. */
-                    if (/^(?:trace|tracer|construis|construire|dessine|un\s+cercle|le\s+cercle)\b/.test(t)
+                    if (/^(?:trace|tracer|construis|construire|dessine|un\s+cercle|le\s+cercle|un\s+disque|le\s+disque)\b/.test(t)
                         && !/de\s/.test(t)) r = 130;
                 }
                 if (r === null || !(r > 0)) {
                     return rate("Quel rayon ? Écrivez « … passant par B », « … de rayon 3 cm » "
                         + "ou « … de diamètre [AB] ».");
                 }
+                /* UN DEMI-CERCLE N'EST PAS UN CERCLE, et un disque non plus.
+                   « Trace un demi-cercle de diamètre [AB] » traçait le cercle
+                   ENTIER en répondant « Cercle de diamètre [AB] » : la réponse
+                   avait l'air juste, la figure disait le contraire. Le
+                   demi-cercle est un arc de 180°, et le disque est la surface —
+                   c'est le mot du cours dès la 6e. */
+                const demi = /demi[\s-]*cercles?/.test(t);
+                if (demi) {
+                    let a1 = Math.PI;
+                    const s = dia && dia[1] && dia[1].match(/\[?([A-Z]'{0,2})([A-Z]'{0,2})\]?/);
+                    const a = s && this.cslPointNomme(s[1]);
+                    if (a) a1 = Math.atan2(a.y - centre.y, a.x - centre.x);
+                    const arc = new Arc(centre, r, a1, a1 + Math.PI);
+                    const stA = this.cslStyle();
+                    arc.color = stA.color; arc.lineWidth = stA.width;
+                    if (stA.dash) { arc.dash = [5, 5]; arc.styleDemande = true; }
+                    this.addEntity(arc);
+                    return fait(`Demi-cercle ${dit}`.trim());
+                }
                 const bord = new Point(centre.x + r, centre.y, '');
                 bord.visible = false;
                 this.addEntity(bord);
                 const c = this.cslPoserStyle(new Circle(centre, bord));
+                /* Le disque, c'est le cercle ET l'intérieur. */
+                if (/\bdisques?\b/.test(t)) {
+                    c.fillMode = 'solid';
+                    if (this._cslRemplissage && this._cslRemplissage.couleur) {
+                        c.fillColor = this._cslRemplissage.couleur;
+                    }
+                }
                 this.addEntity(c);
                 /* « Trace le cercle C1 de centre O » : le cercle porte un nom, et
                    les phrases suivantes s'en servent — « il coupe le cercle C1 ». */
@@ -31817,7 +32470,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    n'a pas de nom : « Cercle de centre · de diamètre [AB] » ne
                    voulait rien dire. On dit alors ce que l'énoncé a dit. */
                 const ou = centre.label ? `de centre ${centre.label} ` : '';
-                return fait(`Cercle ${nomCercle ? nomCercle + ' ' : ''}${ou}${dit}`.trim());
+                return fait(`${/\bdisques?\b/.test(t) ? 'Disque' : 'Cercle'} `
+                    + `${nomCercle ? nomCercle + ' ' : ''}${ou}${dit}`.trim());
             }
             /* ================================================================
                LES OBJETS QU'ON NOMME, ET LEURS CROISEMENTS
@@ -31870,22 +32524,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                La troisième est celle qu'on oublie, et c'est celle qui fait qu'un
                dessin de cube ressemble à un cube.
                ============================================================ */
-            cslSolide(brut, t, fait, rate) {
-                const FUYANTE = -Math.PI / 4;          // 45° vers le haut à droite
-                const K = 0.5;                          // le coefficient de réduction
-                const fx = Math.cos(FUYANTE) * K, fy = Math.sin(FUYANTE) * K;
-                const st = this.cslStyle();
+            /* LIRE LES MESURES D'UN SOLIDE. Deux façons de les donner, et il faut
+               les deux : par leur NOM (« de hauteur 5 cm ») et par leur RANG
+               (« de 5 cm sur 3 cm sur 2 cm »).
+
+               UNE MESURE NOMMÉE N'EST PLUS DISPONIBLE POUR LE RANG. « Trace une
+               pyramide de hauteur 5 cm » donnait une base de 5 cm ET une hauteur
+               de 5 cm : le même nombre servait deux fois, une fois par son nom et
+               une fois par sa position. On retire donc du rang ce qui a été pris
+               par son nom.
+
+               Un seul lecteur pour les solides ET les patrons : deux copies
+               auraient divergé au premier ajout. */
+            cslLireMesures(brut) {
                 const lg = (m) => (m ? this.cslLongueurPx(m) : null);
-                /* Les mesures, dans l'ordre où elles sont écrites. */
                 const mesures = [...brut.matchAll(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)\b)/gi)].map(m => m[1]);
-                /* UNE MESURE NOMMÉE N'EST PLUS DISPONIBLE POUR LE RANG. « Trace une
-                   pyramide de hauteur 5 cm » donnait une base de 5 cm ET une
-                   hauteur de 5 cm : le même nombre servait deux fois, une fois par
-                   son nom et une fois par sa position. On retire donc du rang ce
-                   qui a été pris par son nom. */
                 const prises = new Set();
                 const nommee = (re) => {
-                    const m = brut.match(new RegExp(re.source + '\\s*(?:de\\s*|:\\s*|=\\s*)?(\\d+(?:[.,]\\d+)?\\s*(?:mm|cm|dm|m)\\b)', 'i'));
+                    /* LE NOM EST MIS ENTRE PARENTHÈSES ICI, une fois pour toutes.
+                       Un appelant qui écrivait /hauteur|longueur/ obtenait
+                       « hauteur » OU « longueur\\s*…(\\d+) » : sur la première
+                       branche il n'y avait pas de groupe 1, et la lecture des
+                       mesures levait une exception que le grand catch changeait
+                       en « Je n'ai pas su faire ça ». */
+                    const m = brut.match(new RegExp('(?:' + re.source + ')'
+                        + '\\s*(?:de\\s*|:\\s*|=\\s*)?(\\d+(?:[.,]\\d+)?\\s*(?:mm|cm|dm|m)\\b)', 'i'));
                     if (!m) return null;
                     prises.add(m[1].replace(/\s+/g, ''));
                     return lg(m[1]);
@@ -31894,6 +32557,499 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const restantes = mesures.filter(x => !prises.has(x.replace(/\s+/g, '')));
                     return restantes[i] ? lg(restantes[i]) : null;
                 };
+                return { nommee, rang, combien: mesures.length };
+            }
+            /* ============================================================
+               LES PATRONS
+
+               Un patron n'est pas une perspective : c'est la surface du solide
+               mise à plat, celle qu'on découpe et qu'on plie. Mesuré avant :
+               « Dessine le patron d'un cube de 3 cm » rendait un cube en
+               perspective cavalière — le mot « patron » était purement et
+               simplement ignoré.
+
+               Deux sortes de traits, et c'est TOUT ce qu'un patron a à dire :
+               le CONTOUR se découpe (trait plein), les arêtes INTÉRIEURES se
+               plient (pointillés). On ne les décide pas à la main : une arête
+               partagée par deux faces est un pli, une arête vue une seule fois
+               est une découpe. La règle est écrite une fois, elle vaut pour
+               tous les patrons polyédriques — et pour celui qu'on ajoutera.
+
+               Les mesures sont VRAIES : un patron sert à mesurer, à découper et
+               à plier. Rien n'est remis à l'échelle pour tenir dans l'écran ; on
+               dit son encombrement, et le zoom fait le reste.
+               ============================================================ */
+            /* ============================================================
+               REPORTER UNE LONGUEUR AU COMPAS
+
+               C'est le premier geste du compas, celui qu'on apprend avant tout
+               le reste : on prend un écartement sur un segment, on le pose
+               ailleurs. « Reporte la longueur AB à partir de C » ne traçait rien
+               et répondait « Je n'ai pas compris ».
+
+               Le compas prend AB, se plante en C, et trace son arc : le point
+               cherché est sur cet arc. La direction se lit dans la phrase quand
+               elle la donne — « sur [CD) », « sur la droite (CD) » — et vaut la
+               continuation d'un trait déjà passant par C sinon.
+               ============================================================ */
+            cslReporter(brut, t, fait, rate) {
+                const paires = [...brut.matchAll(/\[?([A-Z]'{0,2})([A-Z]'{0,2})[\]\)]?/g)]
+                    .map(m => [m[1], m[2]]);
+                let source = paires.find(([a, b]) => this.cslPointNomme(a) && this.cslPointNomme(b)
+                    && a !== b);
+                /* « Comment reporter une longueur au compas ? » ne nomme rien :
+                   on pose l'exemple — un segment à reporter, et le point d'où. */
+                if (!source && this._cslExempleLibre) {
+                    const o = this.cslPlaceLibre(0, -60);
+                    const nA = this.cslNomLibre([]);
+                    const A0 = new Point(o.x - 200, o.y, nA); this.addEntity(A0);
+                    const nB = this.cslNomLibre([nA]);
+                    const B0 = new Point(o.x + 20, o.y, nB); this.addEntity(B0);
+                    this.cslSegment(A0, B0);
+                    const nC = this.cslNomLibre([nA, nB]);
+                    const C0 = new Point(o.x - 170, o.y + 190, nC); this.addEntity(C0);
+                    source = [nA, nB];
+                    brut = `${brut} ${nA}${nB} à partir de ${nC}`;
+                    this.cslDire(`Rien n'était donné : on pose [${nA}${nB}] à reporter, `
+                        + `et le point ${nC} d'où le reporter.`);
+                }
+                if (!source) {
+                    return rate("Quelle longueur ? Écrivez « Reporte la longueur AB à partir de C ».");
+                }
+                const [nA, nB] = source;
+                const A = this.cslPointNomme(nA), B = this.cslPointNomme(nB);
+                const depuis = (brut.match(/(?:[àa]\s+partir\s+d[eu]|depuis|en)\s+([A-Z]'{0,2})/) || [])[1];
+                const C = depuis ? this.cslPointNomme(depuis) : null;
+                if (!C) {
+                    return rate("À partir de quel point ? Écrivez « Reporte la longueur "
+                        + `${nA}${nB} à partir de C ».`);
+                }
+                const R = MathUtils.dist(A.x, A.y, B.x, B.y);
+                /* La direction : celle que la phrase donne, sinon celle d'un trait
+                   qui part de C, sinon l'horizontale. */
+                let dir = null;
+                const vers = (brut.match(/sur\s+\[?\(?([A-Z]'{0,2})([A-Z]'{0,2})[\)\]]?/) || []);
+                if (vers[1] && vers[2]) {
+                    const p = this.cslPointNomme(vers[1] === depuis ? vers[2] : vers[1]);
+                    const q = this.cslPointNomme(vers[1] === depuis ? vers[1] : vers[2]);
+                    if (p && q && p !== q) dir = Math.atan2(p.y - q.y, p.x - q.x);
+                }
+                if (dir === null) {
+                    const trait = this.entities.find(e => e instanceof LinearObject
+                        && !this.estTraceDeConstruction(e) && (e.p1 === C || e.p2 === C));
+                    if (trait) {
+                        const autre = trait.p1 === C ? trait.p2 : trait.p1;
+                        if (autre) dir = Math.atan2(autre.y - C.y, autre.x - C.x);
+                    }
+                }
+                if (dir === null) dir = -Math.PI / 10;
+                const nom = this.cslNoms(brut).find(n => !this.cslPointNomme(n))
+                    || this.cslNomLibre([]);
+                const D = new Point(C.x + Math.cos(dir) * R, C.y + Math.sin(dir) * R, nom);
+                if (this.cslDetaille()) {
+                    this.cslBatir(null, () => {
+                        const aAB = Math.atan2(B.y - A.y, B.x - A.x);
+                        this.stepInstructions[this.entities.length] =
+                            `On prend l'écartement ${nA}${nB} au compas.`;
+                        const ouvre = new ToolAnimation('move',
+                            { x: A.x, y: A.y, angle: aAB, radius: 0 },
+                            { x: A.x, y: A.y, angle: aAB, radius: R });
+                        ouvre.widgetType = 'compass'; this.addEntity(ouvre);
+                        this.stepInstructions[this.entities.length] =
+                            `On plante le compas en ${C.label} sans changer l'écartement.`;
+                        const bouge = new ToolAnimation('move',
+                            { x: A.x, y: A.y, angle: aAB, radius: R },
+                            { x: C.x, y: C.y, angle: dir - 0.35, radius: R });
+                        bouge.widgetType = 'compass'; this.addEntity(bouge);
+                        const trace = new ToolAnimation('trace',
+                            { x: C.x, y: C.y, angle: dir - 0.35, radius: R },
+                            { x: C.x, y: C.y, angle: dir + 0.35, radius: R });
+                        trace.widgetType = 'compass'; trace.counterClockwise = false;
+                        this.addEntity(trace);
+                        const arc = new CompassArc(C, R, dir - 0.35, dir + 0.35, false);
+                        arc.color = '#ff9900'; this.addEntity(arc);
+                        this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                        this.addEntity(D);
+                    });
+                } else {
+                    this.addEntity(D);
+                }
+                /* Les deux longueurs sont égales, et la figure doit le dire. */
+                const trait = this.entities.find(e => e instanceof Segment
+                    && ((e.p1 === A && e.p2 === B) || (e.p1 === B && e.p2 === A)));
+                const neuf = this.cslSegment(C, D);
+                const marque = this.marqueCodage(R).marque;
+                if (trait) trait.coding = marque;
+                neuf.coding = marque;
+                const cm = Math.round(R / UNIT * (this.cmScale || 1) * 10) / 10;
+                this.cslDire(`Reporter, c'est garder l'écartement : `
+                    + `${C.label}${nom} = ${nA}${nB}, et les deux traits portent la même marque.`);
+                return fait(`${nA}${nB} reporté à partir de ${C.label} : ${C.label}${nom} `
+                    + `= ${String(cm).replace('.', ',')} cm`);
+            }
+            cslPatronPolyedre(faces, st) {
+                /* Les sommets : un seul Point par position, invisible et sans
+                   nom. Un patron se lit à ses traits, pas à ses lettres, et
+                   quatorze lettres sur un cube ne diraient rien à personne. */
+                const cle = (p) => Math.round(p[0] * 100) / 100 + '|' + Math.round(p[1] * 100) / 100;
+                const sommets = new Map();
+                const pointDe = (p) => {
+                    const k = cle(p);
+                    if (!sommets.has(k)) {
+                        const q = new Point(p[0], p[1], '');
+                        q.visible = false;
+                        this.addEntity(q);
+                        sommets.set(k, q);
+                    }
+                    return sommets.get(k);
+                };
+                // combien de faces se partagent chaque arête ?
+                const compte = new Map();
+                const cleArete = (a, b) => [cle(a), cle(b)].sort().join('#');
+                for (const f of faces) {
+                    for (let i = 0; i < f.length; i++) {
+                        const k = cleArete(f[i], f[(i + 1) % f.length]);
+                        compte.set(k, (compte.get(k) || 0) + 1);
+                    }
+                }
+                const faites = new Set();
+                let plis = 0, decoupes = 0;
+                for (const f of faces) {
+                    for (let i = 0; i < f.length; i++) {
+                        const a = f[i], b = f[(i + 1) % f.length];
+                        const k = cleArete(a, b);
+                        if (faites.has(k)) continue;
+                        faites.add(k);
+                        const pli = (compte.get(k) || 1) > 1;
+                        const s = new Segment(pointDe(a), pointDe(b),
+                                              { color: st.color, width: st.width });
+                        if (pli) {
+                            s.dash = [5, 5];
+                            /* Un pli EST le patron : ce n'est pas un trait de
+                               construction, et « sans les outils » ne doit pas
+                               l'effacer. */
+                            s.styleDemande = true;
+                            plis++;
+                        } else decoupes++;
+                        this.addEntity(s);
+                    }
+                }
+                return { plis, decoupes };
+            }
+            cslPatronDire(largeur, hauteur) {
+                const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                const L = cm(largeur), H = cm(hauteur);
+                this.cslDire(`Traits pleins : on découpe. Pointillés : on plie. `
+                    + `Le patron mesure ${String(L).replace('.', ',')} cm `
+                    + `sur ${String(H).replace('.', ',')} cm.`);
+                return { L, H };
+            }
+            cslPatron(brut, t, fait, rate) {
+                const st = this.cslStyle();
+                const { nommee, rang } = this.cslLireMesures(brut);
+                const o = this.cslPlaceLibre(0, 0);
+                /* On calcule tout dans un repère à soi, puis on recentre : c'est
+                   la seule façon d'avoir un patron centré quelle que soit sa
+                   forme — le secteur d'un cône n'a pas de boîte évidente. */
+                const pose = (largeur, hauteur) => ({
+                    x: o.x - largeur / 2, y: o.y - hauteur / 2,
+                });
+
+                /* ---- la sphère : il n'y en a pas, et c'est un fait ---- */
+                if (/sph[èe]re|boule/.test(t)) {
+                    return rate("Une sphère n'a pas de patron : sa surface est courbe dans "
+                        + "toutes les directions, on ne peut pas l'aplatir sans la déchirer. "
+                        + "C'est pour la même raison qu'une carte du monde déforme toujours "
+                        + "quelque chose.");
+                }
+
+                /* ---- cube et pavé droit : la croix, et la bande à deux couvercles ---- */
+                if (/\bcube\b/.test(t) || /pav[ée]\s+droit|parall[ée]l[ée]pip[èe]de/.test(t)) {
+                    const cube = /\bcube\b/.test(t);
+                    const nL = nommee(/(?:ar[êe]te|c[ôo]t[ée]|longueur)/);
+                    const nH = nommee(/hauteur/);
+                    const nP = nommee(/(?:largeur|profondeur)/);
+                    const L = nL || rang(0) || 150;
+                    const l = cube ? L : (nP || rang(nL ? 0 : 1) || L * 0.6);
+                    const h = cube ? L : (nH || rang((nL ? 0 : 1) + (nP ? 0 : 1)) || L * 0.4);
+                    /* LA CROIX LATINE, celle que tout le monde a en tête : une
+                       colonne de quatre faces — dessus, avant, dessous, arrière —
+                       et deux faces posées de part et d'autre de l'avant.
+                       Pour un cube d'arête a, elle mesure 3a sur 4a. */
+                    const larg = L + 2 * l, haut = 2 * (l + h);
+                    const { x, y } = pose(larg, haut);
+                    const rect = (x0, y0, w, hh) => [[x0, y0], [x0 + w, y0],
+                                                     [x0 + w, y0 + hh], [x0, y0 + hh]];
+                    const xc = x + l;                          // la colonne
+                    const faces = [
+                        rect(xc, y, L, l),                     // dessus
+                        rect(xc, y + l, L, h),                 // avant
+                        rect(xc, y + l + h, L, l),             // dessous
+                        rect(xc, y + 2 * l + h, L, h),         // arrière
+                        rect(x, y + l, l, h),                  // gauche
+                        rect(xc + L, y + l, l, h),             // droite
+                    ];
+                    const { plis, decoupes } = this.cslPatronPolyedre(faces, st);
+                    const { L: cl, H: ch } = this.cslPatronDire(larg, haut);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                    this.cslDire(cube
+                        ? 'Le patron du cube : six carrés égaux. Celui-ci est « en croix » — '
+                          + 'il en existe onze autres, tous justes.'
+                        : 'Le patron du pavé droit : trois paires de rectangles égaux, '
+                          + 'les faces opposées deux à deux.');
+                    void cl; void ch; void decoupes;
+                    return fait(cube
+                        ? `Patron d'un cube de ${String(cm(L)).replace('.', ',')} cm d'arête `
+                          + `— 6 faces, ${plis} plis`
+                        : `Patron d'un pavé droit ${String(cm(L)).replace('.', ',')} × `
+                          + `${String(cm(l)).replace('.', ',')} × ${String(cm(h)).replace('.', ',')} cm `
+                          + `— 6 faces, ${plis} plis`);
+                }
+
+                /* ---- la pyramide à base TRIANGULAIRE ---- */
+                /* Elle passe avant la base carrée : « pyramide à base
+                   triangulaire » contient le mot « pyramide », et donnait un
+                   patron à base CARRÉE — cinq faces au lieu de quatre, en
+                   annonçant « à base carrée » dans la réponse. */
+                if (/pyramide/.test(t) && /base\s+triangulaire/.test(t)) {
+                    const nC = nommee(/(?:c[ôo]t[ée]|base|ar[êe]te)/);
+                    const nH = nommee(/hauteur/);
+                    const c = nC || rang(0) || 160;
+                    /* Sans hauteur donnée, celle du tétraèdre RÉGULIER : c√(2/3).
+                       Le patron est alors quatre triangles équilatéraux, et l'on
+                       peut le vérifier à la règle. */
+                    const h = nH || rang(nC ? 0 : 1) || c * Math.sqrt(2 / 3);
+                    /* L'apothème d'une face latérale : le triangle rectangle qui
+                       la donne a pour côtés la hauteur h et l'apothème de la BASE,
+                       qui vaut c√3/6 pour un triangle équilatéral. */
+                    const apBase = c * Math.sqrt(3) / 6;
+                    const ap = Math.sqrt(h * h + apBase * apBase);
+                    const ht = c * Math.sqrt(3) / 2;
+                    const larg = c + 2 * ap, haut = ht + ap + apBase;
+                    const { x, y } = pose(larg, haut);
+                    const x0 = x + ap, y0 = y + ap;
+                    const A = [x0, y0 + ht], B = [x0 + c, y0 + ht], C = [x0 + c / 2, y0];
+                    /* Le sommet de chaque face rabattue : à la distance ap du
+                       milieu du côté, vers l'extérieur du triangle. */
+                    const dehors = (p1, p2) => {
+                        const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+                        const gx = (A[0] + B[0] + C[0]) / 3, gy = (A[1] + B[1] + C[1]) / 3;
+                        const dx = mx - gx, dy = my - gy;
+                        const n = Math.hypot(dx, dy) || 1;
+                        return [mx + dx / n * ap, my + dy / n * ap];
+                    };
+                    const faces = [[A, B, C],
+                                   [A, B, dehors(A, B)],
+                                   [B, C, dehors(B, C)],
+                                   [C, A, dehors(C, A)]];
+                    const { plis } = this.cslPatronPolyedre(faces, st);
+                    this.cslPatronDire(larg, haut);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                    this.cslDire(`Les trois faces latérales ont pour hauteur `
+                        + `√(h² + (c√3/6)²) = ${String(cm(ap)).replace('.', ',')} cm : `
+                        + `c'est la hauteur de la pyramide et l'apothème de la base qui la donnent.`);
+                    return fait(`Patron d'une pyramide à base triangulaire de `
+                        + `${String(cm(c)).replace('.', ',')} cm de côté et `
+                        + `${String(cm(h)).replace('.', ',')} cm de hauteur — 4 faces, ${plis} plis`);
+                }
+
+                /* ---- la pyramide à base carrée ---- */
+                if (/pyramide/.test(t)) {
+                    const nC = nommee(/(?:c[ôo]t[ée]|base|ar[êe]te\s+de\s+base)/);
+                    const nH = nommee(/hauteur/);
+                    const c = nC || rang(0) || 160;
+                    const h = nH || rang(nC ? 0 : 1) || c * 1.2;
+                    /* L'APOTHÈME D'UNE FACE, pas l'arête latérale. La face
+                       latérale est un triangle isocèle dont la hauteur part du
+                       sommet et tombe au MILIEU du côté de base : le triangle
+                       rectangle qui la donne a pour côtés la hauteur h de la
+                       pyramide et la moitié du côté, c/2. L'arête latérale, elle,
+                       vaut √(h² + (c√2/2)²) — c'est une autre longueur, et les
+                       confondre fait un patron qui ne se referme pas. */
+                    const ap = Math.sqrt(h * h + (c / 2) * (c / 2));
+                    const cote = 2 * ap + c;
+                    const { x, y } = pose(cote, cote);
+                    const x0 = x + ap, y0 = y + ap;         // le coin du carré de base
+                    const faces = [
+                        [[x0, y0], [x0 + c, y0], [x0 + c, y0 + c], [x0, y0 + c]],   // la base
+                        [[x0, y0], [x0 + c, y0], [x0 + c / 2, y0 - ap]],            // au-dessus
+                        [[x0 + c, y0], [x0 + c, y0 + c], [x0 + c + ap, y0 + c / 2]],// à droite
+                        [[x0 + c, y0 + c], [x0, y0 + c], [x0 + c / 2, y0 + c + ap]],// au-dessous
+                        [[x0, y0 + c], [x0, y0], [x0 - ap, y0 + c / 2]],            // à gauche
+                    ];
+                    const { plis } = this.cslPatronPolyedre(faces, st);
+                    this.cslPatronDire(cote, cote);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                    this.cslDire(`Les quatre triangles ont pour hauteur l'APOTHÈME de la `
+                        + `pyramide : √(h² + (c/2)²) = ${String(cm(ap)).replace('.', ',')} cm. `
+                        + `Ce n'est pas l'arête latérale, qui vaut `
+                        + `${String(cm(Math.sqrt(h * h + c * c / 2))).replace('.', ',')} cm.`);
+                    return fait(`Patron d'une pyramide à base carrée de `
+                        + `${String(cm(c)).replace('.', ',')} cm de côté et `
+                        + `${String(cm(h)).replace('.', ',')} cm de hauteur — 5 faces, ${plis} plis`);
+                }
+
+                /* ---- le prisme droit à base triangulaire ---- */
+                if (/prisme/.test(t)) {
+                    const nC = nommee(/(?:c[ôo]t[ée]|base|ar[êe]te)/);
+                    const nH = nommee(/hauteur|longueur/);
+                    const c = nC || rang(0) || 140;
+                    const h = nH || rang(nC ? 0 : 1) || c * 1.4;
+                    const ht = c * Math.sqrt(3) / 2;        // la hauteur du triangle équilatéral
+                    const larg = 3 * c, haut = h + 2 * ht;
+                    const { x, y } = pose(larg, haut);
+                    const yb = y + ht;
+                    const faces = [
+                        [[x, yb], [x + c, yb], [x + c, yb + h], [x, yb + h]],
+                        [[x + c, yb], [x + 2 * c, yb], [x + 2 * c, yb + h], [x + c, yb + h]],
+                        [[x + 2 * c, yb], [x + 3 * c, yb], [x + 3 * c, yb + h], [x + 2 * c, yb + h]],
+                        [[x, yb], [x + c, yb], [x + c / 2, yb - ht]],
+                        [[x, yb + h], [x + c, yb + h], [x + c / 2, yb + h + ht]],
+                    ];
+                    const { plis } = this.cslPatronPolyedre(faces, st);
+                    this.cslPatronDire(larg, haut);
+                    this.cslDire('Le patron d\'un prisme droit : les faces latérales font une '
+                        + 'BANDE d\'un seul tenant, fermée par les deux bases identiques.');
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                    return fait(`Patron d'un prisme droit à base triangulaire de `
+                        + `${String(cm(c)).replace('.', ',')} cm de côté et `
+                        + `${String(cm(h)).replace('.', ',')} cm de hauteur — 5 faces, ${plis} plis`);
+                }
+
+                /* ---- le cylindre : un rectangle et deux disques ---- */
+                if (/cylindre/.test(t)) {
+                    const nR = nommee(/rayon/);
+                    const nD = nommee(/diam[èe]tre/);
+                    const nH = nommee(/hauteur/);
+                    const r = nR || (nD ? nD / 2 : null) || rang(0) || 100;
+                    const h = nH || rang(nR || nD ? 0 : 1) || r * 2.5;
+                    /* LA LONGUEUR DU RECTANGLE EST LE PÉRIMÈTRE DU DISQUE : c'est
+                       tout le patron du cylindre, et c'est ce qu'on veut faire
+                       comprendre. 2πr, pas 2r ni πr. */
+                    const larg = 2 * Math.PI * r, haut = h + 4 * r;
+                    const { x, y } = pose(larg, haut);
+                    const yb = y + 2 * r;
+                    const coin = (px, py) => { const p = new Point(px, py, ''); p.visible = false;
+                                               this.addEntity(p); return p; };
+                    const A = coin(x, yb), B = coin(x + larg, yb);
+                    const C = coin(x + larg, yb + h), D = coin(x, yb + h);
+                    const trait = (p, q, pli) => {
+                        const s = new Segment(p, q, { color: st.color, width: st.width });
+                        if (pli) { s.dash = [5, 5]; s.styleDemande = true; }
+                        this.addEntity(s);
+                    };
+                    trait(A, B, true); trait(C, D, true);   // les deux plis, contre les disques
+                    trait(B, C); trait(D, A);               // les deux découpes
+                    const cHaut = coin(x + larg / 2, yb - r);
+                    const cBas = coin(x + larg / 2, yb + h + r);
+                    this.addEntity(this.cslPoserStyle(new Circle(cHaut, coin(x + larg / 2, yb))));
+                    this.addEntity(this.cslPoserStyle(new Circle(cBas, coin(x + larg / 2, yb + h))));
+                    this.cslPatronDire(larg, haut);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                    this.cslDire(`La longueur du rectangle est le PÉRIMÈTRE du disque : `
+                        + `2 × π × ${String(cm(r)).replace('.', ',')} = `
+                        + `${String(cm(larg)).replace('.', ',')} cm. C'est ce qui fait que le `
+                        + `rectangle s'enroule exactement autour du disque.`);
+                    return fait(`Patron d'un cylindre de rayon ${String(cm(r)).replace('.', ',')} cm `
+                        + `et de hauteur ${String(cm(h)).replace('.', ',')} cm — `
+                        + `un rectangle de ${String(cm(larg)).replace('.', ',')} cm sur `
+                        + `${String(cm(h)).replace('.', ',')} cm et deux disques`);
+                }
+
+                /* ---- le cône : un disque et un secteur ---- */
+                if (/c[ôo]ne/.test(t)) {
+                    const nR = nommee(/rayon/);
+                    const nD = nommee(/diam[èe]tre/);
+                    const nH = nommee(/hauteur/);
+                    const nG = nommee(/g[ée]n[ée]ratrice/);
+                    const r = nR || (nD ? nD / 2 : null) || rang(0) || 100;
+                    /* LA GÉNÉRATRICE est le rayon du secteur : c'est l'hypoténuse
+                       du triangle rectangle (rayon, hauteur). Et l'ANGLE du
+                       secteur se déduit du fait que son arc doit valoir le
+                       périmètre du disque : g × θ = 2πr, donc θ = 2πr / g.
+
+                       QUAND C'EST LA GÉNÉRATRICE QUI EST DONNÉE, la hauteur s'en
+                       déduit — elle ne s'invente pas. Le patron était juste, mais
+                       la réponse annonçait une hauteur de fantaisie. */
+                    if (nG && nG <= r) {
+                        return rate("La génératrice d'un cône est plus longue que son rayon : "
+                            + "c'est l'hypoténuse du triangle rectangle (rayon, hauteur).");
+                    }
+                    const h = nH || (nG ? Math.sqrt(nG * nG - r * r)
+                                        : rang(nR || nD ? 0 : 1)) || r * 1.8;
+                    const g = nG || Math.hypot(r, h);
+                    const theta = 2 * Math.PI * r / g;
+                    const a0 = Math.PI / 2 - theta / 2, a1 = Math.PI / 2 + theta / 2;
+                    /* La boîte du secteur ne se devine pas : on l'échantillonne. */
+                    const bx = [], by = [];
+                    bx.push(0); by.push(0);
+                    for (let k = 0; k <= 64; k++) {
+                        const a = a0 + (a1 - a0) * k / 64;
+                        bx.push(Math.cos(a) * g); by.push(Math.sin(a) * g);
+                    }
+                    // le disque de base, posé sous le milieu de l'arc
+                    const cd = { x: 0, y: g + r };
+                    bx.push(cd.x - r, cd.x + r); by.push(cd.y - r, cd.y + r);
+                    const x0 = Math.min(...bx), x1 = Math.max(...bx);
+                    const y0 = Math.min(...by), y1 = Math.max(...by);
+                    const larg = x1 - x0, haut = y1 - y0;
+                    const S = { x: o.x - (x0 + x1) / 2, y: o.y - (y0 + y1) / 2 };
+                    const coin = (px, py) => { const p = new Point(px, py, ''); p.visible = false;
+                                               this.addEntity(p); return p; };
+                    const sommet = coin(S.x, S.y);
+                    const P0 = coin(S.x + Math.cos(a0) * g, S.y + Math.sin(a0) * g);
+                    const P1 = coin(S.x + Math.cos(a1) * g, S.y + Math.sin(a1) * g);
+                    const arc = new Arc(sommet, g, a0, a1);
+                    arc.color = st.color; arc.lineWidth = st.width;
+                    this.addEntity(arc);
+                    this.addEntity(new Segment(sommet, P0, { color: st.color, width: st.width }));
+                    this.addEntity(new Segment(sommet, P1, { color: st.color, width: st.width }));
+                    const centre = coin(S.x + cd.x, S.y + cd.y);
+                    this.addEntity(this.cslPoserStyle(
+                        new Circle(centre, coin(S.x + cd.x, S.y + cd.y - r))));
+                    this.cslPatronDire(larg, haut);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
+                    const deg = Math.round(theta * 180 / Math.PI * 10) / 10;
+                    this.cslDire(`La génératrice vaut √(r² + h²) = `
+                        + `${String(cm(g)).replace('.', ',')} cm, et c'est le rayon du secteur. `
+                        + `Son angle vaut 360° × r ÷ g = ${String(deg).replace('.', ',')}° : `
+                        + `il faut que l'arc du secteur ait exactement la longueur du tour du `
+                        + `disque, sinon le cône ne se referme pas.`);
+                    return fait(`Patron d'un cône de rayon ${String(cm(r)).replace('.', ',')} cm `
+                        + `et de hauteur ${String(cm(h)).replace('.', ',')} cm — un disque et un `
+                        + `secteur de ${String(cm(g)).replace('.', ',')} cm de rayon, `
+                        + `d'angle ${String(deg).replace('.', ',')}°`);
+                }
+                /* Un tétraèdre : quatre triangles équilatéraux, la grande fleur. */
+                if (/t[ée]tra[èe]dre/.test(t)) {
+                    const c = nommee(/(?:c[ôo]t[ée]|ar[êe]te)/) || rang(0) || 160;
+                    const ht = c * Math.sqrt(3) / 2;
+                    const larg = 2 * c, haut = 2 * ht;
+                    const { x, y } = pose(larg, haut);
+                    /* Le grand triangle, et les trois petits dedans : c'est le
+                       patron le plus court à décrire et le plus joli à replier. */
+                    const A = [x, y + haut], B = [x + larg, y + haut], C = [x + c, y];
+                    const mAB = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+                    const mBC = [(B[0] + C[0]) / 2, (B[1] + C[1]) / 2];
+                    const mCA = [(C[0] + A[0]) / 2, (C[1] + A[1]) / 2];
+                    const faces = [[A, mAB, mCA], [mAB, B, mBC], [mCA, mBC, C], [mAB, mBC, mCA]];
+                    const { plis } = this.cslPatronPolyedre(faces, st);
+                    this.cslPatronDire(larg, haut);
+                    const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                    this.cslDire('Le patron du tétraèdre régulier : un grand triangle '
+                        + 'équilatéral partagé par les milieux de ses côtés. Les trois coins '
+                        + 'se relèvent et se rejoignent.');
+                    return fait(`Patron d'un tétraèdre régulier de `
+                        + `${String(cm(c)).replace('.', ',')} cm d'arête — 4 faces, ${plis} plis`);
+                }
+                return null;
+            }
+            cslSolide(brut, t, fait, rate) {
+                const FUYANTE = -Math.PI / 4;          // 45° vers le haut à droite
+                const K = 0.5;                          // le coefficient de réduction
+                const fx = Math.cos(FUYANTE) * K, fy = Math.sin(FUYANTE) * K;
+                const st = this.cslStyle();
+                const { nommee, rang } = this.cslLireMesures(brut);
                 const o = this.cslPlaceLibre(0, 0);
                 const noms = [];
                 const nomLibre = () => { const n = this.cslNomLibre(noms); noms.push(n); return n; };
@@ -32536,12 +33692,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* UN ANGLE DONNÉ PAR SA MESURE ET SON SOMMET. « Trace un angle de
                    60° de sommet A » : les deux côtés n'existent pas encore, c'est
                    la consigne qui les fait naître. */
-                if (deg0 && sommet && noms.length < 3) {
-                    const s = this.cslPoint(sommet);
+                /* LE SOMMET PEUT MANQUER. « Trace un angle de 60° » est la phrase
+                   la plus courte qui décrive un angle, et c'était un refus :
+                   « Quel angle ? Écrivez Marque l'angle ABC ». On pose le sommet
+                   nous-mêmes — la mesure, elle, est bien donnée. */
+                if (deg0 && noms.length < 3) {
+                    const nomS = sommet || this.cslNomLibre([]);
+                    const s = this.cslPointNomme(nomS) || (() => {
+                        const o = this.cslPlaceLibre(0, 60);
+                        const q = new Point(o.x, o.y, nomS); this.addEntity(q); return q;
+                    })();
                     const val = parseFloat(deg0[1].replace(',', '.'));
                     if (!(val > 0 && val < 180)) return rate("Un angle se donne entre 0° et 180°.");
-                    const n1 = this.cslNomLibre([sommet]);
-                    const n2 = this.cslNomLibre([sommet, n1]);
+                    const n1 = this.cslNomLibre([nomS]);
+                    const n2 = this.cslNomLibre([nomS, n1]);
                     const R = 170, base = -Math.PI / 12;
                     const p1 = new Point(s.x + Math.cos(base) * R, s.y + Math.sin(base) * R, n1);
                     this.addEntity(p1);
@@ -32552,7 +33716,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(this.cslPoserStyle(new Ray(s, p2)));
                     const ang = new Angle(p1, s, p2);
                     this.addEntity(ang);
-                    return fait(`Angle ${n1}${sommet}${n2} = ${deg0[1]}°`);
+                    return fait(`Angle ${n1}${nomS}${n2} = ${deg0[1]}°`);
                 }
                 if (noms.length < 3) return rate("Quel angle ? Écrivez « Marque l'angle ABC » — le sommet au milieu.");
                 /* « Trace un angle ABC de 40° » : les trois points ne sont pas
@@ -33145,6 +34309,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (connus === 0 && !equi && sommetIso === null) {
                         // rien d'imposé : un triangle quelconque, honnête
                         cotes[0] = 210; cotes[1] = 180; cotes[2] = 150;
+                    } else if (connus >= 1 && connus < 3) {
+                        /* UNE SEULE LONGUEUR SUFFIT À COMMENCER. « On considère un
+                           triangle ABC tel que AB = 5 cm » est une phrase
+                           d'énoncé parfaitement normale : les deux autres côtés
+                           sont libres, et c'est bien pour cela qu'on ne les donne
+                           pas. Le logiciel refusait tout, et la figure de
+                           l'exercice ne se traçait pas. On complète, et l'on DIT
+                           ce qu'on a choisi — sans quoi l'élève croirait que ces
+                           longueurs-là sont dans l'énoncé. */
+                        const choisis = [];
+                        const base = cotes.find(x => x) || 210;
+                        for (let j = 0; j < 3; j++) if (!cotes[j]) {
+                            cotes[j] = base * (j === 0 ? 0.86 : 0.72);
+                            choisis.push(j);
+                        }
+                        /* Un triangle doit exister : si le libre choix donne un
+                           côté trop court, on l'élargit. */
+                        for (let tour = 0; tour < 8; tour++) {
+                            const [x0, y0, z0] = cotes;
+                            if (x0 + y0 > z0 && x0 + z0 > y0 && y0 + z0 > x0) break;
+                            choisis.forEach(j => { cotes[j] *= 1.25; });
+                        }
+                        const nomCote = (j) => `${noms[(j + 1) % 3]}${noms[(j + 2) % 3]}`;
+                        const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                        this.cslDire(`L'énoncé ne donne qu'une mesure : `
+                            + choisis.map(j => `${nomCote(j)} = ${String(cm(cotes[j])).replace('.', ',')} cm`)
+                                .join(' et ')
+                            + ` ${choisis.length > 1 ? 'ont été choisies' : 'a été choisie'} librement.`);
                     } else {
                         return rate("Il me manque des mesures : trois longueurs, ou deux longueurs "
                             + "et l'angle entre elles, ou une longueur et deux angles.");
@@ -33650,6 +34842,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.addEntity(d1);
                         this.cslMemoire().droites[d1.nomDroite] = d1;
                         let d2;
+                        /* AUX INSTRUMENTS, LA PHRASE DEMANDE LE GESTE. « Montre-moi
+                           comment on trace deux droites parallèles » rendait deux
+                           droites parallèles et rien d'autre : mesuré, zéro
+                           animation. La règle et l'équerre le font maintenant
+                           voir. */
+                        if (this.cslDetaille() && (relation === 'para' || relation === 'perp')) {
+                            const n = Math.hypot(ux, uy) || 1;
+                            const q = relation === 'para'
+                                ? cache(o.x - uy / n * 90, o.y + ux / n * 90)
+                                : cache(o.x, o.y);
+                            this.cslBatir(null, () => {
+                                d2 = relation === 'para' ? this.cslGesteParallele(q, p1, p2)
+                                                         : this.cslGestePerpendiculaire(q, p1, p2);
+                            });
+                            d2.nomDroite = noms[1] || this.cslNomDroiteLibre();
+                            this.cslMemoire().droites[d2.nomDroite] = d2;
+                            const mot = { para: 'parallèles', perp: 'perpendiculaires' }[relation];
+                            return fait(`Deux droites ${mot} : (${d1.nomDroite}), (${d2.nomDroite})`);
+                        }
                         if (relation === 'para') {
                             /* La parallèle passe par un point DÉCALÉ de la première,
                                perpendiculairement : c'est ce décalage qu'on voit. */
@@ -35584,7 +36795,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 01h';
+        window.GM_VERSION = '2026-09-06 · 04h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
