@@ -136,10 +136,48 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
        bulles.classe === 'csl-bulle' && bulles.lignes >= 1 && /Formulation/.test(bulles.gras.join(' ')),
        JSON.stringify(bulles));
   }
+  console.log('\n— L\'homothétie, et son rapport');
+  for (const [ph, k] of [
+    ["Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport 2", 2],
+    ["Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport -1,5", -1.5],
+    ["Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport 1/2", 0.5],
+  ]) {
+    const r = await essai(ph, false);
+    ck(`« …de rapport ${String(k)} » est faite`, r.ok, r.message);
+    if (!r.ok) continue;
+    const ecart = ['A', 'B', 'C'].map(n =>
+      Math.hypot(r.P[n + "'"].x - (r.P.O.x + k * (r.P[n].x - r.P.O.x)),
+                 r.P[n + "'"].y - (r.P.O.y + k * (r.P[n].y - r.P.O.y))));
+    ck('  chaque image est le centre plus k fois le vecteur',
+       ecart.every(e => e < 0.01), ecart.map(e => e.toFixed(3)).join(' '));
+    /* Une homothétie MULTIPLIE les longueurs par |k| — c'est ce qui la
+       distingue des trois autres, qui les conservent. */
+    const rap = ['AB', 'AC', 'BC'].map(c =>
+      d(r.P, c[0] + "'", c[1] + "'") / d(r.P, c[0], c[1]));
+    ck(`  et les longueurs sont multipliées par ${Math.abs(k)}`,
+       rap.every(x => Math.abs(x - Math.abs(k)) < 1e-6), rap.map(x => x.toFixed(3)).join(' '));
+  }
   {
-    const r = await essai("Construis l'image de ABC par l'homothétie de centre O et de rapport 2", false);
-    ck("l'homothétie est refusée en disant que c'est elle qui manque",
-       !r.ok && /homoth/i.test(r.message), r.message);
+    const r = await essai("Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport −1", false);
+    ck('un rapport −1, c\'est la symétrie centrale — et c\'est dit',
+       r.ok && /sym[ée]trie de centre/.test(r.astuce), r.astuce);
+    const ecart = ['A', 'B', 'C'].map(n =>
+      Math.hypot(r.P[n + "'"].x - (2 * r.P.O.x - r.P[n].x), r.P[n + "'"].y - (2 * r.P.O.y - r.P[n].y)));
+    ck('  et la figure est bien la symétrique', ecart.every(e => e < 0.01), ecart.join(' '));
+  }
+  {
+    const r = await essai("Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport 0", false);
+    ck('un rapport nul est refusé, en disant pourquoi',
+       !r.ok && /nul/.test(r.message), r.message);
+  }
+  {
+    const r = await essai("Construis A'B'C' image de ABC par l'homothétie de centre O et de rapport 3", true);
+    ck('aux instruments, l\'homothétie se construit', r.ok, r.message);
+    ck('  la règle et le compas sont sortis', r.outils >= 3 && r.arcs >= 3,
+       `outils ${r.outils}, arcs ${r.arcs}`);
+    const rangs = r.rang.map(x => x[1]).sort((a, c) => a - c);
+    ck('  et le point image n\'entre qu\'à la fin de SA construction',
+       rangs[0] > r.total * 0.4, `rangs ${rangs.join(',')} sur ${r.total}`);
   }
 
   console.log('\n— Aux instruments : le point image n\'apparaît qu\'à la fin');

@@ -345,9 +345,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('elle est refusée, et expliquée',
      r.res[1].ok === false && /vecteur/.test(r.res[1].m), r.res[1].m);
   ck('et le triangle n\'a pas été retracé', r.objets.Polygon === 1, String(r.objets.Polygon));
-  r = await fig(['Trace un triangle ABC', 'Trace l\'image de ABC par l\'homothétie de centre A et de rapport 2']);
-  ck('une transformation qu\'on ne sait pas faire se nomme',
-     r.res[1].ok === false && /homoth/i.test(r.res[1].m), r.res[1].m);
+  /* L'homothétie se fait, elle aussi — mais pas sans son rapport : sans lui,
+     on demande le rapport, on ne retrace pas la figure par-dessus elle-même. */
+  r = await fig(['Trace un triangle ABC', 'Trace l\'image de ABC par l\'homothétie de centre A']);
+  ck('une homothétie sans rapport demande le rapport',
+     r.res[1].ok === false && /rapport/i.test(r.res[1].m), r.res[1].m);
   ck('et là non plus le triangle n\'est pas retracé', r.objets.Polygon === 1, String(r.objets.Polygon));
   r = await fig([T, 'Trace l\'image du triangle ABC par la symétrie de centre A']);
   ck('« l\'image DU triangle » est bien une symétrie',

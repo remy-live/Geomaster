@@ -120,6 +120,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Symétries** | `A', B', C' symétriques de A, B, C par rapport à O` · `par rapport à (EF)` · **`par rapport à (d)`** — l'axe peut être une droite nommée · `l'image de A par la symétrie de centre O` |
 | **Translations** | `Construis A'B'C' image de ABC par la translation de vecteur DE` · `par la translation qui transforme D en E` — c'est le même vecteur, dit deux fois, et la seconde écriture est ramenée à la première |
 | **Rotations** | `par la rotation de centre O, de sens direct et d'angle 30°` · `dans le sens des aiguilles d'une montre` · `de sens horaire` · `dans le sens inverse des aiguilles d'une montre` — un sens qui n'est pas dit est **signalé**, pas deviné en silence |
+| **Homothéties** | `par l'homothétie de centre O et de rapport 2` · `de rapport −1,5` · `de rapport 1/2` — un rapport de −1, c'est la symétrie de centre O, et c'est dit ; un rapport nul est refusé |
 | **Mesures** | `AB = 5 cm` · `Marque l'angle ABC` · `L'angle ABC mesure 60°` · `Trace un angle ABC de 40°` (les points naissent avec lui) · `Trace un angle de 60° de sommet A` · `Code l'angle droit en A` · `Marque les angles du triangle ABC` · `Marque les angles droits` · `Affiche la longueur de [AB]` · `Code les longueurs égales` |
 | **Croisements nommés** | `Appelle O le point d'intersection des médiatrices` · `des hauteurs` (l'orthocentre) · `des médianes` · `des bissectrices` |
 | **Couleur et style** | `Trace [AB] en bleu` · `en rouge et en pointillés` · `en gras` · `épaisseur 4` — pour cette ligne seulement |
@@ -128,7 +129,7 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 | **Sur un objet** | `place le point G sur ce segment tel que GQ = 5 cm` · `un point M sur [AB]` · `deux points A et B sur ce cercle` · `un point C sur cette droite` (une médiatrice en est une) |
 | **Possessifs** | `Trace un segment [AB] de 6 cm, place son milieu I` · `trace ses diagonales et appelle O leur point d'intersection` — la reformulation est dite à côté |
 | **Autres verbes d'énoncé** | `Colorie le triangle ABC` · `Hachure…` · `Prolonge [AB]` · `Partage [AB] en trois parts égales` (les parts sont codées) |
-| **Ce qui ne se trace pas** | `Étape 2` · `Elle passe par O` · `Que remarques-tu ?` · `Justifie ta réponse` — un énoncé de manuel ne contient pas que des constructions, et ces lignes-là ne sont pas des fautes. Ce qui n'est pas su faire est **dit** : une homothétie, un effacement, un triangle impossible. |
+| **Ce qui ne se trace pas** | `Étape 2` · `Elle passe par O` · `Que remarques-tu ?` · `Justifie ta réponse` — un énoncé de manuel ne contient pas que des constructions, et ces lignes-là ne sont pas des fautes. Ce qui n'est pas su faire est **dit** : un effacement, un triangle impossible. |
 | **Arcs** | `Trace l'arc de cercle de centre O et de rayon 3 cm de A à B` |
 
 Le verbe n'est jamais un obstacle, mais le mot juste est rappelé : `Dessine
@@ -191,7 +192,13 @@ Une case décide de ce que « Trace un carré » veut dire : **la figure seule**
 la **construction à la règle et au compas** — arcs, instruments, étapes — bâtie
 d'un coup et rejouable ensuite avec ▶. Aux constructions magiques, la même
 décision s'appelle **Avec les outils** : décochée, elle donne la figure et rien
-d'autre. Elle ne retirait jusqu'ici que les instruments, et laissait les arcs de
+d'autre. Ces constructions-là comptent maintenant **cinq
+transformations** dans leur propre bande — symétrie axiale, symétrie centrale,
+translation, rotation, homothétie — au lieu des deux symétries perdues au bout
+de la rangée des médiatrices. La translation prend les points puis le segment
+qui donne le vecteur ; la rotation et l'homothétie demandent leur nombre — angle
+et sens, ou rapport — puis prennent le centre au premier clic et transforment
+ensuite chaque point, ou un polygone entier d'un coup. Elle ne retirait jusqu'ici que les instruments, et laissait les arcs de
 compas et les traits de construction — un rectangle entouré de la construction
 qu'on venait justement de ne pas vouloir, qui n'était ni la construction ni la
 figure.
@@ -214,8 +221,10 @@ supprimer n'en retirait qu'un.
 symétrie descend du point à l'axe à l'équerre et reporte la longueur au compas ;
 la translation trace la parallèle au vecteur à la règle et y reporte sa longueur
 au compas ; la rotation lit l'angle au **rapporteur** depuis `[OP]`, puis reporte
-`OP` au compas sur la demi-droite lue. Dans les trois cas **le point image
-n'entre qu'à la fin** : avant le report, rien sur la feuille ne dit encore où il
+`OP` au compas sur la demi-droite lue ; l'homothétie trace la droite `(OP)` à la
+règle et y porte au compas `|k| × OP` depuis le centre — du côté de `P` si le
+rapport est positif, de l'autre s'il est négatif. Dans les quatre cas **le point
+image n'entre qu'à la fin** : avant le report, rien sur la feuille ne dit encore où il
 tombe, et le poser d'abord pour « justifier » ensuite, c'est montrer la réponse
 avant la construction. Les trois images une fois construites, elles se relient
 comme leurs sources l'étaient — une figure image est une figure, pas trois points
@@ -332,7 +341,17 @@ sans le retracer trois fois.
 
 Les séances se rangent dans une **bibliothèque** locale, avec vignette, et la
 collection entière s'exporte en un fichier pour changer de poste ou la donner à
-un collègue.
+un collègue. Elle se présente de **trois façons**, au choix, retenu d'une fois
+sur l'autre : la **galerie** montre la figure en grand — c'est ainsi qu'on
+cherche « celle avec le cercle » plutôt qu'un nom ; les **vignettes** en font
+tenir douze à l'écran ; la **liste** en aligne trente, nom entier et nombre de
+pages, quand la collection a grossi.
+
+Et les aperçus sont **sur fond blanc**. Ils recopiaient la feuille telle quelle,
+quadrillage compris : douze cartes de carreaux gris où il fallait chercher la
+figure. Le papier est un réglage de travail — il aide à construire, il
+n'appartient pas au dessin ; on le met en blanc le temps de la prise de vue, et
+on le remet.
 
 Elle n'est pas vide au premier lancement : neuf **constructions d'exemple** y
 attendent — médiatrice, bissectrice, triangle équilatéral, carré, losange,

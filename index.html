@@ -155,18 +155,39 @@
            et leur nom se lit au survol comme partout ailleurs. Quatre colonnes
            serrées au lieu de trois espacées : quinze commandes en quatre rangées.
            (La classe garde son nom, hérité des trois colonnes d'origine.) */
+        /* CINQ COLONNES, ET UNE CATÉGORIE PAR RANGÉE. Les quinze commandes se
+           répartissent en 5 + 4 + 6 : à cinq colonnes, « le document » tient sur
+           une rangée, « sortir un fichier » sur une autre, et « transmettre » sur
+           les deux dernières. On lit le menu par bandes, sans avoir à lire un
+           seul mot. */
         .header-dropdown-content.grid-3-cols {
-            grid-template-columns: repeat(4, 1fr);
-            width: 174px;
-            min-width: 174px;
+            grid-template-columns: repeat(5, 1fr);
+            width: 216px;
+            min-width: 216px;
             padding: 4px;
             gap: 2px
         }
 
-        /* Les intitulés de section ne s'affichent plus ; ils restent dans le
-           HTML, où ils disent à qui lit le code comment les commandes sont
-           groupées — et l'accessibilité les lit encore. */
+        /* LE RANGEMENT SE VOIT, LE TITRE NE SE LIT PAS. Les intitulés étaient
+           simplement masqués : les trois groupes coulaient les uns dans les
+           autres, et une rangée mêlait la fin d'une catégorie au début de la
+           suivante. Chaque intitulé devient un FILET qui prend toute la largeur —
+           il coupe la grille, la catégorie suivante repart donc à la ligne. Le
+           texte reste dans le DOM à taille nulle : les lecteurs d'écran l'énoncent
+           encore, l'œil ne voit qu'un trait, et aucune icône n'a bougé. */
         .header-dropdown-content.grid-3-cols .menu-titre {
+            display: block;
+            grid-column: 1 / -1;
+            height: 0;
+            padding: 0;
+            margin: 3px 1px;
+            border-top: 1px solid #e8edf1;
+            font-size: 0;
+            line-height: 0;
+            overflow: hidden;
+        }
+
+        .header-dropdown-content.grid-3-cols .menu-titre:first-child {
             display: none;
         }
 
@@ -332,40 +353,13 @@
         /* LE MENU FICHIER DIT CE QU'IL FAIT.
 
            Quinze icônes muettes, dont deux « </> » identiques pour deux choses
-           différentes — coller un code reçu, copier le code de la figure : on ne
-           pouvait que deviner ou survoler une par une. Le libellé existait déjà,
-           mais seulement au doigt (data-libelle, dans le palier tactile), là où
-           l'info-bulle n'existe pas. Il est maintenant affiché PARTOUT : ce menu
-           s'ouvre rarement, on n'y va pas de mémoire.
-
-           Et trois intitulés au lieu de trois traits : ce qu'on fait du document,
-           ce qu'on en sort comme fichier, ce qu'on en transmet. */
-        /* LES LIBELLÉS SONT REVENUS DANS L'INFO-BULLE. Écrits sous chaque icône,
-           ils faisaient d'un menu de treize commandes un panneau de six cents
-           pixels de haut : « Fiche de construction » sur deux lignes, « Coller un
-           code » sur deux lignes, et trois intitulés de section pour tenir le
-           tout. Les icônes se reconnaissent, et le nom se lit au survol comme
-           partout ailleurs dans le logiciel — les intitulés de section, eux,
-           restent : ce sont eux qui disent où chercher. */
-        .header-dropdown-content.grid-3-cols .menu-titre {
-            grid-column: span 3;
-            font-size: 9px;
-            line-height: 12px;
-            font-weight: 700;
-            letter-spacing: .5px;
-            text-transform: uppercase;
-            color: #94a3b8;
-            padding: 4px 2px 1px;
-            margin-top: 1px;
-            border-top: 1px solid #eee;
-            text-align: left;
-        }
-
-        .header-dropdown-content.grid-3-cols .menu-titre:first-child {
-            border-top: none;
-            margin-top: 0;
-            padding-top: 1px;
-        }
+           différentes — coller un code reçu, copier le code de la figure. Les
+           libellés écrits sous chaque icône faisaient un panneau de six cents
+           pixels de haut ; ils sont donc dans l'info-bulle, où se lisent tous les
+           noms du logiciel. Ce qui les remplace ici, c'est le RANGEMENT : trois
+           bandes séparées par un filet — ce qu'on fait du document, ce qu'on en
+           sort comme fichier, ce qu'on en transmet (voir .menu-titre plus haut).
+           Une catégorie se reconnaît à sa place, pas à son titre. */
 
         .logo {
             font-weight: 800;
@@ -2542,6 +2536,96 @@
             color: #b0bec5;
             margin-left: 6px;
         }
+
+        /* LA BARRE DE LA BIBLIOTHÈQUE : le titre à gauche, le choix de
+           présentation à droite — trois icônes, pas trois mots. */
+        .biblio-barre {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 0 0 10px;
+        }
+
+        .biblio-barre h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #37474f;
+            text-align: left;
+        }
+
+        .biblio-vues {
+            display: flex;
+            gap: 2px;
+            padding: 2px;
+            background: #f1f4f6;
+            border-radius: 8px;
+        }
+
+        .biblio-vues button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 26px;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #90a4ae;
+            cursor: pointer;
+        }
+
+        .biblio-vues button svg { width: 15px; height: 15px; }
+        .biblio-vues button:hover { color: #546e7a; }
+
+        .biblio-vues button[aria-pressed="true"] {
+            background: #fff;
+            color: #2980b9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+        }
+
+        /* GALERIE : deux par rangée, la figure en grand. C'est la présentation
+           qu'on veut quand on cherche « celle avec le cercle », pas un nom. */
+        #biblioListe.vue-galerie .biblio-carte { width: 47%; min-width: 190px; }
+        #biblioListe.vue-galerie .biblio-vue { height: 150px; }
+
+        /* LISTE : une séance par ligne, la vignette réduite à un repère. Trente
+           séances se lisent d'un coup d'œil, avec le nom en entier. */
+        #biblioListe.vue-liste { gap: 4px; }
+        #biblioListe.vue-liste .biblio-titre { margin-top: 10px; }
+
+        #biblioListe.vue-liste .biblio-carte {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 8px 4px 4px;
+            box-sizing: border-box;
+        }
+
+        #biblioListe.vue-liste .biblio-vue {
+            width: 54px;
+            height: 38px;
+            flex: 0 0 54px;
+            border-bottom: none;
+            border-right: 1px solid #eef1f3;
+        }
+
+        #biblioListe.vue-liste .biblio-nom {
+            flex: 1;
+            min-height: 0;
+            padding: 0;
+            -webkit-line-clamp: 1;
+        }
+
+        #biblioListe.vue-liste .biblio-detail {
+            flex: 0 0 auto;
+            padding: 0 22px 0 0;
+            white-space: nowrap;
+        }
+
+        #biblioListe.vue-liste .biblio-sup { top: 50%; transform: translateY(-50%); }
 
         .biblio-vide {
             width: 100%;
@@ -7912,6 +7996,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     d="M6.908,23.746h35.626c-4.587,3.96-8.71,8.563-12.264,13.815H13.815v62.943h80.603V85.831l13.814-13.579v35.159 c0,3.814-3.093,6.907-6.907,6.907H6.908c-3.815,0-6.908-3.093-6.908-6.907V30.653C0,26.838,3.093,23.746,6.908,23.746L6.908,23.746 z" />
                             </svg>
                         </div>
+                        <!-- Enregistrer n'est pas transmettre : on filme la
+                             construction ou l'écran, on ne l'envoie à personne.
+                             Quatrième bande, et la dernière rangée cesse d'être
+                             un reste de la précédente. -->
+                        <div class="menu-titre">Enregistrer</div>
+
                         <div class="icon-btn" onclick="app.exportVideo()" aria-label="Exporter Vidéo" data-libelle="Vidéo"
                             data-tooltip="Enregistrer l'animation">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -8115,6 +8205,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <polygon points="12,4 19,16.5 5,16.5" />
                                 </svg>
                             </div>
+                        </div>
+
+                        <!-- LES TRANSFORMATIONS ENSEMBLE. Les deux symétries
+                             traînaient au bout de la rangée des constructions, entre
+                             une bissectrice et un cercle circonscrit : rien ne disait
+                             qu'elles font autre chose. Elles ouvrent maintenant leur
+                             propre bande, avec les trois qui leur manquaient. -->
+                        <div class="magic-divider"></div>
+                        <div class="magic-grid">
                             <div class="magic-grid-item" onclick="app.setTool('magic_sym_axiale')" data-libelle="Sym. axiale" data-tooltip="Symétrie Axiale">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <line x1="12" y1="2" x2="12" y2="22" />
@@ -8129,6 +8228,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     <path d="M 19 19 L 15 19 L 19 15 Z" fill="currentColor" stroke="none" opacity="0.3"/>
                                     <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
                                     <line x1="7" y1="7" x2="17" y2="17" stroke-dasharray="2 2" />
+                                </svg>
+                            </div>
+                            <!-- Une flèche, et la même forme deux fois : c'est ce que
+                                 fait une translation, glisser sans tourner. -->
+                            <div class="magic-grid-item" onclick="app.setTool('magic_translation')" data-libelle="Translation" data-tooltip="Translation : les points, puis le segment-vecteur">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <polygon points="3,16 8,16 5.5,10" />
+                                    <polygon points="15,16 20,16 17.5,10" stroke-dasharray="2 2" />
+                                    <path d="M9.5 20h6" />
+                                    <path d="M13.5 18.2 15.8 20l-2.3 1.8" />
+                                </svg>
+                            </div>
+                            <!-- Un arc fléché autour d'un centre marqué. -->
+                            <div class="magic-grid-item" onclick="app.setTool('magic_rotation')" data-libelle="Rotation" data-tooltip="Rotation : le centre, puis les points">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none" />
+                                    <path d="M12 13 L19 13" />
+                                    <path d="M12 13 L6.5 8.5" stroke-dasharray="2 2" />
+                                    <path d="M18 8.6 A 8 8 0 0 0 6.5 8.5" />
+                                    <path d="M4.6 6.6 6.4 8.7 8.7 7.2" />
+                                </svg>
+                            </div>
+                            <!-- Deux triangles emboîtés depuis un même centre : la
+                                 figure et son agrandissement. -->
+                            <div class="magic-grid-item" onclick="app.setTool('magic_homothetie')" data-libelle="Homothétie" data-tooltip="Homothétie : le centre, puis les points">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M3 21 L15 3.5 M3 21 L22 12.5" stroke-width="0.9" opacity="0.5" />
+                                    <polygon points="6.6,17.6 12.5,17.6 9.5,13.3" />
+                                    <polygon points="11,12.5 22,12.5 15,3.5" stroke-dasharray="2.5 2" />
+                                    <circle cx="3" cy="21" r="1.5" fill="currentColor" stroke="none" />
                                 </svg>
                             </div>
                         </div>
@@ -8182,8 +8311,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </div>
                         </div>
 
+                        <!-- Une catégorie, une rangée : les six rosaces passaient à
+                             la ligne au doigt et faisaient de cette bande la seule
+                             qui en occupe deux — on ne voyait plus où elle commence.
+                             Serrées comme la rangée des figures, elles tiennent sur
+                             une ligne sans descendre sous la cible du doigt. -->
                         <div class="magic-divider"></div>
-                        <div class="magic-grid">
+                        <div class="magic-grid" style="flex-wrap: nowrap;">
                             <div class="magic-grid-item" onclick="app.setTool('magic_rosette')" data-libelle="Rosace" data-tooltip="Rosace">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <circle cx="12" cy="12" r="10" />
@@ -9395,8 +9529,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="modal-box" style="width: 640px; max-width: 96%;">
             <!-- Un titre de fenêtre n'est pas une bannière : il se lit à gauche,
                  de la taille du texte, et laisse la place aux figures. -->
-            <h3 style="margin:0 0 10px; font-size:16px; color:#37474f; text-align:left;">Bibliothèque</h3>
-            <div id="biblioListe"
+            <!-- TROIS PRÉSENTATIONS POUR UNE MÊME COLLECTION. On ne cherche pas de
+                 la même façon selon qu'on a cinq séances ou cinquante : la galerie
+                 montre la figure en grand, les vignettes en font tenir douze à
+                 l'écran, la liste en aligne trente avec leur date. Le choix reste
+                 d'une fois sur l'autre. -->
+            <div class="biblio-barre">
+                <h3>Bibliothèque</h3>
+                <div class="biblio-vues" role="group" aria-label="Présentation de la bibliothèque">
+                    <button type="button" data-vue="galerie" onclick="app.presentationBiblio('galerie')"
+                        data-tooltip="Galerie : les figures en grand" aria-label="Galerie">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                            <rect x="3" y="4" width="8" height="7" rx="1" />
+                            <rect x="13" y="4" width="8" height="7" rx="1" />
+                            <rect x="3" y="13" width="8" height="7" rx="1" />
+                            <rect x="13" y="13" width="8" height="7" rx="1" />
+                        </svg>
+                    </button>
+                    <button type="button" data-vue="vignettes" onclick="app.presentationBiblio('vignettes')"
+                        data-tooltip="Vignettes : la présentation compacte" aria-label="Vignettes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                            <rect x="3" y="3" width="5" height="5" rx="1" />
+                            <rect x="9.5" y="3" width="5" height="5" rx="1" />
+                            <rect x="16" y="3" width="5" height="5" rx="1" />
+                            <rect x="3" y="9.5" width="5" height="5" rx="1" />
+                            <rect x="9.5" y="9.5" width="5" height="5" rx="1" />
+                            <rect x="16" y="9.5" width="5" height="5" rx="1" />
+                            <rect x="3" y="16" width="5" height="5" rx="1" />
+                            <rect x="9.5" y="16" width="5" height="5" rx="1" />
+                            <rect x="16" y="16" width="5" height="5" rx="1" />
+                        </svg>
+                    </button>
+                    <button type="button" data-vue="liste" onclick="app.presentationBiblio('liste')"
+                        data-tooltip="Liste : le plus de séances d'un coup d'œil" aria-label="Liste">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                            stroke-linecap="round">
+                            <path d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="biblioListe" class="vue-vignettes"
                 style="display:flex; flex-wrap:wrap; gap:10px; max-height:56vh; overflow:auto; padding:2px; justify-content:flex-start; align-content:flex-start;">
             </div>
             <input type="file" id="biblioFichier" accept="application/json,.json" style="display:none"
@@ -10494,6 +10667,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             // transformations
             magic_sym_centrale: "Le point, puis le centre",
             magic_sym_axiale: "Les points, puis l'axe",
+            magic_translation: "Les points, puis le segment-vecteur",
+            /* Le centre d'abord : sinon rien ne distinguerait « encore un point à
+               transformer » de « et voilà le centre ». Une fois le centre posé,
+               chaque clic donne son image — sur un polygone, la figure entière. */
+            magic_rotation: "Le centre, puis les points (ou un polygone)",
+            magic_homothetie: "Le centre, puis les points (ou un polygone)",
             magic_croquis: "Dessinez la figure d'un trait",
         };
         const GM_CONSIGNE_CROQUIS = "Dessinez la figure d'un trait";
@@ -16263,6 +16442,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
             }
+
+            /* L'HOMOTHÉTIE, À LA RÈGLE ET AU COMPAS. Le point image est sur la
+               DROITE (OP) — c'est tout ce que dit l'énoncé, et c'est par là qu'on
+               commence : on trace la droite à la règle. Le compas donne ensuite la
+               distance : |k| × OP depuis O, du côté de P si k est positif, de
+               l'autre s'il est négatif. Le point tombe au croisement, à la fin.
+               Un rapport négatif retourne la figure ; k = −1 est exactement la
+               symétrie de centre O. */
+            buildHomothetie(points, pO, k) {
+                let startIndex = this.entities.length;
+                this.stepInstructions[startIndex] = `Homothétie de rapport ${String(k).replace('.', ',')} : `
+                    + `l'image est sur la droite (O${points[0] && points[0].label ? points[0].label : 'P'}), `
+                    + `à ${Math.abs(k)} fois la distance au centre.`;
+
+                for (let pTarget of points) {
+                    const r = Math.hypot(pTarget.x - pO.x, pTarget.y - pO.y);
+                    if (r < 1e-6) { this.addEntity(new Point(pO.x, pO.y, this.nomImage(pTarget))); continue; }
+                    const a0 = Math.atan2(pTarget.y - pO.y, pTarget.x - pO.x);
+                    const ang = (k >= 0) ? a0 : a0 + Math.PI;
+                    const R = Math.abs(k) * r;
+                    let pNew = new Point(pO.x + k * (pTarget.x - pO.x), pO.y + k * (pTarget.y - pO.y),
+                                         this.nomImage(pTarget));
+
+                    /* La droite (OP), tracée à la règle et dépassant l'image : elle
+                       porte le point cherché, et ne le montre pas encore. */
+                    let bout = new Point(pO.x + Math.cos(ang) * R * 1.18, pO.y + Math.sin(ang) * R * 1.18, "");
+                    bout.visible = false;
+                    this.addEntity(bout);
+                    let pose = { x: pO.x, y: pO.y, angle: ang };
+                    let venir = new ToolAnimation('move', pose, pose);
+                    venir.widgetType = 'ruler';
+                    this.addEntity(venir);
+                    let trace = new ToolAnimation('trace', pose, pose);
+                    trace.widgetType = 'ruler';
+                    this.addEntity(trace);
+                    this.addEntity(new Segment(pTarget, bout, { color: "#b8b8b8", width: 1, dash: true }));
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
+                    // le compas s'ouvre à |k| × OP depuis le centre
+                    let ouvre = new ToolAnimation('move', { x: pO.x, y: pO.y, angle: ang, radius: 10 },
+                                                          { x: pO.x, y: pO.y, angle: ang, radius: R });
+                    ouvre.widgetType = 'compass';
+                    this.addEntity(ouvre);
+                    let arcTrace = new CompassArc(pO, R, ang - 0.2, ang + 0.2, false);
+                    arcTrace.color = "#ff9900";
+                    let animC = new ToolAnimation('trace', { x: pO.x, y: pO.y, angle: ang - 0.2, radius: R },
+                                                           { x: pO.x, y: pO.y, angle: ang + 0.2, radius: R });
+                    animC.widgetType = 'compass';
+                    this.addEntity(animC); this.addEntity(arcTrace);
+                    this.addEntity(new ToolAnimation('compassHide', {}, {}));
+
+                    this.addEntity(pNew);
+                }
+
+                this.saveState();
+                this.replayIndex = startIndex; this.fastForward(startIndex);
+                this.playStepLoop(startIndex, this.entities.length);
+            }
             getCurrentInstruction() {
                 let text = "";
                 let exactMatch = false;
@@ -21829,6 +22066,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.departAccroche = false;
                 this.isDraggingCreation = false;
                 this.referenceObject = null;
+                /* Le centre d'une rotation ou d'une homothétie ne survit pas au
+                   changement d'outil : le reprendre pour la transformation
+                   suivante ferait tourner la figure autour d'un point choisi pour
+                   autre chose, sans que rien ne le dise. */
+                this.centreTransformation = null;
                 this.polygonPoints = [];
                 this.anglePoints = [];
                 this.draggedWidgetMode = null;
@@ -21914,6 +22156,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 } else if (toolName.startsWith('magic_')) {
                     this.canvas.style.cursor = 'crosshair';
                     this.showToast('🪄 ' + (GM_CONSIGNES_MAGIE[toolName] || GM_CONSIGNE_MAGIE_DEFAUT));
+                    /* Une rotation et une homothétie ont besoin d'un NOMBRE, que
+                       le clic ne peut pas donner : on le demande tout de suite,
+                       avant de toucher à la feuille. Refuser, c'est renoncer à
+                       l'outil — on revient donc à la main. */
+                    if (toolName === 'magic_rotation' || toolName === 'magic_homothetie') {
+                        this.demanderReglageTransformation(toolName);
+                    }
                 } else if (toolName !== 'pan' && toolName !== 'move') {
                     this.canvas.style.cursor = 'crosshair';
                 } else if (toolName === 'move') {
@@ -25091,6 +25340,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.buildSymCentrale(this.anglePoints[0], this.anglePoints[1]);
                             this.setTool('move');
                         }
+                    } else if (this.currentTool === 'magic_rotation' || this.currentTool === 'magic_homothetie') {
+                        const poly = !closestPoint
+                            ? this.entities.find(e => e instanceof Polygon && e.isNear && e.isNear(x, y))
+                            : null;
+                        this.magieAutourDunCentre(this.currentTool, x, y, closestPoint, poly);
+                    } else if (this.currentTool === 'magic_translation') {
+                        if (!this.anglePoints) this.anglePoints = [];
+                        /* Le vecteur, c'est un SEGMENT de la figure — de sa première
+                           extrémité vers la seconde. Comme pour l'axe d'une symétrie,
+                           on ne lit le clic comme « le vecteur » que si aucun point
+                           existant n'est visé : un point cliqué est presque toujours
+                           le bout d'un trait déjà tracé. */
+                        const vecteur = (!closestPoint && (clickedLinear instanceof Segment
+                            || clickedLinear instanceof Ray)) ? clickedLinear : null;
+                        if (vecteur) {
+                            if (this.anglePoints.length > 0) {
+                                const pts = this.anglePoints.slice();
+                                const avant = this.entities.filter(e => e instanceof Point);
+                                this.buildTranslation(pts, vecteur.p1, vecteur.p2);
+                                this.cslLierImages(pts, this.entities.filter(e => e instanceof Point
+                                    && e.visible !== false && e.label && !avant.includes(e)));
+                                this.anglePoints = [];
+                                this.setTool('move');
+                            } else {
+                                this.showToast("🪄 Cliquez d'abord les points à transformer, "
+                                    + "puis le segment qui donne le vecteur");
+                            }
+                        } else {
+                            let pt = closestPoint ? closestPoint : this.createPointAt(x, y);
+                            if (this.anglePoints.length === 0 || this.anglePoints[this.anglePoints.length - 1] !== pt) {
+                                this.anglePoints.push(pt);
+                            }
+                        }
                     } else if (this.currentTool === 'magic_sym_axiale') {
                         if (!this.anglePoints) this.anglePoints = [];
                         // Un point cliqué est presque toujours l'extrémité d'un segment déjà tracé :
@@ -26996,6 +27278,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             vignetteCourante(largeur = 170, qualite = 0.6) {
                 const src = this.canvas;
                 if (!src || !src.width) return '';
+                /* SUR FOND BLANC. L'aperçu recopiait la feuille telle quelle,
+                   QUADRILLAGE COMPRIS : une bibliothèque de douze cartes de
+                   carreaux gris, où il fallait chercher la figure. Le papier est un
+                   réglage de travail — il aide à construire, il n'appartient pas au
+                   dessin. On le met en blanc le temps de la prise, et on le remet
+                   comme il était. */
+                const memoGrille = this.gridMode;
+                let remettre = false;
+                if (memoGrille !== 3) {
+                    try { this.gridMode = 3; this.render(); remettre = true; }
+                    catch (e) { void e; this.gridMode = memoGrille; }
+                }
+                try { return this.vignetteDuCanevas(largeur, qualite); }
+                finally {
+                    if (remettre) { this.gridMode = memoGrille; try { this.render(); } catch (e) { void e; } }
+                }
+            }
+            vignetteDuCanevas(largeur, qualite) {
+                const src = this.canvas;
                 /* On ne miniaturise pas la feuille : le canevas mesure 3000×2000 et
                    la figure n'en occupe qu'un coin — la vignette ne montrait guère
                    que du blanc. On découpe la ZONE UTILE, celle qui porte quelque
@@ -28691,12 +28992,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslTransformation(brut, t, fait, rate) {
                 /* L'homothétie se dit AVANT tout le reste : « l'image de ABC par
                    l'homothétie… » contient « image de », et partait se faire
-                   refuser par la symétrie, qui parlait d'axes et de centres sans
-                   jamais dire que c'était l'homothétie qui manquait. */
-                if (/\bhomoth[ée]tie\b/.test(t)) {
-                    return rate("Je sais faire les symétries, les translations et les rotations "
-                        + "— mais pas encore les homothéties.");
-                }
+                   traiter par la symétrie, qui parlait d'axes et de centres sans
+                   jamais voir qu'on ne lui demandait pas une symétrie. */
+                if (/\bhomoth[ée]tie\b/.test(t)) return this.cslHomothetie(brut, t, fait, rate);
                 if (/\btranslation\b/.test(t)) return this.cslTranslation(brut, t, fait, rate);
                 if (/\brotation\b/.test(t)) return this.cslRotation(brut, t, fait, rate);
                 return this.cslSymetrique(brut, t, fait, rate);
@@ -28767,6 +29065,60 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const vx = e.x - d.x, vy = e.y - d.y;
                 return this.cslPoserImages(pts, images, (p) => ({ x: p.x + vx, y: p.y + vy }),
                     sources, fait, `par la translation de vecteur ${v[1]}${v[2]}`);
+            }
+            cslHomothetie(brut, t, fait, rate) {
+                const coupe = brut.split(/par\s+(?:l['’]\s*|une\s+)?homoth[ée]tie\s*/i);
+                if (coupe.length < 2) {
+                    return rate("Quelle homothétie ? Écrivez « … par l'homothétie de centre O "
+                        + "et de rapport 2 ».");
+                }
+                const reste = coupe.slice(1).join(' ');
+                const { sources, images } = this.cslSourcesImages(coupe[0]);
+                if (!sources.length) return rate("Quels points ? Écrivez « … image de A, B, C par l'homothétie… ».");
+                const manque = sources.find(n => !this.cslPointNomme(n));
+                if (manque) return rate(`Je ne connais pas ${manque}.`);
+                const pts = sources.map(n => this.cslPointNomme(n));
+
+                const mc = reste.match(/centre\s+\(?([A-Z]'{0,2})\)?/);
+                if (!mc) return rate("Quel centre ? Écrivez « … par l'homothétie de centre O "
+                    + "et de rapport 2 ».");
+                const o = this.cslPointNomme(mc[1]);
+                if (!o) return rate(`Je ne connais pas ${mc[1]}.`);
+                /* Le rapport s'écrit de trois façons dans un manuel : 2, −1,5, ou
+                   la fraction 1/2 — et le moins peut être le signe typographique
+                   « − » aussi bien que le trait d'union du clavier. */
+                const mk = reste.match(/rapport\s*(?:de\s+|:\s*|=\s*)?([-−–]?\s*\d+(?:[.,]\d+)?)(?:\s*\/\s*(\d+(?:[.,]\d+)?))?/);
+                if (!mk) return rate("De quel rapport ? Écrivez « … et de rapport 2 » "
+                    + "— un rapport peut être négatif ou fractionnaire (−1,5 ou 1/2).");
+                const nombre = (s) => parseFloat(String(s).replace(/\s/g, '').replace(/[−–]/g, '-').replace(',', '.'));
+                let k = nombre(mk[1]);
+                if (mk[2]) {
+                    const bas = nombre(mk[2]);
+                    if (!bas) return rate("Un rapport ne se divise pas par zéro.");
+                    k = k / bas;
+                }
+                if (!isFinite(k) || Math.abs(k) < 1e-9) {
+                    return rate("Un rapport nul enverrait toute la figure sur le centre : "
+                        + "ce n'est pas une homothétie.");
+                }
+                // « −1,5 » et non « -1.5 » : c'est ainsi qu'un énoncé l'écrit
+                const ditK = String(+k.toFixed(4)).replace('.', ',').replace('-', '−');
+                this.cslMotImage(t, sources, `par l'homothétie de centre ${mc[1]} et de rapport ${ditK}`);
+                if (Math.abs(k + 1) < 1e-9) {
+                    this.cslDire(`Vocabulaire : l'homothétie de centre ${mc[1]} et de rapport −1, `
+                        + `c'est la symétrie de centre ${mc[1]}.`);
+                } else if (Math.abs(k - 1) < 1e-9) {
+                    this.cslDire("Vocabulaire : une homothétie de rapport 1 ne bouge rien — "
+                        + "l'image est la figure de départ.");
+                }
+                if (this.cslDetaille()) {
+                    this.cslLierImages(pts, this.cslBatir(images, () => this.buildHomothetie(pts, o, k)));
+                    return fait(`Image${pts.length > 1 ? 's' : ''} de ${sources.join(', ')} par l'homothétie `
+                        + `de centre ${mc[1]} et de rapport ${ditK}`);
+                }
+                return this.cslPoserImages(pts, images,
+                    (p) => ({ x: o.x + k * (p.x - o.x), y: o.y + k * (p.y - o.y) }),
+                    sources, fait, `par l'homothétie de centre ${mc[1]} et de rapport ${ditK}`);
             }
             cslRotation(brut, t, fait, rate) {
                 const coupe = brut.split(/par\s+(?:la\s+|une\s+)?rotation\s*/i);
@@ -31101,7 +31453,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             enregistrerDansBiblio() {
                 const nom = (this.projectTitle || '').trim() || 'Sans titre';
                 const liste = this.lireBiblio();
-                const item = { n: nom, c: this.codeDocument(), v: this.vignetteCourante(), d: Date.now(),
+                /* 300 px et non 170 : la galerie montre la vignette en grand, et
+                   une image agrandie deux fois est une image floue. */
+                const item = { n: nom, c: this.codeDocument(), v: this.vignetteCourante(300), d: Date.now(),
                     p: this.pagesDocument().length };
                 const dejaLa = liste.findIndex(e => e.n === nom);
                 const poser = () => {
@@ -31115,9 +31469,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 else poser();
             }
             ouvrirBiblio() {
-                this.majBiblio();
+                this.presentationBiblio(this.vueBiblio());
                 const m = document.getElementById('biblioModal');
                 if (m) m.style.display = 'flex';
+            }
+            /* La présentation choisie est un réglage de la personne, pas du
+               document : elle vit dans la mémoire locale et ne voyage avec rien. */
+            vueBiblio() {
+                let v = '';
+                try { v = localStorage.getItem('gm_biblio_vue') || ''; } catch (e) { void e; }
+                return ['galerie', 'vignettes', 'liste'].includes(v) ? v : 'vignettes';
+            }
+            presentationBiblio(vue) {
+                const v = ['galerie', 'vignettes', 'liste'].includes(vue) ? vue : 'vignettes';
+                try { localStorage.setItem('gm_biblio_vue', v); } catch (e) { void e; }
+                const hote = document.getElementById('biblioListe');
+                if (hote) hote.className = 'vue-' + v;
+                document.querySelectorAll('.biblio-vues button').forEach(b => {
+                    b.setAttribute('aria-pressed', String(b.dataset.vue === v));
+                });
+                this.majBiblio();
             }
             /* Le code d'un exemple : soit il le porte, soit il renvoie à d'autres —
                une séance de plusieurs pages n'a alors rien à stocker, elle assemble
@@ -31223,7 +31594,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.loadFromCompressedString(code.split('~')[0]);
                             this.replayIndex = null;
                             this.render();
-                            memo[e.n] = this.vignetteCourante(132);
+                            memo[e.n] = this.vignetteCourante(300);
                         } catch (err) { void err; }
                     });
                 } finally {
@@ -31340,6 +31711,112 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!navigator.clipboard) { this.showToast("Le presse-papiers n'est pas disponible ici."); return; }
                 navigator.clipboard.writeText(code).then(() =>
                     this.showToast("🧩 Code copié (" + code.length + " car.) — il s'ouvre dans n'importe quel GéoMaster"));
+            }
+            /* LE RÉGLAGE D'UNE TRANSFORMATION QU'UN CLIC NE PEUT PAS DIRE : l'angle
+               et le sens d'une rotation, le rapport d'une homothétie. Une petite
+               boîte, construite à la volée avec les classes de modale du logiciel —
+               rien de nouveau à l'écran, et rien de figé dans le HTML. */
+            demanderReglageTransformation(outil) {
+                const rot = (outil === 'magic_rotation');
+                const memo = this.reglageTransformation || {};
+                const fond = document.createElement('div');
+                fond.className = 'modal-overlay';
+                fond.style.display = 'flex';
+                const boite = document.createElement('div');
+                boite.className = 'modal-box';
+                boite.style.width = '320px';
+                boite.style.maxWidth = '95%';
+                boite.innerHTML = rot
+                    ? '<h3 style="margin-top:0; color:#8e44ad;">Rotation</h3>'
+                      + '<p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">'
+                      + 'Le centre au premier clic, puis chaque point — ou un polygone entier.</p>'
+                      + '<label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:8px;">'
+                      + 'Angle <input id="gmTrAngle" type="number" min="0" max="359" step="1" '
+                      + 'style="flex:1; box-sizing:border-box; border:1px solid #d7dbe0; border-radius:8px; padding:6px;"> °</label>'
+                      + '<label style="display:flex; align-items:center; gap:8px; font-size:13px;">Sens '
+                      + '<select id="gmTrSens" style="flex:1; box-sizing:border-box; border:1px solid #d7dbe0; border-radius:8px; padding:6px;">'
+                      + '<option value="1">direct (inverse des aiguilles)</option>'
+                      + '<option value="-1">horaire (sens des aiguilles)</option></select></label>'
+                    : '<h3 style="margin-top:0; color:#8e44ad;">Homothétie</h3>'
+                      + '<p style="font-size:13px; color:#555; margin:0 0 10px; text-align:left;">'
+                      + 'Le centre au premier clic, puis chaque point — ou un polygone entier.<br>'
+                      + 'Un rapport négatif retourne la figure ; −1, c\'est la symétrie centrale.</p>'
+                      + '<label style="display:flex; align-items:center; gap:8px; font-size:13px;">Rapport '
+                      + '<input id="gmTrRapport" type="number" step="0.1" '
+                      + 'style="flex:1; box-sizing:border-box; border:1px solid #d7dbe0; border-radius:8px; padding:6px;"></label>';
+                const barre = document.createElement('div');
+                barre.className = 'modal-buttons';
+                const annuler = document.createElement('button');
+                annuler.className = 'modal-btn modal-cancel';
+                annuler.textContent = 'Annuler';
+                const ok = document.createElement('button');
+                ok.className = 'modal-btn modal-confirm';
+                ok.textContent = 'Continuer';
+                barre.append(annuler, ok);
+                boite.appendChild(barre);
+                fond.appendChild(boite);
+                document.body.appendChild(fond);
+
+                const champ = boite.querySelector('#gmTrAngle') || boite.querySelector('#gmTrRapport');
+                champ.value = rot ? (memo.deg || 90) : (memo.k || 2);
+                const sens = boite.querySelector('#gmTrSens');
+                if (sens) sens.value = String(memo.signe === -1 ? -1 : 1);
+                setTimeout(() => { champ.focus(); champ.select(); }, 30);
+
+                const fermer = () => { if (fond.parentNode) fond.parentNode.removeChild(fond); };
+                const renoncer = () => { fermer(); this.setTool('move'); };
+                const valider = () => {
+                    const v = parseFloat(String(champ.value).replace(',', '.'));
+                    if (!isFinite(v) || (rot ? !(v > 0 && v < 360) : Math.abs(v) < 1e-9)) {
+                        this.showToast(rot ? "Un angle de rotation est entre 0° et 360°."
+                            : "Un rapport d'homothétie ne peut pas être nul.");
+                        return;
+                    }
+                    this.reglageTransformation = rot
+                        ? { deg: v, signe: parseInt(sens.value, 10) === -1 ? -1 : 1 }
+                        : { k: v };
+                    this.centreTransformation = null;
+                    fermer();
+                    this.showToast('🪄 ' + GM_CONSIGNES_MAGIE[outil]);
+                };
+                annuler.addEventListener('click', renoncer);
+                fond.addEventListener('click', (e) => { if (e.target === fond) renoncer(); });
+                ok.addEventListener('click', valider);
+                champ.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); valider(); }
+                    if (e.key === 'Escape') { e.preventDefault(); renoncer(); }
+                });
+            }
+            /* LE CLIC D'UNE TRANSFORMATION À CENTRE. Le premier pose le centre —
+               il n'y a rien à transformer tant qu'on ne sait pas autour de quoi.
+               Ensuite, un polygone donne ses sommets d'un coup (et l'image est
+               reliée comme lui), un point donne le sien. L'outil reste armé : on
+               transforme autant de points qu'on veut autour du même centre. */
+            magieAutourDunCentre(outil, x, y, pointVise, polygoneVise) {
+                if (!this.centreTransformation) {
+                    this.centreTransformation = pointVise || this.createPointAt(x, y);
+                    this.showToast(`🪄 Centre en ${this.centreTransformation.label || '·'} — `
+                        + `cliquez maintenant les points, ou un polygone`);
+                    this.render();
+                    return;
+                }
+                const o = this.centreTransformation;
+                let cibles = [];
+                if (polygoneVise) cibles = (polygoneVise.points || polygoneVise.vertices || []).slice();
+                else {
+                    const p = pointVise || this.createPointAt(x, y);
+                    if (p === o) { this.showToast("Le centre est son propre image."); return; }
+                    cibles = [p];
+                }
+                cibles = cibles.filter(Boolean);
+                if (!cibles.length) return;
+                const r = this.reglageTransformation || {};
+                const avant = this.entities.filter(e => e instanceof Point);
+                if (outil === 'magic_rotation') this.buildRotation(cibles, o, r.deg || 90, r.signe === -1 ? -1 : 1);
+                else this.buildHomothetie(cibles, o, r.k || 2);
+                const neufs = this.entities.filter(e => e instanceof Point && e.visible !== false
+                    && e.label && !avant.includes(e));
+                this.cslLierImages(cibles, neufs);
             }
             ouvrirModaleCode() {
                 const m = document.getElementById('codeModal');

@@ -44,7 +44,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       };
     });
     console.log('  ' + JSON.stringify(r));
-    ck('les 19 outils portent leur nom', r.items === 19 && r.nommes === 19, `${r.nommes}/${r.items}`);
+    ck('les 22 outils portent leur nom', r.items === 22 && r.nommes === 22, `${r.nommes}/${r.items}`);
     ck('chacun atteint sa propre commande', r.atteints === r.items, `${r.atteints}/${r.items}`);
     // 44px est la règle du DOIGT ; à la souris, 30px suffisent largement
     const seuil = c.touch ? 44 : 30;

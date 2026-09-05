@@ -127,7 +127,10 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   });
   console.log('  ' + JSON.stringify(menu));
   ck('chaque icône se nomme au survol', menu.sansNom.length === 0, menu.sansNom.join(', '));
-  ck('trois intitulés au lieu de trois traits', menu.titres.length === 3, menu.titres.join(' / '));
+  /* Quatre bandes : le document, ce qu'on en sort, ce qu'on transmet, ce qu'on
+     enregistre. Les intitulés ne s'affichent plus — ils sont devenus les
+     filets qui séparent les bandes — mais ils restent dans le DOM. */
+  ck('quatre intitulés au lieu de quatre traits', menu.titres.length === 4, menu.titres.join(' / '));
   ck('la fiche est là, avec les autres sorties', menu.fiche && menu.avecPDF);
 
   console.log('\n=== le composeur ===');
