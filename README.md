@@ -361,7 +361,11 @@ Chaque figure garde la trace de sa construction. On la rejoue **pas à pas**, le
 instruments se déplaçant tout seuls, avec une consigne attachée à chaque étape.
 C'est le geste du tableau, qu'un élève peut revoir chez lui autant de fois qu'il
 veut — jusqu'au détail : aucune équerre ne couvre une perpendiculaire entière,
-alors elle **se déplace** pour prolonger le trait de l'autre côté de l'axe.
+alors on la trace jusqu'à l'axe **à l'équerre**, puis on couche la **règle sur le
+trait déjà fait** pour le prolonger. Faire basculer l'équerre autour du pied,
+comme avant, est un geste qu'on ne peut pas faire juste : rien ne garantit
+qu'elle retombe sur la même droite. Le trait déjà tracé, lui, est un guide sûr —
+c'est la même raison qui interdit de tracer une parallèle à la règle seule.
 
 Au tableau, on avance **à la main** : *Page suivante* / *Page précédente* — les
 touches qu'envoie une **télécommande de présentation** — plus Espace et les

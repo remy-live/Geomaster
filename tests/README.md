@@ -19,7 +19,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-tableau.js` | la construction s'avance à la télécommande, et le trait s'épaissit pour la salle |
 | `probe-seance.js` | plusieurs pages dans un document, un seul PDF, une bibliothèque de séances |
 | `probe-consigne-fermer.js` | la croix de la fenêtre des consignes la ferme vraiment |
-| `probe-equerre-repere.js` | le repère rouge de l'équerre tombe juste, et le rejeu la pose |
+| `probe-equerre-repere.js` | le repère rouge de l'équerre tombe juste, le rejeu la pose — et pour prolonger une perpendiculaire, c'est la **règle posée sur le trait déjà fait**, l'équerre rangée avant |
 | `probe-annuler-rejeu.js` | annuler pendant une construction magique l'arrête au lieu de tout bloquer |
 | `probe-mesure-clavier.js` | une longueur et un angle se donnent au clavier, dans l'unité affichée |
 | `probe-palette-repliee.js` | repliée, la palette tient dans 50 px et le crayon se règle d'un clic |

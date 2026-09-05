@@ -114,7 +114,26 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       poses.push({ x: Math.round(sq.x), y: Math.round(sq.y), boutX: Math.round(bout.x),
                    trait: suiv && suiv.p1 ? [Math.round(suiv.p1.x), Math.round(suiv.p2.x)] : null });
     }
-    return { gestes: gestes.map(o => o.t), poses, pointX: M.x, axeX: 640, symX: 880 };
+    /* LA RÈGLE QUI PROLONGE : posée sur le trait déjà tracé, donc partant du
+       point lui-même et pointant vers l'axe et au-delà. */
+    const iRegle = app.entities.findIndex((e, i) =>
+      e.widgetType === 'ruler' && e.originalType === 'trace' && i > gestes[0].i);
+    let regle = null;
+    if (iRegle > 0) {
+      app.replayIndex = iRegle + 1; app.fastForward(iRegle + 1); app.render();
+      const r = app.rulerWidget, suiv = app.entities[iRegle + 1];
+      regle = { x: Math.round(r.x), y: Math.round(r.y),
+                surLeTrait: Math.round(r.x) === Math.round(M.x) && Math.round(r.y) === Math.round(M.y),
+                trait: suiv && suiv.p1 ? [Math.round(suiv.p1.x), Math.round(suiv.p2.x)] : null };
+    }
+    /* L'ordre compte : l'équerre doit être RANGÉE avant que la règle n'arrive,
+       sinon les deux instruments se chevauchent à l'écran. */
+    const suite = app.entities.map(e => e.widgetType).filter(w =>
+      w === 'setsquare' || w === 'setsquareHide' || w === 'ruler');
+    const i1 = suite.indexOf('setsquare'), i2 = suite.indexOf('setsquareHide'),
+          i3 = suite.indexOf('ruler', i2 >= 0 ? i2 : 0);
+    const ordre = (i1 >= 0 && i2 > i1 && i3 > i2) ? 'équerre → rangée → règle' : suite.slice(0, 5).join(',');
+    return { gestes: gestes.map(o => o.t), poses, regle, ordre, pointX: M.x, axeX: 640, symX: 880 };
   });
   console.log('  ' + JSON.stringify(rejeu));
   ck('l\'équerre existe et n\'est plus au fond de la feuille',
@@ -125,18 +144,26 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('elle est posée du côté du point, pas de l\'autre',
      rejeu.poses[0] && rejeu.poses[0].boutX < rejeu.axeX,
      `bord vers x=${rejeu.poses[0] && rejeu.poses[0].boutX}, axe à ${rejeu.axeX}, point à ${rejeu.pointX}`);
-  /* Aucune équerre ne couvre la perpendiculaire entière : on trace jusqu'à l'axe,
-     puis ON BOUGE L'ÉQUERRE pour prolonger de l'autre côté. */
-  ck('trois gestes : tracer, bouger, prolonger',
-     JSON.stringify(rejeu.gestes) === JSON.stringify(['trace', 'move', 'trace']),
+  /* AUCUNE ÉQUERRE NE COUVRE LA PERPENDICULAIRE ENTIÈRE, et on ne la fait plus
+     BASCULER pour continuer : rien ne garantit qu'une équerre repositionnée
+     retombe sur la même droite — on prolongeait à peu près, en se fiant à un
+     alignement que l'instrument ne donne pas. Le trait DÉJÀ TRACÉ est un guide
+     sûr : on y couche la RÈGLE, et la droite continue exactement. C'est la même
+     raison qui interdit de tracer une parallèle à la règle seule. */
+  ck('l\'équerre ne fait qu\'un geste : descendre du point jusqu\'à l\'axe',
+     JSON.stringify(rejeu.gestes) === JSON.stringify(['trace']),
      JSON.stringify(rejeu.gestes));
-  ck('le premier trait descend du point jusqu\'à l\'axe',
+  ck('  et ce trait va bien du point à l\'axe',
      rejeu.poses[0] && JSON.stringify(rejeu.poses[0].trait) === JSON.stringify([rejeu.pointX, rejeu.axeX]),
      JSON.stringify(rejeu.poses[0] && rejeu.poses[0].trait));
-  ck('après le déplacement, elle prolonge au-delà du symétrique',
-     rejeu.poses[1] && rejeu.poses[1].boutX > rejeu.axeX
-       && rejeu.poses[1].trait[0] === rejeu.axeX && rejeu.poses[1].trait[1] > rejeu.symX,
-     JSON.stringify(rejeu.poses[1]));
+  /* Puis la règle prend le relais, POSÉE SUR CE QUI EST DÉJÀ LÀ : elle part du
+     point, couvre le morceau tracé, et prolonge au-delà du symétrique. */
+  ck('la règle prolonge, posée sur le trait déjà fait',
+     rejeu.regle && rejeu.regle.surLeTrait && rejeu.regle.trait
+       && rejeu.regle.trait[0] === rejeu.axeX && rejeu.regle.trait[1] > rejeu.symX,
+     JSON.stringify(rejeu.regle));
+  ck('  et l\'équerre est rangée avant qu\'elle n\'arrive',
+     rejeu.ordre === 'équerre → rangée → règle', rejeu.ordre);
 
   console.log('\n=== le nom d\'un point annonce qu\'il se déplace ===');
   const curseur = await page.evaluate(() => {
