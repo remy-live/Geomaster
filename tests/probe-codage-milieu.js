@@ -268,11 +268,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      voyage.ancienOK && voyage.ancienCode === false,
      `${voyage.ancienOK} / ${voyage.ancienCode}`);
 
-  /* LE CODAGE DU MILIEU ET CELUI DU SEGMENT COEXISTENT. Le premier dit
-     AI = IB, le second dit que [AB] égale un autre trait : ce sont deux
-     affirmations, et la rangée de marques doit s'ouvrir pour l'un comme pour
-     l'autre. Elle ne s'ouvrait que pour les segments. */
-  console.log('\n=== le milieu ET le segment, chacun sa marque ===');
+  /* UN TRAIT NE PORTE QU'UN CODAGE. Quand le milieu de [AB] est codé, ce
+     sont ses deux moitiés qui parlent : le trait est déjà marqué, et lui
+     poser en plus une marque de longueur ferait dire deux choses au même
+     dessin — la seconde tombant d'ailleurs pile sous la croix du milieu.
+     Mettre le codage du milieu à Ø rend la longueur codable. */
+  console.log('\n=== un trait ne porte qu\'un codage ===');
   const duo = await page.evaluate(() => {
     const app = window.app;
     app.entities = []; app.historyPast = []; app.stepInstructions = {};
@@ -280,56 +281,83 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const A = new Point(200, 200, 'A'), B = new Point(500, 200, 'B');
     app.addEntity(A); app.addEntity(B);
     const s = new Segment(A, B); app.addEntity(s);
-    const I = app.poserMilieu(A, B);
-    // un second trait de même longueur, pour que le segment ait de quoi parler
+    // un second trait de même longueur : [AB] a de quoi être codé
     const C = new Point(200, 320, 'C'), D = new Point(500, 320, 'D');
     app.addEntity(C); app.addEntity(D);
-    app.addEntity(new Segment(C, D));
+    const s2 = new Segment(C, D); app.addEntity(s2);
+    app.autoCodeAll();
+    const avant = { AB: s.coding, CD: s2.coding };
 
-    // le milieu est-il reconnu comme porteur, et la rangée s'ouvre-t-elle ?
+    // on pose le milieu : il prend la parole, le trait rend la sienne
+    const I = app.poserMilieu(A, B);
+    const apresMilieu = { AB: s.coding, milieu: I.codageMilieu, CD: s2.coding };
+
+    // la rangée s'ouvre pour le milieu et montre sa marque
     app.selectedObject = I; app.updateContextMenuUI();
     const rangee = getComputedStyle(document.getElementById('rowCoding')).display;
     const actifAvant = document.querySelector('#rowCoding .mark-btn.active');
     app.styleObject('mark-3');
     const milApres = I.codageMilieu;
 
-    // et le segment garde la sienne, choisie séparément
+    // sur le segment, tout est en veilleuse SAUF le Ø
     app.selectedObject = s; app.updateContextMenuUI();
+    const veille = [...document.querySelectorAll('#rowCoding .mark-btn')].map(x => ({
+      n: ((x.getAttribute('onclick') || '').match(/mark-[a-z0-9]+/) || [''])[0],
+      op: x.style.opacity }));
     app.styleObject('mark-o');
-    app.selectedObject = null; app.render();
+    const refus = s.coding;
 
-    // effacer la marque du milieu ne doit pas toucher celle du segment
+    // le milieu à Ø : la longueur redevient codable
     app.selectedObject = I; app.styleObject('mark-none');
-    const milVide = I.codageMilieu, segRestant = s.coding;
-    I.codageMilieu = 'mark-3'; app.selectedObject = null;
+    app.selectedObject = s; app.updateContextMenuUI();
+    const veille2 = [...document.querySelectorAll('#rowCoding .mark-btn')]
+      .filter(x => x.style.opacity && x.style.opacity !== '1').length;
+    app.styleObject('mark-o');
+    const libre = { AB: s.coding, milieu: I.codageMilieu };
 
-    // où tombent les trois marques dans l'export ?
+    // l'export ne montre jamais les deux à la fois
+    I.codageMilieu = 'mark-1'; s.coding = 'mark-3';
     const svg = app.generateSVGString(false, 'none');
-    const cercles = [...svg.matchAll(/<circle[^>]*translate\(([-\d.]+),/g)].map(m => +m[1]);
-    const traits = [...svg.matchAll(/<path[^>]*translate\(([-\d.]+),/g)].map(m => +m[1]);
-    return { rangee, actifAvant: actifAvant && actifAvant.getAttribute('onclick'),
-             milApres, seg: s.coding, milVide, segRestant, cercles, traits,
+    // x ET y : [CD], parallèle et de même longueur, a sa marque au même x
+    const traits = [...svg.matchAll(/<path[^>]*translate\(([-\d.]+),([-\d.]+)\)/g)]
+      .map(m => [+m[1], +m[2]]);
+    app.selectedObject = null;
+    return { avant, apresMilieu, rangee, actifAvant: actifAvant && actifAvant.getAttribute('onclick'),
+             milApres, veille, refus, veille2, libre, traits,
              estMilieu: app.estMilieu(I), estPoint: app.estMilieu(A) };
   });
   console.log('  ' + JSON.stringify(duo));
   ck('un point construit sur deux points est un milieu',
      duo.estMilieu === true && duo.estPoint === false,
      `${duo.estMilieu} / ${duo.estPoint}`);
+  ck('avant le milieu, [AB] et [CD] portent la même marque',
+     duo.avant.AB === 'mark-1' && duo.avant.CD === 'mark-1', JSON.stringify(duo.avant));
+  ck('poser le milieu rend sa marque au trait',
+     duo.apresMilieu.AB === null && !!duo.apresMilieu.milieu, JSON.stringify(duo.apresMilieu));
+  ck('et ne touche pas au trait d\'à côté', duo.apresMilieu.CD === 'mark-1');
   ck('la rangée de marques s\'ouvre pour un milieu', duo.rangee === 'grid', duo.rangee);
   ck('elle montre la marque qu\'il porte déjà',
-     /mark-1/.test(duo.actifAvant || ''), String(duo.actifAvant));
+     /mark-/.test(duo.actifAvant || ''), String(duo.actifAvant));
   ck('on lui en choisit une autre', duo.milApres === 'mark-3', String(duo.milApres));
-  ck('et le segment garde la sienne', duo.seg === 'mark-o', String(duo.seg));
-  ck('effacer celle du milieu laisse celle du segment',
-     duo.milVide === null && duo.segRestant === 'mark-o',
-     `${duo.milVide} / ${duo.segRestant}`);
-  /* Les deux moitiés au quart (275) et aux trois quarts (425) ; la marque du
-     segment décalée du centre (350) pour ne pas se cacher sous le point. */
-  ck('les moitiés restent au quart et aux trois quarts',
-     duo.traits.includes(275) && duo.traits.includes(425), JSON.stringify(duo.traits));
-  ck('la marque du segment s\'écarte du milieu',
-     duo.cercles.length === 1 && Math.abs(duo.cercles[0] - 350) >= 12,
-     JSON.stringify(duo.cercles));
+  ck('sur le segment, seul le Ø reste vif',
+     duo.veille.filter(x => x.n !== 'mark-none').every(x => x.op === '0.35')
+     && duo.veille.find(x => x.n === 'mark-none').op !== '0.35',
+     JSON.stringify(duo.veille.map(x => x.n + ':' + (x.op || '1'))));
+  ck('et cliquer une marque ne fait rien', duo.refus === null, String(duo.refus));
+  ck('le milieu à Ø, les marques redeviennent vives', duo.veille2 === 0, String(duo.veille2));
+  ck('et la longueur se code alors', duo.libre.AB === 'mark-o' && duo.libre.milieu === null,
+     JSON.stringify(duo.libre));
+  /* Les deux moitiés au quart (275) et aux trois quarts (425), et RIEN au
+     centre (350) : le trait n'a pas de marque à lui tant que son milieu parle. */
+  const surAB = duo.traits.filter(q => Math.abs(q[1] - duo.traits[0][1]) < 40
+      || Math.abs(q[1] - 200) < 40);
+  ck('à l\'export, les deux moitiés de [AB] sont marquées',
+     duo.traits.some(q => Math.abs(q[0] - 275) < 2) && duo.traits.some(q => Math.abs(q[0] - 425) < 2),
+     JSON.stringify(duo.traits));
+  ck('et rien au centre de [AB] — la marque à x=350 est celle de [CD]',
+     !duo.traits.some(q => Math.abs(q[0] - 350) < 12 && Math.abs(q[1] - 200) < 40),
+     JSON.stringify(duo.traits));
+  void surAB;
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

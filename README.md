@@ -80,6 +80,10 @@ carré de 3 cm »* ne dit pas quels sommets, et le logiciel en inventait en
 silence — il montre maintenant `Trace un carré ABCD de 3 cm de côté`, qu'un clic
 recopie. Le **?** du titre déplie la liste complète de ce qui est compris.
 
+**Le panneau s'agrandit** : une poignée au coin bas-droit, et la taille choisie
+est retenue d'une séance à l'autre. 340 px, c'était deux lignes de retour à la
+ligne pour une consigne de triangle — on écrivait un énoncé sans le voir entier.
+
 **Au téléphone, l'écran se partage en deux** : les consignes en bas, la figure
 au-dessus — et la feuille est vraiment raccourcie, pas seulement recouverte. Une
 fenêtre flottante de 340 px sur un écran de 390, c'était écrire une consigne
@@ -97,13 +101,13 @@ Ce qu'il comprend, avec la notation française (`[AB]`, `[AB)`, `(AB)`, `A'`) :
 
 | | |
 |---|---|
-| **Placer** | `Place 3 points A, B, C non alignés` · `Trace 3 points A, B, C` · `alignés` · `Place le milieu I de [AB]` · `les milieux I de [AB] et J de [AC]` · `Soit I…` |
+| **Placer** | `Place 3 points A, B, C non alignés` · `Trace 3 points A, B, C` · `alignés` (l'écart reste inégal : l'alignement ne dit pas l'égalité) · `équidistants` · `à la même distance` · `équidistants de O` (sur un cercle) · `Place le milieu I de [AB]` · `les milieux I de [AB] et J de [AC]` · `Soit I…` |
 | **Traits** | `Trace [AB]` · `[AB)` · `(AB)` · `le segment [AB] de 5 cm` · `un segment vertical [OQ] de 6 cm` · `horizontal` · `[AB], [BC] et [CA]` · `les droites (AB) et (BC)` · `Relie A à B` |
 | **Droites nommées** | `Trace une droite d` · `(d)` · `Trace deux droites d et d'` — le nom est celui de l'énoncé, et il sert ensuite : `la perpendiculaire à d passant par A` · `un point M sur d` |
 | **Cercles** | `de centre A passant par B` · `de rayon 3 cm` · `de 3 cm de rayon` · `de rayon [AC]` · `de diamètre [AB]` · `de 6 cm de diamètre` · `circonscrit au triangle ABC` (ou `le cercle circonscrit` tout court) · `le cercle passant par A, B et C` |
 | **Dans un cercle** | `un rayon` · `un diamètre` · `une corde` · `la tangente au cercle en A` — ce sont des traits, et non des cercles |
 | **Figures** | `carré ABCD de 3 cm de côté` · `rectangle de 5 cm sur 3 cm` · `losange` · `losange de côté 4 cm et de diagonale AC = 6 cm` · `parallélogramme` · `trapèze` · `trapèze rectangle` · `trapèze isocèle` · `pentagone` · `hexagone` · `octogone` · `polygone régulier à 7 côtés` · `polygone ABCDE` · `les diagonales de ABCD` |
-| **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · l'angle s'écrit aussi sans le mot : `ABC = 40°` · `équilatéral` · `isocèle en A` · `rectangle en A` · `rectangle isocèle en B` dans les deux ordres |
+| **Triangles** | `tel que AB = 5 cm, AC = 4 cm et BC = 3 cm` (trois longueurs) · `AB = 5 cm, AC = 4 cm et l'angle BAC = 60°` (deux longueurs et l'angle entre elles) · `AB = 6 cm, l'angle BAC = 40° et l'angle ABC = 60°` (une longueur et deux angles) · l'angle s'écrit aussi sans le mot : `ABC = 40°`, et **par son seul sommet** : `A = 30°`, `Â = 30°`, `A° = 30°` · `équilatéral` · `isocèle en A` · `rectangle en A` · `rectangle isocèle en B` dans les deux ordres |
 | **Droites remarquables** | `médiatrice de [AB]` · `les médiatrices de [AB] et [AC]` (celles-là, pas les trois du triangle) · `perpendiculaire à (AB) passant par C` · `qui passe par C` · `parallèle à…` · `bissectrice de l'angle ABC` |
 | **Dans un triangle** | `les médiatrices du triangle ABC` · `les bissectrices` · `les hauteurs` · `les médianes` — les trois d'un coup, ou `la hauteur issue de A`, `issue du sommet A`, `relative à [BC]`, ou `les hauteurs issues de A et de B` · `les milieux des côtés`. Le triangle n'a pas à être redit d'une ligne à l'autre. |
 | **Deux d'un coup** | `Trace un triangle ABC et ses médiatrices` · `et ses diagonales` · `et son cercle circonscrit` |
@@ -142,15 +146,15 @@ dans le vide : un carré de 3,8 cm posé sur un segment dont le milieu portait
 déjà le trait simple recevait le même trait pour ses côtés, et la figure
 affirmait que 1,9 cm valait 3,8 cm.
 
-**Le codage du milieu et celui du segment sont deux choses**, et rien n'oblige à
-choisir : sur `[AB]` muni de son milieu `I`, le premier dit *AI = IB*, le second
-dit *`[AB]` est égal à tel autre trait*. Sélectionnez le milieu, la rangée de
-marques s'ouvre pour lui comme elle s'ouvre pour un segment — elle ne s'ouvrait
-jusqu'ici que pour les segments, et la marque d'un milieu restait celle que le
-logiciel avait posée seul. Quand les deux coexistent, la marque du segment
-s'écarte du centre : elle s'y posait exactement sous le point milieu, où on ne la
-voyait pas. La position d'une marque le long d'un trait ne dit rien ; seul son
-symbole parle.
+**Un trait ne porte qu'un codage.** Quand le milieu de `[AB]` est codé, ce sont
+ses deux moitiés qui parlent : le trait est déjà marqué, et lui poser en plus une
+marque de longueur ferait dire deux choses au même dessin — la seconde tombant
+d'ailleurs pile sous la croix du milieu, où on ne la verrait pas. Poser un milieu
+rend donc sa marque au trait, et la rangée de marques du segment s'éteint, **sauf
+le Ø** : c'est par là qu'on sort. Mettez le codage du milieu à Ø, et la longueur
+redevient codable. Sélectionnez le milieu, enfin, et la rangée s'ouvre pour lui —
+elle ne s'ouvrait jusqu'ici que pour les segments, et la marque d'un milieu
+restait celle que le logiciel avait posée seul.
 
 Et le codage automatique qui suit une consigne **ne regarde que ce que cette
 consigne vient de construire** : appliqué à toute la feuille, « même longueur ⇒

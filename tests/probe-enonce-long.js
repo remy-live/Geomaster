@@ -394,6 +394,38 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('les trois angles sont marqués et chiffrés', r.res[1].ok && r.objets.Angle === 3,
      `${r.res[1].m} / ${r.objets.Angle}`);
 
+  /* ================================================================
+     16. L'ANGLE ÉCRIT PAR SON SEUL SOMMET.
+     « Trace un triangle ABC tel que AB = 5 cm, A = 30° et B = 40° » —
+     le raccourci qu'on écrit en classe quand le triangle est déjà
+     nommé — était refusé pour « manque de mesures » alors que les
+     trois y étaient. Et Â, avec son chapeau, ne valait pas mieux.
+     ================================================================ */
+  console.log('\n=== « A = 30° » : l\'angle par son sommet ===');
+  for (const phrase of [
+    'Trace un triangle ABC tel que AB = 5 cm, A = 30° et B = 40°',
+    'trace un triangle ABC tel que AB = 5 cm, A = 30° et B =40°',
+    // le chapeau, sous ses trois écritures : Â, A avec accent combinant, A°
+    'Trace un triangle ABC tel que AB = 5 cm, Â = 30° et B̂ = 40°',
+    'Trace un triangle ABC tel que AB = 5 cm, A° = 30° et B° = 40°',
+    'Trace un triangle ABC tel que AB = 5 cm, A^ = 30° et B^ = 40°',
+    // sans la virgule, et le ° collé au = : la phrase telle qu'on la tape
+    'trace un triangle ABC tel que AB = 5 cm A = 30° et B°=40°.',
+    'Trace un triangle ABC tel que AB = 5 cm, BAC = 30° et ABC = 40°',
+    'Trace un triangle ABC tel que AB = 5 cm, l\'angle A = 30° et l\'angle B = 40°',
+  ]) {
+    r = await fig([phrase]);
+    const ok = r.res[0].ok
+      && Math.abs(cm(r.pts, 'A', 'B') - 5) < 0.05
+      && Math.abs(ang(r.pts, 'B', 'A', 'C') - 30) < 0.5
+      && Math.abs(ang(r.pts, 'A', 'B', 'C') - 40) < 0.5;
+    ck(`« ${phrase.slice(30)} »`, ok,
+       r.res[0].ok ? `AB=${cm(r.pts, 'A', 'B')} A=${ang(r.pts, 'B', 'A', 'C')}° B=${ang(r.pts, 'A', 'B', 'C')}°`
+                   : r.res[0].m);
+  }
+  r = await fig(['Trace un triangle ABC tel que AB = 5 cm, A = 30° et B = 40°']);
+  ck('et la notation juste est rappelée', /s\'écrit/.test(r.res[0].a), r.res[0].a);
+
   /* Le nom d'une droite survit à la sauvegarde : sans cela, rouvrir le
      fichier rendrait la droite anonyme et « la perpendiculaire à d »
      ne trouverait plus rien. */

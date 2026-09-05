@@ -147,15 +147,27 @@
             right: 2px
         }
 
+        /* LE MENU FICHIER EST UNE PLANCHE D'ICÔNES, comme celui des constructions
+           magiques. Il a porté des libellés sous chaque icône, puis trois
+           intitulés de section — « LE DOCUMENT », « SORTIR UN FICHIER »,
+           « TRANSMETTRE » — qui occupaient à eux seuls cinquante pixels de haut
+           et espaçaient les rangées de leurs marges. Les icônes se reconnaissent,
+           et leur nom se lit au survol comme partout ailleurs. Quatre colonnes
+           serrées au lieu de trois espacées : quinze commandes en quatre rangées.
+           (La classe garde son nom, hérité des trois colonnes d'origine.) */
         .header-dropdown-content.grid-3-cols {
-            grid-template-columns: repeat(3, 1fr);
-            /* Sans les libellés, trois icônes tiennent dans 152 px : la largeur
-               de 208 px servait à écrire « Bibliothèque » sous une icône, et les
-               168 px qui ont suivi gardaient encore les marges de ce texte. */
-            width: 152px;
-            min-width: 152px;
+            grid-template-columns: repeat(4, 1fr);
+            width: 174px;
+            min-width: 174px;
             padding: 4px;
-            gap: 1px
+            gap: 2px
+        }
+
+        /* Les intitulés de section ne s'affichent plus ; ils restent dans le
+           HTML, où ils disent à qui lit le code comment les commandes sont
+           groupées — et l'accessibilité les lit encore. */
+        .header-dropdown-content.grid-3-cols .menu-titre {
+            display: none;
         }
 
         .header-dropdown:hover .header-dropdown-content.grid-3-cols {
@@ -310,7 +322,7 @@
            l'écart, pas la somme de quatre marges invisibles. */
         .header-dropdown-content.grid-3-cols .icon-btn {
             box-sizing: border-box;
-            width: 48px;
+            width: 40px;
             height: 40px;
             min-height: 40px;
             padding: 0;
@@ -1686,7 +1698,29 @@
             min-height: 200px;
             /* Un énoncé de vingt lignes ne doit pas pousser le panneau hors de
                l'écran : c'est la liste qui défile, pas la fenêtre qui grandit. */
-            max-height: calc(100vh - 96px)
+            max-height: calc(100vh - 96px);
+            /* ON PEUT L'AGRANDIR. 340 px de large, c'est deux lignes de retour à
+               la ligne pour « Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm
+               et BC = 3 cm » : on écrivait un énoncé sans le voir entier. La
+               poignée est au coin bas-droit, et la taille choisie est retenue. */
+            resize: both;
+            min-width: 260px;
+            max-width: min(96vw, 900px)
+        }
+
+        /* La poignée de redimensionnement se voit : un coin qui ne dit rien
+           n'est pas une commande. Trois traits, comme partout ailleurs. */
+        #instructionBox::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            background:
+                linear-gradient(135deg, transparent 45%, #b0bec5 45%, #b0bec5 58%, transparent 58%),
+                linear-gradient(135deg, transparent 70%, #b0bec5 70%, #b0bec5 83%, transparent 83%);
         }
 
         .instr-header {
@@ -2876,6 +2910,9 @@
                 max-width: none;
                 height: var(--consignes-h, 46vh);
                 min-height: 0;
+                /* L'écran est partagé en deux : c'est le partage qui fixe la
+                   taille, pas une poignée de coin. */
+                resize: none;
                 border: none;
                 border-top: 2px solid #cfd8dc;
                 border-radius: 12px 12px 0 0;
@@ -5629,14 +5666,12 @@
                 z-index: 10100;
             }
 
-            /* LE MENU FICHIER RESTE SERRÉ. Ses icônes n'ont plus de libellé :
-               les étaler sur 320 px les éloignait les unes des autres de cent
-               pixels sans rien gagner. Le menu magique, lui, garde sa largeur :
-               ses vignettes en ont besoin. La largeur serrée est désormais celle
-               de la règle générale ; on ne la répète plus ici. */
-            .header-dropdown-content.grid-3-cols {
-                grid-template-columns: repeat(3, 1fr);
-            }
+            /* LE MENU FICHIER RESTE SERRÉ, et de la même façon partout : ses
+               quatre colonnes sont celles de la règle générale. Ce palier lui
+               en imposait trois, si bien qu'il faisait 218 px de haut au
+               téléphone contre 176 sur grand écran — le contraire de ce qu'on
+               veut. Le menu magique, lui, garde sa largeur : ses vignettes en
+               ont besoin. */
 
             .magic-grid {
                 justify-content: flex-start;
@@ -12312,27 +12347,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const s = this.getStyle("blue", isHovered, isToDelete);
                 this.drawInfinite(ctx, 0, 1, s);
                 if (!this.p1 || !this.p2) return;
-                if (this.coding && this.coding !== 'mark-none') {
-                    let mx = (this.p1.x + this.p2.x) / 2;
-                    let my = (this.p1.y + this.p2.y) / 2;
+                /* UN TRAIT NE PORTE QU'UN CODAGE. Quand son milieu est codé, ce
+                   sont ses deux moitiés qui parlent : le trait est déjà marqué.
+                   Une marque de longueur en plus, au centre, dirait autre chose
+                   du même dessin — et se poserait justement sous la croix du
+                   milieu, où on ne la verrait pas. On ne la dessine donc pas,
+                   y compris dans un fichier où les deux avaient été posés. */
+                const milieuParle = (typeof app !== 'undefined' && app && app.milieuCodeDe)
+                    ? !!app.milieuCodeDe(this) : false;
+                if (this.coding && this.coding !== 'mark-none' && !milieuParle) {
+                    const mx = (this.p1.x + this.p2.x) / 2;
+                    const my = (this.p1.y + this.p2.y) / 2;
                     const angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
-                    /* LA MARQUE DU SEGMENT S'ÉCARTE DU MILIEU QUAND IL Y EN A UN.
-                       Elle se pose au centre du trait — exactement là où se tient
-                       le point milieu et son étiquette : la marque disparaissait
-                       sous la croix du point, et les deux codages, celui du
-                       segment entier et celui des deux moitiés, ne pouvaient pas
-                       se lire ensemble. La position d'une marque le long d'un
-                       trait ne dit rien ; seul son symbole parle. On la décale
-                       donc, sans jamais atteindre le quart où se pose la marque
-                       de la moitié. */
-                    const mil = (typeof app !== 'undefined' && app && app.milieuCodeDe)
-                        ? app.milieuCodeDe(this) : null;
-                    if (mil) {
-                        const L = MathUtils.dist(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
-                        const d = Math.min(16, L / 8);
-                        mx += Math.cos(angle) * d;
-                        my += Math.sin(angle) * d;
-                    }
                     ctx.save();
                     ctx.translate(mx, my);
                     ctx.rotate(angle);
@@ -18472,6 +18498,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const handle = document.getElementById('instrDragHandle');
                 if (box.dataset.draggable === "true") return;
                 box.dataset.draggable = "true";
+                /* LA TAILLE CHOISIE EST RETENUE. Agrandir le panneau à chaque
+                   ouverture serait une corvée quotidienne : on l'agrandit une
+                   fois. Le palier téléphone, lui, partage l'écran et n'a pas de
+                   poignée — on ne lui rend donc rien. */
+                const petit = () => window.matchMedia('(max-width: 700px)').matches;
+                try {
+                    const t = JSON.parse(localStorage.getItem('gmConsignesTaille') || 'null');
+                    if (t && t.w && !petit()) {
+                        box.style.width = Math.max(260, Math.min(t.w, window.innerWidth - 20)) + 'px';
+                        if (t.h) box.style.height = Math.max(200, Math.min(t.h, window.innerHeight - 96)) + 'px';
+                    }
+                } catch (e) { void e; }
+                if (window.ResizeObserver) {
+                    let minuteur = null;
+                    new ResizeObserver(() => {
+                        if (petit() || !box.style.width) return;
+                        clearTimeout(minuteur);
+                        minuteur = setTimeout(() => {
+                            try {
+                                localStorage.setItem('gmConsignesTaille', JSON.stringify({
+                                    w: Math.round(box.getBoundingClientRect().width),
+                                    h: Math.round(box.getBoundingClientRect().height) }));
+                            } catch (e) { void e; }
+                        }, 400);
+                    }).observe(box);
+                }
                 let isDragging = false;
                 let startX, startY, initLeft, initTop;
                 handle.addEventListener('pointerdown', (e) => {
@@ -18911,6 +18963,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const out = [];
                 (liste || this.entities).forEach(e => {
                     if (e instanceof Segment) {
+                        /* UN TRAIT NE PORTE QU'UN CODAGE. Quand son milieu est
+                           codé, ce sont ses deux moitiés qui parlent : le trait
+                           est déjà marqué, et lui poser en plus une marque de
+                           longueur ferait dire deux choses au même dessin. */
+                        if (this.milieuCodeDe(e)) return;
                         out.push({ len: MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y),
                                    lire: () => e.coding, ecrire: (c) => { e.coding = c; } });
                         return;
@@ -18948,14 +19005,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return e instanceof Point
                     && (e.parents || []).filter(q => q && typeof q.x === 'number').length === 2;
             }
-            /* Le milieu codé porté par ce trait, s'il existe : c'est lui qui fait
-               reculer la marque du segment (voir Segment.draw). */
+            /* LE MILIEU CODÉ PORTÉ PAR CE TRAIT, s'il existe. C'est lui qui
+               interdit au segment d'avoir sa propre marque : les deux moitiés
+               marquées SONT le codage de ce trait, et une marque de plus au
+               milieu dirait autre chose du même dessin. Mettre le codage du
+               milieu à Ø rend la longueur du segment codable. */
             milieuCodeDe(seg) {
                 if (!seg || !seg.p1 || !seg.p2) return null;
                 return this.entities.find(e => this.estMilieu(e)
                     && e.codageMilieu && e.codageMilieu !== 'mark-none'
                     && ((e.parents[0] === seg.p1 && e.parents[1] === seg.p2)
                         || (e.parents[0] === seg.p2 && e.parents[1] === seg.p1))) || null;
+            }
+            /* Coder un milieu efface la marque de longueur du trait qu'il coupe :
+               c'est le milieu qui parle maintenant. */
+            libererTrait(m) {
+                if (!this.estMilieu(m) || !m.codageMilieu || m.codageMilieu === 'mark-none') return;
+                const par = (m.parents || []).filter(q => q && typeof q.x === 'number');
+                if (par.length !== 2) return;
+                this.entities.forEach(e => {
+                    if (!(e instanceof Segment)) return;
+                    if ((e.p1 === par[0] && e.p2 === par[1]) || (e.p1 === par[1] && e.p2 === par[0])) {
+                        e.coding = null;
+                    }
+                });
             }
             /* POSER UN MILIEU, D'OÙ QU'ON VIENNE. L'outil milieu fabriquait un
                point nu : deux clics donnaient un point sans marques, là où la
@@ -18968,6 +19041,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
                 }
                 this.addEntity(m);
+                // le milieu prend la parole sur ce trait : la marque de longueur s'efface
+                this.libererTrait(m);
                 return m;
             }
             marqueCote(a, b) {
@@ -18994,11 +19069,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    même chose de deux façons. Le milieu entre donc dans les mêmes
                    groupes que les segments, avec la demi-longueur pour mesure. */
                 const porteurs = [];
-                champ.filter(e => e instanceof Segment).forEach(seg => porteurs.push({
-                    len: MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y),
-                    lire: () => seg.coding,
-                    ecrire: (c) => { seg.coding = c; },
-                }));
+                champ.filter(e => e instanceof Segment)
+                    // un trait dont le milieu est codé est déjà marqué : ses deux
+                    // moitiés parlent pour lui (voir milieuCodeDe)
+                    .filter(seg => !this.milieuCodeDe(seg))
+                    .forEach(seg => porteurs.push({
+                        len: MathUtils.dist(seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y),
+                        lire: () => seg.coding,
+                        ecrire: (c) => { seg.coding = c; },
+                    }));
                 champ.filter(e => e instanceof Point && e.codageMilieu).forEach(p => {
                     const par = (p.parents || []).filter(q => q && typeof q.x === 'number');
                     if (par.length !== 2) return;
@@ -20548,10 +20627,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    codageMilieu, le segment dans coding : ils ne se marchent
                    pas dessus. */
                 else if (action.startsWith('mark-')) {
-                    if (this.selectedObject instanceof Segment || this.selectedObject instanceof Angle) {
+                    if (this.selectedObject instanceof Segment) {
+                        /* UN TRAIT NE PORTE QU'UN CODAGE. Si son milieu est codé,
+                           les deux moitiés marquées disent déjà ce que ce trait
+                           affirme ; y ajouter une marque de longueur ferait dire
+                           deux choses au même dessin. On le dit, et l'on montre
+                           la sortie : mettre le codage du milieu à Ø. */
+                        const mil = this.milieuCodeDe(this.selectedObject);
+                        if (mil && action !== 'mark-none') {
+                            const n = mil.label ? ` ${mil.label}` : '';
+                            this.showToast(`Le milieu${n} porte déjà le codage de ce segment : `
+                                + `ses deux moitiés sont marquées. Mettez le codage du milieu à Ø `
+                                + `pour coder la longueur.`);
+                            return;
+                        }
+                        this.selectedObject.coding = action;
+                    } else if (this.selectedObject instanceof Angle) {
                         this.selectedObject.coding = action;
                     } else if (this.estMilieu(this.selectedObject)) {
                         this.selectedObject.codageMilieu = (action === 'mark-none') ? null : action;
+                        // le milieu prend la parole : le trait rend la sienne
+                        this.libererTrait(this.selectedObject);
                     }
                 }
 
@@ -20705,10 +20801,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                                     : this.selectedObject.coding) || 'mark-none';
                         const btnCode = document.querySelector(`#rowCoding .mark-btn[onclick*="${currentCode}"]`);
 
+                        /* La rangée SE VOIT prise quand le milieu porte déjà le
+                           codage du trait : cliquer sans effet et lire un message
+                           après coup, c'est apprendre par l'échec. Le Ø, lui,
+                           reste vif — c'est par là qu'on sort. */
+                        const priseParMilieu = isSegment && !!this.milieuCodeDe(this.selectedObject);
+
                         // Réinitialisation des styles visuels des boutons mark-btn
                         document.querySelectorAll('#rowCoding .mark-btn').forEach(b => {
                             b.style.background = '#fff';
                             b.style.borderColor = '#ddd';
+                            const cestLeVide = /mark-none/.test(b.getAttribute('onclick') || '');
+                            b.style.opacity = (priseParMilieu && !cestLeVide) ? '.35' : '';
+                            b.title = (priseParMilieu && !cestLeVide)
+                                ? 'Le milieu de ce segment porte déjà son codage — mettez-le à Ø d\'abord'
+                                : '';
                         });
 
                         // Application manuelle du feedback visuel (au cas où la classe .active ne soit pas définie en CSS)
@@ -23850,20 +23957,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             }
                             svgContent += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeW}" ${dash} stroke-linecap="round" />`;
                             if (e instanceof Segment) {
-                                let mx = (c.p1.x + c.p2.x) / 2;
-                                let my = (c.p1.y + c.p2.y) / 2;
-                                const angleRadM = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x);
-                                const angleDeg = angleRadM * 180 / Math.PI;
-                                /* Le même écart qu'au canevas quand le trait porte
-                                   un milieu codé : l'export doit montrer la figure
-                                   qu'on voit à l'écran, marques comprises. */
-                                if (this.milieuCodeDe && this.milieuCodeDe(e)) {
-                                    const L = MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y);
-                                    const d = Math.min(16, L / 8);
-                                    mx += Math.cos(angleRadM) * d;
-                                    my += Math.sin(angleRadM) * d;
-                                }
-                                svgContent += gmMarqueSVG(e.coding, color, mx, my, angleDeg);
+                                const mx = (c.p1.x + c.p2.x) / 2;
+                                const my = (c.p1.y + c.p2.y) / 2;
+                                const angleDeg = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x) * 180 / Math.PI;
+                                /* La même règle qu'au canevas : quand le milieu du
+                                   trait est codé, ce sont ses deux moitiés qui
+                                   parlent, et le trait n'a pas de marque à lui. */
+                                const priseM = this.milieuCodeDe && this.milieuCodeDe(e);
+                                if (!priseM) svgContent += gmMarqueSVG(e.coding, color, mx, my, angleDeg);
                                 if (e.showLength) {
                                     // Même texte que le canevas, unité comprise.
                                     const val = e.texteLongueur ? e.texteLongueur() : (MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y) / UNIT).toFixed(1);
@@ -28012,13 +28113,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     for (let i = 0; i < n; i++) noms.push(this.cslNomLibre(noms));
                 }
                 const alignes = /\balign[ée]s?\b/.test(t) && !/non\s+align/.test(t);
+                /* ALIGNÉS N'EST PAS ÉQUIDISTANTS. Les points étaient posés tous
+                   les 110 px : la figure affirmait AB = BC = CD, que l'énoncé
+                   n'avait pas dit. L'écart est donc irrégulier — l'alignement
+                   seul se voit, l'égalité ne se lit nulle part. Le mot existe,
+                   lui, et il est maintenant compris. */
+                const equi = /[ée]quidistants?|[àa]\s+(?:la\s+)?m[êe]me\s+distance|r[ée]guli[èe]rement\s+espac|espac[ée]s?\s+r[ée]guli[èe]rement/.test(t);
+                /* « équidistants de O » : à la même distance d'UN point, c'est un
+                   cercle — pas une droite. */
+                const dOu = equi ? (brut.match(/(?:[ée]quidistants?|distance)\s+d[eu]\s+([A-Z]'{0,2})(?=[\s,;.]|$)/) || [])[1] : null;
+                const centre = dOu ? this.cslPointNomme(dOu) : null;
+                /* Des écarts inégaux, mais toujours croissants : l'alignement se
+                   voit, l'égalité ne s'y lit pas. Le plus petit reste au-dessus
+                   du seuil d'encombrement, sinon un point serait poussé hors de
+                   la ligne — et la figure ne dirait plus même l'alignement. */
+                const PAS = [0, 1, 1.75, 2.9, 3.65, 4.9, 5.65, 6.9, 7.65, 8.9, 9.65, 10.9];
                 const n = noms.length;
                 const neufs = [];
+                /* UNE RANGÉE SE POSE D'UN BLOC. Chaque point cherchait sa place
+                   libre en spirale : dès que deux voisins se serraient, l'un
+                   était poussé HORS de la ligne, et « alignés » devenait faux. */
+                const rangee = (alignes || equi) ? this.cslPlaceLibre(0, 0) : null;
                 noms.forEach((nom, i) => {
                     if (this.cslPointNomme(nom)) return;
                     let dx, dy;
-                    if (alignes) { dx = (i - (n - 1) / 2) * 110; dy = 0; }
-                    else if (n === 1) { dx = 0; dy = 0; }
+                    if (centre) {
+                        // sur un cercle autour du point nommé : même distance à lui
+                        const a = -Math.PI / 2 + i * 2 * Math.PI / Math.max(n, 3);
+                        const p = new Point(centre.x + Math.cos(a) * 150, centre.y + Math.sin(a) * 150, nom);
+                        this.addEntity(p); neufs.push(nom);
+                        return;
+                    }
+                    if (rangee) {
+                        if (equi) dx = (i - (n - 1) / 2) * 110;
+                        else {
+                            const k = PAS[i] !== undefined ? PAS[i] : i * 1.6;
+                            const total = PAS[n - 1] !== undefined ? PAS[n - 1] : (n - 1) * 1.6;
+                            dx = (k - total / 2) * 80;
+                        }
+                        const p = new Point(rangee.x + dx, rangee.y, nom);
+                        this.addEntity(p); neufs.push(nom);
+                        return;
+                    }
+                    if (n === 1) { dx = 0; dy = 0; }
                     else {
                         // en cercle : trois points ainsi posés ne sont jamais alignés
                         const a = -Math.PI / 2 + i * 2 * Math.PI / n;
@@ -29285,21 +29422,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 [...brut.matchAll(/([A-Z]'{0,2})([A-Z]'{0,2})\s*=?\s*(?:mesure\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/g)]
                     .forEach(m => { const v = this.cslLongueurPx(m[3]); if (v) poser(m[1], m[2], v); });
 
+                /* LE CHAPEAU DE L'ANGLE. « Â = 30° » est la notation du tableau :
+                   un accent circonflexe sur le sommet. Écrit au clavier il arrive
+                   sous deux formes — Â d'un seul caractère, ou A suivi d'un accent
+                   combinant — et aucune des deux ne ressemblait à un nom de point.
+                   On le retire pour lire les mesures ; l'accent aigu de « Étape »,
+                   lui, reste où il est. */
+                /* Et le chapeau tapé À CÔTÉ de la lettre, faute de le trouver au
+                   clavier : « B°=50° », « A^ = 40° ». Un ° qui suit une LETTRE ne
+                   peut pas être un degré — un degré suit un nombre. */
+                const sansChapeau = brut.normalize('NFD').replace(/[̂̃]/g, '').normalize('NFC')
+                    .replace(/([A-Z]'{0,2})[ \t]*[°^]/g, '$1');
+
                 // angles : « l'angle BAC = 60° », « l'angle en A mesure 60° », « 60° en A »
-                [...brut.matchAll(/angle\s+([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°?/g)]
+                [...sansChapeau.matchAll(/angle\s+([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°?/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[4].replace(',', '.')); });
-                [...brut.matchAll(/angle\s+(?:en\s+)?([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                [...sansChapeau.matchAll(/angle\s+(?:en\s+)?([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°/g)]
                     .forEach(m => { const i = iSommet[m[1]]; if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[2].replace(',', '.')); });
-                [...brut.matchAll(/(\d+(?:[.,]\d+)?)\s*°\s*(?:en|au sommet)\s+([A-Z]'{0,2})/g)]
+                [...sansChapeau.matchAll(/(\d+(?:[.,]\d+)?)\s*°\s*(?:en|au sommet)\s+([A-Z]'{0,2})/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[1].replace(',', '.')); });
                 /* « EFG = 60° » : au tableau, on écrit l'angle avec son chapeau et
                    sans le mot « angle ». Trois lettres et un degré ne peuvent rien
                    désigner d'autre — une longueur en aurait deux et une unité. */
-                [...brut.matchAll(/(?:^|[^A-Za-z'])([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                [...sansChapeau.matchAll(/(?:^|[^A-Za-z'])([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*°/g)]
                     .forEach(m => {
                         const i = iSommet[m[2]];
                         if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[4].replace(',', '.'));
                     });
+                /* « A = 30° » : UNE SEULE LETTRE. C'est le raccourci qu'on écrit
+                   en classe quand le triangle est déjà nommé — l'angle du triangle
+                   ABC en A. Il n'y a pas d'ambiguïté : un point ne vaut pas un
+                   nombre de degrés, et une longueur porte deux lettres et une
+                   unité. La phrase était refusée pour « manque de mesures » alors
+                   que les trois y étaient. */
+                const sansChapeauNotation = [];
+                [...sansChapeau.matchAll(/(?:^|[^A-Za-z'])([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                    .forEach(m => {
+                        const i = iSommet[m[1]];
+                        if (i === undefined || angles[i] !== null) return;
+                        angles[i] = parseFloat(m[2].replace(',', '.'));
+                        sansChapeauNotation.push(m[1]);
+                    });
+                if (sansChapeauNotation.length) {
+                    const n = sansChapeauNotation[0];
+                    const autres = noms.filter(x => x !== n);
+                    this.cslDire(`Notation : l'angle de sommet ${n} s'écrit ${n}̂ ou `
+                        + `${autres[0]}${n}${autres[1]} — « ${n} », seul, désigne le point.`);
+                }
 
                 // les mots : équilatéral, isocèle en X, rectangle en X
                 const equi = /[ée]quilat[ée]ral/.test(t);
@@ -29888,12 +30057,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 trouves.forEach(p => {
                     const a = document.createElement('a');
                     a.textContent = p;
-                    a.addEventListener('click', () => {
+                    a.tabIndex = 0;
+                    a.setAttribute('role', 'button');
+                    a.title = 'Cliquez pour écrire cette consigne';
+                    /* LE CLIC RECOPIE LA PHRASE — et il fallait qu'il PUISSE.
+                       Le bandeau ne s'affiche que tant que la ligne a le focus
+                       (.csl-ligne:focus-within). Appuyer sur une de ses phrases
+                       enlevait le focus au champ dès le mousedown, la règle CSS
+                       cachait le bandeau, et le clic ne trouvait plus personne :
+                       on cliquait, rien ne se passait. On empêche donc le champ
+                       de perdre le focus, et l'on recopie au moment de l'appui. */
+                    const recopier = (e) => {
+                        e.preventDefault();
                         const champ = el.querySelector('.csl-champ');
                         if (!champ) return;
                         champ.value = p;
-                        champ.dispatchEvent(new Event('input'));
+                        champ.dispatchEvent(new Event('input', { bubbles: true }));
                         champ.focus();
+                        // le curseur au bout : on complète la phrase, on ne la relit pas
+                        try { champ.setSelectionRange(p.length, p.length); } catch (err) { void err; }
+                        this.bandeauConsigne(el, p);
+                    };
+                    a.addEventListener('pointerdown', recopier);
+                    a.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') recopier(e);
                     });
                     mod.appendChild(a);
                 });

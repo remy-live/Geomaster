@@ -476,6 +476,43 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('une phrase déjà juste ne se voit pas proposer elle-même',
      !band.dejaJuste.includes('Trace la médiatrice de [AB]'), JSON.stringify(band.dejaJuste));
 
+  /* LE CLIC RECOPIE LA PHRASE — et il fallait qu'il PUISSE. Le bandeau ne
+     s'affiche que tant que la ligne a le focus ; appuyer sur une de ses
+     phrases enlevait le focus au champ dès le mousedown, la règle CSS cachait
+     le bandeau, et le clic ne trouvait plus personne. On cliquait, rien ne se
+     passait. */
+  console.log('\n=== cliquer une phrase du bandeau l\'écrit dans la ligne ===');
+  await page.evaluate(() => {
+    const box = document.getElementById('instructionBox');
+    if (box) box.style.display = 'flex';
+    app.entities = []; app._consignes = []; app.ajouterConsigne('triangle');
+  });
+  await page.waitForTimeout(250);
+  await page.locator('.csl-champ').first().click();
+  await page.waitForTimeout(350);
+  const nProp = await page.locator('.csl-modeles a').count();
+  ck('le bandeau propose des phrases', nProp >= 2, String(nProp));
+  if (nProp) {
+    const vise = await page.locator('.csl-modeles a').nth(nProp - 1).textContent();
+    await page.locator('.csl-modeles a').nth(nProp - 1).click({ force: true });
+    await page.waitForTimeout(300);
+    const ecrit = await page.evaluate(() => ({
+      champ: (document.querySelector('.csl-champ') || {}).value,
+      memoire: (app.consignesListe()[0] || {}).texte,
+    }));
+    ck('la phrase est écrite dans le champ', ecrit.champ === vise, ecrit.champ);
+    ck('et retenue dans la consigne', ecrit.memoire === vise, ecrit.memoire);
+    // et elle s'exécute comme si on l'avait tapée
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    const suite0 = await page.evaluate(() => {
+      const c = app.consignesListe()[0] || {};
+      return { etat: c.etat, m: c.message, n: app.entities.length };
+    });
+    ck('et Entrée la construit', suite0.etat === 'ok' && suite0.n > 0,
+       `${suite0.etat} — ${suite0.m}`);
+  }
+
   console.log('\n=== une phrase, un point, une autre phrase ===');
   /* Un énoncé collé d'un traitement de texte n'a pas ses phrases sur des lignes
      séparées : le point les sépare comme la virgule sépare deux propositions.
