@@ -30214,17 +30214,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* IL FAUT QU'IL SOIT QUESTION DE CONSTRUIRE. « Comment s'appelle
                    ce point ? » n'est pas une demande de méthode, et la traiter
                    comme telle donnerait un refus plus obscur que celui d'avant. */
-                if (!/\b(?:trac|construi|dessin|plac|reporte|marqu|fai(?:re|t)|obtien|report)/i.test(src)) {
+                if (!/\b(?:trac|construi|dessin|plac|reporte|marqu|fai(?:re|t)|obtien|report|partag|divis|prolong|relie|joind)/i.test(src)) {
                     return null;
                 }
                 /* On remet un verbe devant, si la suite n'en a pas déjà un. */
-                if (!/^(?:trace|tracer|construis|construire|dessine|dessiner|place|placer|marque|marquer|reporte|reporter|relie|joins)\b/i.test(reste)) {
+                if (!/^(?:trace|tracer|construis|construire|dessine|dessiner|place|placer|marque|marquer|reporte|reporter|relie|joins|partage|partager|divise|diviser|prolonge|prolonger)\b/i.test(reste)) {
                     reste = 'Trace ' + reste;
                 }
                 reste = reste
                     .replace(/^tracer\b/i, 'Trace').replace(/^construire\b/i, 'Construis')
                     .replace(/^dessiner\b/i, 'Dessine').replace(/^placer\b/i, 'Place')
-                    .replace(/^marquer\b/i, 'Marque').replace(/^reporter\b/i, 'Reporte');
+                    .replace(/^marquer\b/i, 'Marque').replace(/^reporter\b/i, 'Reporte')
+                    .replace(/^partager\b/i, 'Partage').replace(/^diviser\b/i, 'Divise')
+                    .replace(/^prolonger\b/i, 'Prolonge');
                 return reste;
             }
             executerConsigne(phrase) {
@@ -30406,7 +30408,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            parties plus haut : ce qui arrive ici n'a aucun verbe de
                            construction. */
                         || (/^(?:comment|quel|quelle|quels|quelles|qui|o[ùu]|combien|quand|est-ce)\b/.test(t)
-                            && !/\b(?:trac|construi|dessin|plac|reporte|marqu|relie|joins|code)/.test(t))) {
+                            && !/\b(?:trac|construi|dessin|plac|reporte|marqu|relie|joins|code|partag|divis|prolong)/.test(t))) {
                         return { ok: true, cree: 0, astuce: '',
                                  message: 'Remarque — rien à tracer sur cette ligne' };
                     }
@@ -30424,6 +30426,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        « De quoi ? Écrivez Place le milieu I de [AB] ». */
                     if (/droite\s+des\s+milieux|th[ée]or[èe]me\s+des\s+milieux/.test(t)) {
                         return this.cslDroiteDesMilieux(brut, t, fait, rate);
+                    }
+                    /* « sa droite d'Euler » fabriquait une droite au hasard. */
+                    if (/droite\s+d['’]?\s*euler|\beuler\b/.test(t)) {
+                        return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
                     if (/milieux\s+des\s+c[ôo]t[ée]s|milieux\s+de\s+ses/.test(t)) {
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
@@ -30562,8 +30568,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         || (/\breport(?:e|er)\b/.test(t) && /longueur|[ée]cartement/.test(t))) {
                         return this.cslReporter(brut, t, fait, rate);
                     }
+                    /* PARTAGER UN ANGLE, et dire quand c'est IMPOSSIBLE. « Partage
+                       l'angle ABC en quatre angles égaux » répondait « Angle ABC
+                       marqué » : rien n'était partagé, et la réponse ne le disait
+                       pas. Le mot « égaux » n'était pas lu non plus — la règle
+                       d'à côté ne connaissait que « égales ». */
                     if (/^(?:partage|partager|divise|diviser|coupe\s+en)\b/.test(t)
-                        && /\bparts?\b|\bparties\b|\bsegments\s+[ée]gaux\b|\b[ée]gales?\b/.test(t)) {
+                        && /\bangles?\b/.test(t)) {
+                        return this.cslPartagerAngle(brut, t, fait, rate);
+                    }
+                    if (/^(?:partage|partager|divise|diviser|coupe\s+en)\b/.test(t)
+                        && /\bparts?\b|\bparties\b|\bsegments\s+[ée]gaux\b|\b[ée]gales?\b|\b[ée]gaux\b/.test(t)) {
                         return this.cslPartager(brut, t, fait, rate);
                     }
                     if (/\bangles?\b/.test(t) && !figure) return this.cslAngle(brut, t, fait, rate);
@@ -30860,6 +30875,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    il est écrit avant les sommets aussi souvent qu'après. */
                 const nomLibre = noms.find(n => !this.cslPointNomme(n));
 
+                /* LA DROITE D'EULER. « Trace un triangle et sa droite d'Euler »
+                   traçait un triangle ET UNE DROITE QUELCONQUE : le mot
+                   « droite » suffisait à en fabriquer une, n'importe où, et la
+                   réponse disait « Droite (d) » comme si de rien n'était.
+                   Elle passe par le centre du cercle circonscrit, le centre de
+                   gravité et l'orthocentre — et c'est cela qui est remarquable :
+                   trois points définis de trois façons sans rapport, alignés. */
+                if (/euler/.test(t)) {
+                    const O = centres.circonscrit(), G = centres.gravite(),
+                          H = centres.orthocentre();
+                    if (!O || !H) return rate("Ce triangle est aplati : la droite d'Euler n'existe pas.");
+                    if (MathUtils.dist(O.x, O.y, H.x, H.y) < 1) {
+                        return rate("Ce triangle est équilatéral : ses trois centres sont "
+                            + "CONFONDUS, et la droite d'Euler n'est pas définie. "
+                            + "C'est le seul cas où cela arrive.");
+                    }
+                    const libres = noms.filter(n => !this.cslPointNomme(n));
+                    const nO = libres[0] || this.cslNomLibre([]);
+                    const nG = libres[1] || this.cslNomLibre([nO]);
+                    const nH = libres[2] || this.cslNomLibre([nO, nG]);
+                    const pO = new Point(O.x, O.y, nO); this.addEntity(pO);
+                    const pG = new Point(G.x, G.y, nG); this.addEntity(pG);
+                    const pH = new Point(H.x, H.y, nH); this.addEntity(pH);
+                    this.addEntity(this.cslPoserStyle(new Line(pO, pH, this.cslStyle())));
+                    /* La vérification est la propriété elle-même : OH = 3 × OG. */
+                    const og = MathUtils.dist(O.x, O.y, G.x, G.y);
+                    const oh = MathUtils.dist(O.x, O.y, H.x, H.y);
+                    /* Le rapport MESURÉ, et non deux longueurs arrondies : « 2,3 cm
+                       = 3 × 0,8 cm » se lit comme une faute alors que c'est
+                       l'arrondi qui parle. */
+                    const rapport = og ? Math.round(oh / og * 100) / 100 : 0;
+                    this.cslDire(`Droite d'Euler : ${nO} (centre du cercle circonscrit), `
+                        + `${nG} (centre de gravité) et ${nH} (orthocentre) sont ALIGNÉS, `
+                        + `et ${nO}${nH} = 3 × ${nO}${nG} — mesuré ici, `
+                        + `${nO}${nH} ÷ ${nO}${nG} = ${String(rapport).replace('.', ',')}.`);
+                    return fait(`Droite d'Euler de ${nom3} — ${nO}, ${nG}, ${nH} alignés`);
+                }
                 if (/orthocentre/.test(t)) {
                     return poserCentre(centres.orthocentre(), nomLibre, "orthocentre",
                         troisHauteurs, 'hauteurs');
@@ -31376,6 +31428,86 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* La droite des milieux : deux milieux reliés, et la propriété qui
                s'en déduit — parallèle au troisième côté, moitié moins longue. On
                ne la dit pas seulement : on la MESURE et on affiche le résultat. */
+            /* PARTAGER UN ANGLE EN n PARTS ÉGALES — et dire quand c'est
+               impossible. À la règle et au compas, on ne sait couper un angle
+               quelconque qu'en 2, 4, 8, 16… : la trisection est IMPOSSIBLE, et
+               ce n'est pas une limite du logiciel mais un théorème (Wantzel,
+               1837). Le dire vaut mieux que de tracer trois rayons calculés en
+               faisant croire qu'on sait le construire. */
+            cslPartagerAngle(brut, t, fait, rate) {
+                const MOTS = { deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7,
+                               huit: 8, neuf: 9, dix: 10, douze: 12, seize: 16 };
+                let n = null;
+                const chiffre = brut.match(/en\s+(\d+)/i);
+                if (chiffre) n = parseInt(chiffre[1], 10);
+                if (n === null) {
+                    const mot = brut.match(/en\s+([a-zéè]+)/i);
+                    if (mot) n = MOTS[mot[1].toLowerCase()] || null;
+                }
+                if (!n || n < 2) return rate("En combien de parts ? Écrivez « Partage l'angle "
+                    + "ABC en deux angles égaux ».");
+                let noms = this.cslNoms(brut);
+                let pts = noms.map(x => this.cslPointNomme(x)).filter(Boolean);
+                if (pts.length < 3 && this._cslExempleLibre) {
+                    const o = this.cslPlaceLibre(0, 0), R = 240;
+                    const S = new Point(o.x - 60, o.y + 110, this.cslNomLibre([]));
+                    this.addEntity(S);
+                    const A = new Point(S.x + R, S.y, this.cslNomLibre([S.label]));
+                    this.addEntity(A);
+                    const C = new Point(S.x + Math.cos(-1.15) * R, S.y + Math.sin(-1.15) * R,
+                                        this.cslNomLibre([S.label, A.label]));
+                    this.addEntity(C);
+                    this.cslSegment(S, A); this.cslSegment(S, C);
+                    pts = [A, S, C]; noms = [A.label, S.label, C.label];
+                }
+                if (pts.length < 3) return rate("De quel angle ? Écrivez « Partage l'angle ABC "
+                    + "en deux angles égaux ».");
+                const [A, S, B] = pts;
+                /* Une puissance de deux, et rien d'autre : chaque partage est une
+                   bissectrice, et une bissectrice coupe en DEUX. */
+                const puissanceDeDeux = (n & (n - 1)) === 0;
+                if (!puissanceDeDeux) {
+                    return rate(`Partager un angle quelconque en ${n} à la règle et au compas est `
+                        + `IMPOSSIBLE — ce n'est pas une limite du logiciel, c'est un théorème `
+                        + `(Wantzel, 1837)${n === 3 ? " : c'est la fameuse trisection de l'angle" : ''}. `
+                        + `On sait le faire en 2, 4, 8, 16… : chaque partage est une bissectrice, `
+                        + `et une bissectrice coupe en deux.`);
+                }
+                const a1 = Math.atan2(A.y - S.y, A.x - S.x);
+                const a2 = Math.atan2(B.y - S.y, B.x - S.x);
+                let diff = a2 - a1;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                const R = Math.max(MathUtils.dist(S.x, S.y, A.x, A.y),
+                                   MathUtils.dist(S.x, S.y, B.x, B.y));
+                const faits = [];
+                for (let k = 1; k < n; k++) {
+                    const a = a1 + diff * k / n;
+                    const nom = this.cslNomLibre(noms.concat(faits));
+                    faits.push(nom);
+                    const q = new Point(S.x + Math.cos(a) * R, S.y + Math.sin(a) * R, nom);
+                    this.addEntity(q);
+                    this.addEntity(this.cslPoserStyle(new Ray(S, q)));
+                }
+                /* Les n angles sont égaux, et la figure doit le dire : même
+                   codage sur chacun. */
+                const bornes = [A].concat(faits.map(x => this.cslPointNomme(x))).concat([B]);
+                for (let k = 0; k < bornes.length - 1; k++) {
+                    const g = new Angle(bornes[k], S, bornes[k + 1]);
+                    g.coding = 'mark-1';
+                    g.showValue = (n <= 4);
+                    this.addEntity(g);
+                }
+                const val = Math.abs(diff) * 180 / Math.PI;
+                const part = Math.round(val / n * 10) / 10;
+                this.cslDire(`${n === 2 ? 'La bissectrice' : `${n - 1} demi-droites`} `
+                    + `partage${n === 2 ? '' : 'nt'} l'angle en ${n} angles égaux de `
+                    + `${String(part).replace('.', ',')}° `
+                    + `${n === 4 ? '— on trace la bissectrice, puis la bissectrice de chaque moitié.'
+                              : '— chacune est une bissectrice.'}`);
+                return fait(`Angle ${noms.slice(0, 3).join('')} partagé en ${n} angles égaux `
+                    + `de ${String(part).replace('.', ',')}°`);
+            }
             cslDroiteDesMilieux(brut, t, fait, rate) {
                 let noms = this.cslNoms(brut);
                 let pts = noms.map(n => this.cslPointNomme(n)).filter(Boolean);
@@ -32327,6 +32459,68 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return null;
             }
             cslCercle(brut, t, fait, rate) {
+                /* DEUX CERCLES SÉCANTS N'EN FONT PAS UN. « Trace deux cercles
+                   sécants » traçait UN cercle en répondant « Cercle de centre
+                   F » : le mot « cercle » suffisait, le mot « deux » n'était lu
+                   par personne. Or ces deux figures-là sont la construction de
+                   base du compas — c'est d'elles que sortent la médiatrice, le
+                   triangle équilatéral et le losange. */
+                const combien = /\bdeux\b|\btrois\b/.test(t) ? (/\btrois\b/.test(t) ? 3 : 2) : 1;
+                if (combien >= 2 && /cercles\b/.test(t)) {
+                    const rel = /tangents?\b/.test(t) ? 'tangents'
+                        : /s[ée]cants?\b|se\s+coupent/.test(t) ? 'secants'
+                        : /concentriques\b/.test(t) ? 'concentriques' : 'libres';
+                    const o = this.cslPlaceLibre(0, 0);
+                    const R = 160, r2 = 130;
+                    /* L'écartement décide de tout : somme des rayons pour des
+                       cercles tangents, moins que la somme pour des sécants. */
+                    const d = rel === 'tangents' ? R + r2
+                        : rel === 'concentriques' ? 0
+                        : rel === 'secants' ? (R + r2) * 0.62 : (R + r2) * 1.25;
+                    const faits = [], noms = [];
+                    for (let k = 0; k < combien; k++) {
+                        const nom = this.cslNomLibre(noms); noms.push(nom);
+                        const cx = o.x - d * (combien - 1) / 2 + k * d;
+                        const centre = new Point(cx, o.y, nom);
+                        this.addEntity(centre);
+                        const rr = k === 0 ? R : r2;
+                        const bord = new Point(cx + rr, o.y, ''); bord.visible = false;
+                        this.addEntity(bord);
+                        const c = this.cslPoserStyle(new Circle(centre, bord));
+                        this.addEntity(c);
+                        faits.push({ c, centre, r: rr });
+                    }
+                    let dit = '';
+                    if (rel === 'secants' && faits.length >= 2) {
+                        /* Les deux points d'intersection sont TOUT l'intérêt de la
+                           figure : sans eux on n'a que deux ronds qui se croisent. */
+                        const [a, b] = faits;
+                        const dd = MathUtils.dist(a.centre.x, a.centre.y, b.centre.x, b.centre.y);
+                        const x = (dd * dd - b.r * b.r + a.r * a.r) / (2 * dd);
+                        const h = Math.sqrt(Math.max(0, a.r * a.r - x * x));
+                        const ux = (b.centre.x - a.centre.x) / dd, uy = (b.centre.y - a.centre.y) / dd;
+                        const mx = a.centre.x + ux * x, my = a.centre.y + uy * x;
+                        const n1 = this.cslNomLibre(noms); noms.push(n1);
+                        const n2 = this.cslNomLibre(noms); noms.push(n2);
+                        this.addEntity(new Point(mx - uy * h, my + ux * h, n1));
+                        this.addEntity(new Point(mx + uy * h, my - ux * h, n2));
+                        dit = ` — ils se coupent en ${n1} et ${n2}`;
+                        this.cslDire(`Deux cercles sécants se coupent en DEUX points, et la `
+                            + `droite qui joint leurs centres est la médiatrice de [${n1}${n2}].`);
+                    } else if (rel === 'tangents') {
+                        const [a, b] = faits;
+                        const n1 = this.cslNomLibre(noms); noms.push(n1);
+                        this.addEntity(new Point((a.centre.x * b.r + b.centre.x * a.r) / (a.r + b.r),
+                                                 (a.centre.y * b.r + b.centre.y * a.r) / (a.r + b.r), n1));
+                        dit = ` — ils se touchent en ${n1}`;
+                        this.cslDire(`Deux cercles tangents se touchent en UN seul point, et `
+                            + `la distance de leurs centres vaut la somme de leurs rayons.`);
+                    }
+                    const mot = { tangents: 'tangents', secants: 'sécants',
+                                  concentriques: 'concentriques', libres: '' }[rel];
+                    return fait(`${combien} cercles ${mot}`.replace('  ', ' ').trim()
+                        + ` : ${noms.slice(0, combien).map(n => '(' + n + ')').join(', ')}${dit}`);
+                }
                 // le cercle circonscrit a son propre bâtisseur
                 /* « Trace le cercle passant par A, B et C » : c'est le cercle
                    circonscrit au triangle ABC, et non un cercle de centre
@@ -36795,7 +36989,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 04h';
+        window.GM_VERSION = '2026-09-06 · 05h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

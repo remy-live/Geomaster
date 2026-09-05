@@ -17,12 +17,8 @@ pas fait, et rien sur l'écran ne prévient.
 | Ce qu'on écrit | Ce que ça donne aujourd'hui | Ce que ça devrait donner |
 |---|---|---|
 | `Trace deux triangles semblables` | **un seul** triangle, « Triangle FGH » | deux triangles de mêmes angles, rapport affiché |
-| `Trace deux cercles sécants` | **un seul** cercle | deux cercles qui se coupent, et leurs deux points d'intersection |
-| `Trace deux cercles tangents` | **un seul** cercle | deux cercles tangents, et le point de contact |
 | `Trace un angle égal à l'angle ABC` | « Angle ABC marqué » — rien de neuf | le report d'angle au compas, le geste du cours |
-| `Partage l'angle ABC en quatre angles égaux` | « Angle ABC marqué » | deux bissectrices successives |
 | `Trace les carrés de Pythagore sur le triangle ABC` | « Carré ABCF » — un carré, au hasard | trois carrés sur les trois côtés, et leurs aires |
-| `Trace un triangle et sa droite d'Euler` | un triangle **et une droite quelconque** | la droite qui passe par O, G et H |
 | `Trace un losange à partir de deux cercles` | un losange, **sans les cercles** | la construction au compas, deux cercles de même rayon |
 | `Trace la symétrie axiale d'un carré` | un carré, **sans symétrie** | le carré, l'axe, et l'image |
 
@@ -32,12 +28,24 @@ parade est la même partout, et elle a déjà servi trois fois cette semaine —
 passer le mot le PLUS PRÉCIS devant, et refuser clairement quand il n'y a pas de
 bâtisseur derrière.
 
-**Ce qui a été réparé aujourd'hui, exactement pour cette raison :**
+**Ce qui a été réparé, exactement pour cette raison :**
 
 - `Trace un agrandissement du triangle ABC de rapport 2` répondait « Triangle ABC »
   et retraçait le même triangle par-dessus. Il fait maintenant une vraie
   homothétie — mesuré, AB = 4 cm devient A′B′ = 8 cm.
 - `Trace un demi-cercle de diamètre [AB]` traçait le cercle **entier**.
+- `Trace un triangle et sa droite d'Euler` traçait le triangle **et une droite
+  quelconque**. Elle passe maintenant par les trois centres, et le déterminant
+  mesuré vaut 0 : ils sont alignés, avec OH ÷ OG = 3. Sur un triangle
+  équilatéral, elle est **refusée** — les trois centres sont confondus, c'est le
+  seul cas.
+- `Trace deux cercles sécants` traçait **un** cercle. Il y en a deux, et leurs
+  deux points d'intersection sont posés — vérifié : ils sont à 0 pixel des deux
+  cercles. `tangents` donne le point de contact.
+- `Partage l'angle ABC en quatre angles égaux` répondait « Angle ABC marqué ».
+  Quatre angles de 28,5°, mesurés égaux. Et **en trois, c'est refusé** : la
+  trisection à la règle et au compas est impossible, et le refus le dit — c'est
+  un théorème (Wantzel, 1837), pas une limite du logiciel.
 - `Trace la droite des milieux du triangle ABC` répondait « De quoi ? ».
 - `Comment s'appelle ce point ?` **plaçait un point**.
 
@@ -75,8 +83,9 @@ Classé par ce que ça coûte à écrire.
 - **Angle inscrit et angle au centre** (3e) : deux angles à peindre en plein, et
   le rapport du simple au double. La machinerie des angles pleins existe
   maintenant — c'est elle qui a servi aux angles correspondants.
-- **Deux cercles sécants, et le losange qu'ils donnent.** C'est la construction
-  qui fait comprendre la médiatrice et le triangle équilatéral.
+- **Le losange que donnent deux cercles sécants.** Les deux cercles sont faits ;
+  reste à relier les quatre points, ce qui fait comprendre d'un coup la
+  médiatrice et le triangle équilatéral.
 
 ### Long, mais c'est ce qui ferait la différence
 

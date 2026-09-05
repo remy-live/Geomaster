@@ -465,6 +465,30 @@ qu'on apprend avant tout le reste — ne traçait rien et répondait « Je n'ai 
 compris ». Le compas prend l'écartement, se plante en C, trace son arc ; les deux
 traits portent la même marque.
 
+### Ce qui répondait « oui » en faisant autre chose
+
+Une phrase qui répond « oui » en traçant autre chose est **pire qu'une phrase
+refusée** : rien à l'écran ne prévient. Trente-cinq phrases de collège ont été
+passées au banc, et neuf faisaient exactement cela. Cinq sont réparées :
+
+- *« Trace un triangle et sa droite d'Euler »* traçait le triangle **et une
+  droite quelconque**. Elle passe maintenant par les trois centres — déterminant
+  mesuré nul, et OH ÷ OG = 3. Sur un triangle équilatéral elle est **refusée** :
+  les trois centres sont confondus, c'est le seul cas où cela arrive.
+- *« Trace deux cercles sécants »* traçait **un** cercle. Il y en a deux, et
+  leurs deux points d'intersection sont posés — vérifiés à 0 pixel des deux
+  cercles. *« Tangents »* donne le point de contact.
+- *« Partage l'angle ABC en quatre angles égaux »* répondait « Angle ABC
+  marqué ». Quatre angles de 28,5°, mesurés égaux. Et **en trois, c'est
+  refusé** : la trisection à la règle et au compas est impossible, et le refus le
+  dit — c'est un théorème (Wantzel, 1837), pas une limite du logiciel.
+- *« Trace un agrandissement du triangle ABC de rapport 2 »* retraçait le même
+  triangle par-dessus. AB = 4 cm devient A′B′ = 8 cm.
+- *« Trace un demi-cercle de diamètre [AB] »* traçait le cercle **entier**.
+
+Le reste est listé dans [`IDEES.md`](IDEES.md), en tête, parce que c'est le plus
+urgent.
+
 ### Où sur la feuille, et de quelle couleur
 
 *« Trace un carré en haut à gauche, puis un rectangle en haut à droite, puis un
@@ -1053,7 +1077,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **156 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **162 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

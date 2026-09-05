@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**156 phrases**, dont 156 passent.
+**162 phrases**, dont 162 passent.
 
 Quelques principes qui valent partout :
 
@@ -73,7 +73,9 @@ Quelques principes qui valent partout :
 | Trace un arc de cercle de centre A de rayon 3 cm | Arc de cercle de centre A |
 | Trace un demi-cercle de diamètre [AB] | Demi-cercle de diamètre [AB] |
 | Trace un disque de rayon 3 cm | Disque de centre E de rayon 3 cm |
-| Trace deux cercles | Cercle de centre A |
+| Trace deux cercles | 2 cercles : (A), (B) |
+| Trace deux cercles sécants | 2 cercles sécants : (A), (B) — ils se coupent en C et D |
+| Trace deux cercles tangents | 2 cercles tangents : (A), (B) — ils se touchent en C |
 
 ## Triangles
 
@@ -137,6 +139,7 @@ Quelques principes qui valent partout :
 | Place les milieux des côtés du triangle ABC | Milieux des côtés de ABC : E, F, G |
 | Trace un triangle ABC et ses médiatrices | Triangle ABC · Les 3 médiatrices de ABC |
 | Trace la droite des milieux du triangle ABC | Droite des milieux (EF) du triangle ABC — parallèle à (BC) |
+| Trace la droite d'Euler du triangle ABC | Droite d'Euler de ABC — E, F, G alignés |
 
 ## Angles
 
@@ -147,6 +150,9 @@ Quelques principes qui valent partout :
 | Marque l'angle ABC | Angle ABC marqué |
 | L'angle ABC mesure 60° | Angle ABC = 60° |
 | Marque les angles du triangle ABC | 3 angles marqués : A, B, C |
+| Partage l'angle ABC en deux angles égaux | Angle ABC partagé en 2 angles égaux de 28,4° |
+| Partage l'angle ABC en quatre angles égaux | Angle ABC partagé en 4 angles égaux de 14,2° |
+| Partage l'angle ABC en trois angles égaux | ↯ Partager un angle quelconque en 3 à la règle et au compas est IMPOSSIBLE — ce n'est pas une limite du logiciel, c'est un théorème (Wantzel, 1837) : c'est la fameuse trisection de l'angle. On sait le faire en 2, 4, 8, 16… : chaque partage est une bissectrice, et une bissectrice coupe en deux. |
 | Marque l'angle droit en A | Angle droit codé en A |
 
 ## Configurations d'angles

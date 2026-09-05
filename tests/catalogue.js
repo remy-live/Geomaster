@@ -68,6 +68,8 @@ const GROUPES = [
     'Trace un demi-cercle de diamètre [AB]',
     'Trace un disque de rayon 3 cm',
     ['Trace deux cercles', { pts: VIDE }],
+    ['Trace deux cercles sécants', { pts: VIDE }],
+    ['Trace deux cercles tangents', { pts: VIDE }],
   ]],
   ['Triangles', [
     'Trace un triangle ABC',
@@ -119,6 +121,7 @@ const GROUPES = [
     'Place les milieux des côtés du triangle ABC',
     'Trace un triangle ABC et ses médiatrices',
     ['Trace la droite des milieux du triangle ABC', { prep: ['Trace un triangle ABC'] }],
+    ["Trace la droite d'Euler du triangle ABC", { prep: ['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm'] }],
   ]],
   ['Angles', [
     'Trace un angle de 60°',
@@ -126,6 +129,9 @@ const GROUPES = [
     'Marque l\'angle ABC',
     'L\'angle ABC mesure 60°',
     'Marque les angles du triangle ABC',
+    ["Partage l'angle ABC en deux angles égaux", { prep: ['Trace un triangle ABC'] }],
+    ["Partage l'angle ABC en quatre angles égaux", { prep: ['Trace un triangle ABC'] }],
+    ["Partage l'angle ABC en trois angles égaux", { prep: ['Trace un triangle ABC'], genre: 'refuse' }],
     ['Marque l\'angle droit en A', { prep: ['Trace un triangle ABC rectangle en A tel que AB = 3 cm et AC = 4 cm'] }],
   ]],
   ['Configurations d\'angles', [

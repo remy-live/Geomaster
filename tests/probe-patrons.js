@@ -403,6 +403,72 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('« deux droites parallèles » aussi sort les instruments',
      deuxP.anims > 0, String(deuxP.anims));
 
+  console.log('\n=== ce qui répondait « oui » en faisant autre chose ===');
+  /* Quatre phrases qui affirmaient avoir fait quelque chose sans le faire.
+     Rien à l'écran ne prévenait : c'est pire qu'un refus. */
+  const euler = await page.evaluate(() => {
+    const app = window.app;
+    const essai = (prep, x) => {
+      app.entities = []; app.historyPast = []; app._cslSujet = null;
+      if (app.cslOublier) app.cslOublier();
+      app.executerConsigneAvec(prep, false);
+      const r = app.executerConsigneAvec(x, false);
+      const P = app.entities.filter(e => e instanceof Point && e.label && e.visible !== false);
+      const trois = P.slice(-3);
+      let det = null;
+      if (trois.length === 3) {
+        const [a, b, c] = trois;
+        det = Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+      }
+      return { msg: r.message, ok: r.ok, astuce: r.astuce || '',
+               alignement: det === null ? null : Math.round(det * 100) / 100,
+               droites: app.entities.filter(e => e.constructor.name === 'Line').length };
+    };
+    return {
+      normal: essai('Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm',
+                    "Trace la droite d'Euler du triangle ABC"),
+      equi: essai('Trace un triangle équilatéral ABC de 4 cm de côté',
+                  "Trace la droite d'Euler du triangle ABC"),
+    };
+  });
+  console.log('  ' + JSON.stringify(euler.normal));
+  ck("« la droite d'Euler » ne fabrique plus une droite au hasard",
+     /Euler/.test(euler.normal.msg) && euler.normal.droites === 1, euler.normal.msg);
+  ck('  ses trois centres sont ALIGNÉS — déterminant nul, mesuré',
+     euler.normal.alignement === 0, String(euler.normal.alignement));
+  ck('  et le rapport OH ÷ OG vaut 3', /=\s*3\b/.test(euler.normal.astuce),
+     euler.normal.astuce.slice(-40));
+  ck('  sur un triangle équilatéral, elle est REFUSÉE : les centres sont confondus',
+     !euler.equi.ok && /confondus/i.test(euler.equi.msg), euler.equi.msg.slice(0, 80));
+
+  const sec = await faire('Trace deux cercles sécants', false);
+  console.log('  ' + sec.message);
+  ck('« deux cercles sécants » en trace DEUX, pas un',
+     sec.cercles.length === 2, sec.cercles.length + ' cercle(s)');
+  ck('  et leurs deux points d\'intersection sont posés',
+     /se coupent en/.test(sec.message), sec.message);
+  const tan = await faire('Trace deux cercles tangents', false);
+  ck('« tangents » : deux cercles et UN point de contact',
+     tan.cercles.length === 2 && /se touchent en/.test(tan.message), tan.message);
+  const un = await faire('Trace le cercle de centre A et de rayon 3 cm', false,
+    [[400, 500, 'A']]);
+  ck('  et un cercle tout seul reste un cercle tout seul',
+     un.cercles.length === 1, String(un.cercles.length));
+
+  const part = await faire("Partage l'angle ABC en quatre angles égaux", false,
+    [[300, 600, 'A'], [520, 620, 'B'], [700, 300, 'C']]);
+  console.log('  ' + part.message);
+  ck('« partage l\'angle en quatre » partage vraiment',
+     part.angles.length === 4, part.angles.length + ' angles');
+  ck('  et les quatre sont ÉGAUX, mesurés',
+     part.angles.length === 4
+     && new Set(part.angles.map(a => a.v)).size === 1, JSON.stringify(part.angles.map(a => a.v)));
+  const tri = await faire("Partage l'angle ABC en trois angles égaux", false,
+    [[300, 600, 'A'], [520, 620, 'B'], [700, 300, 'C']]);
+  ck('en TROIS, c\'est refusé — et le refus cite le théorème',
+     !tri.ok && /IMPOSSIBLE/.test(tri.message) && /Wantzel/.test(tri.message),
+     tri.message.slice(0, 90));
+
   console.log('\n=== ce qui marchait doit marcher pareil ===');
   const nonReg = [
     ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] ABCD/],
