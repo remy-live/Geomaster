@@ -93,23 +93,38 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      horsClous.length === 0, horsClous.length + ' pas hors de [2,5 ; 3,5] : '
      + horsClous.slice(0, 6).join(' '));
 
-  console.log('\n=== une droite se nomme, et son nom se déplace ===');
+  console.log('\n=== le nom d\'une droite se déplace comme le nom d\'un point ===');
+  /* « On peut toujours bouger le nom d'un point, il faut qu'il en soit de même
+     pour la droite. » Donc : librement — le long du trait ET de part et d'autre,
+     et avec n'importe quel outil en main, pas seulement le curseur. */
   const depart = await page.evaluate(() => {
     const app = window.app;
     app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
-    app.executerConsigneAvec('Trace une droite d', false);
+    const A = new Point(450, 400, 'A'), B = new Point(900, 520, 'B');
+    app.addEntity(A); app.addEntity(B);
+    const d = new Line(A, B, { color: '#000', width: 2 });
+    d.nomDroite = 'd'; app.addEntity(d);
     app.setTool('move'); app.render();
-    const d = app.entities.find(e => e.nomDroite === 'd');
     const anc = d.ancreNomDroite(d.p2);
-    return { nomT: d.nomT, ancre: [anc.x, anc.y],
+    return { nomT: d.nomT, nomD: d.nomD, ancre: [anc.x, anc.y],
              p1: [d.p1.x, d.p1.y], p2: [d.p2.x, d.p2.y] };
   });
-  /* nomT vaut 1 par défaut : le nom se pose exactement où il se posait avant. */
+  /* nomT = 1 et nomD = 14 par défaut : le nom se pose exactement là où il se
+     posait avant qu'on puisse le déplacer. */
   ck('par défaut, le nom est au bout de la droite, comme avant',
-     depart.nomT === undefined, 'nomT = ' + depart.nomT);
+     depart.nomT === undefined && depart.nomD === undefined,
+     'nomT = ' + depart.nomT + ', nomD = ' + depart.nomD);
+  const cote = (p1, p2, x, y) => {
+    const vx = p2[0] - p1[0], vy = p2[1] - p1[1], n = Math.hypot(vx, vy) || 1;
+    return ((x - p1[0]) * vy - (y - p1[1]) * vx) / n;   // signé : de quel côté
+  };
+  const coteAvant = cote(depart.p1, depart.p2, depart.ancre[0], depart.ancre[1]);
   const A0 = S(depart.ancre[0], depart.ancre[1]);
-  const vise = { x: depart.p1[0] + (depart.p2[0] - depart.p1[0]) * 0.25,
-                 y: depart.p1[1] + (depart.p2[1] - depart.p1[1]) * 0.25 };
+  /* On le tire vers le début du trait ET de l'autre côté. */
+  const ux = (depart.p2[0] - depart.p1[0]), uy = (depart.p2[1] - depart.p1[1]);
+  const L = Math.hypot(ux, uy);
+  const vise = { x: depart.p1[0] + ux * 0.35 + (uy / L) * 40,
+                 y: depart.p1[1] + uy * 0.35 - (ux / L) * 40 };
   const V = S(vise.x, vise.y);
   await page.mouse.move(A0.x, A0.y); await page.mouse.down(); await page.waitForTimeout(20);
   for (let i = 1; i <= 8; i++) {
@@ -120,15 +135,53 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const glisse = await page.evaluate(() => {
     const d = window.app.entities.find(e => e.nomDroite === 'd');
     const anc = d.ancreNomDroite(d.p2);
-    /* le nom reste-t-il LE LONG de la droite ? distance du texte au trait */
-    const vx = d.p2.x - d.p1.x, vy = d.p2.y - d.p1.y, n = Math.hypot(vx, vy) || 1;
-    const ecart = Math.abs((anc.x - d.p1.x) * vy - (anc.y - d.p1.y) * vx) / n;
-    return { nomT: Math.round(d.nomT * 100) / 100, ecart: Math.round(ecart * 10) / 10 };
+    return { nomT: Math.round(d.nomT * 100) / 100, nomD: Math.round(d.nomD),
+             ancre: [anc.x, anc.y] };
   });
+  const coteApres = cote(depart.p1, depart.p2, glisse.ancre[0], glisse.ancre[1]);
   ck('on l\'attrape et il GLISSE le long de la droite',
-     Math.abs(glisse.nomT - 0.25) < 0.06, 'nomT = ' + glisse.nomT);
-  ck('  et il reste le long du trait, pas ailleurs',
-     glisse.ecart > 8 && glisse.ecart < 20, 'à ' + glisse.ecart + ' px du trait');
+     Math.abs(glisse.nomT - 0.35) < 0.08, 'nomT = ' + glisse.nomT);
+  ck('  et il passe DE L\'AUTRE CÔTÉ du trait, comme la lettre d\'un point',
+     coteAvant * coteApres < 0 && Math.abs(coteApres) > 25,
+     'de ' + Math.round(coteAvant) + ' px à ' + Math.round(coteApres) + ' px');
+  /* Une lettre de point se déplace avec n'importe quel outil en main. */
+  const autreOutil = await page.evaluate(() => {
+    const app = window.app; app.setTool('segment');
+    const d = app.entities.find(e => e.nomDroite === 'd');
+    const anc = d.ancreNomDroite(d.p2);
+    return { ancre: [anc.x, anc.y], avant: Math.round(d.nomD) };
+  });
+  const P0 = S(autreOutil.ancre[0], autreOutil.ancre[1]);
+  await page.mouse.move(P0.x, P0.y); await page.mouse.down(); await page.waitForTimeout(25);
+  for (let i = 1; i <= 6; i++) {
+    await page.mouse.move(P0.x - i * 8, P0.y - i * 5); await page.waitForTimeout(14);
+  }
+  await page.mouse.up(); await page.waitForTimeout(40);
+  const apresOutil = await page.evaluate(() => {
+    const app = window.app;
+    const d = app.entities.find(e => e.nomDroite === 'd');
+    return { nomD: Math.round(d.nomD), objets: app.entities.length };
+  });
+  ck('  et le geste marche avec un AUTRE outil que le curseur',
+     apresOutil.nomD !== autreOutil.avant,
+     'outil segment : nomD ' + autreOutil.avant + ' → ' + apresOutil.nomD);
+  ck('  sans que cet outil ne trace quoi que ce soit au passage',
+     apresOutil.objets === 3, apresOutil.objets + ' objets sur la feuille');
+
+  console.log('\n=== la police du nom ===');
+  const police = await page.evaluate(() => {
+    const vues = [];
+    const vrai = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'font');
+    Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', {
+      set(v) { vues.push(v); vrai.set.call(this, v); },
+      get() { return vrai.get.call(this); }, configurable: true,
+    });
+    window.app.render();
+    Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', vrai);
+    return vues.filter(f => /italic/.test(f));
+  });
+  ck('en italique comme au cours, et PAS en gras',
+     police.length > 0 && police.every(f => !/bold/.test(f)), police.join(' | '));
 
   console.log('\n=== nommer une droite tracée à la main ===');
   /* Une droite tracée sans consigne restait anonyme pour toujours. */
@@ -182,19 +235,18 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
     app.executerConsigneAvec('Trace une droite d', false);
     const d = app.entities.find(e => e.nomDroite === 'd');
-    d.nomT = 0.3;
+    d.nomT = 0.3; d.nomD = -38;
     const code = app.codeDocument();
-    const json = app.getSaveData ? JSON.stringify(app.getSaveData()) : null;
     app.entities = []; app.render();
     app.loadFromCompressedString(code);
     const apresCode = app.entities.find(e => e.nomDroite === 'd');
-    return { code: apresCode ? { nom: apresCode.nomDroite,
-                                 nomT: Math.round(apresCode.nomT * 100) / 100 } : null,
-             json: !!json };
+    return apresCode ? { nom: apresCode.nomDroite,
+                         nomT: Math.round(apresCode.nomT * 100) / 100,
+                         nomD: Math.round(apresCode.nomD) } : null;
   });
   ck('par le code compact : le nom ET sa place reviennent',
-     voyage.code && voyage.code.nom === 'd' && voyage.code.nomT === 0.3,
-     JSON.stringify(voyage.code));
+     voyage && voyage.nom === 'd' && voyage.nomT === 0.3 && voyage.nomD === -38,
+     JSON.stringify(voyage));
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

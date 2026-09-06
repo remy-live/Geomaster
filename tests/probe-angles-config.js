@@ -127,7 +127,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
   console.log('\n=== deux parallèles coupées par une sécante ===');
   /* Les deux « parallèles » étaient deux Line indépendantes que rien ne rendait
-     parallèles, et I, J deux points libres posés là où ça tombait juste. */
+     parallèles, et les intersections deux points libres posés là où ça tombait
+     juste. Pire : LES SIX POINTS QUI DÉFINISSAIENT LA FIGURE ÉTAIENT CACHÉS.
+     On ne voyait que les deux intersections — qui, elles, ne se déplacent pas.
+     La figure du programme de 5e était un dessin qu'on ne pouvait pas bouger
+     d'un millimètre. C'est maintenant (AB), (CD) parallèle à elle, la sécante
+     (EF), et G et H les points d'intersection. */
   for (const [phrase, quoi] of [
     ['Trace des angles correspondants', 'correspondants'],
     ['Trace des angles alternes-internes', 'alternes-internes'],
@@ -135,19 +140,54 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ]) {
     const r = await faire(phrase);
     console.log('  « ' + phrase + ' » → ' + r.msg);
-    ck('  (d\') est une VRAIE parallèle à (d)',
-       r.desc.some(x => x.c === 'ParallelLine' && x.nom === "d'"),
-       r.desc.filter(x => /Line/.test(x.c)).map(x => x.c + '(' + x.nom + ')').join(' '));
-    ck('  I est l\'intersection de (d) et (Δ)', aPourParent(r, 'I', 'd\\+Δ'),
-       JSON.stringify(r.desc.find(x => x.l === 'I')));
-    ck('  J est l\'intersection de (d\') et (Δ)', aPourParent(r, 'J', "d'\\+Δ"),
-       JSON.stringify(r.desc.find(x => x.l === 'J')));
+    const libres = r.desc.filter(x => x.c === 'Point' && x.l && !x.par).map(x => x.l).sort();
+    ck('  cinq points se prennent à la main : A, B, C, E, F',
+       libres.join('') === 'ABCEF', libres.join(' ') || '(aucun)');
+    ck('  et D glisse le long de (CD)', aPourParent(r, 'D', 'ParallelLine'),
+       JSON.stringify(r.desc.find(x => x.l === 'D')));
+    ck('  (CD) est une VRAIE parallèle à (AB)',
+       r.desc.some(x => x.c === 'ParallelLine'),
+       r.desc.filter(x => /Line/.test(x.c)).map(x => x.c).join(' '));
+    ck('  G est l\'intersection de (AB) et (EF)', aPourParent(r, 'G', 'Line\\+Line'),
+       JSON.stringify(r.desc.find(x => x.l === 'G')));
+    ck('  H est l\'intersection de (CD) et (EF)',
+       aPourParent(r, 'H', 'ParallelLine\\+Line'),
+       JSON.stringify(r.desc.find(x => x.l === 'H')));
+    ck('  plus une seule poignée cachée',
+       !r.desc.some(x => x.c === 'Point' && !x.l),
+       r.desc.filter(x => x.c === 'Point' && !x.l).length + ' point(s) sans nom');
     ck(`  les deux angles ${quoi} sont égaux`, r.avant[0] === r.avant[1],
        r.avant.join(' et '));
     /* Avant : 60,71° et 55,85° dès qu'on tirait une poignée de (d). */
-    ck('  ET ILS LE RESTENT quand on tire une poignée de (d)',
+    ck('  ET ILS LE RESTENT quand on tire A',
        r.bouge && r.apres.length === 2 && r.apres[0] === r.apres[1], r.apres.join(' et '));
   }
+  /* La parallèle doit rester parallèle : c'est toute la propriété. */
+  const tire = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace des angles correspondants', false);
+    const A = app.entities.find(e => e instanceof Point && e.label === 'A');
+    A.x -= 90; A.y -= 60; app.updateDependents(A);
+    const dAB = app.entities.find(e => e instanceof Line && e.p1 && e.p1.label === 'A');
+    const dCD = app.entities.find(e => e instanceof ParallelLine);
+    const dEF = app.entities.filter(e => e instanceof Line).find(e => e.p1 && e.p1.label === 'E');
+    const c2 = MathUtils.getLineCoords(dCD);
+    const a1 = Math.atan2(dAB.p2.y - dAB.p1.y, dAB.p2.x - dAB.p1.x);
+    const a2 = Math.atan2(c2.p2.y - c2.p1.y, c2.p2.x - c2.p1.x);
+    const G = app.entities.find(e => e instanceof Point && e.label === 'G');
+    const loin = (P, L) => {
+      const c = MathUtils.getLineCoords(L);
+      const vx = c.p2.x - c.p1.x, vy = c.p2.y - c.p1.y, n = Math.hypot(vx, vy) || 1;
+      return Math.round(Math.abs((P.x - c.p1.x) * vy - (P.y - c.p1.y) * vx) / n * 100) / 100;
+    };
+    return { ecart: Math.round(((a1 - a2) * 180 / Math.PI) * 1000) / 1000,
+             G: [loin(G, dAB), loin(G, dEF)] };
+  });
+  ck('on tire A de 90 px : (CD) reste parallèle à (AB)',
+     Math.abs(tire.ecart) < 0.01, tire.ecart + '° d\'écart');
+  ck('  et G reste sur les deux droites', tire.G[0] < 0.05 && tire.G[1] < 0.05,
+     'à ' + tire.G.join(' et ') + ' px');
 
   console.log('\n=== adjacents : rien n\'y est affirmé qu\'on ne construise ===');
   /* Deux angles adjacents n'ont qu'un sommet et un côté communs : c'est vrai par
@@ -165,8 +205,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const nom = await page.evaluate(() => {
     const app = window.app;
     app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
-    app.executerConsigneAvec('Trace des angles correspondants', false);
+    app.executerConsigneAvec('Trace un segment [AB] de 6 cm', false);
+    app.executerConsigneAvec('Place un point C', false);
+    app.executerConsigneAvec('Trace la parallèle à (AB) passant par C', false);
     const dp = app.entities.find(e => e instanceof ParallelLine);
+    dp.nomDroite = "d'";
     const vus = [];
     const vrai = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (t, x, y) {

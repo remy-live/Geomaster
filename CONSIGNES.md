@@ -168,10 +168,10 @@ Quelques principes qui valent partout :
 
 | Ce qu'on écrit | Ce que le logiciel répond |
 |---|---|
-| Trace deux droites parallèles coupées par une sécante | Deux parallèles (d) et (d') coupées par la sécante (Δ) |
-| Trace des angles correspondants | Angles correspondants en I et en J — 56° et 56° |
-| Trace des angles alternes-internes | Angles alternes-internes en I et en J — 56° et 56° |
-| Trace des angles alternes-externes | Angles alternes-externes en I et en J — 56° et 56° |
+| Trace deux droites parallèles coupées par une sécante | Deux parallèles (AB) et (CD) coupées par la sécante (EF), en G et en H |
+| Trace des angles correspondants | Angles correspondants en G et en H — 56° et 56° |
+| Trace des angles alternes-internes | Angles alternes-internes en G et en H — 56° et 56° |
+| Trace des angles alternes-externes | Angles alternes-externes en G et en H — 56° et 56° |
 | Trace deux angles opposés par le sommet | Angles AOB et A'OB' opposés par le sommet — 72° et 72° |
 | Trace deux angles supplémentaires | Angles ACD et DCB supplémentaires — 114° + 66° = 180° |
 | Trace deux angles complémentaires | Angles AOC et COB complémentaires — 36° + 54° = 90° |

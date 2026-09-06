@@ -442,10 +442,14 @@ Chaque figure suit maintenant la construction qu'on dicterait au tableau :
   cachés.
 - **Opposés par le sommet** — deux droites (AA') et (BB'), et le sommet **est**
   leur point d'intersection.
-- **Correspondants, alternes-internes et -externes** — (d), puis (d') **vraiment
-  parallèle** à (d), puis la sécante (Δ) ; I et J sont les **points
-  d'intersection**. Les poignées qui portent les angles sont, elles aussi, sur
-  les droites.
+- **Correspondants, alternes-internes et -externes** — la droite **(AB)**, la
+  droite **(CD)** *vraiment parallèle* à elle, la sécante **(EF)**, et **G** et
+  **H** les points d'intersection. Les six points qui définissaient cette figure
+  étaient **cachés** : on ne voyait que les deux intersections, qui justement ne
+  se déplacent pas — la figure du programme de 5e était un dessin qu'on ne
+  pouvait pas bouger d'un millimètre. A, B, C, E et F se tirent maintenant
+  librement, D glisse le long de (CD), et la propriété tient : tiré de 90 px, A
+  laisse (CD) parallèle à **0°** près et les deux angles égaux.
 
 Les côtés d'un angle sont des **demi-droites**, comme le dit la définition, et
 non des segments.
@@ -664,8 +668,10 @@ ne désignerait plus rien.
 
 Le nom était **cloué au second point** de la droite : sur une figure chargée il
 tombait sur un autre trait, et rien ne permettait de l'écarter. On l'**attrape et
-on le fait glisser le long de la droite** — le geste du tableau. La place choisie
-suit la figure : fichier, lien de partage, bibliothèque.
+on le déplace comme la lettre d'un point** — le long du trait *et* de part et
+d'autre, avec n'importe quel outil en main. La place choisie suit la figure :
+fichier, lien de partage, bibliothèque. Il s'écrit en italique, comme au cours,
+et **pas en gras** : le nom d'une droite n'est pas plus important que la droite.
 
 Une parallèle ou une perpendiculaire nommée n'écrivait pas son nom du tout : la
 méthode qui le dessine vit sur `LinearObject`, dont elles ne descendent pas.
