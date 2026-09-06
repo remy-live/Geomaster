@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**206 phrases**, dont 206 passent.
+**205 phrases**, dont 205 passent.
 
 Quelques principes qui valent partout :
 
@@ -83,12 +83,11 @@ Quelques principes qui valent partout :
 | Trace un chat | Chat au compas — 8 cercles |
 | Trace un panda | Panda au compas — 8 cercles, 1 arc |
 | Trace une souris | Souris au compas — 9 cercles |
-| Trace une chouette | Chouette au compas — 5 cercles, 3 arcs, 2 traits |
+| Trace une chouette | Chouette au compas — 5 cercles, 3 arcs, 3 traits |
 | Trace un ourson | Ourson au compas — 7 cercles |
-| Trace un lapin | Lapin au compas — 6 cercles, 4 arcs |
 | Trace une coccinelle | Coccinelle au compas — 7 cercles, 1 arc, 1 trait |
-| Trace un poisson | Poisson au compas — 1 cercle, 3 arcs, 5 traits |
-| Trace un escargot | Escargot au compas — 2 cercles, 7 arcs, 3 traits |
+| Trace un poisson | Poisson au compas — 1 cercle, 3 arcs, 3 traits |
+| Trace un escargot | Escargot au compas — 6 arcs, 3 traits |
 | Trace un cœur | Cœur au compas — 2 arcs, 2 traits |
 | Trace un chat de 5 cm | Chat au compas — 8 cercles |
 

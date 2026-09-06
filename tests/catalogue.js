@@ -80,7 +80,6 @@ const GROUPES = [
     ['Trace une souris', { pts: VIDE }],
     ['Trace une chouette', { pts: VIDE }],
     ['Trace un ourson', { pts: VIDE }],
-    ['Trace un lapin', { pts: VIDE }],
     ['Trace une coccinelle', { pts: VIDE }],
     ['Trace un poisson', { pts: VIDE }],
     ['Trace un escargot', { pts: VIDE }],

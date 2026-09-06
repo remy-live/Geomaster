@@ -714,16 +714,37 @@ complet, puis les six pétales.
 
 `Trace un chat`, `Trace un panda`, `Trace un tigre de 5 cm`…
 
-Dix dessins qui ne demandent **que le compas et la règle** : chat, panda,
-souris, chouette, ourson, lapin, coccinelle, poisson, escargot, cœur. L'intérêt n'est pas décoratif — l'élève reporte des écartements
+Neuf dessins qui ne demandent **que le compas et la règle** : chat, panda,
+souris, chouette, ourson, coccinelle, poisson, escargot, cœur. L'intérêt n'est pas décoratif — l'élève reporte des écartements
 pendant une heure sans s'apercevoir qu'il travaille.
 
 Le répertoire vient des fiches *Dessins géométriques* et du livre **« Dessiner
-avec un compas » de Laurent Stéfano**. Une **table** décrit chaque dessin en
-pièces — `['c', x, y, r]` un cercle, `['a', x, y, r, début, fin]` un arc,
-`['s', …]` un segment — exprimées en unités du rayon de base : ajouter un animal,
-c'est ajouter une ligne, et tous héritent du même compas, du même style et du
-même programme de construction. `de 5 cm` change ce rayon, et tout suit.
+avec un compas » de Laurent Stéfano**.
+
+**Une seule longueur se mesure : le rayon de base.** La première version posait
+chaque cercle à des coordonnées décimales choisies à l'œil — `['c', -0.62,
+-0.78, 0.45]`. Ce n'était pas une construction, c'était une liste de points : au
+compas, ces nombres-là ne se reportent pas, il faudrait les mesurer un par un à
+la règle. Une figure au compas n'a qu'**un** écartement donné, et tout le reste
+s'en déduit.
+
+Chaque pièce se lit donc `['c', [direction, distance], rayon]`, où la
+**direction** est un multiple de 30° ou de 45° — les 60° sont les six points
+qu'on obtient en reportant le rayon sur le cercle de base, les 30° leurs
+bissectrices, les 90° la perpendiculaire, les 45° sa bissectrice — et où la
+**distance** et le **rayon** ne valent que *R*, ¾*R*, ½*R*, ¼*R* (plus √2⁄2 *R*,
+la moitié de la diagonale du carré, pour le cœur). La moitié et le quart se
+construisent à la médiatrice ; le reste se reporte. Un point peut aussi être la
+**somme de deux reports** — ce qu'un compas fait quand on pointe puis qu'on
+repointe. La sonde relit la table pièce par pièce : rien d'autre ne passe.
+
+Aux instruments, le dessin commence par le cercle de base **et par les six coups
+de compas qui le partagent** — au compas on ne place pas les points, on les
+reporte, et cela se voit. Ajouter un animal, c'est ajouter une ligne de table.
+
+Le **lapin** est parti au passage : ses oreilles en amande demandaient des
+longueurs qui ne se reportent pas. Mieux vaut neuf dessins justes que dix dont un
+triche.
 
 **Chaque cercle a un centre visible, nommé, qu'on peut prendre.** Ils étaient
 cachés : le dessin était un décor qu'on ne pouvait pas toucher, et un cercle sans
@@ -1422,7 +1443,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **206 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **205 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

@@ -15,11 +15,13 @@ const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
 
 const BETES = ['chat', 'panda', 'souris', 'chouette', 'ourson', 'coccinelle',
-               'poisson', 'escargot', 'lapin', 'cœur'];
+               'poisson', 'escargot', 'cœur'];
 
-/* Le tigre, la tortue et l'écureuil ont été retirés à la demande : trois
-   dessins qu'on ne gardait que pour le nombre. */
-const RETIRES = ['tigre', 'tortue', 'écureuil'];
+/* Le tigre, la tortue et l'écureuil ont été retirés à la demande. Le lapin
+   est parti ensuite : ses oreilles en amande demandaient des longueurs qui ne
+   se reportent pas au compas — mieux vaut neuf dessins justes que dix dont un
+   triche. */
+const RETIRES = ['tigre', 'tortue', 'écureuil', 'lapin'];
 
 let fail = 0;
 const ck = (nom, ok, detail) => {
@@ -42,7 +44,7 @@ const ck = (nom, ok, detail) => {
     if (m && getComputedStyle(m).display !== 'none') window.app.closeModal();
   });
 
-  console.log('\n=== dix dessins, et tous se tracent ===');
+  console.log('\n=== neuf dessins, et tous se tracent ===');
   const tout = await page.evaluate((betes) => {
     const app = window.app;
     return betes.map((n) => {
@@ -79,7 +81,7 @@ const ck = (nom, ok, detail) => {
   tout.forEach((x) => {
     console.log('  ' + ('« Trace un ' + x.n + ' »').padEnd(28) + ' → ' + x.msg);
   });
-  ck('les dix sont comprises', tout.every(x => x.ok),
+  ck('les neuf sont comprises', tout.every(x => x.ok),
      tout.filter(x => !x.ok).map(x => x.n).join(', ') || 'toutes');
   ck('  chacune a au moins quatre pièces', tout.every(x => x.pieces >= 4),
      tout.map(x => x.n + ':' + x.pieces).join(' '));
@@ -94,8 +96,71 @@ const ck = (nom, ok, detail) => {
   ck('  chaque cercle a un centre VISIBLE et nommé, qu\'on peut prendre',
      tout.every(x => x.centresVus),
      tout.filter(x => !x.centresVus).map(x => x.n).join(', ') || 'tous');
-  ck('  la bulle dit avec quoi on la trace',
-     tout.every(x => /compas et la règle/.test(x.astuce)), tout[0].astuce.slice(0, 80));
+  ck('  la bulle dit qu\'une seule longueur se mesure',
+     tout.every(x => /UNE SEULE LONGUEUR SE MESURE/.test(x.astuce)
+                  && /REPORTE ce même écartement six fois/.test(x.astuce)),
+     tout[0].astuce.slice(0, 90));
+
+  console.log('\n=== UNE SEULE LONGUEUR SE MESURE : le rayon ===');
+  /* « Comment places-tu les points sur les cercles ? Il faut que les
+     constructions soient logiques… tu utilises des approximations de longueur.
+     Quand on est au compas, on reporte des longueurs. La seule longueur que
+     l'on donne et que l'on mesure est celle du rayon de base. »
+     La première table posait chaque cercle à des coordonnées décimales choisies
+     à l'œil — ('c', -0.62, -0.78, 0.45). Ce n'était pas une construction, c'était
+     une liste de points : au compas, ces nombres-là ne se reportent pas.
+     La sonde relit la table pièce par pièce. */
+  const logique = await page.evaluate(() => {
+    const mauvais = [];
+    Object.keys(GM_DESSINS).forEach((cle) => {
+      const d = GM_DESSINS[cle];
+      /* Directions : multiples de 60° (report du rayon), 30° (leur bissectrice),
+         90° (la perpendiculaire) et 45° (sa bissectrice). Rien d'autre. */
+      const ok = (ou) => (Array.isArray(ou[0]) ? ou : [ou]).every(([dir, dist]) =>
+        (dir % 30 === 0 || dir % 45 === 0) && GM_COMPAS_LONGUEURS.includes(dist));
+      d.pieces.forEach((x, i) => {
+        if (x[0] === 'c' || x[0] === 'a') {
+          if (!ok(x[1])) mauvais.push(cle + ' #' + i + ' centre ' + JSON.stringify(x[1]));
+          if (!GM_COMPAS_LONGUEURS.includes(x[2])) mauvais.push(cle + ' #' + i + ' rayon ' + x[2]);
+        } else if (!ok(x[1]) || !ok(x[2])) {
+          mauvais.push(cle + ' #' + i + ' trait ' + JSON.stringify([x[1], x[2]]));
+        }
+      });
+    });
+    return { mauvais, longueurs: GM_COMPAS_LONGUEURS.length };
+  });
+  ck('AUCUNE pièce n\'est posée à une longueur qui ne se reporte pas',
+     logique.mauvais.length === 0,
+     logique.mauvais.slice(0, 4).join(' · ') || logique.longueurs + ' longueurs autorisées');
+
+  /* Et les six reports sont TRACÉS : au compas on ne place pas les points, on
+     les reporte — et cela doit se voir. */
+  const reports = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un chat', true);
+    const traces = app.entities.filter(e => e instanceof CompassArc);
+    const avecOutils = app.programmeDeConstruction(true) || [];
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    const r = app.executerConsigneAvec('Trace un chat', false);
+    return { traces: traces.length, grises: traces.every(e => e.color === '#b8b8b8'),
+             sansOutils: app.entities.filter(e => e instanceof CompassArc).length,
+             avecOutils, astuce: (r && r.astuce) || '' };
+  });
+  ck('aux instruments, le cercle de base et ses SIX reports sont tracés',
+     reports.traces === 7 && reports.grises, reports.traces + ' traces de compas');
+  ck('  et sans les instruments, aucune : la figure reste nue',
+     reports.sansOutils === 0, reports.sansOutils + ' traces');
+  ck('le programme dit la seule longueur mesurée, et le report',
+     /SEULE longueur que tu mesureras/.test(reports.avecOutils[0] || '')
+     && /reporte-le six fois/.test(reports.avecOutils[1] || ''),
+     reports.avecOutils.slice(0, 2).join(' | '));
+  ck('  et la médiatrice donne la moitié puis le quart, sans rien mesurer',
+     reports.avecOutils.some(l => /médiatrice/.test(l))
+     && reports.avecOutils.some(l => /quart du rayon/.test(l)),
+     reports.avecOutils.slice(2, 4).join(' | '));
+  ck('  la bulle le dit aussi', /UNE SEULE LONGUEUR SE MESURE/.test(reports.astuce),
+     reports.astuce.slice(0, 70));
 
   console.log('\n=== la taille se donne, et tout suit ===');
   const taille = await page.evaluate(() => {
@@ -129,7 +194,9 @@ const ck = (nom, ok, detail) => {
     app.entities.forEach((e, i) => {
       if (!(e instanceof ToolAnimation) || e.originalType !== 'trace') return;
       const s = app.entities[i + 1];
-      if (!(s instanceof Arc || s instanceof Circle || s instanceof Segment)) {
+      /* Un CompassArc en est une aussi : c'est la trace grise des six reports. */
+      if (!(s instanceof Arc || s instanceof Circle || s instanceof Segment
+            || s instanceof CompassArc)) {
         mal.push(s ? s.constructor.name : '(rien)');
       }
     });
