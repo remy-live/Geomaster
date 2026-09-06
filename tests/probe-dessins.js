@@ -285,29 +285,55 @@ const ck = (nom, ok, detail) => {
     app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
     app.executerConsigneAvec('Trace un chat', false);
     app.setTool('move'); app.render();
+    const tete = app.entities.filter(e => e instanceof Circle)[0];
     const o = app.entities.filter(e => e instanceof Circle)[1];
+    const R = Math.hypot(tete.p2.x - tete.p1.x, tete.p2.y - tete.p1.y);
     const r = app.canvas.getBoundingClientRect();
     return { cx: o.p1.x, cy: o.p1.y, nom: o.p1.label,
+             /* Le centre de l'oreille est un point REPORTÉ sur le cercle de la
+                tête : il en dépend, et c'est ce qu'on vérifie. */
+             lie: (o.p1.parents || []).length === 1 && o.p1.parents[0] === tete,
+             surTete: Math.abs(Math.hypot(o.p1.x - tete.p1.x, o.p1.y - tete.p1.y) - R),
              rayon: Math.round(Math.hypot(o.p2.x - o.p1.x, o.p2.y - o.p1.y)),
+             tx: tete.p1.x, ty: tete.p1.y, R,
              cl: r.left, ct: r.top, view: app.view };
   });
+  ck('le centre d\'une oreille DÉPEND du cercle de la tête',
+     prise.lie && prise.surTete < 0.5,
+     'lié : ' + prise.lie + ', à ' + Math.round(prise.surTete * 100) / 100 + ' px du cercle');
   const T = (x, y) => ({ x: prise.cl + (x * prise.view.zoom + prise.view.x),
                          y: prise.ct + (y * prise.view.zoom + prise.view.y) });
-  const C0 = T(prise.cx, prise.cy);
-  await page.mouse.move(C0.x, C0.y); await page.mouse.down();
+  /* On tire LE LONG du cercle : tirer vers l'extérieur ne ferait que reprojeter
+     le point au même endroit — c'est justement ce que « il en dépend » veut
+     dire. On vise donc sa position après un quart de tour autour de la tête. */
+  const ang0 = Math.atan2(prise.cy - prise.ty, prise.cx - prise.tx);
+  const visee = { x: prise.tx + Math.cos(ang0 + 0.7) * prise.R,
+                  y: prise.ty + Math.sin(ang0 + 0.7) * prise.R };
+  const C0 = T(prise.cx, prise.cy), C1 = T(visee.x, visee.y);
+  await page.mouse.move(C0.x, C0.y); await page.waitForTimeout(60);
+  await page.mouse.down(); await page.waitForTimeout(60);
   for (let i = 1; i <= 8; i++) {
-    await page.mouse.move(C0.x - i * 9, C0.y - i * 7); await page.waitForTimeout(15);
+    await page.mouse.move(C0.x + (C1.x - C0.x) * i / 8, C0.y + (C1.y - C0.y) * i / 8);
+    await page.waitForTimeout(20);
   }
   await page.mouse.up(); await page.waitForTimeout(60);
   const bouge = await page.evaluate(() => {
-    const o = window.app.entities.filter(e => e instanceof Circle)[1];
+    const app = window.app;
+    const tete = app.entities.filter(e => e instanceof Circle)[0];
+    const o = app.entities.filter(e => e instanceof Circle)[1];
+    const R = Math.hypot(tete.p2.x - tete.p1.x, tete.p2.y - tete.p1.y);
     return { x: o.p1.x, y: o.p1.y,
+             surTete: Math.abs(Math.hypot(o.p1.x - tete.p1.x, o.p1.y - tete.p1.y) - R),
              rayon: Math.round(Math.hypot(o.p2.x - o.p1.x, o.p2.y - o.p1.y)) };
   });
   const parcouru = Math.round(Math.hypot(bouge.x - prise.cx, bouge.y - prise.cy));
-  ck('le centre d\'une oreille se prend et se déplace', parcouru > 60,
+  /* Il se prend et il glisse — LE LONG DU CERCLE, puisqu'il en dépend. Une
+     oreille de chat tourne autour de la tête ; elle ne s'en décolle pas. */
+  ck('le centre d\'une oreille se prend et glisse sur la tête', parcouru > 20,
      'centre « ' + prise.nom + ' » tiré de ' + parcouru + ' px');
-  ck('  et le cercle garde son rayon', bouge.rayon === prise.rayon,
+  ck('  et il RESTE sur le cercle de la tête', bouge.surTete < 0.5,
+     'à ' + Math.round(bouge.surTete * 100) / 100 + ' px du cercle');
+  ck('  le cercle de l\'oreille garde son rayon', bouge.rayon === prise.rayon,
      prise.rayon + ' px → ' + bouge.rayon + ' px');
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));

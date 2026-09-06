@@ -18068,6 +18068,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     let bout = new Point(pO.x + Math.cos(a1) * r * 1.18, pO.y + Math.sin(a1) * r * 1.18, "");
                     bout.visible = false;
                     this.addEntity(bout);
+                    this.cslRegleLeLongDe(pO, a1);
                     this.addEntity(new Segment(pO, bout, { color: "#b8b8b8", width: 1, dash: true }));
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
 
@@ -33424,6 +33425,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     O.visible = false;
                     O.dessinCompasCentre = cle; O.dessinCompasR = R;
                     this.addEntity(O);
+                    /* Sur quel trait déjà tracé ce point tombe-t-il ? C'est là
+                       qu'on l'a reporté, et c'est de lui qu'il dépend. */
+                    const accroche = (x, y) => {
+                        const sur = this.entities.filter((e) => {
+                            if (this.estTraceDeConstruction(e)) return false;
+                            if (e instanceof Circle) {
+                                if (!e.p1 || !e.p2) return false;
+                                const R2 = MathUtils.dist(e.p1.x, e.p1.y, e.p2.x, e.p2.y);
+                                return R2 > 1
+                                    && Math.abs(MathUtils.dist(x, y, e.p1.x, e.p1.y) - R2) < 0.5;
+                            }
+                            if (e instanceof Arc) {
+                                if (!e.center || !(e.radius > 1)) return false;
+                                if (!MathUtils.isPointOnArc({ x, y }, e)) return false;
+                                return Math.abs(MathUtils.dist(x, y, e.center.x, e.center.y)
+                                                - e.radius) < 0.5;
+                            }
+                            if (e instanceof Segment) {
+                                if (!e.p1 || !e.p2) return false;
+                                return MathUtils.distanceToLine(x, y, e.p1, e.p2, 'Segment') < 0.5;
+                            }
+                            return false;
+                        });
+                        return sur.length ? [sur[0]] : [];
+                    };
                     let precedent = null;
                     const compas = (cx, cy, r, a1, a2) => {
                         if (!outils) return;
@@ -33500,7 +33526,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                de « Trace le cercle de centre A » ; seul le point
                                qui règle le rayon reste caché, là aussi comme
                                ailleurs. */
-                            const c = new Point(cx, cy, nomLibre());
+                            /* SI CE CENTRE TOMBE SUR UN CERCLE DÉJÀ TRACÉ, IL
+                               EN DÉPEND. Au compas, c'est un point REPORTÉ sur ce
+                               cercle-là : posé libre, il s'en détachait au
+                               premier geste, et le dessin se disloquait. */
+                            const c = new Point(cx, cy, nomLibre(), accroche(cx, cy));
                             const b = new Point(cx + rr, cy, ''); b.visible = false;
                             this.addEntity(c); this.addEntity(b);
                             compas(cx, cy, rr, 0, Math.PI * 2);
@@ -33513,8 +33543,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const rr = r * R;
                             const a1 = rad(deb), a2 = rad(fin < deb ? fin + 360 : fin);
                             /* Un arc aussi a un centre : c'est la pointe du
-                               compas, et elle se déplace. */
-                            const c = new Point(cx, cy, nomLibre());
+                               compas, et elle se déplace — accrochée, elle aussi,
+                               au trait sur lequel elle a été reportée. */
+                            const c = new Point(cx, cy, nomLibre(), accroche(cx, cy));
                             this.addEntity(c);
                             compas(cx, cy, rr, a1, a2);
                             const arc = new Arc(c, rr, a1, a2);
@@ -34381,16 +34412,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const mx = a.centre.x + ux * x, my = a.centre.y + uy * x;
                         const n1 = this.cslNomLibre(noms); noms.push(n1);
                         const n2 = this.cslNomLibre(noms); noms.push(n2);
-                        this.addEntity(new Point(mx - uy * h, my + ux * h, n1));
-                        this.addEntity(new Point(mx + uy * h, my - ux * h, n2));
+                        /* CE SONT LES POINTS D'INTERSECTION, pas deux points
+                           posés là où ça tombe juste : ils ont les deux cercles
+                           pour parents, et ils suivent quand on en bouge un. */
+                        this.addEntity(new Point(mx - uy * h, my + ux * h, n1, [a.c, b.c]));
+                        this.addEntity(new Point(mx + uy * h, my - ux * h, n2, [a.c, b.c]));
                         dit = ` — ils se coupent en ${n1} et ${n2}`;
                         this.cslDire(`Deux cercles sécants se coupent en DEUX points, et la `
                             + `droite qui joint leurs centres est la médiatrice de [${n1}${n2}].`);
                     } else if (rel === 'tangents') {
                         const [a, b] = faits;
                         const n1 = this.cslNomLibre(noms); noms.push(n1);
+                        /* Le point de contact est SUR les deux cercles : il en
+                           dépend, sinon il s'en détache au premier geste. */
                         this.addEntity(new Point((a.centre.x * b.r + b.centre.x * a.r) / (a.r + b.r),
-                                                 (a.centre.y * b.r + b.centre.y * a.r) / (a.r + b.r), n1));
+                                                 (a.centre.y * b.r + b.centre.y * a.r) / (a.r + b.r),
+                                                 n1, [a.c, b.c]));
                         dit = ` — ils se touchent en ${n1}`;
                         this.cslDire(`Deux cercles tangents se touchent en UN seul point, et `
                             + `la distance de leurs centres vaut la somme de leurs rayons.`);
@@ -36078,12 +36115,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(centre);
                 const bord = new Point(o.x + rayon, o.y, ''); bord.visible = false;
                 this.addEntity(bord);
-                this.addEntity(this.cslPoserStyle(new Circle(centre, bord)));
+                const cercle = this.cslPoserStyle(new Circle(centre, bord));
+                this.addEntity(cercle);
                 const pts = [];
                 for (let i = 0; i < sommets; i++) {
                     const a = -Math.PI / 2 + i * 2 * Math.PI / sommets;
+                    /* INSCRIT VEUT DIRE SUR LE CERCLE. Les sommets étaient des
+                       points libres qui tombaient juste : en déplaçant le cercle
+                       ils restaient sur place, et le polygone n'était plus
+                       inscrit du tout. Ils en dépendent maintenant. */
                     const p = new Point(o.x + Math.cos(a) * rayon, o.y + Math.sin(a) * rayon,
-                                        noms[i] || '');
+                                        noms[i] || '', [cercle]);
                     this.addEntity(p); pts.push(p);
                 }
                 for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
@@ -36744,11 +36786,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslPremierCote(p, q) {
                 const ang = Math.atan2(q.y - p.y, q.x - p.x);
                 const pose = { x: p.x, y: p.y, angle: ang };
+                /* LE SECOND POINT EST POSÉ AVANT LE GESTE, et non entre lui et
+                   le trait : le rejeu dessine le trait en cours en regardant
+                   l'objet qui SUIT l'animation, et il trouvait ce point-là. La
+                   règle se couchait donc sur une feuille blanche, et le segment
+                   paraissait d'un coup à la fin. */
+                this.addEntity(q);
                 const an = new ToolAnimation('trace', pose, pose);
                 an.widgetType = 'ruler';
                 this.addEntity(an);
-                // le second point tombe où la graduation le dit
-                this.addEntity(q);
                 this.cslSegment(p, q);
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
             }
@@ -36819,14 +36865,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 tenir.widgetType = 'protractor';
                 this.addEntity(tenir);
                 this.addEntity(new ToolAnimation('protractorHide', {}, {}));
-                // puis la règle, le long de la mesure lue
+                /* LA RÈGLE NE SE POSE PAS ICI. Elle se posait juste avant que
+                   l'appelant crée son point de construction : le rejeu dessine le
+                   trait en cours en regardant l'objet qui SUIT l'animation, et il
+                   trouvait un Point. La règle tournait à vide, et le trait
+                   paraissait d'un coup. Chaque appelant la pose lui-même, au
+                   contact du trait qu'elle va faire. */
                 const bout = jusque || marque;
                 const ang = Math.atan2(bout.y - sommet.y, bout.x - sommet.x);
-                const trace = new ToolAnimation('trace', { x: sommet.x, y: sommet.y, angle: ang },
-                                                         { x: sommet.x, y: sommet.y, angle: ang });
+                return { marque, ang };
+            }
+            /* La règle, couchée le long d'une direction, juste avant le trait. */
+            cslRegleLeLongDe(sommet, ang) {
+                const pose = { x: sommet.x, y: sommet.y, angle: ang };
+                const trace = new ToolAnimation('trace', pose, pose);
                 trace.widgetType = 'ruler';
                 this.addEntity(trace);
-                return { marque, ang };
             }
             /* UNE LONGUEUR ET DEUX ANGLES : on trace [AB], on pose le rapporteur
                en A puis en B, et le troisième sommet est le CROISEMENT des deux
@@ -36856,6 +36910,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const bout = new Point(depuis.x + dx * 1.22, depuis.y + dy * 1.22, '');
                     bout.visible = false;
                     this.addEntity(bout);
+                    this.cslRegleLeLongDe(depuis, Math.atan2(dy, dx));
                     const seg = new Segment(depuis, bout, { color: '#b8b8b8', width: 1, dash: true });
                     this.addEntity(seg);
                     this.addEntity(new ToolAnimation('rulerHide', {}, {}));
@@ -36916,6 +36971,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const boutC = new Point(sommet.x + dxC * 1.22, sommet.y + dyC * 1.22, '');
                 boutC.visible = false;
                 this.addEntity(boutC);
+                this.cslRegleLeLongDe(sommet, Math.atan2(dyC, dxC));
                 this.addEntity(new Segment(sommet, boutC, { color: '#b8b8b8', width: 1, dash: true }));
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 // le report de la longueur au compas, sur la demi-droite ouverte
@@ -36979,13 +37035,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.stepInstructions[this.entities.length] =
                     "L'équerre élève la perpendiculaire au sommet de l'angle droit.";
                 const posE = { x: S.x, y: S.y, angle: perp };
-                const animE = new ToolAnimation('trace', posE, posE);
-                animE.widgetType = 'setsquare';
-                this.addEntity(animE);
+                /* Le bout du trait de construction est posé AVANT le geste : le
+                   rejeu regarde l'objet qui SUIT l'animation pour savoir quoi
+                   dessiner, et il trouvait ce point-là — l'équerre glissait sans
+                   rien tracer. */
                 const bout = new Point(S.x + Math.cos(perp) * rS * 1.25,
                                        S.y + Math.sin(perp) * rS * 1.25, '');
                 bout.visible = false;
                 this.addEntity(bout);
+                const animE = new ToolAnimation('trace', posE, posE);
+                animE.widgetType = 'setsquare';
+                this.addEntity(animE);
                 this.addEntity(new Segment(S, bout, { color: '#b8b8b8', width: 1, dash: true }));
                 this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
 
@@ -40302,7 +40362,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-07 · 20h';
+        window.GM_VERSION = '2026-09-08 · 0h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

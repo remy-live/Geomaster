@@ -787,6 +787,43 @@ Ces figures sont **décoratives** : elles ne portent aucun codage d'égalité. C
 les douze cordes égales d'une étoile posait cent quarante marques — le codage dit
 ce qu'un énoncé impose, pas ce qu'un joli tracé produit.
 
+### L'audit des constructions
+
+Plutôt que de relire les constructions une par une, **`tests/audit-constructions.js`
+applique le même principe à toutes** : il exécute les 174 phrases de
+`CONSIGNES.md` — la liste est elle-même engendrée, donc elle ne peut pas mentir —
+et vérifie trois choses.
+
+**1. Un point posé sur un objet en dépend.** Un point qui tombe exactement sur un
+trait, un cercle ou un arc sans en être l'enfant est un point posé *« là où ça
+tombe juste »* : la figure devient fausse dès qu'on touche à l'objet. Ce qui
+distingue le défaut de la coïncidence, c'est **l'ordre** — un point créé *après*
+l'objet y a été posé et doit en dépendre ; créé *avant*, c'est lui qui a servi à
+le construire (le centre d'une rosace tombe sur ses pétales, et c'est la figure
+qui le veut).
+
+L'audit a trouvé **21 constructions fautives**. Les sommets d'un polygone
+« inscrit dans un cercle » étaient libres : en déplaçant le cercle ils restaient
+sur place, et le polygone n'était plus inscrit du tout. Les points d'intersection
+de deux cercles sécants, et le point de contact de deux cercles tangents, ne
+dépendaient d'aucun des deux. Et les centres des dessins au compas — l'oreille du
+chat est un point *reporté sur le cercle de la tête* — s'en détachaient au premier
+geste. Tous accrochés : une oreille tourne maintenant autour de la tête et ne s'en
+décolle plus.
+
+**2. Aux instruments, l'outil ne trace pas dans le vide.** Le rejeu dessine le
+trait en cours en regardant l'objet qui **suit** l'animation ; un point de
+construction glissé entre les deux et l'outil tourne sur une feuille blanche.
+Treize cas, tous du même genre — dont `cslPremierCote`, le tout premier geste de
+presque toutes les constructions du logiciel : la règle se couchait, le second
+point naissait, puis le segment paraissait d'un coup. Le point est maintenant posé
+**avant** le geste.
+
+**3. La figure se prend à la main.** Une construction dont aucun point n'est libre
+est un dessin, pas une figure.
+
+L'audit est vert sur les 174 phrases, et il tourne avec les autres sondes.
+
 ### Un carré et ses diagonales reste un carré
 
 La détection de polygone demandait des sommets de degré 2. Les diagonales les

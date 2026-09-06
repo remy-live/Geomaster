@@ -152,11 +152,14 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     return { ancre: [anc.x, anc.y], avant: Math.round(d.nomD) };
   });
   const P0 = S(autreOutil.ancre[0], autreOutil.ancre[1]);
-  await page.mouse.move(P0.x, P0.y); await page.mouse.down(); await page.waitForTimeout(25);
+  /* Le geste demande un peu d'air : sous charge, l'appui et le premier
+     déplacement arrivaient dans la même image et la prise était manquée. */
+  await page.mouse.move(P0.x, P0.y); await page.waitForTimeout(60);
+  await page.mouse.down(); await page.waitForTimeout(80);
   for (let i = 1; i <= 6; i++) {
-    await page.mouse.move(P0.x - i * 8, P0.y - i * 5); await page.waitForTimeout(14);
+    await page.mouse.move(P0.x - i * 8, P0.y - i * 5); await page.waitForTimeout(30);
   }
-  await page.mouse.up(); await page.waitForTimeout(40);
+  await page.mouse.up(); await page.waitForTimeout(80);
   const apresOutil = await page.evaluate(() => {
     const app = window.app;
     const d = app.entities.find(e => e.nomDroite === 'd');
