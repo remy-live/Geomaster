@@ -420,6 +420,36 @@ alternes-internes, alternes-externes, opposés par le sommet — reçoivent la
 remarquable — supplémentaires, complémentaires, adjacents — en reçoivent deux
 **différentes**, et la réponse écrit la somme : *« 114° + 66° = 180° »*.
 
+**Ces figures sont construites, pas dessinées.** Elles ne l'étaient pas : chaque
+point était *libre*, à des coordonnées calculées pour que ça ait l'air juste.
+*« Le point apparaît sur l'objet sans être géométriquement correct »* — c'était
+exact, et il suffisait de déplacer une poignée de 37 px pour le voir :
+
+| | avant | maintenant |
+|---|---|---|
+| supplémentaires | 111,87° + 79,85° = **191,7°** | 112,17° + 67,83° = **180,00°** |
+| complémentaires | 42,15° + 62,61° = **104,8°** | 42,15° + 47,85° = **90,00°** |
+| opposés par le sommet | 86,47° et 60,24° — **plus égaux** | 70,25° et 70,25° |
+| correspondants | 60,71° et 55,85° — **plus égaux** | 53,67° et 53,67° |
+
+Chaque figure suit maintenant la construction qu'on dicterait au tableau :
+
+- **Supplémentaires** — une droite (AB) ; un point C **qui appartient à** (AB) ;
+  une demi-droite [CD). A, C, B sont alignés *parce que C est sur (AB)*.
+- **Complémentaires** — [OA), puis B **sur la perpendiculaire à [OA) en O**. Le
+  petit carré n'est plus un dessin : l'angle droit est construit. La
+  perpendiculaire reste dans la figure, cachée, et se montre avec les objets
+  cachés.
+- **Opposés par le sommet** — deux droites (AA') et (BB'), et le sommet **est**
+  leur point d'intersection.
+- **Correspondants, alternes-internes et -externes** — (d), puis (d') **vraiment
+  parallèle** à (d), puis la sécante (Δ) ; I et J sont les **points
+  d'intersection**. Les poignées qui portent les angles sont, elles aussi, sur
+  les droites.
+
+Les côtés d'un angle sont des **demi-droites**, comme le dit la définition, et
+non des segments.
+
 ### Montre-moi la méthode
 
 *« Montre-moi comment on trace deux droites parallèles »*, *« Explique comment on
@@ -1221,7 +1251,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 88 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 89 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

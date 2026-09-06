@@ -14182,6 +14182,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!this.p1 || !p2) return;
                 const s = this.getStyle("black", o.isHovered, o.isToDelete);
                 MathUtils.drawInfiniteLineFromVector(ctx, this.p1.x, this.p1.y, p2.x - this.p1.x, p2.y - this.p1.y, s.color, s.width, s.dash);
+                /* (d') porte son nom comme (d). La méthode vit sur LinearObject,
+                   dont la parallèle n'hérite pas : elle lui prête son second
+                   point, qu'elle est seule à savoir calculer. */
+                LinearObject.prototype.dessinerNomDroite.call(this, ctx, s.color, p2);
             }
         }
         class PerpendicularLine extends GeometryObject {
@@ -14231,6 +14235,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.stroke();
                     ctx.restore();
                 }
+                LinearObject.prototype.dessinerNomDroite.call(this, ctx, s.color, p2);
             }
         }
         /* ============================================================
@@ -32624,6 +32629,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const droite = (p1, p2) => {
                     const d = new Line(p1, p2, st); this.addEntity(d); return d;
                 };
+                /* ------------------------------------------------------------
+                   LES POINTS SONT CONSTRUITS, PAS POSÉS OÙ ÇA TOMBE JUSTE.
+
+                   Toutes ces figures étaient du bricolage : chaque point était
+                   libre, à des coordonnées calculées pour que ça ait l'air
+                   correct. Mesuré : dans « deux angles supplémentaires », O
+                   était sur (AB) au pixel près et n'en dépendait pas ; dans la
+                   figure des parallèles, I était sur (d) et sur (Δ) par pure
+                   coïncidence numérique ; et les deux « parallèles » étaient
+                   deux droites indépendantes que rien ne rendait parallèles.
+                   Bouger une extrémité, et la figure ne voulait plus rien dire.
+
+                   Désormais : un point sur une droite A CETTE DROITE POUR
+                   PARENT (il y reste, projeté), un sommet est un vrai POINT
+                   D'INTERSECTION, et une parallèle est une ParallelLine.
+                   ------------------------------------------------------------ */
+                const sur = (x, y, objet, nom) => {
+                    const p = new Point(x, y, nom || '', [objet]);
+                    if (!nom) p.visible = false;
+                    this.addEntity(p);
+                    return p;
+                };
+                const croisement = (x, y, o1, o2, nom) => {
+                    const p = new Point(x, y, nom, [o1, o2]);
+                    this.addEntity(p);
+                    return p;
+                };
+                /* Les côtés d'un angle sont des DEMI-DROITES : c'est ce que dit
+                   la définition, et c'est ce qu'on trace au tableau. */
+                const demiDroite = (a, b) => {
+                    const r = new Ray(a, b, st); this.addEntity(r); return r;
+                };
 
                 /* ---- deux parallèles coupées par une sécante ---- */
                 const correspondants = /correspondants?/.test(t);
@@ -32637,24 +32674,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        manuel, celle qu'on reconnaît d'un coup d'œil. La sécante
                        est franchement oblique, sans quoi les huit angles se
                        ressemblent tous et la figure n'apprend rien. */
-                    const I = nommer(o.x - BIAIS, yH, 'I'), J = nommer(o.x + BIAIS, yB, 'J');
+                    const ix = o.x - BIAIS, jx = o.x + BIAIS;
+                    /* (d) : deux poignées libres, c'est la droite qu'on tire. */
                     const d1 = droite(cache(o.x - DEMI, yH), cache(o.x + DEMI, yH));
                     d1.nomDroite = 'd'; this.cslMemoire().droites['d'] = d1;
-                    const d2 = droite(cache(o.x - DEMI, yB), cache(o.x + DEMI, yB));
-                    d2.nomDroite = "d'"; this.cslMemoire().droites["d'"] = d2;
-                    const vx = J.x - I.x, vy = J.y - I.y;
+                    /* (d') EST PARALLÈLE À (d) : c'est une ParallelLine, et elle
+                       le reste quand on bouge (d). Deux droites horizontales
+                       posées côte à côte ne sont parallèles que sur le dessin —
+                       la figure du programme de 5e n'apprend rien si le logiciel
+                       lui-même ne sait pas que (d) et (d') sont parallèles. */
+                    const d2 = new ParallelLine(cache(o.x - DEMI, yB), d1, st);
+                    /* La parallèle se dessine en 3 px par défaut : deux droites
+                       parallèles d'épaisseurs différentes se lisent comme deux
+                       objets différents. Elles ont le même trait. */
+                    d2.lineWidth = d1.lineWidth;
+                    d2.nomDroite = "d'"; this.addEntity(d2);
+                    this.cslMemoire().droites["d'"] = d2;
+                    const vx = jx - ix, vy = yB - yH;
                     const n = Math.hypot(vx, vy) || 1;
                     const ex = vx / n, ey = vy / n;
-                    const sec = droite(cache(I.x - ex * 190, I.y - ey * 190),
-                                       cache(J.x + ex * 190, J.y + ey * 190));
+                    const sec = droite(cache(ix - ex * 190, yH - ey * 190),
+                                       cache(jx + ex * 190, yB + ey * 190));
                     sec.nomDroite = 'Δ'; this.cslMemoire().droites['Δ'] = sec;
-                    // les poignées : sur les parallèles, et le long de la sécante
-                    const Ig = cache(I.x - 150, yH), Id = cache(I.x + 150, yH);
-                    const Jg = cache(J.x - 150, yB), Jd = cache(J.x + 150, yB);
-                    const Ih = cache(I.x - ex * 150, I.y - ey * 150);   // vers l'extérieur, en haut
-                    const Ib = cache(I.x + ex * 150, I.y + ey * 150);   // vers J, entre les droites
-                    const Jh = cache(J.x - ex * 150, J.y - ey * 150);   // vers I, entre les droites
-                    const Jb = cache(J.x + ex * 150, J.y + ey * 150);   // vers l'extérieur, en bas
+                    /* I ET J SONT LES POINTS D'INTERSECTION. Ils étaient deux
+                       points libres posés là où ça tombait juste : la figure
+                       était fausse dès qu'on touchait à une droite. */
+                    const I = croisement(ix, yH, d1, sec, 'I');
+                    const J = croisement(jx, yB, d2, sec, 'J');
+                    // les poignées : SUR les parallèles, et SUR la sécante
+                    const Ig = sur(I.x - 150, yH, d1), Id = sur(I.x + 150, yH, d1);
+                    const Jg = sur(J.x - 150, yB, d2), Jd = sur(J.x + 150, yB, d2);
+                    const Ih = sur(I.x - ex * 150, I.y - ey * 150, sec);   // vers l'extérieur, en haut
+                    const Ib = sur(I.x + ex * 150, I.y + ey * 150, sec);   // vers J, entre les droites
+                    const Jh = sur(J.x - ex * 150, J.y - ey * 150, sec);   // vers I, entre les droites
+                    const Jb = sur(J.x + ex * 150, J.y + ey * 150, sec);   // vers l'extérieur, en bas
                     let g1, g2, nom;
                     if (correspondants) {
                         /* Même position par rapport à chaque parallèle et du même
@@ -32695,13 +32748,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 /* ---- opposés par le sommet ---- */
                 if (/oppos[ée]s?\s+par\s+le\s+sommet/.test(t)) {
-                    const O = nommer(o.x, o.y, 'O');
                     const R = 210, a1 = -0.30, a2 = -1.55;
-                    const A = nommer(O.x + Math.cos(a1) * R, O.y + Math.sin(a1) * R, 'A');
-                    const B = nommer(O.x + Math.cos(a2) * R, O.y + Math.sin(a2) * R, 'B');
-                    const A2 = nommer(O.x - Math.cos(a1) * R, O.y - Math.sin(a1) * R, "A'");
-                    const B2 = nommer(O.x - Math.cos(a2) * R, O.y - Math.sin(a2) * R, "B'");
-                    droite(A, A2); droite(B, B2);
+                    /* DEUX DROITES QUI SE COUPENT, et le sommet EST leur point
+                       d'intersection : « opposés par le sommet », c'est
+                       exactement cela. O était un point libre placé au centre. */
+                    const A = nommer(o.x + Math.cos(a1) * R, o.y + Math.sin(a1) * R, 'A');
+                    const A2 = nommer(o.x - Math.cos(a1) * R, o.y - Math.sin(a1) * R, "A'");
+                    const dA = droite(A, A2);
+                    const B = nommer(o.x + Math.cos(a2) * R, o.y + Math.sin(a2) * R, 'B');
+                    const B2 = nommer(o.x - Math.cos(a2) * R, o.y - Math.sin(a2) * R, "B'");
+                    const dB = droite(B, B2);
+                    const O = croisement(o.x, o.y, dA, dB, 'O');
                     const g1 = angle(A, O, B, VERT, 'mark-1');
                     const g2 = angle(A2, O, B2, VERT, 'mark-1');
                     this.cslDire('Deux angles OPPOSÉS PAR LE SOMMET ont le même sommet et leurs '
@@ -32712,21 +32769,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 /* ---- supplémentaires : leur somme fait 180° ---- */
                 if (/suppl[ée]mentaires?/.test(t)) {
-                    const O = nommer(o.x, o.y + 60, 'O');
-                    const R = 230;
-                    const A = nommer(O.x - R, O.y, 'A');
-                    const B = nommer(O.x + R, O.y, 'B');
-                    const aC = -1.15;
-                    const C = nommer(O.x + Math.cos(aC) * R, O.y + Math.sin(aC) * R, 'C');
-                    droite(A, B);
-                    this.cslSegment(O, C);
-                    const g1 = angle(A, O, C, VERT);
-                    const g2 = angle(C, O, B, ROUGE);
+                    /* LA FIGURE SE CONSTRUIT DANS CET ORDRE, et c'est ce qui la
+                       rend vraie : une droite (AB) ; un point C QUI APPARTIENT à
+                       (AB) ; une demi-droite [CD). Les deux angles sont alors
+                       supplémentaires par construction — A, C, B sont alignés
+                       parce que C est sur (AB), et non parce qu'on a calculé ses
+                       coordonnées pour qu'il en ait l'air. */
+                    const R = 230, y = o.y + 60;
+                    const A = nommer(o.x - R, y, 'A');
+                    const B = nommer(o.x + R, y, 'B');
+                    const dAB = droite(A, B);
+                    const C = sur(o.x, y, dAB, 'C');
+                    const aD = -1.15;
+                    const D = nommer(C.x + Math.cos(aD) * R, C.y + Math.sin(aD) * R, 'D');
+                    demiDroite(C, D);
+                    const g1 = angle(A, C, D, VERT);
+                    const g2 = angle(D, C, B, ROUGE);
                     const s = Math.round(g1.getAngleValue()) + Math.round(g2.getAngleValue());
                     this.cslDire('Deux angles SUPPLÉMENTAIRES ont pour somme 180°. Ici ils sont '
-                        + 'aussi ADJACENTS — même sommet, le côté [OC) en commun — et leurs deux '
+                        + 'aussi ADJACENTS — même sommet C, le côté [CD) en commun — et leurs deux '
                         + 'autres côtés forment la droite (AB) : c\'est l\'angle plat.');
-                    return fait(`Angles AOC et COB supplémentaires — `
+                    return fait(`Angles ACD et DCB supplémentaires — `
                         + `${Math.round(g1.getAngleValue())}° + ${Math.round(g2.getAngleValue())}° = ${s}°`);
                 }
 
@@ -32735,10 +32798,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const O = nommer(o.x - 60, o.y + 110, 'O');
                     const R = 260;
                     const A = nommer(O.x + R, O.y, 'A');
-                    const B = nommer(O.x, O.y - R, 'B');
+                    const rOA = demiDroite(O, A);
+                    /* L'ANGLE DROIT EST CONSTRUIT, PAS AFFIRMÉ. B était un point
+                       libre posé à la verticale de O, et le petit carré n'était
+                       qu'un dessin : deux angles « complémentaires » dont la
+                       somme n'était droite que par coïncidence de coordonnées.
+                       B est maintenant SUR la perpendiculaire à [OA) en O — la
+                       perpendiculaire reste dans la figure, cachée, et se montre
+                       avec les objets cachés. */
+                    const perp = new PerpendicularLine(O, rOA);
+                    perp.hidden = true; this.addEntity(perp);
+                    const B = sur(O.x, O.y - R, perp, 'B');
+                    demiDroite(O, B);
                     const aC = -0.62;
                     const C = nommer(O.x + Math.cos(aC) * R, O.y + Math.sin(aC) * R, 'C');
-                    this.cslSegment(O, A); this.cslSegment(O, B); this.cslSegment(O, C);
+                    demiDroite(O, C);
                     const g1 = angle(A, O, C, VERT);
                     const g2 = angle(C, O, B, ROUGE);
                     const droitAngle = new Angle(A, O, B);
@@ -32757,7 +32831,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const A = nommer(O.x + Math.cos(-0.15) * R, O.y + Math.sin(-0.15) * R, 'A');
                     const B = nommer(O.x + Math.cos(-1.00) * R, O.y + Math.sin(-1.00) * R, 'B');
                     const C = nommer(O.x + Math.cos(-2.05) * R, O.y + Math.sin(-2.05) * R, 'C');
-                    this.cslSegment(O, A); this.cslSegment(O, B); this.cslSegment(O, C);
+                    /* Des demi-droites, comme partout ailleurs ici : les côtés
+                       d'un angle sont des demi-droites, pas des segments. */
+                    demiDroite(O, A); demiDroite(O, B); demiDroite(O, C);
                     const g1 = angle(A, O, B, VERT);
                     const g2 = angle(B, O, C, BLEU);
                     this.cslDire('Deux angles ADJACENTS ont le même sommet, un côté commun — ici '
@@ -38880,7 +38956,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 20h';
+        window.GM_VERSION = '2026-09-06 · 22h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

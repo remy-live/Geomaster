@@ -173,7 +173,7 @@ Quelques principes qui valent partout :
 | Trace des angles alternes-internes | Angles alternes-internes en I et en J — 56° et 56° |
 | Trace des angles alternes-externes | Angles alternes-externes en I et en J — 56° et 56° |
 | Trace deux angles opposés par le sommet | Angles AOB et A'OB' opposés par le sommet — 72° et 72° |
-| Trace deux angles supplémentaires | Angles AOC et COB supplémentaires — 114° + 66° = 180° |
+| Trace deux angles supplémentaires | Angles ACD et DCB supplémentaires — 114° + 66° = 180° |
 | Trace deux angles complémentaires | Angles AOC et COB complémentaires — 36° + 54° = 90° |
 | Trace deux angles adjacents | Angles AOB et BOC adjacents, de côté commun [OB) — 49° et 60° |
 
