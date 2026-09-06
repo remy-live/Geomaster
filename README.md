@@ -896,6 +896,60 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### Le lien porte la figure, pas sa relecture
+
+L'énoncé engendré est un **texte relu** sur la figure — le panneau le dit
+lui-même, *« relu sur la figure, se met à jour tout seul »*. J'avais commencé à
+épingler cette relecture dans le code de partage, et à moitié : sur les trois
+marques ajoutées le même jour, **une seule voyageait**. Le lien rendait donc un
+énoncé qui n'était ni celui de l'auteur ni une relecture honnête. Mesuré à
+l'ouverture d'un lien :
+
+| figure | par lien |
+|---|---|
+| hexagone | identique |
+| pentagone | *régulier de 5,6 cm de côté* → *tel que BC = 5,7 cm, CD = 5,6 cm, DE = 5,7 cm…* |
+| rosace | la ligne « rosace à six pétales » disparaît |
+| cercle circonscrit | *la médiatrice de [AB]* → *la droite précédente* |
+
+La bonne réponse n'est pas d'emporter l'étiquette, c'est de rendre la figure
+**lisible** — pour que celui qui ouvre le lien retrouve l'énoncé par le même
+chemin que celui qui l'a tracée. Trois corrections, et le lien contient
+maintenant *moins* qu'avant :
+
+**Le pentagone perdait son « régulier » parce que la figure n'arrivait pas
+entière.** Deux décimales suffisent à une position, pas à un angle : le cinquième
+de tour, 1,25664 rad, était transmis 1,26 — 0,19° d'écart, répété quatre fois.
+Ce n'est pas une question d'énoncé, c'est la géométrie qui était tronquée. Un
+angle et un rapport voyagent désormais à six décimales.
+
+**Les points d'appui du nombre d'or portent le gris des traits de
+construction.** `estTraceDeConstruction` reconnaît déjà un trait à son gris et à
+ses pointillés ; il reconnaît maintenant aussi un point. La couleur, elle, voyage
+depuis toujours : celui qui ouvre le lien voit exactement ce que l'auteur voyait,
+et **pour la même raison**.
+
+**La médiatrice se reconnaît au lieu de porter une étiquette** — perpendiculaire
+à [AB], passant à moins d'un demi-pixel de son milieu. Au passage, la médiatrice
+magique ne se relit plus *« Trace la droite (??) »* mais *« Trace la médiatrice
+de [AB] »*.
+
+Et la queue d'un point se rogne jusqu'au bout : trois champs qui valent zéro pour
+l'immense majorité des points traînaient dans chaque lien. Le code de partage du
+cercle circonscrit est passé de **1 503 à 1 460 octets** — plus court qu'avant,
+avec un meilleur énoncé.
+
+Reste la signature d'un motif décoratif — rosace, yin-yang, octogramme, escargot.
+Elle **ne voyage pas** : rouverte par lien, la rosace redevient ce qu'elle est
+vraiment, un cercle et six arcs. C'est moins joli, et ce n'est pas faux — c'est
+déjà la position tenue pour les dessins au compas. La reconnaître par la
+géométrie confondrait l'hexagone avec elle : ses six arcs de construction, de
+même rayon et centrés sur le cercle, sont exactement le motif d'une rosace.
+
+`tests/probe-lien-enonce.js` vérifie les deux moitiés : sept figures dont l'énoncé
+est **identique** après un aller-retour par le lien, et le code de partage lui-même
+relu pour s'assurer qu'il ne contient **aucun mot d'énoncé**.
+
 ### Un carré et ses diagonales reste un carré
 
 La détection de polygone demandait des sommets de degré 2. Les diagonales les
@@ -1538,7 +1592,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 96 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 97 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
