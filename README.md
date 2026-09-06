@@ -710,6 +710,30 @@ justement pour que le programme de construction sache la relire. Et le cercle
 dessinait, amplitude 239° ; maintenant 95 images sur 116 et 475° — un tour
 complet, puis les six pétales.
 
+### Les dessins au compas
+
+`Trace un chat`, `Trace un panda`, `Trace un tigre de 5 cm`…
+
+Treize dessins qui ne demandent **que le compas et la règle** : chat, panda,
+tigre, écureuil, souris, chouette, ourson, lapin, coccinelle, poisson, tortue,
+escargot, cœur. L'intérêt n'est pas décoratif — l'élève reporte des écartements
+pendant une heure sans s'apercevoir qu'il travaille.
+
+Le répertoire vient des fiches *Dessins géométriques* et du livre **« Dessiner
+avec un compas » de Laurent Stéfano**. Une **table** décrit chaque dessin en
+pièces — `['c', x, y, r]` un cercle, `['a', x, y, r, début, fin]` un arc,
+`['s', …]` un segment — exprimées en unités du rayon de base : ajouter un animal,
+c'est ajouter une ligne, et tous héritent du même compas, du même style et du
+même programme de construction. `de 5 cm` change ce rayon, et tout suit.
+
+Ce sont de **vraies figures** — des `Circle` et des `Arc`, pas des traces de
+compas — pour que la feuille sache les relire, les enregistrer, les exporter et
+les rejouer. Et l'énoncé relu ne les énumère pas : décrit pièce par pièce, un
+chat donnait huit fois *« Trace le cercle de centre ? et de rayon 4 cm »*, des
+phrases que personne ne pourrait suivre puisqu'elles ne disent pas où poser les
+cercles les uns par rapport aux autres. Il se relit **comme un chat** :
+*« Trace un chat de 4 cm »* — et cette phrase-là se rejoue.
+
 ### Le « ? » qui n'existait pas
 
 Quand la barre éclair ne comprenait pas une phrase, elle répondait *« Le « ? »
@@ -1198,12 +1222,13 @@ rien n'en sort — et sous cinq ouvertures il se tait, parce qu'il ne dirait rie
 « Plus tard » repousse la question de vingt ouvertures ; dit deux fois, c'est un
 non, et on ne redemande plus jamais.
 
-**« J'ai déjà donné » est cru sur parole.** Le logiciel ne *peut pas* savoir qui
-a donné : pas de serveur, pas de compte, et PayPal ne lui dit rien. Demander une
-preuve serait mentir sur ce qu'il sait faire. Le bouton ferme donc la fenêtre
-pour de bon, sans rien vérifier — et la fenêtre le dit en toutes lettres. Partir
-vers PayPal vaut la même chose : on ne redemande pas à quelqu'un qu'on vient
-d'envoyer payer.
+**Deux boutons, pas trois.** Il y avait un « J'ai déjà donné » : il a été retiré,
+trois boutons pour une demande, c'était un de trop. « Plus tard » suffit à
+sortir. Partir vers PayPal, en revanche, ferme la demande **pour de bon** : on ne
+redemande pas à quelqu'un qu'on vient d'envoyer payer, et le logiciel n'a de
+toute façon aucun moyen de savoir s'il l'a fait — pas de serveur, pas de compte,
+et PayPal ne lui dit rien. Croire sur parole est la seule réponse honnête
+possible.
 
 Pour qui ne peut pas donner, la fenêtre propose l'autre don : **en parler à un
 collègue**, avec un bouton qui copie l'adresse.
@@ -1339,7 +1364,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **185 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **199 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

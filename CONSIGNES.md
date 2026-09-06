@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**185 phrases**, dont 185 passent.
+**199 phrases**, dont 199 passent.
 
 Quelques principes qui valent partout :
 
@@ -75,6 +75,30 @@ Quelques principes qui valent partout :
 | Trace une rosace de 4 cm | Rosace à 6 pétales, de centre A et de rayon 4 cm |
 | Trace une rosace à 8 pétales | Rosace à 8 pétales, de centre A et de rayon 3 cm |
 | Trace une graine de vie | Rosace à 6 pétales, de centre A et de rayon 3 cm |
+
+## Dessins au compas
+
+| Ce qu'on écrit | Ce que le logiciel répond |
+|---|---|
+| Trace un chat | Chat au compas — 8 cercles |
+| Trace un panda | Panda au compas — 8 cercles, 1 arc |
+| Trace un tigre | Tigre au compas — 8 cercles, 3 arcs |
+| Trace un écureuil | Écureuil au compas — 5 cercles, 3 arcs, 2 traits |
+| Trace une souris | Souris au compas — 9 cercles |
+| Trace une chouette | Chouette au compas — 5 cercles, 3 arcs, 2 traits |
+| Trace un ourson | Ourson au compas — 7 cercles |
+| Trace un lapin | Lapin au compas — 6 cercles, 4 arcs |
+| Trace une coccinelle | Coccinelle au compas — 7 cercles, 1 arc, 1 trait |
+| Trace un poisson | Poisson au compas — 1 cercle, 3 arcs, 5 traits |
+| Trace une tortue | Tortue au compas — 7 cercles, 6 traits |
+| Trace un escargot | Escargot au compas — 2 cercles, 7 arcs, 3 traits |
+| Trace un cœur | Cœur au compas — 2 arcs, 2 traits |
+| Trace un chat de 5 cm | Chat au compas — 8 cercles |
+
+## Cercles (suite)
+
+| Ce qu'on écrit | Ce que le logiciel répond |
+|---|---|
 | Trace le cercle inscrit dans le triangle ABC | Cercle inscrit dans ABC |
 | Trace un rayon du cercle | Rayon [AE] |
 | Trace une corde du cercle | Corde [EF] |

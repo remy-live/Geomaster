@@ -8429,6 +8429,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Trace le cercle circonscrit au triangle ABC')">…circonscrit au triangle ABC</a>
             <a onclick="app.exempleConsigne('Trace une rosace de 3 cm')">Rosace de 3 cm (au compas)</a>
             <a onclick="app.exempleConsigne('Trace une rosace à 8 pétales')">Rosace à 8 pétales</a>
+            <div class="consigne-groupe">Dessins au compas</div>
+            <a onclick="app.exempleConsigne('Trace un chat')">Chat</a>
+            <a onclick="app.exempleConsigne('Trace un panda')">Panda</a>
+            <a onclick="app.exempleConsigne('Trace un tigre')">Tigre</a>
+            <a onclick="app.exempleConsigne('Trace un écureuil')">Écureuil</a>
+            <a onclick="app.exempleConsigne('Trace une souris')">Souris</a>
+            <a onclick="app.exempleConsigne('Trace une chouette')">Chouette · hibou</a>
+            <a onclick="app.exempleConsigne('Trace un ourson')">Ourson</a>
+            <a onclick="app.exempleConsigne('Trace un lapin')">Lapin</a>
+            <a onclick="app.exempleConsigne('Trace une coccinelle')">Coccinelle</a>
+            <a onclick="app.exempleConsigne('Trace un poisson')">Poisson</a>
+            <a onclick="app.exempleConsigne('Trace une tortue')">Tortue</a>
+            <a onclick="app.exempleConsigne('Trace un escargot')">Escargot</a>
+            <a onclick="app.exempleConsigne('Trace un cœur de 4 cm')">Cœur de 4 cm</a>
             <div class="consigne-groupe">Figures</div>
             <a onclick="app.exempleConsigne('Trace un carré ABCD de 3 cm de côté')">Carré ABCD de 3 cm de côté</a>
             <a onclick="app.exempleConsigne('Trace un rectangle ABCD de 5 cm sur 3 cm')">Rectangle ABCD de 5 cm sur 3 cm</a>
@@ -10401,12 +10415,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </div>
             <div class="modal-buttons">
                 <button class="modal-btn modal-cancel" onclick="app.donPlusTard()">Plus tard</button>
-                <!-- ON NE PEUT PAS SAVOIR QUI A DONNÉ — et c'est voulu : pas de
-                     serveur, pas de compte, et PayPal ne dit rien au logiciel. La
-                     seule réponse honnête est donc de CROIRE LA PERSONNE SUR PAROLE.
-                     Qui ment pour éviter une fenêtre n'aurait de toute façon pas
-                     donné ; qui a donné mérite d'être cru tout de suite. -->
-                <button class="modal-btn modal-cancel" onclick="app.donDejaFait()">J'ai déjà donné</button>
+                <!-- « J'AI DÉJÀ DONNÉ » A ÉTÉ RETIRÉ. Trois boutons pour une
+                     demande, c'était un de trop : « Plus tard » suffit à sortir,
+                     et il finit par valoir non. La mécanique de parole reste
+                     entière derrière — partir vers PayPal ferme la fenêtre pour
+                     de bon —, mais on ne demande plus à personne de se déclarer.
+                -->
                 <a href="https://www.paypal.com/donate/?hosted_button_id=VKZXDC5BM2GHA" target="_blank"
                     class="modal-btn modal-confirm danger"
                     style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;"
@@ -10415,7 +10429,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </a>
             </div>
             <div style="margin-top:10px; font-size:10px; color:#999;">
-                🔒 Paiement sécurisé via PayPal · « J'ai déjà donné » ferme la fenêtre pour de bon
+                🔒 Paiement sécurisé via PayPal · rien n'est envoyé depuis cette page
             </div>
             <!-- LA PORTE DE SORTIE HONORABLE. Pour ce public, le don le plus
                  précieux n'est pas de l'argent : c'est un collègue. Elle ne coûte
@@ -13772,6 +13786,181 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return Math.hypot(mx - a.x, my - a.y) < 16;
             }
         }
+        /* ==================================================================
+           LES DESSINS AU COMPAS
+
+           Un chat, un panda, une chouette : ce sont des cercles et des arcs, et
+           rien d'autre. C'est tout l'intérêt — on n'y mesure presque rien, on
+           reporte des écartements, et l'élève passe une heure au compas sans
+           s'apercevoir qu'il travaille. Le répertoire vient des fiches de
+           M. Devoddere et du livre « Dessiner avec un compas » de Laurent
+           Stéfano.
+
+           Chaque dessin est une LISTE DE PIÈCES, en unités du rayon de base R,
+           l'origine au centre du dessin et l'axe des y vers le bas (comme
+           l'écran) :
+
+             ['c', x, y, r]                  un cercle
+             ['a', x, y, r, deb, fin]        un arc, angles en DEGRÉS
+             ['s', x1, y1, x2, y2]           un segment (à la règle)
+
+           Une table plutôt que dix bâtisseurs : ajouter un animal, c'est ajouter
+           une ligne, et tous héritent du même compas, du même style et du même
+           programme de construction.
+           ================================================================== */
+        const GM_DESSINS = {
+            /* ---- les animaux ---- */
+            chat: { nom: 'chat', r: 150, pieces: [
+                ['c', 0, 0, 1],                              // la tête
+                ['c', -0.62, -0.78, 0.45], ['c', 0.62, -0.78, 0.45],   // les oreilles
+                ['c', -0.36, -0.16, 0.17], ['c', 0.36, -0.16, 0.17],   // les yeux
+                ['c', -0.20, 0.40, 0.24], ['c', 0.20, 0.40, 0.24],     // les joues
+                ['c', 0, 0.22, 0.16],                        // la truffe
+            ] },
+            panda: { nom: 'panda', r: 150, pieces: [
+                ['c', 0, 0, 1],
+                ['c', -0.72, -0.72, 0.36], ['c', 0.72, -0.72, 0.36],
+                ['c', -0.38, -0.18, 0.30], ['c', 0.38, -0.18, 0.30],   // les taches
+                ['c', -0.38, -0.18, 0.12], ['c', 0.38, -0.18, 0.12],   // les yeux
+                ['c', 0, 0.30, 0.18],                        // la truffe
+                ['a', 0, 0.30, 0.42, 20, 160],               // la bouche
+            ] },
+            souris: { nom: 'souris', r: 140, pieces: [
+                ['c', 0, 0, 1],
+                ['c', -0.85, -0.62, 0.62], ['c', 0.85, -0.62, 0.62],   // les grandes oreilles
+                ['c', -0.85, -0.62, 0.34], ['c', 0.85, -0.62, 0.34],
+                ['c', -0.30, -0.10, 0.11], ['c', 0.30, -0.10, 0.11],
+                ['c', 0, 0.45, 0.30],                        // le museau
+                ['c', 0, 0.30, 0.12],
+            ] },
+            chouette: { nom: 'chouette', r: 150, pieces: [
+                ['c', 0, 0, 1],                              // le corps
+                ['c', -0.38, -0.34, 0.34], ['c', 0.38, -0.34, 0.34],   // les yeux
+                ['c', -0.38, -0.34, 0.13], ['c', 0.38, -0.34, 0.13],
+                ['a', -0.90, -0.90, 0.62, 20, 90],           // les aigrettes
+                ['a', 0.90, -0.90, 0.62, 90, 160],
+                ['s', -0.14, -0.06, 0, 0.24], ['s', 0.14, -0.06, 0, 0.24],   // le bec
+                ['a', 0, 0.30, 0.55, 30, 150],               // le ventre
+            ] },
+            ourson: { nom: 'ourson', r: 150, pieces: [
+                ['c', 0, 0, 1],
+                ['c', -0.80, -0.66, 0.36], ['c', 0.80, -0.66, 0.36],
+                ['c', -0.34, -0.20, 0.10], ['c', 0.34, -0.20, 0.10],
+                ['c', 0, 0.34, 0.44],                        // le museau
+                ['c', 0, 0.16, 0.13],                        // la truffe
+            ] },
+            tigre: { nom: 'tigre', r: 150, pieces: [
+                ['c', 0, 0, 1],
+                ['c', -0.74, -0.70, 0.34], ['c', 0.74, -0.70, 0.34],
+                ['c', -0.36, -0.18, 0.14], ['c', 0.36, -0.18, 0.14],
+                ['c', -0.24, 0.36, 0.28], ['c', 0.24, 0.36, 0.28],     // les bajoues
+                ['c', 0, 0.18, 0.14],
+                ['a', -0.55, -0.95, 0.55, 55, 105],          // les rayures du front
+                ['a', 0, -1.05, 0.55, 55, 125],
+                ['a', 0.55, -0.95, 0.55, 75, 125],
+            ] },
+            coccinelle: { nom: 'coccinelle', r: 150, pieces: [
+                ['c', 0, 0, 1],                              // le corps
+                ['a', 0, -1.10, 0.45, 20, 160],              // la tête
+                ['s', 0, -1, 0, 1],                          // la ligne du dos
+                ['c', -0.42, -0.34, 0.16], ['c', 0.42, -0.34, 0.16],
+                ['c', -0.50, 0.22, 0.16], ['c', 0.50, 0.22, 0.16],
+                ['c', -0.22, 0.62, 0.16], ['c', 0.22, 0.62, 0.16],
+            ] },
+            poisson: { nom: 'poisson', r: 150, pieces: [
+                ['a', 0, 0.86, 1.30, 220, 320],              // le dos
+                ['a', 0, -0.86, 1.30, 40, 140],              // le ventre
+                ['s', 0.84, 0, 1.40, -0.44], ['s', 0.84, 0, 1.40, 0.44],
+                ['s', 1.40, -0.44, 1.40, 0.44],              // la queue
+                ['a', -0.85, 0, 0.30, 300, 60],              // l'ouïe
+                ['c', -0.45, -0.12, 0.09],                   // l'œil
+                ['s', -0.15, -0.40, 0.05, -0.70],
+                ['s', 0.05, -0.70, 0.30, -0.34],             // la nageoire
+            ] },
+            tortue: { nom: 'tortue', r: 150, pieces: [
+                ['c', 0, 0, 1],                              // la carapace
+                ['c', 0, 0, 0.45],
+                ['c', 0, -1.15, 0.30],                       // la tête
+                ['c', -0.80, -0.80, 0.24], ['c', 0.80, -0.80, 0.24],   // les pattes
+                ['c', -0.80, 0.80, 0.24], ['c', 0.80, 0.80, 0.24],
+                ['s', 0, -0.45, 0, -1], ['s', 0, 0.45, 0, 1],
+                ['s', -0.39, -0.23, -0.87, -0.50], ['s', 0.39, -0.23, 0.87, -0.50],
+                ['s', -0.39, 0.23, -0.87, 0.50], ['s', 0.39, 0.23, 0.87, 0.50],
+            ] },
+            escargot: { nom: 'escargot', r: 130, pieces: [
+                /* LA COQUILLE EST UNE VRAIE SPIRALE AU COMPAS : des demi-tours
+                   pris alternativement sur DEUX pointes distantes de 0,14, et
+                   dont le rayon grandit d'autant à chaque fois. Des cercles
+                   emboîtés — la première version — donnaient une cible, pas une
+                   coquille. */
+                ['a', 0, 0, 0.16, 0, 180], ['a', 0.14, 0, 0.30, 180, 360],
+                ['a', 0, 0, 0.44, 0, 180], ['a', 0.14, 0, 0.58, 180, 360],
+                ['a', 0, 0, 0.72, 0, 180], ['a', 0.14, 0, 0.86, 180, 360],
+                ['s', -1.90, 1.05, 0.90, 1.05],              // le pied
+                ['a', -1.40, 1.05, 0.50, 180, 270],          // la tête
+                ['s', -1.48, 0.62, -1.76, 0.18],             // les antennes
+                ['s', -1.28, 0.58, -1.16, 0.14],
+                ['c', -1.80, 0.12, 0.08], ['c', -1.13, 0.09, 0.08],
+            ] },
+            ecureuil: { nom: 'écureuil', r: 120, pieces: [
+                ['c', -0.35, 0.50, 0.75],                    // le corps
+                ['c', -0.80, -0.45, 0.40],                   // la tête
+                ['c', -1.08, -0.75, 0.15], ['c', -0.55, -0.78, 0.15],  // les oreilles
+                ['c', -0.95, -0.52, 0.07],                   // l'œil
+                /* LA QUEUE EN PANACHE : deux arcs de MÊME CENTRE, la moitié
+                   droite d'un grand cercle et celle d'un petit, refermées en bas
+                   par un trait et en haut par un arc qui la fait retomber. Trois
+                   cercles emboîtés — la première version — se lisaient comme une
+                   cible posée à côté de l'animal ; un croissant ouvert — la
+                   seconde — comme un pont décollé du dos. Le pied de la queue
+                   est TANGENT au corps : c'est ce qui la rattache. */
+                ['a', 0.40, 0.30, 0.95, 270, 90],
+                ['a', 0.40, 0.30, 0.42, 270, 90],
+                ['s', 0.40, 1.25, 0.40, 0.72],               // le pied de la queue
+                ['a', 0.40, -0.385, 0.265, 90, 270],         // le bout, qui retombe
+                ['s', -1.15, 1.28, 0.55, 1.28],              // le sol
+            ] },
+            lapin: { nom: 'lapin', r: 140, pieces: [
+                ['c', 0, 0, 1],
+                /* CHAQUE OREILLE EST UNE AMANDE : deux arcs de même rayon qui se
+                   rejoignent en haut et en bas. Quatre arcs qui ne se
+                   rencontraient nulle part — la première version — flottaient
+                   au-dessus de la tête sans jamais se refermer. */
+                ['a', -0.02, -1.64, 0.93, 121, 229], ['a', -1.10, -1.56, 0.93, 301, 49],
+                ['a', 0.02, -1.64, 0.93, 311, 59], ['a', 1.10, -1.56, 0.93, 131, 239],
+                ['c', -0.34, -0.14, 0.12], ['c', 0.34, -0.14, 0.12],
+                ['c', -0.20, 0.44, 0.26], ['c', 0.20, 0.44, 0.26],
+                ['c', 0, 0.24, 0.13],
+            ] },
+            /* ---- les figures des fiches ---- */
+            coeur: { nom: 'cœur', r: 150, pieces: [
+                /* Le cœur de la fiche : un carré posé sur la pointe, et un
+                   DEMI-CERCLE sur chacun de ses deux côtés du haut — leur
+                   diamètre est le côté, donc leur rayon la moitié de la
+                   diagonale. Les bosses tournées vers l'intérieur, comme dans la
+                   première version, refermaient le carré au lieu de l'arrondir. */
+                ['s', -1, 0, 0, 1], ['s', 0, 1, 1, 0],       // la pointe
+                ['a', -0.5, -0.5, 0.7071, 135, 315],         // la bosse gauche
+                ['a', 0.5, -0.5, 0.7071, 225, 45],           // la bosse droite
+            ] },
+        };
+        /* Les noms qu'on peut écrire, et ce qu'ils désignent. Les accents et les
+           majuscules sont retirés avant la comparaison. */
+        const GM_DESSINS_MOTS = {
+            chat: 'chat', chaton: 'chat', minou: 'chat',
+            panda: 'panda',
+            souris: 'souris', mulot: 'souris',
+            chouette: 'chouette', hibou: 'chouette',
+            ourson: 'ourson', ours: 'ourson', nounours: 'ourson',
+            tigre: 'tigre', chattigre: 'tigre',
+            coccinelle: 'coccinelle', betealadieu: 'coccinelle',
+            poisson: 'poisson',
+            tortue: 'tortue',
+            escargot: 'escargot',
+            ecureuil: 'ecureuil',
+            lapin: 'lapin',
+            coeur: 'coeur',
+        };
         /* Unités proposées par le bouton cyclique du menu contextuel. null =
            aucune unité : on n'affiche que le nombre, en centimètres, ce qui était
            le seul comportement possible auparavant — c'est donc la valeur par
@@ -15689,9 +15878,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 else this.donEcrire('gm_don_prochain', e.ouvertures + 20);
                 if (typeof closeDonateModal === 'function') closeDonateModal();
             }
-            /* Sur parole. « Faire un don » passe par ici aussi : le lien PayPal
-               s'ouvre dans un autre onglet, et on n'ira pas redemander à quelqu'un
-               qu'on vient d'envoyer payer. */
+            /* Partir vers PayPal ferme la demande pour de bon : on ne va pas
+               redemander à quelqu'un qu'on vient d'envoyer payer, et le logiciel
+               n'a de toute façon aucun moyen de savoir s'il l'a fait — pas de
+               serveur, pas de compte, et PayPal ne lui dit rien. C'est la seule
+               réponse honnête possible : croire sur parole.
+
+               Le bouton « J'ai déjà donné » qui appelait aussi cette fonction a
+               été retiré : trois boutons pour une demande, c'était un de trop. */
             donDejaFait(versPayPal) {
                 this.donEcrire('gm_don_etat', 'fait');
                 if (typeof closeDonateModal === 'function') closeDonateModal();
@@ -31052,6 +31246,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const ros = this.cslRosace(brut, t, fait, rate);
                         if (ros) return ros;
                     }
+                    /* LES DESSINS AU COMPAS passent avant tout le reste : « trace
+                       un chat » ne doit pas partir vers une règle qui verrait un
+                       autre mot, et « un cœur » ne doit pas devenir un carré. */
+                    if (/(?:chat|chaton|minou|panda|souris|mulot|chouette|hibou|ourson|nounours|tigre|coccinelle|poisson|tortue|escargot|ecureuil|lapin|coeur)/
+                            .test(this.cslSansAccent(t))) {
+                        const dessin = this.cslDessinAuCompas(brut, t, fait, rate);
+                        if (dessin) return dessin;
+                    }
                     /* LES CONFIGURATIONS D'ANGLES PASSENT TÔT. Leurs mots sont
                        sans ambiguïté, mais les règles suivantes les volaient
                        toutes : « angles correspondants » partait coder les angles
@@ -32885,6 +33087,135 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 return null;
+            }
+            /* ============================================================
+               LES DESSINS AU COMPAS : un chat, un panda, une chouette…
+
+               Ce sont des cercles et des arcs, et rien d'autre — c'est tout
+               l'intérêt. L'élève reporte des écartements pendant une heure sans
+               s'apercevoir qu'il travaille, et la figure obtenue est une VRAIE
+               figure : des Circle et des Arc, que la feuille sait relire,
+               enregistrer, exporter et rejouer.
+
+               Un seul bâtisseur pour toute la table : ajouter un animal, c'est
+               ajouter une ligne dans GM_DESSINS.
+               ============================================================ */
+            /* « cœur », « écureuil » : les accents et la ligature ne se laissent
+               pas attraper par \b, qui ne connaît que l'alphabet sans accent.
+               On compare donc sur un texte mis à plat. */
+            cslSansAccent(s) {
+                return String(s).toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae')
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            cslDessinAuCompas(brut, t, fait, rate) {
+                const nu = this.cslSansAccent(t);
+                /* Le mot le plus long d'abord : « nounours » avant « ours ». */
+                const mots = Object.keys(GM_DESSINS_MOTS).sort((a, b) => b.length - a.length);
+                const mot = mots.find(m => new RegExp('\\b' + m + 's?\\b').test(nu));
+                const cle = mot ? GM_DESSINS_MOTS[mot] : null;
+                if (!cle || !GM_DESSINS[cle]) return null;
+                const d = GM_DESSINS[cle];
+                /* « un chat de 4 cm » : c'est le RAYON de son cercle de base —
+                   celui qu'on ouvre au compas et qu'on ne change plus qu'en
+                   proportion. */
+                const R = this.cslLongueurPx(brut) || d.r;
+                const noms = this.cslNoms(brut);
+                let message = null;
+                this.cslBatir([], () => {
+                    const st = this.cslStyle();
+                    const o = this.cslPlaceLibre(0, 0);
+                    const outils = this.cslDetaille();
+                    const rad = (deg) => deg * Math.PI / 180;
+                    /* Le centre du dessin porte un nom : c'est par lui qu'on
+                       commence, et l'énoncé relu s'y accroche. */
+                    const nomO = noms.find(n => !this.cslPointNomme(n)) || this.cslNomLibre([]);
+                    const O = new Point(o.x, o.y, nomO);
+                    O.dessinCompasCentre = cle; O.dessinCompasR = R;
+                    this.addEntity(O);
+                    let precedent = null;
+                    const compas = (cx, cy, r, a1, a2) => {
+                        if (!outils) return;
+                        if (precedent) {
+                            const m = new ToolAnimation('move',
+                                { x: precedent.x, y: precedent.y, angle: precedent.angle,
+                                  radius: precedent.r },
+                                { x: cx, y: cy, angle: a1, radius: r });
+                            m.widgetType = 'compass'; this.addEntity(m);
+                        }
+                        const tr = new ToolAnimation('trace',
+                            { x: cx, y: cy, angle: a1, radius: r },
+                            { x: cx, y: cy, angle: a2, radius: r });
+                        tr.widgetType = 'compass'; this.addEntity(tr);
+                        precedent = { x: cx, y: cy, angle: a2, r };
+                    };
+                    d.pieces.forEach((piece) => {
+                        const [genre] = piece;
+                        /* LES POINTS D'ABORD, PUIS LE GESTE, PUIS LA FIGURE. Le
+                           rejeu dessine le trait en cours en regardant l'objet
+                           qui SUIT l'animation : les points de construction
+                           glissés entre les deux, le compas tournait sur une
+                           feuille blanche. La sonde l'a attrapé — huit tracés
+                           suivis d'un Point, zéro image dessinée. */
+                        if (genre === 'c') {
+                            const [, x, y, r] = piece;
+                            const cx = o.x + x * R, cy = o.y + y * R, rr = r * R;
+                            const c = new Point(cx, cy, ''); c.visible = false;
+                            const b = new Point(cx + rr, cy, ''); b.visible = false;
+                            this.addEntity(c); this.addEntity(b);
+                            compas(cx, cy, rr, 0, Math.PI * 2);
+                            const cercle = new Circle(c, b, st);
+                            cercle.dessinCompas = cle;
+                            this.addEntity(cercle);
+                        } else if (genre === 'a') {
+                            const [, x, y, r, deb, fin] = piece;
+                            const cx = o.x + x * R, cy = o.y + y * R, rr = r * R;
+                            const a1 = rad(deb), a2 = rad(fin < deb ? fin + 360 : fin);
+                            const c = new Point(cx, cy, ''); c.visible = false;
+                            this.addEntity(c);
+                            compas(cx, cy, rr, a1, a2);
+                            const arc = new Arc(c, rr, a1, a2);
+                            if (st.color) arc.color = st.color;
+                            if (st.width) arc.lineWidth = st.width;
+                            if (st.dash) { arc.dash = [5, 5]; arc.styleDemande = true; }
+                            arc.dessinCompas = cle;
+                            this.addEntity(arc);
+                        } else if (genre === 's') {
+                            const [, x1, y1, x2, y2] = piece;
+                            const p1 = new Point(o.x + x1 * R, o.y + y1 * R, '');
+                            const p2 = new Point(o.x + x2 * R, o.y + y2 * R, '');
+                            p1.visible = false; p2.visible = false;
+                            this.addEntity(p1); this.addEntity(p2);
+                            if (outils) {
+                                const a = new ToolAnimation('trace',
+                                    { x: p1.x, y: p1.y, angle: Math.atan2(p2.y - p1.y, p2.x - p1.x) },
+                                    { x: p2.x, y: p2.y, angle: Math.atan2(p2.y - p1.y, p2.x - p1.x) });
+                                a.widgetType = 'ruler'; this.addEntity(a);
+                            }
+                            const s = new Segment(p1, p2, st);
+                            if (st.dash) s.styleDemande = true;
+                            s.dessinCompas = cle;
+                            this.addEntity(s);
+                        }
+                    });
+                    if (outils) {
+                        this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                        this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    }
+                    const cercles = d.pieces.filter(p => p[0] === 'c').length;
+                    const arcs = d.pieces.filter(p => p[0] === 'a').length;
+                    const traits = d.pieces.filter(p => p[0] === 's').length;
+                    const bouts = [];
+                    if (cercles) bouts.push(`${cercles} cercle${cercles > 1 ? 's' : ''}`);
+                    if (arcs) bouts.push(`${arcs} arc${arcs > 1 ? 's' : ''}`);
+                    if (traits) bouts.push(`${traits} trait${traits > 1 ? 's' : ''}`);
+                    this.cslDire(`Ce dessin ne demande que le compas et la règle : `
+                        + `${bouts.join(', ')}, tous placés par rapport au premier cercle. `
+                        + `Écrivez « un ${d.nom} de 5 cm » pour le tracer plus grand.`);
+                    message = `${d.nom.charAt(0).toUpperCase()}${d.nom.slice(1)} au compas — `
+                        + `${bouts.join(', ')}`;
+                });
+                return message ? fait(message)
+                               : rate(`Je n'ai pas su tracer ce ${d.nom}.`);
             }
             /* ============================================================
                LA ROSACE
@@ -37128,9 +37459,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 return out;
             }
+            /* UN CHAT SE RELIT COMME UN CHAT. Décrit pièce par pièce, il donnait
+               huit fois « Trace le cercle de centre ? et de rayon 4 cm » — les
+               centres de ses cercles n'ont pas de nom, et surtout ces huit
+               phrases ne diraient à personne où poser les cercles les uns par
+               rapport aux autres. Les pièces portent donc le nom du dessin, et
+               l'énoncé le rend d'une phrase — celle-là même qui le trace.
+
+               La marque vit en mémoire : rouvert depuis un code de partage, le
+               dessin redevient ce qu'il est vraiment, une collection de cercles,
+               et l'énoncé les énumère. C'est moins joli, et ce n'est pas faux. */
+            pgDessinsAuCompas() {
+                const parCle = new Map();
+                this.entities.forEach((e) => {
+                    if (!e.dessinCompas) return;
+                    if (!parCle.has(e.dessinCompas)) parCle.set(e.dessinCompas, []);
+                    parCle.get(e.dessinCompas).push(e);
+                });
+                const out = [];
+                parCle.forEach((pieces, cle) => {
+                    const centre = this.entities.find(e => e.dessinCompasCentre === cle);
+                    if (!centre || pieces.length < 3) return;
+                    out.push({ cle, pieces, centre,
+                        cm: Math.round((centre.dessinCompasR || 0) / UNIT
+                            * (this.cmScale || 1) * 10) / 10 });
+                });
+                return out;
+            }
             lireFigure() {
                 const faits = [];
                 const consommes = new Set();
+                const dessins = this.pgDessinsAuCompas();
+                const parDessin = new Map();
+                dessins.forEach((d) => {
+                    let dernier = -1;
+                    d.pieces.forEach((e) => {
+                        consommes.add(e);
+                        dernier = Math.max(dernier, this.entities.indexOf(e));
+                        [e.p1, e.p2, e.center].forEach(q => { if (q) consommes.add(q); });
+                    });
+                    consommes.add(d.centre);
+                    if (!parDessin.has(dernier)) parDessin.set(dernier, []);
+                    parDessin.get(dernier).push(d);
+                });
                 const rosaces = this.pgRosaces();
                 const parRosace = new Map();
                 rosaces.forEach((r) => {
@@ -37200,6 +37571,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     libresEnAttente = [];
                 };
                 this.entities.forEach((e, i) => {
+                    if (parDessin.has(i)) {
+                        viderLibres();
+                        parDessin.get(i).forEach(d => faits.push({
+                            t: 'dessin', nom: (GM_DESSINS[d.cle] || {}).nom || d.cle,
+                            cm: d.cm, pieces: d.pieces.length }));
+                    }
                     if (parRosace.has(i)) {
                         viderLibres();
                         parRosace.get(i).forEach(r => faits.push({
@@ -37297,6 +37674,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 switch (f.t) {
                     case 'points': return f.noms || [];
                     case 'rosace': return [f.centre];
+                    case 'dessin': return [];
                     case 'polygone': return f.pts || [];
                     case 'segment': case 'droite': case 'demidroite': return [f.a, f.b];
                     case 'cercle': return [f.centre, f.bord];
@@ -37646,6 +38024,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return f.droit
                             ? `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} est droit.`
                             : `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} mesure ${f.deg}°.`;
+                    case 'dessin':
+                        return `Trace un ${f.nom} de ${this.pgCm(f.cm)}.`;
                     case 'rosace':
                         return `Trace une rosace à ${f.petales} pétales, de centre ${N(f.centre)} `
                             + `et de rayon ${this.pgCm(f.cm)}.`;
@@ -37796,6 +38176,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             : [`Au rapporteur, centre sur ${N(f.s)}, le zéro sur `
                                + `[${N(f.s)}${N(f.a)}) : marque ${f.deg}°, puis trace `
                                + `[${N(f.s)}${N(f.b)}) à la règle.`];
+                    case 'dessin':
+                        return [`Ouvre le compas de ${this.pgCm(f.cm)} : c'est le rayon du grand `
+                            + `cercle, celui qui donne la taille de tout le dessin.`,
+                            `Trace les ${f.pieces} pièces du ${f.nom} au compas et à la règle, `
+                            + `chacune placée par rapport à ce premier cercle.`];
                     case 'rosace': {
                         /* La seule construction du collège où l'on ne mesure
                            rien : on ouvre le compas une fois, et on reporte. */
@@ -39454,7 +39839,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-07 · 8h';
+        window.GM_VERSION = '2026-09-07 · 12h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

@@ -101,11 +101,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await momentDeValeur();
   ck('même neuf cents ouvertures plus tard', !(await fenetreOuverte()));
 
-  console.log('\n=== « J\'ai déjà donné » est cru sur parole ===');
-  /* LE POINT DE CONCEPTION. Le logiciel ne peut PAS vérifier : pas de serveur,
-     pas de compte, PayPal ne lui dit rien. Demander une preuve serait mentir sur
-     ce qu'on sait faire ; la seule réponse honnête est de croire, tout de suite
-     et définitivement. */
+  console.log('\n=== DEUX BOUTONS, PAS TROIS ===');
+  /* « J'ai déjà donné » a été retiré : trois boutons pour une demande, c'était
+     un de trop. « Plus tard » suffit à sortir, et il finit par valoir non. La
+     mécanique de parole reste entière derrière — partir vers PayPal ferme la
+     demande pour de bon —, mais on ne demande plus à personne de se déclarer. */
   await p.evaluate(() => { localStorage.removeItem('gm_don_etat');
     localStorage.removeItem('gm_don_reports'); localStorage.removeItem('gm_don_prochain');
     localStorage.setItem('gm_ouvertures', '30'); });
@@ -117,23 +117,19 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       .map(e => e.textContent.trim());
     return { boutons: b, petit: document.getElementById('donateModal').innerText.replace(/\s+/g, ' ') };
   });
-  ck('  elle offre de dire qu\'on a déjà donné',
-     dit.boutons.some(t => /déjà donné/i.test(t)), JSON.stringify(dit.boutons));
-  ck('  et dit sans détour ce que ce bouton fait',
-     /pour de bon/i.test(dit.petit), JSON.stringify(dit.petit.slice(0, 60)));
-  await p.click('#donateModal .modal-buttons button:nth-of-type(2)');
+  ck('« J\'ai déjà donné » n\'y est plus',
+     !dit.boutons.some(t => /déjà donné/i.test(t)), JSON.stringify(dit.boutons));
+  ck('  il reste « Plus tard » et « Faire un don »',
+     dit.boutons.length === 2 && /plus tard/i.test(dit.boutons[0])
+     && /faire un don/i.test(dit.boutons[1]), JSON.stringify(dit.boutons));
+  ck('  et la petite ligne ne promet plus un bouton absent',
+     !/déjà donné/i.test(dit.petit), JSON.stringify(dit.petit.slice(0, 90)));
+  /* Le cœur de la barre reste : on peut vouloir donner sans qu'on le demande. */
+  await p.evaluate(() => window.app.donPlusTard());
   await p.waitForTimeout(200);
-  m = await memoire();
-  ck('aucune preuve n\'est demandée : la fenêtre se ferme',
-     !(await fenetreOuverte()) && m.etat === 'fait', JSON.stringify(m));
-  await p.evaluate(() => localStorage.setItem('gm_ouvertures', '500'));
-  await ouvrir();
-  await momentDeValeur();
-  ck('et elle ne revient JAMAIS', !(await fenetreOuverte()), JSON.stringify(await memoire()));
-  /* Mais le cœur reste : on peut vouloir redonner. */
   await p.click('#donateBtn, .top-btn[onclick*="openDonateModal"]');
   await p.waitForTimeout(300);
-  ck('le cœur de la barre l\'ouvre quand même, pour qui veut redonner',
+  ck('le cœur de la barre l\'ouvre quand même, pour qui veut donner',
      await fenetreOuverte());
 
   console.log('\n=== partir vers PayPal vaut « j\'ai donné » ===');
