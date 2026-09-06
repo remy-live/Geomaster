@@ -8400,6 +8400,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     data-tooltip="Titre">Titre</button>
                 <button onpointerdown="event.preventDefault(); document.execCommand('removeFormat', false, null);"
                     data-tooltip="Effacer style">🧹</button>
+                <div class="instr-sep"></div>
+                <!-- LE PROGRAMME DE CONSTRUCTION, À L'ENVERS. Le logiciel sait
+                     exécuter une suite de consignes ; il sait aussi RELIRE la
+                     figure et écrire le programme qui la construit. Deux
+                     boutons, parce que ce sont deux exercices : l'énoncé (ce
+                     qu'il faut obtenir) et la marche à suivre (comment). -->
+                <button onpointerdown="event.preventDefault(); app.ecrireProgramme(false);"
+                    data-tooltip="Relire la figure et écrire son énoncé, sans dire comment"
+                    style="background:#ecfdf5; color:#047857; border-color:#a7f3d0; font-weight:bold;">
+                    ✍ Énoncé
+                </button>
+                <button onpointerdown="event.preventDefault(); app.ecrireProgramme(true);"
+                    data-tooltip="Relire la figure et écrire la marche à suivre, geste par geste"
+                    style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:bold;">
+                    📐 Aux instruments
+                </button>
             </div>
             <div id="instrContent" contenteditable="true" placeholder="Écrivez vos consignes ici...">
                 <h3>Exercice :</h3>
@@ -35942,6 +35958,530 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                            : 'Rien de nouveau à faire');
                 return faites;
             }
+            /* ============================================================
+               LE PROGRAMME DE CONSTRUCTION, À L'ENVERS
+
+               Le logiciel sait exécuter une suite de consignes. Il sait
+               maintenant faire le chemin inverse : RELIRE une figure et écrire
+               le programme qui la construit. C'est l'exercice « rédige un
+               programme de construction » de tous les manuels — celui qu'on
+               corrige à la main, un cahier après l'autre.
+
+               Deux registres, parce que ce sont deux exercices :
+
+               SANS OUTILS, c'est l'énoncé : ce qu'il faut obtenir, sans dire
+               comment. « Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et
+               BC = 3 cm. »
+
+               AVEC OUTILS, c'est la marche à suivre, geste par geste : la règle,
+               le compas, l'équerre, et l'ordre dans lequel on les prend. C'est
+               ce qu'on dicte à un élève qui a la feuille devant lui.
+
+               ON N'INVENTE RIEN. Ce qui n'est pas reconnu est nommé pour ce
+               qu'il est — « un trait de A à B » — plutôt que rangé de force dans
+               une phrase qui sonnerait mieux. Un programme de construction qui
+               ment est pire qu'un programme incomplet : on le suit, et la figure
+               ne sort pas.
+               ============================================================ */
+            /* La longueur d'un segment, dans l'unité de la feuille. */
+            pgLongueur(a, b) {
+                const cm = MathUtils.dist(a.x, a.y, b.x, b.y) / UNIT * (this.cmScale || 1);
+                return Math.round(cm * 10) / 10;
+            }
+            pgCm(v) { return String(Math.round(v * 10) / 10).replace('.', ',') + ' cm'; }
+            pgNom(p) { return (p && p.label) ? p.label : '?'; }
+            /* Un point est-il montrable dans un énoncé ? Il lui faut un nom : on
+               ne dicte pas « place le point sans nom ». */
+            pgNomme(p) { return p instanceof Point && p.label && p.visible !== false; }
+            /* La nature d'un quadrilatère, MESURÉE. On ne dit « carré » que si
+               c'en est un — quatre côtés égaux et quatre angles droits. */
+            pgNature(pts) {
+                const n = pts.length;
+                if (n === 3) {
+                    const c = [this.pgLongueur(pts[0], pts[1]), this.pgLongueur(pts[1], pts[2]),
+                               this.pgLongueur(pts[2], pts[0])];
+                    const eg = (a, b) => Math.abs(a - b) < 0.06;
+                    if (eg(c[0], c[1]) && eg(c[1], c[2])) return 'triangle équilatéral';
+                    /* Rectangle : le carré du plus grand côté vaut la somme des
+                       deux autres carrés — c'est Pythagore, et c'est vrai ou
+                       faux, cela ne se devine pas. */
+                    const t = [...c].sort((x, y) => x - y);
+                    const droit = Math.abs(t[2] * t[2] - t[0] * t[0] - t[1] * t[1]) < 0.12;
+                    if (eg(c[0], c[1]) || eg(c[1], c[2]) || eg(c[0], c[2])) {
+                        return droit ? 'triangle isocèle rectangle' : 'triangle isocèle';
+                    }
+                    return droit ? 'triangle rectangle' : 'triangle';
+                }
+                if (n !== 4) {
+                    return { 5: 'pentagone', 6: 'hexagone', 7: 'heptagone', 8: 'octogone',
+                             9: 'ennéagone', 10: 'décagone', 12: 'dodécagone' }[n] || 'polygone';
+                }
+                const c = [0, 1, 2, 3].map(i => this.pgLongueur(pts[i], pts[(i + 1) % 4]));
+                const eg = (a, b) => Math.abs(a - b) < 0.06;
+                const angle = (i) => {
+                    const A = pts[(i + 3) % 4], B = pts[i], C = pts[(i + 1) % 4];
+                    const a1 = Math.atan2(A.y - B.y, A.x - B.x), a2 = Math.atan2(C.y - B.y, C.x - B.x);
+                    let d = Math.abs((a2 - a1) * 180 / Math.PI) % 360;
+                    if (d > 180) d = 360 - d;
+                    return d;
+                };
+                const droits = [0, 1, 2, 3].every(i => Math.abs(angle(i) - 90) < 1.2);
+                const tousEgaux = eg(c[0], c[1]) && eg(c[1], c[2]) && eg(c[2], c[3]);
+                const opposesEgaux = eg(c[0], c[2]) && eg(c[1], c[3]);
+                if (tousEgaux && droits) return 'carré';
+                if (droits) return 'rectangle';
+                if (tousEgaux) return 'losange';
+                if (opposesEgaux) return 'parallélogramme';
+                /* Un côté parallèle à un autre, et un seul : c'est un trapèze. */
+                const dir = (i) => {
+                    const A = pts[i], B = pts[(i + 1) % 4];
+                    return Math.atan2(B.y - A.y, B.x - A.x);
+                };
+                const para = (i, j) => {
+                    let d = Math.abs(dir(i) - dir(j)) * 180 / Math.PI % 180;
+                    return d < 1.5 || d > 178.5;
+                };
+                if (para(0, 2) || para(1, 3)) return 'trapèze';
+                return 'quadrilatère';
+            }
+            /* Les cycles de segments : c'est ainsi qu'on retrouve une figure là
+               où il n'y a que des traits. Un sommet de degré 2 exactement, et le
+               cycle se referme : c'est un polygone. Un carré ET ses diagonales
+               donne des sommets de degré 3 — on ne force pas, on décrira les
+               traits un par un. */
+            pgPolygones() {
+                const trouves = [];
+                const pris = new Set();
+                /* Les polygones DÉCLARÉS l'emportent : quand une consigne a bâti
+                   la figure, elle a posé un Polygon qui dit ses sommets dans
+                   l'ordre. Aucune détection ne vaut une déclaration. */
+                this.entities.forEach((e) => {
+                    if (!(e instanceof Polygon) || !Array.isArray(e.points)) return;
+                    if (e.points.length < 3 || !e.points.every(p => this.pgNomme(p))) return;
+                    trouves.push(e.points.slice());
+                });
+                trouves.forEach(pts => {
+                    for (let i = 0; i < pts.length; i++) {
+                        pris.add(this.pgArete(pts[i], pts[(i + 1) % pts.length]));
+                    }
+                });
+                /* Puis les cycles, pour ce qui a été tracé à la main. */
+                const segs = this.entities.filter(e => e instanceof Segment
+                    && !this.estTraceDeConstruction(e) && e.hidden !== true
+                    && this.pgNomme(e.p1) && this.pgNomme(e.p2)
+                    && !pris.has(this.pgArete(e.p1, e.p2)));
+                const voisins = new Map();
+                const ajoute = (a, b) => {
+                    if (!voisins.has(a)) voisins.set(a, []);
+                    if (!voisins.get(a).includes(b)) voisins.get(a).push(b);
+                };
+                segs.forEach(s => { ajoute(s.p1, s.p2); ajoute(s.p2, s.p1); });
+                const vus = new Set();
+                for (const [p0, v0] of voisins) {
+                    if (vus.has(p0) || v0.length !== 2) continue;
+                    const cycle = [p0];
+                    vus.add(p0);
+                    let prec = p0, cur = v0[0], ok = true;
+                    while (cur !== p0) {
+                        const v = voisins.get(cur) || [];
+                        if (v.length !== 2 || cycle.length > 24) { ok = false; break; }
+                        cycle.push(cur); vus.add(cur);
+                        const suiv = v[0] === prec ? v[1] : v[0];
+                        prec = cur; cur = suiv;
+                    }
+                    if (ok && cycle.length >= 3) trouves.push(cycle);
+                }
+                return trouves;
+            }
+            pgArete(a, b) {
+                const i = this.entities.indexOf(a), j = this.entities.indexOf(b);
+                return i < j ? i + '-' + j : j + '-' + i;
+            }
+            /* ---- LA LECTURE : de la figure aux FAITS ---------------------- */
+            lireFigure() {
+                const faits = [];
+                const consommes = new Set();
+                const polys = this.pgPolygones();
+                const parPremier = new Map();
+                polys.forEach((pts) => {
+                    /* Le polygone se raconte à l'endroit où son DERNIER sommet a
+                       été posé : avant, il n'existait pas encore. */
+                    let dernier = -1;
+                    pts.forEach(p => { dernier = Math.max(dernier, this.entities.indexOf(p)); });
+                    if (!parPremier.has(dernier)) parPremier.set(dernier, []);
+                    parPremier.get(dernier).push(pts);
+                    pts.forEach(p => consommes.add(p));
+                    for (let i = 0; i < pts.length; i++) {
+                        const a = pts[i], b = pts[(i + 1) % pts.length];
+                        this.entities.forEach((e) => {
+                            if (e instanceof Segment
+                                && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) {
+                                consommes.add(e);
+                            }
+                        });
+                    }
+                    this.entities.forEach((e) => {
+                        if (e instanceof Polygon && e.points && e.points.length === pts.length
+                            && e.points.every(p => pts.includes(p))) consommes.add(e);
+                    });
+                });
+                let libresEnAttente = [];
+                const viderLibres = () => {
+                    if (!libresEnAttente.length) return;
+                    faits.push({ t: 'points', noms: libresEnAttente.slice() });
+                    libresEnAttente = [];
+                };
+                this.entities.forEach((e, i) => {
+                    if (parPremier.has(i)) {
+                        viderLibres();
+                        parPremier.get(i).forEach(pts => faits.push({
+                            t: 'polygone', pts,
+                            nature: this.pgNature(pts),
+                            cotes: pts.map((p, k) => ({
+                                a: p, b: pts[(k + 1) % pts.length],
+                                cm: this.pgLongueur(p, pts[(k + 1) % pts.length]) })),
+                        }));
+                    }
+                    if (consommes.has(e)) return;
+                    if (e instanceof ToolAnimation || e instanceof CompassArc) return;
+                    if (this.estTraceDeConstruction(e)) return;
+                    if (e.hidden === true) return;
+                    if (e instanceof Point) {
+                        if (!this.pgNomme(e)) return;
+                        const par = e.parents || [];
+                        if (par.length === 2 && par[0] instanceof Point && par[1] instanceof Point) {
+                            viderLibres();
+                            faits.push({ t: 'milieu', p: e, a: par[0], b: par[1] });
+                        } else if (par.length === 2) {
+                            viderLibres();
+                            faits.push({ t: 'intersection', p: e, o1: par[0], o2: par[1] });
+                        } else if (e.subType === 'symmetry_central' || e.subType === 'symmetry_axial') {
+                            viderLibres();
+                            faits.push({ t: 'symetrique', p: e, source: par[0], par: par[1],
+                                         axial: e.subType === 'symmetry_axial' });
+                        } else if (par.length === 1) {
+                            viderLibres();
+                            faits.push({ t: 'pointSur', p: e, support: par[0] });
+                        } else {
+                            /* UN SYMÉTRIQUE NE SE DÉCLARE PAS DANS LA FIGURE : la
+                               consigne pose un point libre, et rien ne dit d'où
+                               il vient. On le RECONNAÎT alors, et on ne l'affirme
+                               qu'après l'avoir vérifié au demi-pixel : le centre
+                               doit être exactement le milieu, et les trois points
+                               exactement alignés. Sans cette vérification, on
+                               écrirait un programme de construction faux à partir
+                               d'une coïncidence. */
+                            const sym = this.pgSymetrie(e, i);
+                            if (sym) { viderLibres(); faits.push(sym); }
+                            else libresEnAttente.push(e);
+                        }
+                        return;
+                    }
+                    viderLibres();
+                    if (e instanceof Circle) {
+                        faits.push({ t: 'cercle', centre: e.p1, bord: e.p2,
+                                     cm: this.pgLongueur(e.p1, e.p2) });
+                    } else if (e instanceof PerpendicularLine) {
+                        faits.push({ t: 'perpendiculaire', par: e.p1, ref: e.refLine });
+                    } else if (e instanceof ParallelLine) {
+                        faits.push({ t: 'parallele', par: e.p1, ref: e.refLine });
+                    } else if (e instanceof Segment) {
+                        if (this.pgNomme(e.p1) && this.pgNomme(e.p2)) {
+                            faits.push({ t: 'segment', a: e.p1, b: e.p2,
+                                         cm: this.pgLongueur(e.p1, e.p2) });
+                        }
+                    } else if (e instanceof Ray) {
+                        faits.push({ t: 'demidroite', a: e.p1, b: e.p2 });
+                    } else if (e instanceof Line) {
+                        faits.push({ t: 'droite', a: e.p1, b: e.p2, nom: e.nomDroite });
+                    } else if (e instanceof Angle) {
+                        const v = Math.round(e.getAngleValue());
+                        faits.push({ t: 'angle', a: e.p1, s: e.p2, b: e.p3, deg: v,
+                                     droit: Math.abs(v - 90) < 1 });
+                    } else if (e instanceof Arc) {
+                        faits.push({ t: 'arc', centre: e.center,
+                                     cm: Math.round(e.radius / UNIT * (this.cmScale || 1) * 10) / 10 });
+                    } else if (e instanceof Annotation) {
+                        faits.push({ t: 'texte' });
+                    }
+                });
+                viderLibres();
+                return faits;
+            }
+            /* Ce point-là est-il le symétrique d'un autre ? On ne le dit que si
+               les nombres le disent. */
+            pgSymetrie(p, index) {
+                const avant = this.entities.slice(0, index)
+                    .filter(q => q instanceof Point && this.pgNomme(q) && q !== p);
+                if (!avant.length) return null;
+                /* Symétrie centrale : le centre est le MILIEU exact de [PP']. */
+                for (const src of avant) {
+                    const mx = (src.x + p.x) / 2, my = (src.y + p.y) / 2;
+                    if (MathUtils.dist(src.x, src.y, p.x, p.y) < 4) continue;
+                    for (const o of avant) {
+                        if (o === src) continue;
+                        if (MathUtils.dist(o.x, o.y, mx, my) > 0.5) continue;
+                        return { t: 'symetrique', p, source: src, par: o, axial: false };
+                    }
+                }
+                /* Symétrie axiale : une droite déjà tracée est la médiatrice de
+                   [PP'] — perpendiculaire, et passant par le milieu. */
+                for (const src of avant) {
+                    const d = MathUtils.dist(src.x, src.y, p.x, p.y);
+                    if (d < 4) continue;
+                    const mx = (src.x + p.x) / 2, my = (src.y + p.y) / 2;
+                    const ux = (p.x - src.x) / d, uy = (p.y - src.y) / d;
+                    for (const e of this.entities.slice(0, index)) {
+                        if (!(e instanceof LinearObject) || this.estTraceDeConstruction(e)) continue;
+                        if (!e.p1 || !e.p2) continue;
+                        const vx = e.p2.x - e.p1.x, vy = e.p2.y - e.p1.y;
+                        const n = Math.hypot(vx, vy);
+                        if (n < 1) continue;
+                        /* Perpendiculaire à [PP'] ? Le produit scalaire est nul. */
+                        if (Math.abs((vx / n) * ux + (vy / n) * uy) > 0.01) continue;
+                        /* Et elle passe par le milieu ? */
+                        const dist = Math.abs((mx - e.p1.x) * vy - (my - e.p1.y) * vx) / n;
+                        if (dist > 0.5) continue;
+                        return { t: 'symetrique', p, source: src, par: e, axial: true,
+                                 axe: e.nomDroite || (this.pgNomme(e.p1) && this.pgNomme(e.p2)
+                                     ? this.pgNom(e.p1) + this.pgNom(e.p2) : null) };
+                    }
+                }
+                return null;
+            }
+            /* ---- LA RÉDACTION : des faits aux PHRASES --------------------- */
+            pgListe(noms) {
+                if (noms.length === 1) return noms[0];
+                return noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1];
+            }
+            /* Sans outils : l'énoncé. Ce qu'il faut obtenir, pas comment. */
+            pgSansOutils(f) {
+                const N = (p) => this.pgNom(p);
+                switch (f.t) {
+                    case 'points':
+                        return `Place ${f.noms.length > 1 ? 'les points' : 'le point'} `
+                            + `${this.pgListe(f.noms.map(N))}.`;
+                    case 'segment':
+                        return `Trace le segment [${N(f.a)}${N(f.b)}] de ${this.pgCm(f.cm)}.`;
+                    case 'droite':
+                        return `Trace la droite (${f.nom || N(f.a) + N(f.b)}).`;
+                    case 'demidroite':
+                        return `Trace la demi-droite [${N(f.a)}${N(f.b)}).`;
+                    case 'polygone': {
+                        const noms = f.pts.map(N).join('');
+                        const mesures = f.cotes.map(c => `${N(c.a)}${N(c.b)} = ${this.pgCm(c.cm)}`);
+                        /* Un carré, un losange : une seule mesure suffit, les
+                           autres se déduisent. Le dire toutes serait bavard, et
+                           un énoncé bavard n'est pas un énoncé. */
+                        if (f.nature === 'carré' || f.nature === 'losange'
+                            || f.nature === 'triangle équilatéral') {
+                            return `Trace un ${f.nature} ${noms} de ${this.pgCm(f.cotes[0].cm)} de côté.`;
+                        }
+                        if (f.nature === 'rectangle') {
+                            return `Trace un rectangle ${noms} de ${this.pgCm(f.cotes[0].cm)} `
+                                + `sur ${this.pgCm(f.cotes[1].cm)}.`;
+                        }
+                        /* Tous les côtés égaux et plus de quatre : c'est un
+                           polygone RÉGULIER, et l'énoncer côté par côté serait
+                           six fois la même phrase. */
+                        if (f.pts.length >= 5
+                            && f.cotes.every(c => Math.abs(c.cm - f.cotes[0].cm) < 0.06)) {
+                            return `Trace un ${f.nature} régulier ${noms} de `
+                                + `${this.pgCm(f.cotes[0].cm)} de côté.`;
+                        }
+                        return `Trace un ${f.nature} ${noms} tel que ${this.pgListe(mesures)}.`;
+                    }
+                    case 'cercle':
+                        return `Trace le cercle de centre ${N(f.centre)} et de rayon ${this.pgCm(f.cm)}.`;
+                    case 'milieu':
+                        return `Place le milieu ${N(f.p)} de [${N(f.a)}${N(f.b)}].`;
+                    case 'intersection':
+                        return `Place le point ${N(f.p)}, intersection des deux objets précédents.`;
+                    case 'pointSur':
+                        return `Place un point ${N(f.p)} sur le trait précédent.`;
+                    case 'symetrique':
+                        return `Place le symétrique ${N(f.p)} de ${N(f.source)} par rapport `
+                            + (f.axial ? `à la droite ${f.axe ? '(' + f.axe + ')' : 'précédente'}.`
+                                       : `au point ${this.pgNom(f.par)}.`);
+                    case 'perpendiculaire':
+                        return `Trace la perpendiculaire à la droite précédente passant par `
+                            + `${N(f.par)}.`;
+                    case 'parallele':
+                        return `Trace la parallèle à la droite précédente passant par ${N(f.par)}.`;
+                    case 'angle':
+                        return f.droit
+                            ? `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} est droit.`
+                            : `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} mesure ${f.deg}°.`;
+                    case 'arc':
+                        return `Trace un arc de cercle de centre ${N(f.centre)} et de rayon `
+                            + `${this.pgCm(f.cm)}.`;
+                    default: return null;
+                }
+            }
+            /* Avec outils : la marche à suivre. Un geste par ligne — c'est ainsi
+               qu'on le dicte, et c'est ainsi qu'on le suit. */
+            pgAvecOutils(f) {
+                const N = (p) => this.pgNom(p);
+                switch (f.t) {
+                    case 'points':
+                        return [`Place ${f.noms.length > 1 ? 'les points' : 'le point'} `
+                            + `${this.pgListe(f.noms.map(N))}.`];
+                    case 'segment':
+                        return [`À la règle, trace un segment [${N(f.a)}${N(f.b)}] de ${this.pgCm(f.cm)}.`];
+                    case 'droite':
+                        return [`À la règle, trace la droite (${f.nom || N(f.a) + N(f.b)}).`];
+                    case 'demidroite':
+                        return [`À la règle, trace la demi-droite [${N(f.a)}${N(f.b)}).`];
+                    case 'polygone': {
+                        const p = f.pts, n = p.length;
+                        const l = [];
+                        /* LE CARRÉ ET LE RECTANGLE SE FONT À L'ÉQUERRE. La méthode
+                           générale au compas est juste, mais elle passe par la
+                           DIAGONALE — « écartement de 4,2 cm » pour un carré de
+                           3 cm : aucun manuel ne dit cela, et l'élève ne
+                           comprendrait pas d'où sort ce nombre. */
+                        if (f.nature === 'carré' || f.nature === 'rectangle') {
+                            const L = f.cotes[0].cm, l2 = f.cotes[1].cm;
+                            return [
+                                `À la règle, trace un segment [${N(p[0])}${N(p[1])}] de ${this.pgCm(L)}.`,
+                                `À l'équerre, trace la perpendiculaire à (${N(p[0])}${N(p[1])}) `
+                                + `passant par ${N(p[1])}.`,
+                                `Au compas (ou à la règle graduée), reporte ${this.pgCm(l2)} depuis `
+                                + `${N(p[1])} sur cette perpendiculaire : c'est ${N(p[2])}.`,
+                                `À l'équerre, trace la perpendiculaire à (${N(p[0])}${N(p[1])}) `
+                                + `passant par ${N(p[0])}, et reporte-y ${this.pgCm(l2)} depuis `
+                                + `${N(p[0])} : c'est ${N(p[3])}.`,
+                                `À la règle, trace [${N(p[1])}${N(p[2])}], [${N(p[2])}${N(p[3])}] `
+                                + `et [${N(p[3])}${N(p[0])}].`,
+                            ];
+                        }
+                        /* L'HEXAGONE RÉGULIER SE FAIT AU COMPAS SEUL, et c'est la
+                           seule construction du collège où l'on ne mesure rien :
+                           le côté vaut le rayon. */
+                        if (n === 6 && f.cotes.every(c => Math.abs(c.cm - f.cotes[0].cm) < 0.06)) {
+                            const R = f.cotes[0].cm;
+                            return [
+                                `Avec le compas, écartement de ${this.pgCm(R)} : trace un cercle.`,
+                                `Sans changer l'écartement, pose la pointe sur un point du cercle `
+                                + `et marque le cercle ; recommence de proche en proche.`,
+                                `Le sixième report retombe sur le premier point : c'est ce qui `
+                                + `prouve que le côté de l'hexagone vaut le rayon.`,
+                                `À la règle, joins les six points dans l'ordre : `
+                                + `${p.map(N).join('')}.`,
+                            ];
+                        }
+                        l.push(`À la règle, trace un segment [${N(p[0])}${N(p[1])}] de `
+                            + `${this.pgCm(f.cotes[0].cm)}.`);
+                        /* Chaque sommet suivant est au croisement de deux arcs :
+                           c'est la construction au compas, celle qui marche sans
+                           rapporteur et qui donne le point exact. */
+                        for (let k = 2; k < n; k++) {
+                            const s = p[k];
+                            const d1 = this.pgLongueur(p[k - 1], s);
+                            const d2 = this.pgLongueur(p[0], s);
+                            l.push(`Avec le compas, prends un écartement de ${this.pgCm(d1)} et `
+                                + `mets la pointe sur ${N(p[k - 1])}. Trace un arc de cercle.`);
+                            l.push(`Avec le compas, prends un écartement de ${this.pgCm(d2)} et `
+                                + `mets la pointe sur ${N(p[0])}. Trace un arc de cercle.`);
+                            l.push(`Le point d'intersection des deux arcs est le point ${N(s)}.`);
+                        }
+                        const traits = [];
+                        for (let k = 1; k < n; k++) traits.push(`[${N(p[k])}${N(p[(k + 1) % n])}]`);
+                        l.push(`À la règle, trace ${this.pgListe(traits)}.`);
+                        return l;
+                    }
+                    case 'cercle':
+                        return [`Avec le compas, prends un écartement de ${this.pgCm(f.cm)}, mets la `
+                            + `pointe sur ${N(f.centre)} et trace le cercle.`];
+                    case 'milieu':
+                        return [`Avec le compas, prends un écartement un peu plus grand que la moitié `
+                            + `de ${N(f.a)}${N(f.b)}.`,
+                            `Pointe en ${N(f.a)}, trace un arc de part et d'autre de [${N(f.a)}${N(f.b)}] ; `
+                            + `pointe en ${N(f.b)}, recommence sans changer l'écartement.`,
+                            `À la règle, joins les deux croisements : cette droite coupe `
+                            + `[${N(f.a)}${N(f.b)}] en son milieu ${N(f.p)}.`];
+                    case 'intersection':
+                        return [`Marque le point ${N(f.p)} là où les deux traits se croisent.`];
+                    case 'pointSur':
+                        return [`Marque un point ${N(f.p)} sur le trait précédent.`];
+                    case 'symetrique':
+                        return f.axial
+                            ? [`À l'équerre, descends la perpendiculaire de ${N(f.source)} à l'axe, `
+                               + `et prolonge-la à la règle.`,
+                               `Au compas, reporte de l'autre côté la distance de ${N(f.source)} à `
+                               + `l'axe : c'est ${N(f.p)}.`]
+                            : [`À la règle, trace la demi-droite [${N(f.source)}${this.pgNom(f.par)}) `
+                               + `et prolonge-la.`,
+                               `Au compas, reporte ${N(f.source)}${this.pgNom(f.par)} de l'autre côté `
+                               + `de ${this.pgNom(f.par)} : c'est ${N(f.p)}.`];
+                    case 'perpendiculaire':
+                        return [`Pose l'équerre : son bord contre la droite, son angle droit sur `
+                            + `${N(f.par)}. Trace le long de l'autre bord.`,
+                            `Couche la règle sur le trait obtenu et prolonge-le.`];
+                    case 'parallele':
+                        return [`Pose l'équerre le long de la droite, puis la règle contre l'équerre, `
+                            + `perpendiculairement.`,
+                            `Fais GLISSER l'équerre le long de la règle, sans la tourner, jusqu'à `
+                            + `${N(f.par)} : trace le long de son bord.`];
+                    case 'angle':
+                        return f.droit
+                            ? [`À l'équerre, vérifie que l'angle ${N(f.a)}${N(f.s)}${N(f.b)} est droit, `
+                               + `et code-le d'un petit carré.`]
+                            : [`Au rapporteur, centre sur ${N(f.s)}, le zéro sur `
+                               + `[${N(f.s)}${N(f.a)}) : marque ${f.deg}°, puis trace `
+                               + `[${N(f.s)}${N(f.b)}) à la règle.`];
+                    case 'arc':
+                        return [`Avec le compas, écartement de ${this.pgCm(f.cm)}, pointe sur `
+                            + `${N(f.centre)} : trace l'arc.`];
+                    default: return null;
+                }
+            }
+            programmeDeConstruction(avecOutils) {
+                const faits = this.lireFigure();
+                if (!faits.length) return null;
+                const lignes = [];
+                faits.forEach((f) => {
+                    if (avecOutils) {
+                        const l = this.pgAvecOutils(f);
+                        if (l) l.forEach(x => lignes.push(x));
+                    } else {
+                        const l = this.pgSansOutils(f);
+                        if (l) lignes.push(l);
+                    }
+                });
+                return lignes;
+            }
+            /* Le programme s'écrit DANS L'ÉNONCÉ : c'est là qu'il a sa place, et
+               c'est de là qu'on l'imprime, qu'on le corrige et qu'on le colle
+               dans le cahier. */
+            ecrireProgramme(avecOutils) {
+                const lignes = this.programmeDeConstruction(avecOutils);
+                if (!lignes || !lignes.length) {
+                    this.showToast('La feuille est vide : il n\'y a pas de programme à écrire.');
+                    return null;
+                }
+                const zone = document.getElementById('enonceLibre');
+                if (zone && (zone.style.display === 'none' || !zone.style.display)) {
+                    this.basculerEnonceLibre();
+                }
+                const champ = document.getElementById('instrContent');
+                if (!champ) return lignes;
+                const ech = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                const titre = avecOutils ? 'Programme de construction (aux instruments)'
+                                         : 'Programme de construction';
+                const html = `<h3>${titre}</h3><ol>`
+                    + lignes.map(l => `<li>${ech(l)}</li>`).join('') + '</ol>';
+                /* On AJOUTE à ce qui est écrit : l'énoncé d'un professeur ne
+                   s'efface pas parce qu'on a demandé une relecture. */
+                const avant = (champ.innerHTML || '').trim();
+                champ.innerHTML = avant && !/^<h3>Exercice/.test(avant)
+                    ? avant + html : html;
+                this.sauverEnonce && this.sauverEnonce();
+                this.showToast(`${lignes.length} étape${lignes.length > 1 ? 's' : ''} `
+                    + `écrite${lignes.length > 1 ? 's' : ''} dans l'énoncé`);
+                return lignes;
+            }
             basculerEnonceLibre() {
                 const z = document.getElementById('enonceLibre');
                 const b = document.getElementById('btnEnonceLibre');
@@ -37423,7 +37963,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 10h';
+        window.GM_VERSION = '2026-09-06 · 12h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

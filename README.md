@@ -515,6 +515,49 @@ indépendants du code — dix de plus :
 Le reste est listé dans [`IDEES.md`](IDEES.md), en tête, parce que c'est le plus
 urgent.
 
+### Le programme de construction, à l'envers
+
+Le logiciel sait exécuter une suite de consignes. Il sait maintenant faire le
+**chemin inverse** : relire la figure et écrire le programme qui la construit.
+C'est l'exercice « rédige un programme de construction » de tous les manuels —
+celui qu'on corrige à la main, un cahier après l'autre.
+
+Deux boutons dans la barre de l'énoncé, parce que ce sont **deux exercices** :
+
+**✍ Énoncé** — ce qu'il faut obtenir, sans dire comment.
+
+> Trace un triangle rectangle ABC tel que AB = 5 cm, BC = 3 cm et CA = 4 cm.
+
+**📐 Aux instruments** — la marche à suivre, geste par geste.
+
+> 1. À la règle, trace un segment [AB] de 5 cm.
+> 2. Avec le compas, prends un écartement de 3 cm et mets la pointe sur B. Trace un arc de cercle.
+> 3. Avec le compas, prends un écartement de 4 cm et mets la pointe sur A. Trace un arc de cercle.
+> 4. Le point d'intersection des deux arcs est le point C.
+> 5. À la règle, trace [BC] et [CA].
+
+Le programme s'écrit **dans l'énoncé**, à la suite de ce qui y est déjà : c'est
+de là qu'on l'imprime, qu'on le colle dans le cahier et qu'on le corrige.
+
+Trois choses qui font la différence entre un texte plausible et un texte juste :
+
+- **Le carré et le rectangle se font à l'équerre.** La méthode générale au compas
+  est juste, mais elle passe par la *diagonale* — « écartement de 4,2 cm » pour un
+  carré de 3 cm. Aucun manuel ne dit cela, et l'élève ne comprendrait pas d'où
+  sort ce nombre.
+- **L'hexagone régulier se fait au compas seul**, et le programme dit *pourquoi* :
+  le sixième report retombe sur le premier point, donc le côté vaut le rayon.
+  C'est la seule construction du collège où l'on ne mesure rien.
+- **On n'invente rien.** Un point symétrique n'est déclaré nulle part dans la
+  figure : on le *reconnaît* à la géométrie, et on ne l'affirme qu'après avoir
+  vérifié au demi-pixel que le centre est bien le milieu exact. Trois points
+  quelconques ne deviennent pas une symétrie parce que deux distances se
+  ressemblent. Ce qui n'est pas reconnu est nommé pour ce qu'il est.
+
+La sonde ne vérifie pas que le texte est joli : elle le **rejoue**. L'énoncé
+écrit est réexécuté sur une feuille vide, et les longueurs obtenues sont
+comparées à celles de départ — [3, 4, 5] redonne [3, 4, 5].
+
 ### Le cadre de sélection
 
 Avec l'outil **curseur**, un glissé depuis le vide trace un **cadre** ; tout ce
@@ -1113,7 +1156,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 87 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 88 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
