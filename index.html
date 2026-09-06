@@ -3622,6 +3622,32 @@
             line-height: 17px;
         }
 
+        .enonce-onglets {
+            display: flex; gap: 4px; padding: 6px 8px 0; flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .enonce-onglets button {
+            background: transparent; border: 1px solid transparent; border-bottom: none;
+            padding: 6px 12px; border-radius: 8px 8px 0 0; cursor: pointer;
+            font: inherit; font-size: 13px; color: #64748b; min-height: 32px;
+        }
+        .enonce-onglets button:hover { background: #f1f5f9; color: #334155; }
+        .enonce-onglets button.actif {
+            background: #fff; border-color: #e2e8f0; color: #0f172a; font-weight: 600;
+            margin-bottom: -1px;
+        }
+        #enonceGenere { padding: 10px 12px; }
+        #enonceGenereTexte ol { margin: 0 0 10px; padding-left: 22px; }
+        #enonceGenereTexte li { margin: 4px 0; line-height: 1.45; }
+        #enonceGenereTexte p { margin: 4px 0 10px; line-height: 1.5; }
+        .enonce-pied { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .enonce-pied button {
+            background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+            border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit;
+            font-size: 13px; min-height: 32px;
+        }
+        .enonce-pied button:hover { background: #d1fae5; }
+        #enonceGenereNote { color: #64748b; font-size: 12px; }
         .consigne-aide {
             max-height: 190px;
             overflow: auto;
@@ -8381,6 +8407,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 data-tooltip="Le texte libre de l'énoncé">Énoncé libre ▾</button>
         </div>
         <div id="enonceLibre" style="display:none;">
+            <div class="enonce-onglets" role="tablist">
+                <button role="tab" data-onglet="mien" class="actif"
+                    onclick="app.ongletEnonce('mien');">Mon énoncé</button>
+                <button role="tab" data-onglet="figure"
+                    onclick="app.ongletEnonce('figure');"
+                    data-tooltip="Ce que la figure demande, sans dire comment">Énoncé de la figure</button>
+                <button role="tab" data-onglet="outils"
+                    onclick="app.ongletEnonce('outils');"
+                    data-tooltip="La marche à suivre, geste par geste">Aux instruments</button>
+            </div>
             <div class="instr-toolbar">
                 <button onpointerdown="event.preventDefault(); document.execCommand('bold', false, null);"
                     data-tooltip="Gras"><b>B</b></button>
@@ -8400,26 +8436,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     data-tooltip="Titre">Titre</button>
                 <button onpointerdown="event.preventDefault(); document.execCommand('removeFormat', false, null);"
                     data-tooltip="Effacer style">🧹</button>
-                <div class="instr-sep"></div>
-                <!-- LE PROGRAMME DE CONSTRUCTION, À L'ENVERS. Le logiciel sait
-                     exécuter une suite de consignes ; il sait aussi RELIRE la
-                     figure et écrire le programme qui la construit. Deux
-                     boutons, parce que ce sont deux exercices : l'énoncé (ce
-                     qu'il faut obtenir) et la marche à suivre (comment). -->
-                <button onpointerdown="event.preventDefault(); app.ecrireProgramme(false);"
-                    data-tooltip="Relire la figure et écrire son énoncé, sans dire comment"
-                    style="background:#ecfdf5; color:#047857; border-color:#a7f3d0; font-weight:bold;">
-                    ✍ Énoncé
-                </button>
-                <button onpointerdown="event.preventDefault(); app.ecrireProgramme(true);"
-                    data-tooltip="Relire la figure et écrire la marche à suivre, geste par geste"
-                    style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-weight:bold;">
-                    📐 Aux instruments
-                </button>
             </div>
             <div id="instrContent" contenteditable="true" placeholder="Écrivez vos consignes ici...">
                 <h3>Exercice :</h3>
                 <p>1. Tracez un triangle...</p>
+            </div>
+            <!-- LE PROGRAMME DE CONSTRUCTION, À L'ENVERS, DANS SON PROPRE ONGLET.
+                 Il s'écrivait à la suite de l'énoncé du professeur : au bout de
+                 trois essais, le texte devenait un empilement, et rien ne
+                 distinguait ce qu'on avait écrit de ce que la machine avait
+                 relu. Un onglet sépare les deux — et le programme s'y REFAIT à
+                 chaque changement de la figure, au lieu de s'y ajouter. -->
+            <div id="enonceGenere" style="display:none;">
+                <div id="enonceGenereTexte"></div>
+                <div class="enonce-pied">
+                    <button onclick="app.copierProgrammeDansEnonce();"
+                        data-tooltip="Recopier ce texte dans « Mon énoncé », pour le retoucher">
+                        ↧ Copier dans mon énoncé
+                    </button>
+                    <span id="enonceGenereNote"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -23488,6 +23524,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.replayIndex = this.entities.length;
                 this.updateButtons();
                 this.saveToLocalStorage();
+                /* ON TRACE, ET L'ÉNONCÉ SE RÉDIGE À CÔTÉ. L'onglet relu se refait
+                   à chaque changement de la figure — c'est le seul endroit qui
+                   voie passer TOUS les changements, quel que soit l'outil. */
+                if (this.majProgramme) this.majProgramme();
             }
             /* ANNULER PENDANT UN REJEU.
 
@@ -35998,19 +36038,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             pgNature(pts) {
                 const n = pts.length;
                 if (n === 3) {
-                    const c = [this.pgLongueur(pts[0], pts[1]), this.pgLongueur(pts[1], pts[2]),
-                               this.pgLongueur(pts[2], pts[0])];
+                    /* c[i] est le côté OPPOSÉ au sommet pts[i] : c[0] = pts[1]pts[2]. */
+                    const c = [this.pgLongueur(pts[1], pts[2]), this.pgLongueur(pts[2], pts[0]),
+                               this.pgLongueur(pts[0], pts[1])];
                     const eg = (a, b) => Math.abs(a - b) < 0.06;
                     if (eg(c[0], c[1]) && eg(c[1], c[2])) return 'triangle équilatéral';
-                    /* Rectangle : le carré du plus grand côté vaut la somme des
-                       deux autres carrés — c'est Pythagore, et c'est vrai ou
-                       faux, cela ne se devine pas. */
-                    const t = [...c].sort((x, y) => x - y);
-                    const droit = Math.abs(t[2] * t[2] - t[0] * t[0] - t[1] * t[1]) < 0.12;
-                    if (eg(c[0], c[1]) || eg(c[1], c[2]) || eg(c[0], c[2])) {
-                        return droit ? 'triangle isocèle rectangle' : 'triangle isocèle';
+                    /* ISOCÈLE : deux côtés égaux, et le sommet où ils se rejoignent
+                       est celui qu'il FAUT nommer. « Triangle isocèle ABC » sans
+                       plus se lit « isocèle en A » — et ce n'est pas toujours vrai. */
+                    for (let i = 0; i < 3; i++) {
+                        if (eg(c[(i + 1) % 3], c[(i + 2) % 3])) {
+                            return { nom: 'triangle isocèle', sommet: i };
+                        }
                     }
-                    return droit ? 'triangle rectangle' : 'triangle';
+                    /* ON NE DIT PLUS « RECTANGLE ». Un triangle donné par ses TROIS
+                       côtés est entièrement déterminé : ajouter « rectangle »
+                       n'apprend rien, et sans dire OÙ est l'angle droit, la phrase
+                       se lit « rectangle en A » — pour 5, 3, 4 l'angle droit est
+                       en C, et l'énoncé était donc FAUX. En prime, l'annoncer
+                       donnerait la réponse de l'exercice. */
+                    return 'triangle';
                 }
                 if (n !== 4) {
                     return { 5: 'pentagone', 6: 'hexagone', 7: 'heptagone', 8: 'octogone',
@@ -36268,28 +36315,56 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     case 'demidroite':
                         return `Trace la demi-droite [${N(f.a)}${N(f.b)}).`;
                     case 'polygone': {
-                        const noms = f.pts.map(N).join('');
+                        const p = f.pts, n = p.length;
+                        const noms = p.map(N).join('');
+                        const nature = (typeof f.nature === 'object') ? f.nature.nom : f.nature;
                         const mesures = f.cotes.map(c => `${N(c.a)}${N(c.b)} = ${this.pgCm(c.cm)}`);
                         /* Un carré, un losange : une seule mesure suffit, les
                            autres se déduisent. Le dire toutes serait bavard, et
                            un énoncé bavard n'est pas un énoncé. */
-                        if (f.nature === 'carré' || f.nature === 'losange'
-                            || f.nature === 'triangle équilatéral') {
-                            return `Trace un ${f.nature} ${noms} de ${this.pgCm(f.cotes[0].cm)} de côté.`;
+                        if (nature === 'carré' || nature === 'losange'
+                            || nature === 'triangle équilatéral') {
+                            return `Trace un ${nature} ${noms} de ${this.pgCm(f.cotes[0].cm)} de côté.`;
                         }
-                        if (f.nature === 'rectangle') {
+                        if (nature === 'rectangle') {
                             return `Trace un rectangle ${noms} de ${this.pgCm(f.cotes[0].cm)} `
                                 + `sur ${this.pgCm(f.cotes[1].cm)}.`;
+                        }
+                        /* ISOCÈLE : on nomme le sommet, et les deux côtés égaux se
+                           disent ensemble. */
+                        if (typeof f.nature === 'object' && f.nature.nom === 'triangle isocèle') {
+                            const i = f.nature.sommet;
+                            const s = p[i], a = p[(i + 1) % 3], b = p[(i + 2) % 3];
+                            return `Trace un triangle ${noms} isocèle en ${N(s)} tel que `
+                                + `${N(s)}${N(a)} = ${N(s)}${N(b)} = `
+                                + `${this.pgCm(this.pgLongueur(s, a))} et `
+                                + `${N(a)}${N(b)} = ${this.pgCm(this.pgLongueur(a, b))}.`;
                         }
                         /* Tous les côtés égaux et plus de quatre : c'est un
                            polygone RÉGULIER, et l'énoncer côté par côté serait
                            six fois la même phrase. */
-                        if (f.pts.length >= 5
-                            && f.cotes.every(c => Math.abs(c.cm - f.cotes[0].cm) < 0.06)) {
-                            return `Trace un ${f.nature} régulier ${noms} de `
+                        if (n >= 5 && f.cotes.every(c => Math.abs(c.cm - f.cotes[0].cm) < 0.06)) {
+                            return `Trace un ${nature} régulier ${noms} de `
                                 + `${this.pgCm(f.cotes[0].cm)} de côté.`;
                         }
-                        return `Trace un ${f.nature} ${noms} tel que ${this.pgListe(mesures)}.`;
+                        if (n === 3) return `Trace un triangle ${noms} tel que ${this.pgListe(mesures)}.`;
+                        /* QUATRE LONGUEURS NE DÉTERMINENT PAS UN QUADRILATÈRE. On
+                           peut l'articuler comme un pantographe sans changer un
+                           seul côté : l'énoncé promettait une figure et en
+                           autorisait une infinité. Les DIAGONALES issues du
+                           premier sommet le triangulent, et la figure devient
+                           unique — c'est d'ailleurs exactement ce que fait la
+                           construction au compas, plus bas. */
+                        const diagos = [];
+                        for (let k = 2; k <= n - 2; k++) {
+                            diagos.push(`${N(p[0])}${N(p[k])} = `
+                                + `${this.pgCm(this.pgLongueur(p[0], p[k]))}`);
+                        }
+                        const tout = mesures.concat(diagos);
+                        return `Trace un ${nature} ${noms} tel que ${this.pgListe(tout)}`
+                            + (diagos.length ? ` (${diagos.length > 1 ? 'ce sont les diagonales'
+                                : 'AC est la diagonale'} issue${diagos.length > 1 ? 's' : ''} `
+                                + `de ${N(p[0])}).` : '.');
                     }
                     case 'cercle':
                         return `Trace le cercle de centre ${N(f.centre)} et de rayon ${this.pgCm(f.cm)}.`;
@@ -36340,7 +36415,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                            DIAGONALE — « écartement de 4,2 cm » pour un carré de
                            3 cm : aucun manuel ne dit cela, et l'élève ne
                            comprendrait pas d'où sort ce nombre. */
-                        if (f.nature === 'carré' || f.nature === 'rectangle') {
+                        const nature = (typeof f.nature === 'object') ? f.nature.nom : f.nature;
+                        if (nature === 'carré' || nature === 'rectangle') {
                             const L = f.cotes[0].cm, l2 = f.cotes[1].cm;
                             return [
                                 `À la règle, trace un segment [${N(p[0])}${N(p[1])}] de ${this.pgCm(L)}.`,
@@ -36451,36 +36527,90 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 return lignes;
             }
-            /* Le programme s'écrit DANS L'ÉNONCÉ : c'est là qu'il a sa place, et
-               c'est de là qu'on l'imprime, qu'on le corrige et qu'on le colle
-               dans le cahier. */
-            ecrireProgramme(avecOutils) {
-                const lignes = this.programmeDeConstruction(avecOutils);
-                if (!lignes || !lignes.length) {
-                    this.showToast('La feuille est vide : il n\'y a pas de programme à écrire.');
-                    return null;
-                }
+            /* TROIS ONGLETS, PARCE QUE CE SONT TROIS TEXTES DIFFÉRENTS.
+               « Mon énoncé » est écrit par le professeur, et rien ne doit y
+               toucher. Les deux autres sont RELUS sur la figure : ils se
+               refont à chaque changement au lieu de s'ajouter, et ils sont en
+               lecture seule — on ne corrige pas un miroir, on bouge la figure.
+
+               Le programme s'écrivait à la suite de l'énoncé : au bout de trois
+               essais le texte devenait un empilement, et plus rien ne distinguait
+               ce qu'on avait écrit de ce que la machine avait relu. */
+            ongletEnonce(quel) {
+                this._ongletEnonce = quel;
                 const zone = document.getElementById('enonceLibre');
                 if (zone && (zone.style.display === 'none' || !zone.style.display)) {
                     this.basculerEnonceLibre();
+                }
+                document.querySelectorAll('.enonce-onglets button').forEach((b) => {
+                    b.classList.toggle('actif', b.dataset.onglet === quel);
+                    b.setAttribute('aria-selected', b.dataset.onglet === quel ? 'true' : 'false');
+                });
+                const mien = quel === 'mien';
+                const champ = document.getElementById('instrContent');
+                const barre = document.querySelector('#enonceLibre .instr-toolbar');
+                const gen = document.getElementById('enonceGenere');
+                if (champ) champ.style.display = mien ? '' : 'none';
+                if (barre) barre.style.display = mien ? '' : 'none';
+                if (gen) gen.style.display = mien ? 'none' : '';
+                if (!mien) this.majProgramme();
+            }
+            /* Le texte relu, refait à neuf. Appelé à l'ouverture de l'onglet ET
+               à chaque changement de la figure : c'est ce qui fait qu'on trace,
+               et que l'énoncé se rédige tout seul à côté. */
+            majProgramme() {
+                const gen = document.getElementById('enonceGenere');
+                if (!gen || gen.style.display === 'none') return;
+                const cible = document.getElementById('enonceGenereTexte');
+                const note = document.getElementById('enonceGenereNote');
+                if (!cible) return;
+                const avecOutils = this._ongletEnonce === 'outils';
+                const lignes = this.programmeDeConstruction(avecOutils);
+                if (!lignes || !lignes.length) {
+                    cible.innerHTML = '<p style="color:#94a3b8">La feuille est vide : '
+                        + 'tracez quelque chose, l\'énoncé s\'écrira ici tout seul.</p>';
+                    if (note) note.textContent = '';
+                    return;
+                }
+                const ech = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                cible.innerHTML = '<ol>' + lignes.map(l => `<li>${ech(l)}</li>`).join('') + '</ol>';
+                if (note) {
+                    note.textContent = `${lignes.length} étape${lignes.length > 1 ? 's' : ''} — `
+                        + 'relu sur la figure, se met à jour tout seul';
+                }
+            }
+            /* Ce qui est relu peut être REPRIS : on le recopie dans « Mon
+               énoncé », où il devient un texte comme un autre, qu'on retouche. */
+            copierProgrammeDansEnonce() {
+                const lignes = this.programmeDeConstruction(this._ongletEnonce === 'outils');
+                if (!lignes || !lignes.length) {
+                    this.showToast('La feuille est vide : il n\'y a rien à copier.');
+                    return null;
                 }
                 const champ = document.getElementById('instrContent');
                 if (!champ) return lignes;
                 const ech = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;');
-                const titre = avecOutils ? 'Programme de construction (aux instruments)'
-                                         : 'Programme de construction';
-                const html = `<h3>${titre}</h3><ol>`
+                const titre = this._ongletEnonce === 'outils'
+                    ? 'Programme de construction (aux instruments)'
+                    : 'Programme de construction';
+                const html = `<h3>${ech(titre)}</h3><ol>`
                     + lignes.map(l => `<li>${ech(l)}</li>`).join('') + '</ol>';
-                /* On AJOUTE à ce qui est écrit : l'énoncé d'un professeur ne
-                   s'efface pas parce qu'on a demandé une relecture. */
                 const avant = (champ.innerHTML || '').trim();
-                champ.innerHTML = avant && !/^<h3>Exercice/.test(avant)
-                    ? avant + html : html;
+                /* L'exemple d'usine se remplace ; le texte d'un professeur, non. */
+                champ.innerHTML = (!avant || /^<h3>Exercice\s*:<\/h3>/.test(avant))
+                    ? html : avant + html;
                 this.sauverEnonce && this.sauverEnonce();
-                this.showToast(`${lignes.length} étape${lignes.length > 1 ? 's' : ''} `
-                    + `écrite${lignes.length > 1 ? 's' : ''} dans l'énoncé`);
+                this.ongletEnonce('mien');
+                this.showToast('Programme recopié dans « Mon énoncé » — à vous de le retoucher');
                 return lignes;
+            }
+            /* Compatibilité : l'ancien nom, gardé parce qu'il est simple à
+               appeler et qu'il sert aux sondes. */
+            ecrireProgramme(avecOutils) {
+                this._ongletEnonce = avecOutils ? 'outils' : 'figure';
+                return this.copierProgrammeDansEnonce();
             }
             basculerEnonceLibre() {
                 const z = document.getElementById('enonceLibre');
@@ -37963,7 +38093,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 12h';
+        window.GM_VERSION = '2026-09-06 · 14h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

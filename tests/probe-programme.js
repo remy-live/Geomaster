@@ -42,9 +42,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('une seule phrase suffit à l\'énoncé', tri.sans.length === 1, tri.sans.length + ' phrases');
   ck('  elle donne les trois longueurs',
      /5 cm/.test(tri.sans[0]) && /4 cm/.test(tri.sans[0]) && /3 cm/.test(tri.sans[0]), tri.sans[0]);
-  /* 3-4-5 : le triangle EST rectangle, et le dire est juste, pas décoratif. */
-  ck('  et elle reconnaît qu\'il est rectangle (3, 4, 5)',
-     /rectangle/.test(tri.sans[0]), tri.sans[0]);
+  /* ET ELLE NE DIT PAS « RECTANGLE ». Le triangle 5-3-4 EST rectangle — mais en
+     C, pas en A. Or « triangle rectangle ABC » se lit « rectangle en A » : la
+     phrase était donc FAUSSE. Trois côtés déterminent déjà le triangle ; ajouter
+     la nature n'apprend rien, et donnerait en prime la réponse de l'exercice. */
+  ck('  et elle ne prétend PAS qu\'il est « rectangle ABC » — l\'angle droit est en C',
+     !/rectangle/.test(tri.sans[0]), tri.sans[0]);
   ck('la marche à suivre commence par la règle', /^À la règle/.test(tri.avec[0]), tri.avec[0]);
   ck('  puis deux arcs de compas, aux bons écartements',
      tri.avec.filter(l => /compas/.test(l)).length === 2
@@ -62,9 +65,19 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      longueurs. Un programme qui ne redonne pas la figure ne vaut rien. */
   const boucle = await page.evaluate(() => {
     const app = window.app;
-    const mesurer = () => app.entities.filter(e => e.constructor.name === 'Segment')
-      .map(s => Math.round(Math.hypot(s.p2.x - s.p1.x, s.p2.y - s.p1.y) / 50 * 10) / 10)
-      .sort((a, b) => a - b);
+    /* TOUTES les distances entre points nommés, pas seulement les côtés :
+       quatre longueurs de côtés ne déterminent PAS un quadrilatère — on peut
+       l'articuler comme un pantographe sans en changer un seul. Comparer les
+       côtés seuls laisserait passer un énoncé qui promet une figure et en
+       autorise une infinité. */
+    const mesurer = () => {
+      const P = {}; app.entities.forEach(e => { if (e instanceof Point && e.label) P[e.label] = e; });
+      const N = Object.keys(P).sort(); const out = [];
+      for (let i = 0; i < N.length; i++) for (let j = i + 1; j < N.length; j++) {
+        out.push(Math.round(Math.hypot(P[N[i]].x - P[N[j]].x, P[N[i]].y - P[N[j]].y) / 50 * 10) / 10);
+      }
+      return out.sort((a, b) => a - b);
+    };
     const essai = (depart) => {
       app.entities = []; app.historyPast = []; app._cslSujet = null;
       if (app.cslOublier) app.cslOublier();
@@ -81,6 +94,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       essai('Trace un carré ABCD de 3 cm de côté'),
       essai('Trace un rectangle ABCD de 5 cm sur 3 cm'),
       essai('Trace un hexagone ABCDEF de 3 cm de côté'),
+      essai('Trace un parallélogramme ABCD'),
+      essai('Trace un trapèze ABCD'),
+      essai('Trace un triangle ABC tel que AB = 6 cm, AC = 4 cm et BC = 4 cm'),
     ];
   });
   boucle.forEach((r) => {
@@ -116,6 +132,21 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('  et elle dit POURQUOI le côté vaut le rayon',
      hex.avec.some(l => /c[ôo]t[ée] de l'hexagone vaut le rayon/.test(l)),
      hex.avec.find(l => /rayon/.test(l)) || '(rien)');
+
+  console.log('\n=== la nature n\'est dite que si elle apprend quelque chose ===');
+  const iso = await lire(['Trace un triangle ABC tel que AB = 6 cm, AC = 4 cm et BC = 4 cm']);
+  console.log('  ' + iso.sans[0]);
+  /* « Triangle isocèle ABC » se lit « isocèle en A ». Ici les côtés égaux sont
+     CA et CB : le sommet est C, et il faut le dire. */
+  ck('un triangle isocèle nomme SON sommet',
+     /isocèle en C/.test(iso.sans[0]), iso.sans[0]);
+  ck('  et les deux côtés égaux sont dits ensemble',
+     /CA = CB = 4 cm/.test(iso.sans[0]), iso.sans[0]);
+  const quad = await lire(['Trace un parallélogramme ABCD']);
+  console.log('  ' + quad.sans[0]);
+  /* Quatre longueurs de côtés n'enferment aucun quadrilatère : la diagonale, si. */
+  ck('un quadrilatère donne une DIAGONALE, sans quoi la figure n\'est pas fixée',
+     /diagonale/.test(quad.sans[0]) && /AC = /.test(quad.sans[0]), quad.sans[0]);
 
   console.log('\n=== le milieu, la perpendiculaire, le cercle ===');
   const mil = await lire(['Trace [AB]', 'Place le milieu I de [AB]'],
@@ -167,31 +198,54 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('rien à écrire, et on le dit au lieu d\'écrire du vide',
      vide === null, JSON.stringify(vide));
 
-  console.log('\n=== le programme s\'écrit dans l\'énoncé ===');
-  const ecrit = await page.evaluate(() => {
+  console.log('\n=== trois onglets : ce que J\'écris, et ce que la figure dit ===');
+  /* Le programme s'écrivait à la suite de l'énoncé du professeur : au bout de
+     trois essais le texte devenait un empilement, et rien ne distinguait ce
+     qu'on avait écrit de ce que la machine avait relu. */
+  const onglets = await page.evaluate(() => {
     const app = window.app;
     app.entities = []; app.historyPast = [];
+    document.getElementById('instrContent').innerHTML = '<p>Exercice 4 — à rendre lundi.</p>';
+    app.ongletEnonce('figure');
+    const vide = document.getElementById('enonceGenereTexte').textContent;
     app.executerConsigneAvec('Trace un carré ABCD de 3 cm de côté', false);
-    const champ = document.getElementById('instrContent');
-    champ.innerHTML = '<p>Exercice 4 — à rendre lundi.</p>';
-    app.ecrireProgramme(true);
-    const z = document.getElementById('enonceLibre');
-    return { ouvert: z.style.display, html: champ.innerHTML };
+    const apres = document.getElementById('enonceGenereTexte').textContent;
+    /* On ajoute un objet SANS retoucher à l'onglet : il doit suivre tout seul. */
+    app.executerConsigneAvec('Place le milieu I de [AB]', false);
+    const suivi = document.getElementById('enonceGenereTexte').textContent;
+    return {
+      noms: [...document.querySelectorAll('.enonce-onglets button')].map(x => x.textContent.trim()),
+      ouvert: document.getElementById('enonceLibre').style.display,
+      vide, apres, suivi,
+      mienCache: document.getElementById('instrContent').style.display,
+      monEnonce: document.getElementById('instrContent').textContent,
+    };
   });
-  ck('le panneau de l\'énoncé s\'ouvre tout seul', ecrit.ouvert === 'block', ecrit.ouvert);
-  ck('  le programme est une liste numérotée',
-     /<ol>/.test(ecrit.html) && (ecrit.html.match(/<li>/g) || []).length >= 4,
-     (ecrit.html.match(/<li>/g) || []).length + ' étapes');
-  ck('  et ce qui était écrit AVANT n\'est pas effacé',
-     /Exercice 4 — à rendre lundi/.test(ecrit.html), ecrit.html.slice(0, 60));
-  const boutons = await page.evaluate(() => {
-    const t = [...document.querySelectorAll('#enonceLibre .instr-toolbar button')]
-      .map(x => (x.textContent || '').trim());
-    return t;
+  ck('trois onglets dans la fenêtre de l\'énoncé', onglets.noms.length === 3,
+     JSON.stringify(onglets.noms));
+  ck('  le panneau s\'ouvre tout seul', onglets.ouvert === 'block', onglets.ouvert);
+  ck('  feuille vide, il le dit au lieu d\'écrire du vide',
+     /feuille est vide/.test(onglets.vide), onglets.vide.slice(0, 60));
+  ck('ON TRACE, ET L\'ÉNONCÉ SE RÉDIGE TOUT SEUL',
+     /carré ABCD de 3 cm/.test(onglets.apres), onglets.apres.slice(0, 70));
+  ck('  et il SUIT la figure : un milieu ajouté paraît sans qu\'on y touche',
+     /milieu I de \[AB\]/.test(onglets.suivi), onglets.suivi.slice(0, 90));
+  ck('  « Mon énoncé » n\'est pas touché : c\'est un autre onglet',
+     onglets.mienCache === 'none'
+     && /Exercice 4 — à rendre lundi/.test(onglets.monEnonce), onglets.monEnonce.slice(0, 60));
+  /* Et il reste REPRENABLE : un bouton le recopie dans « Mon énoncé », où il
+     devient un texte comme un autre. */
+  const copie = await page.evaluate(() => {
+    const app = window.app;
+    app.ongletEnonce('outils');
+    app.copierProgrammeDansEnonce();
+    return { html: document.getElementById('instrContent').innerHTML,
+             actif: document.querySelector('.enonce-onglets button.actif').dataset.onglet };
   });
-  ck('les deux boutons sont dans la barre de l\'énoncé',
-     boutons.some(x => /Énoncé/.test(x)) && boutons.some(x => /instruments/i.test(x)),
-     JSON.stringify(boutons));
+  ck('« Copier dans mon énoncé » recopie et revient sur mon texte',
+     copie.actif === 'mien' && /<ol>/.test(copie.html), copie.actif);
+  ck('  sans effacer ce que le professeur avait écrit',
+     /Exercice 4 — à rendre lundi/.test(copie.html), copie.html.slice(0, 60));
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

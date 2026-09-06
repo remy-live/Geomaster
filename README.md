@@ -522,11 +522,19 @@ Le logiciel sait exécuter une suite de consignes. Il sait maintenant faire le
 C'est l'exercice « rédige un programme de construction » de tous les manuels —
 celui qu'on corrige à la main, un cahier après l'autre.
 
-Deux boutons dans la barre de l'énoncé, parce que ce sont **deux exercices** :
+**Trois onglets** dans la fenêtre de l'énoncé, parce que ce sont trois textes
+différents : **Mon énoncé** (celui qu'on écrit, auquel rien ne touche),
+**Énoncé de la figure**, **Aux instruments**.
 
-**✍ Énoncé** — ce qu'il faut obtenir, sans dire comment.
+Les deux derniers sont **relus sur la figure** et se refont à chaque changement :
+on trace, et l'énoncé se rédige à côté. Un bouton les recopie dans « Mon
+énoncé » quand on veut les retoucher — ils ne s'y ajoutent plus tout seuls, ce
+qui, au bout de trois essais, empilait le texte sans qu'on distingue plus ce
+qu'on avait écrit de ce que la machine avait relu.
 
-> Trace un triangle rectangle ABC tel que AB = 5 cm, BC = 3 cm et CA = 4 cm.
+**Énoncé de la figure** — ce qu'il faut obtenir, sans dire comment.
+
+> Trace un triangle ABC tel que AB = 5 cm, BC = 3 cm et CA = 4 cm.
 
 **📐 Aux instruments** — la marche à suivre, geste par geste.
 
@@ -536,10 +544,22 @@ Deux boutons dans la barre de l'énoncé, parce que ce sont **deux exercices** :
 > 4. Le point d'intersection des deux arcs est le point C.
 > 5. À la règle, trace [BC] et [CA].
 
-Le programme s'écrit **dans l'énoncé**, à la suite de ce qui y est déjà : c'est
-de là qu'on l'imprime, qu'on le colle dans le cahier et qu'on le corrige.
+Quatre choses font la différence entre un texte plausible et un texte juste :
 
-Trois choses qui font la différence entre un texte plausible et un texte juste :
+- **On ne dit la nature d'une figure que si elle apprend quelque chose.** La
+  première version écrivait *« Trace un triangle **rectangle** ABC tel que
+  AB = 5 cm, BC = 3 cm et CA = 4 cm »*. C'était faux : le triangle 5-3-4 est bien
+  rectangle, mais **en C** — mesuré, 36,9° en A, 53,1° en B, 90° en C —, et
+  « triangle rectangle ABC » se lit « rectangle en A ». Trois côtés déterminent
+  déjà le triangle : ajouter la nature n'apprend rien et, en prime, donnerait la
+  réponse de l'exercice. Un triangle **isocèle**, lui, nomme son sommet —
+  *« isocèle en C tel que CA = CB = 4 cm et AB = 6 cm »* — parce que là, le nom
+  raccourcit vraiment les données.
+- **Quatre longueurs n'enferment pas un quadrilatère.** On peut l'articuler comme
+  un pantographe sans en changer un seul côté : l'énoncé promettait une figure et
+  en autorisait une infinité. Il donne maintenant les **diagonales issues du
+  premier sommet**, qui le triangulent — c'est d'ailleurs exactement ce que fait
+  la construction au compas.
 
 - **Le carré et le rectangle se font à l'équerre.** La méthode générale au compas
   est juste, mais elle passe par la *diagonale* — « écartement de 4,2 cm » pour un
@@ -555,8 +575,9 @@ Trois choses qui font la différence entre un texte plausible et un texte juste 
   ressemblent. Ce qui n'est pas reconnu est nommé pour ce qu'il est.
 
 La sonde ne vérifie pas que le texte est joli : elle le **rejoue**. L'énoncé
-écrit est réexécuté sur une feuille vide, et les longueurs obtenues sont
-comparées à celles de départ — [3, 4, 5] redonne [3, 4, 5].
+écrit est réexécuté sur une feuille vide, et **toutes les distances** entre points
+nommés sont comparées à celles de départ — pas seulement les côtés, justement
+parce que les côtés seuls ne fixent pas un quadrilatère.
 
 ### Le cadre de sélection
 
