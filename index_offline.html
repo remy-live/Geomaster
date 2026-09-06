@@ -12845,6 +12845,41 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.y = res.y;
                     return;
                 }
+                /* UNE FIGURE MAGIQUE DOIT RESTER JUSTE QUAND ON TIRE UN SOMMET.
+                   Mesuré avant : un triangle équilatéral de côtés 240/240/240
+                   devenait 303/246/240 dès qu'on déplaçait A ; un carré
+                   240/240/240/240 passait à 303/240/240/209. Les constructeurs
+                   calculaient une position, puis l'oubliaient. Trois relations
+                   de plus suffisent à tout tenir : tourner autour d'un centre,
+                   glisser d'un vecteur, agrandir depuis un centre. Ce sont
+                   exactement les trois transformations que l'élève connaît, et
+                   la figure les rejoue à chaque geste. */
+                if (this.subType === 'rotation' && this.parents.length === 2) {
+                    const src = this.parents[0], centre = this.parents[1];
+                    const a = this.transParam || 0;
+                    /* Un rapport peut accompagner l'angle : c'est ce qui décrit
+                       « la perpendiculaire en A, longue des deux tiers de la
+                       base » — le rectangle — sans avoir à inventer un point de
+                       plus. Sans rapport écrit, on tourne simplement (k = 1). */
+                    const k = (typeof this.transK === 'number') ? this.transK : 1;
+                    const dx = (src.x - centre.x) * k, dy = (src.y - centre.y) * k;
+                    this.x = centre.x + dx * Math.cos(a) - dy * Math.sin(a);
+                    this.y = centre.y + dx * Math.sin(a) + dy * Math.cos(a);
+                    return;
+                }
+                if (this.subType === 'homothetie' && this.parents.length === 2) {
+                    const src = this.parents[0], centre = this.parents[1];
+                    const k = (typeof this.transParam === 'number') ? this.transParam : 1;
+                    this.x = centre.x + (src.x - centre.x) * k;
+                    this.y = centre.y + (src.y - centre.y) * k;
+                    return;
+                }
+                if (this.subType === 'translation' && this.parents.length === 3) {
+                    const src = this.parents[0], d = this.parents[1], e = this.parents[2];
+                    this.x = src.x + (e.x - d.x);
+                    this.y = src.y + (e.y - d.y);
+                    return;
+                }
                 if (this.parents.length === 2) {
                     if (this.parents[0] instanceof Point && this.parents[1] instanceof Point) {
                         this.x = (this.parents[0].x + this.parents[1].x) / 2;
@@ -14168,6 +14203,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.startAngle = startAngle;
                 this.endAngle = endAngle;
                 this.counterClockwise = counterClockwise;
+            }
+            /* L'ARC DE CONSTRUCTION SUIT LA CONSTRUCTION. Un arc au compas est
+               la trace d'un écartement et d'une visée : on pique en un point,
+               on ouvre de la longueur d'un côté, on balaie autour de l'endroit
+               où le sommet va tomber. Quand on tire ensuite sur A, les trois
+               changent — donc l'arc aussi. Sans cela, le triangle se refaisait
+               bien mais ses deux arcs restaient en arrière, à croiser le vide.
+               Les arcs posés sans repère (rayonRef/viseRef absents) ne bougent
+               pas : ce sont ceux qui n'ont rien à suivre. */
+            update() {
+                if (!this.center) return;
+                if (this.rayonRef) {
+                    this.radius = MathUtils.dist(this.center.x, this.center.y,
+                                                 this.rayonRef.x, this.rayonRef.y);
+                } else if (this.rayonPaire) {
+                    /* Un écartement pris « aux sept dixièmes de la base » : la
+                       médiatrice s'ouvre ainsi, sans point à viser. */
+                    const q = this.rayonPaire;
+                    this.radius = MathUtils.dist(q.a.x, q.a.y, q.b.x, q.b.y) * q.k;
+                }
+                if (this.deRef && this.versRef) {
+                    this.startAngle = Math.atan2(this.deRef.y - this.center.y, this.deRef.x - this.center.x);
+                    this.endAngle = Math.atan2(this.versRef.y - this.center.y, this.versRef.x - this.center.x);
+                }
+                if (this.viseRef && typeof this.demiOuverture === 'number') {
+                    const a = Math.atan2(this.viseRef.y - this.center.y,
+                                         this.viseRef.x - this.center.x);
+                    const s = this.counterClockwise ? 1 : -1;
+                    this.startAngle = a + s * this.demiOuverture;
+                    this.endAngle = a - s * this.demiOuverture;
+                }
             }
             isNear(mx, my) {
                 if (!this.center) return false;
@@ -16259,7 +16325,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 let dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
                 let angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-                let pC = new Point(pA.x + Math.cos(angle - Math.PI/3) * dist, pA.y + Math.sin(angle - Math.PI/3) * dist, "C");
+                /* C n'est pas un point calculé une fois : c'est B tourné de 60°
+                   autour de A. Écrit ainsi, le triangle reste équilatéral quand
+                   on tire sur A ou sur B (mesuré : 303/246/240 avant, 240/240/240
+                   après). */
+                let pC = new Point(0, 0, "C", [pB, pA], null, 'rotation');
+                pC.transParam = -Math.PI / 3;
+                pC.update();
                 
                 // Show taking measurement with compass
                 let animMeasure = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: angle, radius: 0}, {x: pA.x, y: pA.y, angle: angle, radius: dist});
@@ -16279,7 +16351,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animArc1.counterClockwise = false;
                 this.addEntity(animArc1);
 
-                let arc1 = new CompassArc(pA, dist, startAng1, endAng1, false);
+                let arc1 = this.arcVivant(new CompassArc(pA, dist, startAng1, endAng1, false), pB, pC, 0.3);
                 this.addEntity(arc1);
                 
                 let aBC = Math.atan2(pC.y - pB.y, pC.x - pB.x);
@@ -16290,7 +16362,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animArc2.counterClockwise = true;
                 this.addEntity(animArc2);
 
-                let arc2 = new CompassArc(pB, dist, startAng2, endAng2, true);
+                let arc2 = this.arcVivant(new CompassArc(pB, dist, startAng2, endAng2, true), pA, pC, 0.3);
                 this.addEntity(arc2);
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
 
@@ -16528,7 +16600,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.stepInstructions[this.entities.length] = "Construction de la perpendiculaire en une extrémité.";
 
                 // 1. L'équerre trace directement la perpendiculaire AD
-                let pD = new Point(pA.x + Math.cos(perp) * largeur, pA.y + Math.sin(perp) * largeur, "D");
+                /* D EST B TOURNÉ D'UN QUART DE TOUR AUTOUR DE A — au rapport près
+                   pour un rectangle, dont la largeur n'est pas la base. C'est ce
+                   que fait l'équerre : elle pose l'angle droit. Écrit ainsi,
+                   l'angle reste droit quand on tire sur A ou sur B ; auparavant
+                   D restait sur place et le carré 240/240/240/240 devenait
+                   303/240/240/209. */
+                let pD = new Point(0, 0, "D", [pB, pA], null, 'rotation');
+                pD.transParam = -Math.PI / 2;
+                if (Math.abs(largeur - dist) > 1e-9) pD.transK = largeur / dist;
+                pD.update();
                 let segAD = new Segment(pA, pD, {color: segAB.color, width: segAB.lineWidth});
                 let animPerp = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: perp}, {x: pA.x, y: pA.y, angle: perp});
                 animPerp.widgetType = 'setsquare';
@@ -16545,13 +16626,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(animOpenAB);
 
                 // Le compas se déplace en D et reporte AB
-                let pC = new Point(pB.x + Math.cos(perp) * largeur, pB.y + Math.sin(perp) * largeur, "C");
+                /* C ferme le rectangle : c'est D glissé de A vers B. Le report
+                   au compas le dit déjà ; la figure le retient maintenant. */
+                let pC = new Point(0, 0, "C", [pD, pA, pB], null, 'translation');
+                pC.update();
                 let aDC = Math.atan2(pC.y - pD.y, pC.x - pD.x);
                 let animMoveD = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: aAB, radius: dist}, {x: pD.x, y: pD.y, angle: aDC - 0.3, radius: dist});
                 animMoveD.widgetType = 'compass';
                 this.addEntity(animMoveD);
 
-                let arcC1 = new CompassArc(pD, dist, aDC - 0.3, aDC + 0.3, false); arcC1.color = '#e91e63';
+                let arcC1 = this.arcVivant(new CompassArc(pD, dist, aDC - 0.3, aDC + 0.3, false), pC, pC, 0.3); arcC1.color = '#e91e63';
                 let animC1 = new ToolAnimation('trace', {x: pD.x, y: pD.y, angle: aDC - 0.3, radius: dist}, {x: pD.x, y: pD.y, angle: aDC + 0.3, radius: dist});
                 animC1.widgetType = 'compass'; animC1.counterClockwise = false;
                 this.addEntity(animC1); this.addEntity(arcC1);
@@ -16563,7 +16647,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animMoveB.widgetType = 'compass';
                 this.addEntity(animMoveB);
 
-                let arcC2 = new CompassArc(pB, largeur, aBC + 0.3, aBC - 0.3, true); arcC2.color = '#e91e63';
+                let arcC2 = this.arcVivant(new CompassArc(pB, largeur, aBC + 0.3, aBC - 0.3, true), pC, pC, 0.3); arcC2.color = '#e91e63';
                 let animC2 = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: largeur}, {x: pB.x, y: pB.y, angle: aBC - 0.3, radius: largeur});
                 animC2.widgetType = 'compass'; animC2.counterClockwise = true;
                 this.addEntity(animC2); this.addEntity(arcC2);
@@ -16651,7 +16735,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animOpenAB.widgetType = 'compass';
                 this.addEntity(animOpenAB);
                 
-                let circle = new CompassArc(pA, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false);
+                let circle = this.arcVivant(new CompassArc(pA, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false), pB);
                 circle.color = "#999999";
                 circle.lineWidth = 2;
                 let animCircle = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: baseAngle, radius: radius}, {x: pA.x, y: pA.y, angle: baseAngle + Math.PI * 2 - 0.0001, radius: radius});
@@ -16663,8 +16747,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let points = [pB];
                 let currentCompass = {x: pA.x, y: pA.y, angle: baseAngle};
                 for (let i = 1; i < 6; i++) {
-                    let nextAngle = baseAngle + i * Math.PI / 3;
-                    let pt = new Point(pA.x + Math.cos(nextAngle) * radius, pA.y + Math.sin(nextAngle) * radius, "");
+                    /* Chaque sommet est A tourné d'un sixième de tour autour de O :
+                       c'est exactement le report du rayon, et l'hexagone reste
+                       régulier quand on tire sur O ou sur A. */
+                    /* LES SOMMETS D'UN HEXAGONE ONT UN NOM. Sans nom, la figure
+                       ne se relit pas : l'énoncé de l'hexagone se réduisait à
+                       « Place les points O et A tels que OA = 4,8 cm. Trace le
+                       segment [OA]. » — pas un mot de l'hexagone. */
+                    let pt = new Point(0, 0, this.getNextLabel(), [pB, pA], null, 'rotation');
+                    pt.transParam = i * Math.PI / 3;
+                    pt.update();
                     points.push(pt);
                     
                     let angleFromPrev = Math.atan2(pt.y - points[i-1].y, pt.x - points[i-1].x);
@@ -16677,7 +16769,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     animMove.widgetType = 'compass';
                     this.addEntity(animMove);
                     
-                    let arc = new CompassArc(points[i-1], radius, targetAngle, endTraceAngle, false); arc.color = '#e91e63';
+                    let arc = this.arcVivant(new CompassArc(points[i-1], radius, targetAngle, endTraceAngle, false), pt, pt, 0.3); arc.color = '#e91e63';
                     let animArc = new ToolAnimation('trace', 
                         {x: points[i-1].x, y: points[i-1].y, angle: targetAngle, radius: radius}, 
                         {x: points[i-1].x, y: points[i-1].y, angle: endTraceAngle, radius: radius});
@@ -16733,12 +16825,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 const radius = Math.hypot(pB.x - pA.x, pB.y - pA.y);
                 const baseAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+                /* Les quatre sommets qui manquent au pentagone prennent leurs
+                   lettres AVANT que la construction du nombre d'or ne pioche les
+                   siennes : ABCDE se lit, ACDFG non. */
+                const nomsSommets = this.reserverNoms(4);
+                const nomsAppui = this.reserverNoms(3, nomsSommets);
 
                 this.stepInstructions[this.entities.length] = "On trace le cercle circonscrit au pentagone.";
                 let animOpenCircle = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: baseAngle, radius: 0}, {x: pA.x, y: pA.y, angle: baseAngle, radius: radius});
                 animOpenCircle.widgetType = 'compass';
                 this.addEntity(animOpenCircle);
-                let mainCircle = new CompassArc(pA, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false);
+                let mainCircle = this.arcVivant(new CompassArc(pA, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false), pB);
                 mainCircle.color = "#999999"; mainCircle.lineWidth = 2;
                 let animCircle = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: baseAngle, radius: radius}, {x: pA.x, y: pA.y, angle: baseAngle + Math.PI * 2 - 0.0001, radius: radius});
                 animCircle.widgetType = 'compass'; animCircle.counterClockwise = false;
@@ -16747,9 +16844,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // Rayon perpendiculaire (OB) à l'équerre : l'équerre s'appuie sur (OA)
                 // donc son bord de report doit pointer vers A, d'où l'angle tracé = baseAngle - 90°.
                 const perpAngle = baseAngle - Math.PI / 2;
-                const ptB = new Point(pA.x + Math.cos(perpAngle) * radius, pA.y + Math.sin(perpAngle) * radius, "B");
+                /* B est A tourné d'un quart de tour autour de O : c'est le
+                   rayon perpendiculaire que pose l'équerre. */
+                const ptB = new Point(0, 0, nomsAppui[0], [pB, pA], null, 'rotation');
+                ptB.transParam = -Math.PI / 2; ptB.update();
+                /* B, M ET E APPARTIENNENT À LA CONSTRUCTION, PAS À LA FIGURE.
+                   Ils se voient — c'est le chemin du nombre d'or, et il vaut la
+                   peine d'être montré — mais l'énoncé n'a pas à les décrire :
+                   « Place l'image E de B par l'homothétie de rapport -2,24 » ne
+                   se refait pas, alors que « Trace un pentagone régulier » se
+                   refait. La ligne du pentagone dit déjà tout. */
+                ptB.estConstruction = true;
 
-                this.stepInstructions[this.entities.length] = "On trace le segment [OB], le rayon perpendiculaire à (OA), à l'équerre.";
+                this.stepInstructions[this.entities.length] = `On trace le segment [${pA.label || 'O'}${ptB.label}], `
+                    + `le rayon perpendiculaire à (${pA.label || 'O'}${pB.label || 'A'}), à l'équerre.`;
                 let animPerp = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: perpAngle}, {x: pA.x, y: pA.y, angle: perpAngle});
                 animPerp.widgetType = 'setsquare';
                 let sOB = new Segment(pA, ptB, {color: "rgba(0,0,0,0.35)", width: 1, dash: true});
@@ -16757,19 +16865,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(ptB);
 
                 // Milieu M de [OB]
-                this.stepInstructions[this.entities.length] = "On place M, le milieu de [OB].";
-                const midX = pA.x + (ptB.x - pA.x) / 2;
-                const midY = pA.y + (ptB.y - pA.y) / 2;
-                const ptM = new Point(midX, midY, "M"); ptM.size = 4;
+                this.stepInstructions[this.entities.length] = `On place ${nomsAppui[1]}, le milieu de [${pA.label || 'O'}${ptB.label}].`;
+                const ptM = new Point(0, 0, nomsAppui[1], [pA, ptB]); ptM.size = 4; ptM.update();
+                ptM.estConstruction = true;
+                const midX = ptM.x, midY = ptM.y;
                 this.addEntity(ptM);
 
                 // Cercle "du nombre d'or" : centre M, passant par A, coupe (OB) en E
+                /* E EST UN POINT DE LA CONSTRUCTION, PAS UNE COORDONNÉE.
+                   MA = R√5/2 et MB = R/2 : E, symétrique du côté opposé sur
+                   (OB), est donc l'image de B par l'agrandissement de centre M
+                   et de rapport -√5. Le nombre d'or sort de là, et il en sort
+                   encore quand on déplace O ou A. */
+                const ptE = new Point(0, 0, nomsAppui[2], [ptB, ptM], null, 'homothetie');
+                ptE.transParam = -Math.sqrt(5); ptE.size = 4; ptE.update();
+                ptE.estConstruction = true;
+                const eX = ptE.x, eY = ptE.y;
                 const distMA = Math.hypot(pB.x - midX, pB.y - midY);
-                const eX = midX - Math.cos(perpAngle) * distMA;
-                const eY = midY - Math.sin(perpAngle) * distMA;
-                const ptE = new Point(eX, eY, "E"); ptE.size = 4;
 
-                this.stepInstructions[this.entities.length] = "On trace le cercle de centre M passant par A : il coupe (OB) en E.";
+                this.stepInstructions[this.entities.length] = `On trace le cercle de centre ${nomsAppui[1]} passant par `
+                    + `${pB.label || 'A'} : il coupe (${pA.label || 'O'}${ptB.label}) en ${nomsAppui[2]}.`;
                 const angleMA = Math.atan2(pB.y - midY, pB.x - midX);
                 const angleME = Math.atan2(eY - midY, eX - midX);
                 const arcStart = Math.min(angleMA, angleME);
@@ -16777,7 +16892,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let animMoveGold = new ToolAnimation('move', {x: pA.x, y: pA.y, angle: perpAngle, radius: 0}, {x: midX, y: midY, angle: angleMA, radius: distMA});
                 animMoveGold.widgetType = 'compass';
                 this.addEntity(animMoveGold);
-                let goldArc = new CompassArc({x: midX, y: midY}, distMA, arcStart, arcEnd, false);
+                let goldArc = this.arcVivant(new CompassArc(ptM, distMA, arcStart, arcEnd, false), pB);
+                goldArc.deRef = (arcStart === angleMA) ? pB : ptE;
+                goldArc.versRef = (arcStart === angleMA) ? ptE : pB;
                 goldArc.color = '#ff9900';
                 let animGold = new ToolAnimation('trace', {x: midX, y: midY, angle: arcStart, radius: distMA}, {x: midX, y: midY, angle: arcEnd, radius: distMA});
                 animGold.widgetType = 'compass'; animGold.counterClockwise = false;
@@ -16793,13 +16910,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // AE est la longueur exacte du côté du pentagone
                 const s = Math.hypot(pB.x - eX, pB.y - eY);
 
-                this.stepInstructions[this.entities.length] = "La longueur AE est le côté exact du pentagone : on la reporte 4 fois sur le cercle.";
+                this.stepInstructions[this.entities.length] = `La longueur ${pB.label || 'A'}${nomsAppui[2]} est le côté exact `
+                    + `du pentagone : on la reporte 4 fois sur le cercle.`;
                 const angleStep = Math.PI * 2 / 5;
                 let points = [pB];
                 let currentCompass = {x: midX, y: midY, angle: angleME, radius: distMA};
                 for (let i = 1; i < 5; i++) {
-                    const nextAngle = baseAngle + i * angleStep;
-                    const pt = new Point(pA.x + Math.cos(nextAngle) * radius, pA.y + Math.sin(nextAngle) * radius, "");
+                    /* Chaque sommet est A tourné d'un cinquième de tour autour
+                       de O — le report de AE le vérifie, la figure le retient. */
+                    /* Nommés, comme ceux de l'hexagone : c'est ce qui permet de
+                       relire « Trace un pentagone régulier ». */
+                    const pt = new Point(0, 0, nomsSommets[i - 1], [pB, pA], null, 'rotation');
+                    pt.transParam = i * angleStep; pt.update();
                     points.push(pt);
 
                     const angleFromPrev = Math.atan2(pt.y - points[i-1].y, pt.x - points[i-1].x);
@@ -16812,7 +16934,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     animMove.widgetType = 'compass';
                     this.addEntity(animMove);
 
-                    let arc = new CompassArc(points[i-1], s, targetAngle, endTraceAngle, false); arc.color = '#e91e63';
+                    let arc = this.arcVivant(new CompassArc(points[i-1], s, targetAngle, endTraceAngle, false), pt, pt, 0.25); arc.color = '#e91e63';
                     let animArc = new ToolAnimation('trace',
                         {x: points[i-1].x, y: points[i-1].y, angle: targetAngle, radius: s},
                         {x: points[i-1].x, y: points[i-1].y, angle: endTraceAngle, radius: s});
@@ -16864,7 +16986,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let radius = dist;
                 
                 // 1. Cercle principal
-                let circle = new CompassArc(center, radius, 0, Math.PI*2, false);
+                let circle = this.arcVivant(new CompassArc(center, radius, 0, Math.PI*2, false), pB);
                 circle.color = "rgba(0,0,0,0.1)";
                 
                 let animCMove = new ToolAnimation('move', {x: center.x, y: center.y, angle: angleAB, radius: 0}, {x: center.x, y: center.y, angle: angleAB, radius: radius});
@@ -16880,8 +17002,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let pts = [pB];
                 let currentCompass = {x: center.x, y: center.y, angle: angleAB};
                 for (let i = 1; i < 6; i++) {
-                    let nextAngle = angleAB + i * Math.PI / 3;
-                    let pt = new Point(center.x + Math.cos(nextAngle) * radius, center.y + Math.sin(nextAngle) * radius, "");
+                    let pt = new Point(0, 0, "", [pB, center], null, 'rotation');
+                    pt.transParam = i * Math.PI / 3; pt.update();
                     pt.visible = false;
                     pts.push(pt);
                     
@@ -16895,7 +17017,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     animMove.widgetType = 'compass';
                     this.addEntity(animMove);
                     
-                    let arc = new CompassArc(pts[i-1], radius, targetAngle, endTraceAngle, false); arc.color = '#e91e63';
+                    let arc = this.arcVivant(new CompassArc(pts[i-1], radius, targetAngle, endTraceAngle, false), pt, pt, 0.3); arc.color = '#e91e63';
                     let animArc = new ToolAnimation('trace', 
                         {x: pts[i-1].x, y: pts[i-1].y, angle: targetAngle, radius: radius}, 
                         {x: pts[i-1].x, y: pts[i-1].y, angle: endTraceAngle, radius: radius});
@@ -16928,6 +17050,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.codageDeConstruction(startIndex);
                 
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "l'hexagramme (l'étoile à six branches)", radius);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -16957,7 +17082,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let center = pA;
                 
                 // 1. Cercle principal
-                let circle = new CompassArc(center, radius, 0, Math.PI*2, false);
+                let circle = this.arcVivant(new CompassArc(center, radius, 0, Math.PI*2, false), pB);
                 circle.color = segAB.color;
                 let animC = new ToolAnimation('trace', {x: center.x, y: center.y, angle: angleAB, radius: radius}, {x: center.x, y: center.y, angle: angleAB + Math.PI*2, radius: radius});
                 animC.widgetType = 'compass';
@@ -16966,14 +17091,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // 2. Les 6 pétales
                 for(let i=0; i<6; i++) {
                     let angleCenter = angleAB + i * (Math.PI / 3);
-                    let ptCenter = new Point(center.x + radius * Math.cos(angleCenter), center.y + radius * Math.sin(angleCenter), "");
+                    let ptCenter = new Point(0, 0, "", [pB, center], null, 'rotation');
+                    ptCenter.transParam = i * (Math.PI / 3); ptCenter.update();
                     ptCenter.visible = false;
                     this.addEntity(ptCenter);
                     
                     let aStart = angleCenter + 2 * Math.PI / 3;
                     let aEnd = angleCenter + 4 * Math.PI / 3;
                     
-                    let arc = new CompassArc(ptCenter, radius, aStart, aEnd, false);
+                    let arc = this.arcVivant(new CompassArc(ptCenter, radius, aStart, aEnd, false), center, center, Math.PI / 3);
                     arc.color = segAB.color;
                     
                     if (i === 0) {
@@ -16997,6 +17123,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "une rosace à six pétales", radius);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17020,7 +17149,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let center = pA;
                 let radius = dist;
                 
-                let circle = new CompassArc(center, radius, 0, Math.PI*2, false);
+                let circle = this.arcVivant(new CompassArc(center, radius, 0, Math.PI*2, false), pB);
                 circle.color = segAB.color;
                 
                 let animCMove = new ToolAnimation('move', {x: center.x, y: center.y, angle: angleAB, radius: 0}, {x: center.x, y: center.y, angle: angleAB, radius: radius});
@@ -17049,7 +17178,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     animMove.widgetType = 'compass';
                     this.addEntity(animMove);
                     
-                    let arc = new CompassArc(pCenter, radius, 0, Math.PI*2, false); 
+                    let arc = this.arcVivant(new CompassArc(pCenter, radius, 0, Math.PI*2, false), center); 
                     arc.color = segAB.color;
                     let animArc = new ToolAnimation('trace', 
                         {x: pCenter.x, y: pCenter.y, angle: aStart, radius: radius}, 
@@ -17059,8 +17188,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(animArc); this.addEntity(arc);
                     
                     if (i < 5) {
-                        let nextAngleCircle = angleAB + (i+1) * Math.PI / 3;
-                        let nextPt = new Point(center.x + Math.cos(nextAngleCircle) * radius, center.y + Math.sin(nextAngleCircle) * radius, "");
+                        let nextPt = new Point(0, 0, "", [pB, center], null, 'rotation');
+                        nextPt.transParam = (i + 1) * Math.PI / 3; nextPt.update();
                         nextPt.visible = false;
                         pts.push(nextPt);
                         this.addEntity(nextPt);
@@ -17072,6 +17201,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
                 this.codageDeConstruction(startIndex);
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "la graine de vie", radius);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17093,7 +17225,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let angleAB = Math.atan2(pB.y - pA.y, pB.x - pA.x);
                 let center = pA;
                 
-                let circle = new CompassArc(center, radius, 0, Math.PI*2, false);
+                let circle = this.arcVivant(new CompassArc(center, radius, 0, Math.PI*2, false), pB);
                 circle.color = segAB.color;
                 circle.lineWidth = 2;
                 
@@ -17107,7 +17239,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
                 this.stepInstructions[this.entities.length] = "Construction du Yin Yang : le diamètre";
-                let pC = new Point(center.x - Math.cos(angleAB)*radius, center.y - Math.sin(angleAB)*radius, ""); pC.visible = false; this.addEntity(pC);
+                /* C est le symétrique de B par rapport au centre : le diamètre
+                   reste un diamètre quand on tire sur A ou sur B. */
+                let pC = new Point(0, 0, "", [pB, center], null, 'symmetry_central'); pC.update();
+                pC.visible = false; this.addEntity(pC);
                 
                 let sDiam = new Segment(pC, pB, {color: "rgba(0,0,0,0.15)", width: 1});
                 let aDiam = Math.atan2(pB.y - pC.y, pB.x - pC.x);
@@ -17115,8 +17250,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animDiam.widgetType = 'ruler'; this.addEntity(animDiam); this.addEntity(sDiam); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
                 this.stepInstructions[this.entities.length] = "Construction du Yin Yang : recherche des centres avec les médiatrices";
-                let pMid1 = new Point((pB.x + center.x)/2, (pB.y + center.y)/2, ""); 
-                let pMid2 = new Point((pC.x + center.x)/2, (pC.y + center.y)/2, ""); 
+                let pMid1 = new Point(0, 0, "", [pB, center]); pMid1.update();
+                let pMid2 = new Point(0, 0, "", [pC, center]); pMid2.update();
                 
                 let rMed = radius * 0.65;
                 // Mediatrice 1 (center-pB)
@@ -17153,8 +17288,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.stepInstructions[this.entities.length] = "Construction du Yin Yang : les demi-cercles";
                 
                 let r2 = radius / 2;
-                let arc1 = new CompassArc(pMid1, r2, angleAB, angleAB + Math.PI, false); arc1.color = segAB.color; arc1.lineWidth = 2;
-                let arc2 = new CompassArc(pMid2, r2, angleAB + Math.PI, angleAB + Math.PI*2, false); arc2.color = segAB.color; arc2.lineWidth = 2;
+                let arc1 = this.arcVivant(new CompassArc(pMid1, r2, angleAB, angleAB + Math.PI, false), pB); arc1.color = segAB.color; arc1.lineWidth = 2;
+                let arc2 = this.arcVivant(new CompassArc(pMid2, r2, angleAB + Math.PI, angleAB + Math.PI*2, false), pC); arc2.color = segAB.color; arc2.lineWidth = 2;
+                arc1.deRef = pB; arc1.versRef = center; arc2.deRef = pC; arc2.versRef = center;
                 
                 let animMove1 = new ToolAnimation('move', {x: center.x, y: center.y, angle: angleAB + Math.PI*2, radius: radius}, {x: pMid1.x, y: pMid1.y, angle: angleAB, radius: r2});
                 animMove1.widgetType = 'compass'; this.addEntity(animMove1);
@@ -17184,6 +17320,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 
                 this.codageDeConstruction(startIndex);
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "le yin-yang", radius);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17205,7 +17344,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let angleAB = Math.atan2(pB.y - pA.y, pB.x - pA.x);
                 let center = pA;
                 
-                let circle = new CompassArc(center, radius, 0, Math.PI*2, false);
+                let circle = this.arcVivant(new CompassArc(center, radius, 0, Math.PI*2, false), pB);
                 circle.color = "rgba(0,0,0,0.1)";
                 
                 let animCMove = new ToolAnimation('move', {x: center.x, y: center.y, angle: angleAB, radius: 0}, {x: center.x, y: center.y, angle: angleAB, radius: radius});
@@ -17217,8 +17356,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 let pts = [];
                 for(let i=0; i<8; i++) {
-                    let a = angleAB + i * (Math.PI / 4);
-                    let pt = new Point(center.x + radius * Math.cos(a), center.y + radius * Math.sin(a), "");
+                    let pt = new Point(0, 0, "", [pB, center], null, 'rotation');
+                    pt.transParam = i * (Math.PI / 4); pt.update();
                     pt.visible = false;
                     pts.push(pt);
                     this.addEntity(pt);
@@ -17248,10 +17387,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animMovePro.widgetType = 'protractor'; this.addEntity(animMovePro);
                 
                 let prRadius = 180;
-                let pt45 = new Point(center.x + Math.cos(angleAB - Math.PI/4)*prRadius*0.95, center.y + Math.sin(angleAB - Math.PI/4)*prRadius*0.95, "");
+                let pt45 = new Point(0, 0, "", [pB, center], null, 'rotation');
+                pt45.transParam = -Math.PI/4; pt45.transK = prRadius * 0.95 / radius; pt45.update();
                 pt45.visible = true; pt45.size = 3; pt45.color = "#000000"; this.addEntity(pt45);
                 
-                let pt135 = new Point(center.x + Math.cos(angleAB - 3*Math.PI/4)*prRadius*0.95, center.y + Math.sin(angleAB - 3*Math.PI/4)*prRadius*0.95, "");
+                let pt135 = new Point(0, 0, "", [pB, center], null, 'rotation');
+                pt135.transParam = -3*Math.PI/4; pt135.transK = prRadius * 0.95 / radius; pt135.update();
                 pt135.visible = true; pt135.size = 3; pt135.color = "#000000"; this.addEntity(pt135);
                 
                 let animHoldPro = new ToolAnimation('move', {x: center.x, y: center.y, angle: angleAB}, {x: center.x, y: center.y, angle: angleAB});
@@ -17287,6 +17428,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 drawSquare(square1);
                 drawSquare(square2);
                 
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "l'octogramme (les deux carrés entrelacés)", radius);
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17316,7 +17460,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     let angleAC = Math.atan2(currentPt.y - pA.y, currentPt.x - pA.x);
                     let perpAngle = angleAC + Math.PI / 2;
                     
-                    let nextPt = new Point(currentPt.x + Math.cos(perpAngle) * L, currentPt.y + Math.sin(perpAngle) * L, "");
+                    /* LA PERPENDICULAIRE ÉLEVÉE EN C, LONGUE DE L. On l'obtient
+                       en deux temps, comme au tableau : on tourne C d'un quart de
+                       tour autour de A et on ramène la longueur à L — cela donne
+                       le vecteur — puis on porte ce vecteur depuis C. Le point
+                       intermédiaire ne se voit pas ; il tient la direction. Tout
+                       l'escargot est semblable à [AB], donc les rapports écrits
+                       ici restent justes quand on tire sur A ou sur B. */
+                    const dAC = Math.hypot(currentPt.y - pA.y, currentPt.x - pA.x) || 1;
+                    let vecPt = new Point(0, 0, "", [currentPt, pA], null, 'rotation');
+                    vecPt.transParam = Math.PI / 2; vecPt.transK = L / dAC;
+                    vecPt.visible = false; vecPt.update(); this.addEntity(vecPt);
+                    let nextPt = new Point(0, 0, "", [currentPt, pA, vecPt], null, 'translation');
+                    nextPt.update();
                     nextPt.visible = false;
                     this.addEntity(nextPt);
                     
@@ -17337,6 +17493,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 
                 this.codageDeConstruction(startIndex);
+                /* La figure dit ce qu'elle est : sans cela, son énoncé se
+                   réduisait à « Place les points A et B ». */
+                this.marquerMotif(startIndex, "l'escargot de Pythagore", L, 'de côté');
                 this.saveState();
                 this.replayIndex = startIndex; this.fastForward(startIndex);
                 this.playStepLoop(startIndex, this.entities.length);
@@ -17370,13 +17529,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animOpenAB.widgetType = 'compass';
                 this.addEntity(animOpenAB);
                 
-                let pD = new Point(pA.x + Math.cos(baseAngle - angleOffset) * radius, pA.y + Math.sin(baseAngle - angleOffset) * radius, "");
-                let arcD = new CompassArc(pA, radius, baseAngle - angleOffset - 0.3, baseAngle - angleOffset + 0.3, false); arcD.color = '#e91e63';
+                /* D est B tourné de 60° autour de A — le compas garde l'écartement
+                   AB, c'est ce qui fait le losange. */
+                let pD = new Point(0, 0, this.getNextLabel(), [pB, pA], null, 'rotation');
+                pD.transParam = -angleOffset; pD.update();
+                let arcD = this.arcVivant(new CompassArc(pA, radius, baseAngle - angleOffset - 0.3, baseAngle - angleOffset + 0.3, false), pB, pD, 0.3); arcD.color = '#e91e63';
                 let animD = new ToolAnimation('trace', {x: pA.x, y: pA.y, angle: baseAngle - angleOffset - 0.3, radius: radius}, {x: pA.x, y: pA.y, angle: baseAngle - angleOffset + 0.3, radius: radius});
                 animD.widgetType = 'compass'; animD.counterClockwise = false;
                 this.addEntity(animD); this.addEntity(arcD); this.addEntity(pD);
                 
-                let pC = new Point(pD.x + Math.cos(baseAngle) * radius, pD.y + Math.sin(baseAngle) * radius, "");
+                /* C ferme le losange : c'est D glissé de A vers B. */
+                let pC = new Point(0, 0, this.getNextLabel(), [pD, pA, pB], null, 'translation'); pC.update();
                 
                 let aDC = Math.atan2(pC.y - pD.y, pC.x - pD.x);
                 
@@ -17384,7 +17547,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animMoveD.widgetType = 'compass';
                 this.addEntity(animMoveD);
                 
-                let arcC1 = new CompassArc(pD, radius, aDC - 0.3, aDC + 0.3, false); arcC1.color = '#e91e63';
+                let arcC1 = this.arcVivant(new CompassArc(pD, radius, aDC - 0.3, aDC + 0.3, false), pC, pC, 0.3); arcC1.color = '#e91e63';
                 let animC1 = new ToolAnimation('trace', {x: pD.x, y: pD.y, angle: aDC - 0.3, radius: radius}, {x: pD.x, y: pD.y, angle: aDC + 0.3, radius: radius});
                 animC1.widgetType = 'compass'; animC1.counterClockwise = false;
                 this.addEntity(animC1); this.addEntity(arcC1);
@@ -17395,7 +17558,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animMoveB.widgetType = 'compass';
                 this.addEntity(animMoveB);
                 
-                let arcC2 = new CompassArc(pB, radius, aBC + 0.3, aBC - 0.3, true); arcC2.color = '#e91e63';
+                let arcC2 = this.arcVivant(new CompassArc(pB, radius, aBC + 0.3, aBC - 0.3, true), pC, pC, 0.3); arcC2.color = '#e91e63';
                 let animC2 = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: aBC + 0.3, radius: radius}, {x: pB.x, y: pB.y, angle: aBC - 0.3, radius: radius});
                 animC2.widgetType = 'compass'; animC2.counterClockwise = true;
                 this.addEntity(animC2); this.addEntity(arcC2);
@@ -17449,7 +17612,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let distBA = Math.hypot(pA.x - pB.x, pA.y - pB.y);
                 let distBC = Math.hypot(pC.x - pB.x, pC.y - pB.y);
                 
-                let pD = new Point(pA.x + (pC.x - pB.x), pA.y + (pC.y - pB.y), "");
+                /* D est A glissé de B vers C : la figure garde ses côtés
+                   parallèles quand on tire sur A, B ou C. */
+                let pD = new Point(0, 0, this.getNextLabel(), [pA, pB, pC], null, 'translation'); pD.update();
                 
                 this.stepInstructions[this.entities.length] = "On prend la longueur BA au compas...";
                 let angleBA = Math.atan2(pA.y - pB.y, pA.x - pB.x);
@@ -17532,7 +17697,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 let distBA = Math.hypot(pA.x - pB.x, pA.y - pB.y);
                 let distBC = Math.hypot(pC.x - pB.x, pC.y - pB.y);
-                let pD = new Point(pA.x + (pC.x - pB.x), pA.y + (pC.y - pB.y), "");
+                /* D est A glissé de B vers C : la figure garde ses côtés
+                   parallèles quand on tire sur A, B ou C. */
+                let pD = new Point(0, 0, this.getNextLabel(), [pA, pB, pC], null, 'translation'); pD.update();
                 
                 this.stepInstructions[this.entities.length] = "On prend la longueur BA au compas...";
                 let angleBA = Math.atan2(pA.y - pB.y, pA.x - pB.x);
@@ -17680,6 +17847,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                     const aAC = Math.atan2(cA.y - P1.y, cA.x - P1.x);
                     const arc1 = new CompassArc(P1, rMed, aAC - 0.4, aAC + 0.4, false); arc1.color = arcColor;
+                    arc1.rayonPaire = { a: P1, b: P2, k: 0.7 };
                     const anim1 = new ToolAnimation('trace', {x: P1.x, y: P1.y, angle: aAC - 0.4, radius: rMed}, {x: P1.x, y: P1.y, angle: aAC + 0.4, radius: rMed});
                     anim1.widgetType = 'compass'; anim1.counterClockwise = false;
                     this.addEntity(anim1); this.addEntity(arc1);
@@ -17690,6 +17858,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToAD);
 
                     const arc3 = new CompassArc(P1, rMed, aAD - 0.4, aAD + 0.4, false); arc3.color = arcColor;
+                    arc3.rayonPaire = { a: P1, b: P2, k: 0.7 };
                     const anim3 = new ToolAnimation('trace', {x: P1.x, y: P1.y, angle: aAD - 0.4, radius: rMed}, {x: P1.x, y: P1.y, angle: aAD + 0.4, radius: rMed});
                     anim3.widgetType = 'compass'; anim3.counterClockwise = false;
                     this.addEntity(anim3); this.addEntity(arc3);
@@ -17700,6 +17869,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToB);
 
                     const arc2 = new CompassArc(P2, rMed, aBC + 0.4, aBC - 0.4, true); arc2.color = arcColor;
+                    arc2.rayonPaire = { a: P1, b: P2, k: 0.7 };
                     const anim2 = new ToolAnimation('trace', {x: P2.x, y: P2.y, angle: aBC + 0.4, radius: rMed}, {x: P2.x, y: P2.y, angle: aBC - 0.4, radius: rMed});
                     anim2.widgetType = 'compass'; anim2.counterClockwise = true;
                     this.addEntity(anim2); this.addEntity(arc2);
@@ -17710,21 +17880,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToBD);
 
                     const arc4 = new CompassArc(P2, rMed, aBD + 0.4, aBD - 0.4, true); arc4.color = arcColor;
+                    arc4.rayonPaire = { a: P1, b: P2, k: 0.7 };
                     const anim4 = new ToolAnimation('trace', {x: P2.x, y: P2.y, angle: aBD + 0.4, radius: rMed}, {x: P2.x, y: P2.y, angle: aBD - 0.4, radius: rMed});
                     anim4.widgetType = 'compass'; anim4.counterClockwise = true;
                     this.addEntity(anim4); this.addEntity(arc4);
 
                     this.addEntity(new ToolAnimation('compassHide', {}, {}));
 
-                    const ptC1 = new Point(cA.x, cA.y, ""); ptC1.visible = false;
-                    const ptC2 = new Point(cB.x, cB.y, ""); ptC2.visible = false;
+                    /* LES DEUX CROISEMENTS SONT DES CROISEMENTS, PAS DEUX
+                       COORDONNÉES. Ils étaient posés là où le calcul les avait
+                       trouvés ; en tirant sur un sommet, les arcs suivaient et
+                       les points restaient. Ce sont maintenant les intersections
+                       des deux paires d'arcs — ce que l'élève voit à l'écran. */
+                    const ptC1 = new Point(cA.x, cA.y, "", [arc1, arc2]); ptC1.visible = false;
+                    const ptC2 = new Point(cB.x, cB.y, "", [arc3, arc4]); ptC2.visible = false;
+                    ptC1.update(); ptC2.update();
+                    ptC1.visible = false; ptC2.visible = false;
+                    /* Les arcs visent maintenant le croisement qu'ils fabriquent :
+                       la fenêtre de balayage tourne avec le triangle. */
+                    arc1.viseRef = ptC1; arc1.demiOuverture = 0.4;
+                    arc2.viseRef = ptC1; arc2.demiOuverture = 0.4;
+                    arc3.viseRef = ptC2; arc3.demiOuverture = 0.4;
+                    arc4.viseRef = ptC2; arc4.demiOuverture = 0.4;
                     this.addEntity(ptC1); this.addEntity(ptC2);
 
                     const aLine = Math.atan2(ptC2.y - ptC1.y, ptC2.x - ptC1.x);
                     const animLine = new ToolAnimation('trace', {x: ptC1.x, y: ptC1.y, angle: aLine}, {x: ptC1.x, y: ptC1.y, angle: aLine});
                     animLine.widgetType = 'ruler';
-                    const medLine = new Segment(ptC1, ptC2, {color: arcColor, dash: true, width: 1});
+                    /* La médiatrice est une DROITE : tracée en segment, elle
+                       s'arrêtait aux deux croisements et le centre du cercle
+                       circonscrit — qui est justement leur intersection —
+                       tombait dehors dès que le triangle était obtus. */
+                    const medLine = new Line(ptC1, ptC2, {color: arcColor, dash: true, width: 1});
+                    if (this.pgNomme(P1) && this.pgNomme(P2)) {
+                        medLine.roleDroite = `la médiatrice de [${P1.label}${P2.label}]`;
+                    }
                     this.addEntity(animLine); this.addEntity(medLine); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                    return medLine;
                 };
 
                 const ensureSide = (P1, P2) => {
@@ -17743,12 +17935,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ensureSide(pC, pA);
 
                 this.stepInstructions[this.entities.length] = "On construit la médiatrice de [AB]...";
-                drawMediatriceHelper(pA, pB, '#ff9900');
+                const med1 = drawMediatriceHelper(pA, pB, '#ff9900');
 
                 this.stepInstructions[this.entities.length] = "...puis la médiatrice de [BC]. Leur intersection est le centre du cercle circonscrit.";
-                drawMediatriceHelper(pB, pC, '#9b59b6');
+                const med2 = drawMediatriceHelper(pB, pC, '#9b59b6');
 
-                const O = new Point(ux, uy, "O");
+                /* O EST LE CROISEMENT DES DEUX MÉDIATRICES. Il était placé par la
+                   formule du circoncentre, une fois pour toutes : en tirant sur A,
+                   les trois rayons mesurés 163/163/163 devenaient 193/163/163 —
+                   le cercle n'était plus circonscrit à rien. */
+                const O = new Point(ux, uy, "O", [med1, med2]);
+                O.update();
                 this.addEntity(O);
 
                 const radius = Math.hypot(pA.x - ux, pA.y - uy);
@@ -17759,7 +17956,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 animOpen.widgetType = 'compass';
                 this.addEntity(animOpen);
 
-                const circle = new CompassArc(O, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false);
+                const circle = this.arcVivant(new CompassArc(O, radius, baseAngle, baseAngle + Math.PI * 2 - 0.0001, false), pA);
                 circle.color = color; circle.lineWidth = width;
                 const animCircle = new ToolAnimation('trace', {x: O.x, y: O.y, angle: baseAngle, radius: radius}, {x: O.x, y: O.y, angle: baseAngle + Math.PI * 2 - 0.0001, radius: radius});
                 animCircle.widgetType = 'compass'; animCircle.counterClockwise = false;
@@ -17786,7 +17983,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         pNewName += "'";
                     }
                 }
-                let pNew = new Point(pCenter.x + (pCenter.x - pTarget.x), pCenter.y + (pCenter.y - pTarget.y), pNewName);
+                /* L'IMAGE EST UNE IMAGE, PAS UNE COPIE. Mesuré : OA = OA' = 437 à
+                   la construction, puis OA = 487 et OA' = 437 après avoir tiré
+                   sur A — la symétrie ne survivait pas au premier geste. Le sous-
+                   type existait déjà ; le bâtisseur ne s'en servait pas. */
+                let pNew = new Point(0, 0, pNewName, [pTarget, pCenter], null, 'symmetry_central');
+                pNew.update();
                 
                 let dx = pNew.x - pTarget.x;
                 let dy = pNew.y - pTarget.y;
@@ -17852,7 +18054,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 for (let pTarget of points) {
                     let t = ((pTarget.x - segAxis.p1.x)*dx + (pTarget.y - segAxis.p1.y)*dy) / len2;
-                    let proj = new Point(segAxis.p1.x + t*dx, segAxis.p1.y + t*dy, ""); proj.visible = false;
+                    /* Le pied de la perpendiculaire est le projeté du point sur
+                       l'axe : un seul parent suffit à le dire. */
+                    let proj = new Point(pTarget.x, pTarget.y, "", [segAxis]); proj.update();
+                    proj.visible = false;
                     
                     let pNewName = "";
                     if (pTarget.label) {
@@ -17861,7 +18066,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             pNewName += "'";
                         }
                     }
-                    let pNew = new Point(proj.x + (proj.x - pTarget.x), proj.y + (proj.y - pTarget.y), pNewName);
+                    let pNew = new Point(0, 0, pNewName, [pTarget, segAxis], null, 'symmetry_axial');
+                    pNew.update();
                     
                     let dxLine = pNew.x - pTarget.x;
                     let dyLine = pNew.y - pTarget.y;
@@ -18003,7 +18209,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Un arc de compas : on l'ouvre depuis le centre, puis on le trace
                    autour de la direction visée. Le geste se répète quatre fois par
                    point, il vaut une fonction. */
-                const arc = (centre, r, vers, ouverture) => {
+                const arc = (centre, r, vers, ouverture, paire) => {
                     const cible = Math.atan2(vers.y - centre.y, vers.x - centre.x);
                     const a = ouverture || 0.35;
                     const pose = (angle, radius) => ({ x: centre.x, y: centre.y, angle, radius });
@@ -18013,13 +18219,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const anim = new ToolAnimation('trace', pose(cible - a, r), pose(cible + a, r));
                     anim.widgetType = 'compass';
                     const trait = new CompassArc(centre, r, cible - a, cible + a, false);
+                    trait.viseRef = vers; trait.demiOuverture = a;
+                    if (paire) trait.rayonPaire = { a: paire[0], b: paire[1], k: 1 };
                     trait.color = "#ff9900";
                     this.addEntity(anim); this.addEntity(trait);
                     this.addEntity(new ToolAnimation('compassHide', {}, {}));
                 };
 
                 for (let pTarget of points) {
-                    const pNew = new Point(pTarget.x + vx, pTarget.y + vy, this.nomImage(pTarget));
+                    /* L'image est le point glissé du vecteur DE — écrit comme
+                       tel, elle suit D, E et le point. Mesuré : AA' = 488 et
+                       DO = 488 à la construction, puis AA' = 519 contre DO = 488
+                       après avoir tiré sur A. */
+                    const pNew = new Point(0, 0, this.nomImage(pTarget), [pTarget, pD, pE], null, 'translation');
+                    pNew.update();
                     /* Le point est-il SUR la droite (DE) ? Le parallélogramme est
                        alors aplati : les deux cercles sont tangents et se coupent
                        mal. On se contente d'un report de longueur dans la
@@ -18028,12 +18241,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const dx = pTarget.x - pD.x, dy = pTarget.y - pD.y;
                     const aplati = Math.abs(vx * dy - vy * dx) < L * 0.12;
                     if (aplati) {
-                        arc(pTarget, L, pNew, 0.2);
+                        arc(pTarget, L, pNew, 0.2, [pD, pE]);
                     } else {
                         // PP' = DE : l'arc depuis le point, ouvert à la longueur du vecteur
-                        arc(pTarget, L, pNew);
+                        arc(pTarget, L, pNew, null, [pD, pE]);
                         // EP' = DP : l'arc depuis E, ouvert à la distance de D au point
-                        arc(pE, Math.hypot(dx, dy), pNew);
+                        arc(pE, Math.hypot(dx, dy), pNew, null, [pD, pTarget]);
                     }
                     this.addEntity(pNew);
                 }
@@ -18058,14 +18271,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (r < 1e-6) { this.addEntity(new Point(pO.x, pO.y, this.nomImage(pTarget))); continue; }
                     const a0 = Math.atan2(pTarget.y - pO.y, pTarget.x - pO.x);
                     const a1 = a0 - signe * deg * Math.PI / 180;
-                    let pNew = new Point(pO.x + Math.cos(a1) * r, pO.y + Math.sin(a1) * r, this.nomImage(pTarget));
+                    let pNew = new Point(0, 0, this.nomImage(pTarget), [pTarget, pO], null, 'rotation');
+                    pNew.transParam = -signe * deg * Math.PI / 180;
+                    pNew.update();
 
                     // le rayon [OP], celui qu'on fait tourner
                     this.addEntity(new Segment(pO, pTarget, { color: "#b8b8b8", width: 1, dash: true }));
 
                     // le rapporteur, centré en O, lit l'angle depuis [OP]
                     this.cslPoserRapporteur(pO, pTarget, deg, -signe, null);
-                    let bout = new Point(pO.x + Math.cos(a1) * r * 1.18, pO.y + Math.sin(a1) * r * 1.18, "");
+                    let bout = new Point(0, 0, "", [pTarget, pO], null, 'rotation');
+                    bout.transParam = -signe * deg * Math.PI / 180; bout.transK = 1.18; bout.update();
                     bout.visible = false;
                     this.addEntity(bout);
                     this.cslRegleLeLongDe(pO, a1);
@@ -18077,7 +18293,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                                           { x: pO.x, y: pO.y, angle: a0, radius: r });
                     ouvre.widgetType = 'compass';
                     this.addEntity(ouvre);
-                    let arcTrace = new CompassArc(pO, r, a0, a1, signe > 0);
+                    let arcTrace = this.arcVivant(new CompassArc(pO, r, a0, a1, signe > 0), pTarget);
+                    arcTrace.deRef = pTarget; arcTrace.versRef = pNew;
                     arcTrace.color = "#ff9900";
                     let animC = new ToolAnimation('trace', { x: pO.x, y: pO.y, angle: a0, radius: r },
                                                            { x: pO.x, y: pO.y, angle: a1, radius: r });
@@ -18113,12 +18330,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const a0 = Math.atan2(pTarget.y - pO.y, pTarget.x - pO.x);
                     const ang = (k >= 0) ? a0 : a0 + Math.PI;
                     const R = Math.abs(k) * r;
-                    let pNew = new Point(pO.x + k * (pTarget.x - pO.x), pO.y + k * (pTarget.y - pO.y),
-                                         this.nomImage(pTarget));
+                    let pNew = new Point(0, 0, this.nomImage(pTarget), [pTarget, pO], null, 'homothetie');
+                    pNew.transParam = k; pNew.update();
 
                     /* La droite (OP), tracée à la règle et dépassant l'image : elle
                        porte le point cherché, et ne le montre pas encore. */
-                    let bout = new Point(pO.x + Math.cos(ang) * R * 1.18, pO.y + Math.sin(ang) * R * 1.18, "");
+                    let bout = new Point(0, 0, "", [pTarget, pO], null, 'homothetie');
+                    bout.transParam = k * 1.18; bout.update();
                     bout.visible = false;
                     this.addEntity(bout);
                     let pose = { x: pO.x, y: pO.y, angle: ang };
@@ -18136,7 +18354,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                                           { x: pO.x, y: pO.y, angle: ang, radius: R });
                     ouvre.widgetType = 'compass';
                     this.addEntity(ouvre);
-                    let arcTrace = new CompassArc(pO, R, ang - 0.2, ang + 0.2, false);
+                    let arcTrace = this.arcVivant(new CompassArc(pO, R, ang - 0.2, ang + 0.2, false), pNew, pNew, 0.2);
                     arcTrace.color = "#ff9900";
                     let animC = new ToolAnimation('trace', { x: pO.x, y: pO.y, angle: ang - 0.2, radius: R },
                                                            { x: pO.x, y: pO.y, angle: ang + 0.2, radius: R });
@@ -19642,7 +19860,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                figure partagée perdait ses marques de milieu sans
                                que rien ne le dise. En fin de groupe, comme le
                                reste : les liens d'avant se relisent inchangés. */
-                            e.codageMilieu || 0);
+                            e.codageMilieu || 0,
+                            /* L'angle d'une rotation ou le rapport d'une
+                               homothétie : sans lui, l'image relue redevenait
+                               un point libre et la figure se défaisait au
+                               premier déplacement. En fin de groupe, comme le
+                               reste : les liens d'avant se relisent inchangés. */
+                            (typeof e.transParam === 'number') ? f(e.transParam) : 0,
+                            (typeof e.transK === 'number') ? f(e.transK) : 0,
+                            /* « ce point appartient à la construction » : sans lui,
+                               une figure partagée par lien décrivait dans son
+                               énoncé les points d'appui qu'on avait justement mis
+                               de côté. */
+                            e.estConstruction ? 1 : 0);
                     }
                     else if (e instanceof Segment || e instanceof Line || e instanceof Ray) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color));
@@ -19884,6 +20114,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.fontSize = parseInt(d[11] || 14);
                             // absent d'un lien d'avant : le milieu est simplement sans marque
                             if (d[12] && d[12] !== '0') obj.codageMilieu = d[12];
+                            if (d[13] !== undefined && d[13] !== '' && d[13] !== '0') obj.transParam = parseFloat(d[13]);
+                            if (d[14] !== undefined && d[14] !== '' && d[14] !== '0') obj.transK = parseFloat(d[14]);
+                            if (d[15] === '1') obj.estConstruction = true;
                         }
                         else if (typeId === 2) {
                             obj = new Segment(null, null); obj.color = idx2col(d[3]);
@@ -21055,6 +21288,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                     else if (e instanceof Segment) {
+                        /* UN OBJET SANS EXTRÉMITÉ NE FAIT PAS TOMBER LE DESSIN.
+                           Vider la feuille pendant un rejeu laissait un segment
+                           dont les points venaient de disparaître : la mesure du
+                           cadre levait « Cannot read properties of undefined »,
+                           et plus rien ne s'affichait — ni la figure, ni le
+                           moyen de comprendre pourquoi. */
+                        if (!e.p1 || !e.p2) return;
                         extend(e.p1.x, e.p1.y);
                         extend(e.p2.x, e.p2.y);
                     }
@@ -23573,10 +23813,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // et l'endroit où on l'a glissé le long du trait
                     if (e.nomT !== undefined) data.nomT = e.nomT;
                     if (e.nomD !== undefined) data.nomD = e.nomD;
+                    /* CE QUI DIT « JE SUIS UN TRAIT DE CONSTRUCTION » DOIT SURVIVRE
+                       À UN ALLER-RETOUR. Arrêter le rejeu d'une figure magique
+                       relit la feuille depuis l'historique : tout ce qui n'était
+                       pas enregistré disparaissait alors silencieusement. Les
+                       trois points du nombre d'or redevenaient des points de la
+                       figure, et la médiatrice du cercle circonscrit reperdait son
+                       nom — l'énoncé passait de « la médiatrice de [AB] » à « la
+                       droite précédente », APRÈS coup, sans que rien n'ait bougé
+                       à l'écran. */
+                    if (e.estConstruction) data.estConstruction = true;
+                    if (e.roleDroite) data.roleDroite = e.roleDroite;
+                    if (e.motifCle) data.motifCle = e.motifCle;
+                    if (e.motifNom) { data.motifNom = e.motifNom; data.motifCm = e.motifCm;
+                                      data.motifMot = e.motifMot; }
                     if (e instanceof Point) {
                         data.x = e.x;
                         data.y = e.y;
                         data.subType = e.subType;
+                        if (typeof e.transParam === 'number') data.transParam = e.transParam;
+                        if (typeof e.transK === 'number') data.transK = e.transK;
                         data.pointStyle = e.pointStyle;
                         data.color = e.color;
                         data.label = e.label;
@@ -23686,6 +23942,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (data.counterClockwise !== undefined) obj.counterClockwise = data.counterClockwise;
                     } else if (data.type === 'Point') {
                         obj = new Point(data.x, data.y, data.label, [], data.id, data.subType);
+                        if (typeof data.transParam === 'number') obj.transParam = data.transParam;
+                        if (typeof data.transK === 'number') obj.transK = data.transK;
                         if (data.pointStyle !== undefined) obj.pointStyle = data.pointStyle;
                         if (data.showLabel !== undefined) obj.showLabel = data.showLabel;
                         if (data.labelAngle !== undefined) obj.labelAngle = data.labelAngle;
@@ -23740,6 +23998,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (data.nomDroite) obj.nomDroite = data.nomDroite;
                             if (data.nomT !== undefined) obj.nomT = data.nomT;
                             if (data.nomD !== undefined) obj.nomD = data.nomD;
+                            if (data.roleDroite) obj.roleDroite = data.roleDroite;
+                            if (data.estConstruction) obj.estConstruction = true;
+                            if (data.motifCle) obj.motifCle = data.motifCle;
+                            if (data.motifNom) { obj.motifNom = data.motifNom; obj.motifCm = data.motifCm;
+                                                 obj.motifMot = data.motifMot; }
                             if (obj instanceof Segment) {
                                 obj.showLength = data.showLength || false;
                                 obj.measureOffset = data.measureOffset || -15;
@@ -24236,6 +24499,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.ctx.stroke();
                 }
             }
+            /* RÉSERVER LES NOMS D'UNE FIGURE AVANT DE LES DISTRIBUER.
+               getNextLabel regarde ce qui existe DÉJÀ : un bâtisseur qui pose
+               d'abord ses points d'appui, puis ses sommets, donne aux sommets les
+               lettres qui restent. Le pentagone se relisait « Trace un pentagone
+               régulier ACDFG », parce que B, M et E étaient partis dans la
+               construction du nombre d'or. On réserve donc les noms des sommets
+               d'un coup, avant de bâtir. */
+            reserverNoms(combien, dejaPris) {
+                const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                const pris = new Set(this.entities
+                    .filter(e => e instanceof Point && e.label).map(e => e.label));
+                (dejaPris || []).forEach(x => pris.add(x));
+                const noms = [];
+                for (const suffixe of ['', "'", "''"]) {
+                    for (const c of alphabet) {
+                        if (noms.length >= combien) break;
+                        if (!pris.has(c + suffixe)) { noms.push(c + suffixe); pris.add(c + suffixe); }
+                    }
+                }
+                while (noms.length < combien) noms.push('');
+                return noms;
+            }
             getNextLabel() {
                 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                 const existingLabels = this.entities
@@ -24312,7 +24597,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             updateDependents() {
                 this.entities.forEach(entity => {
                     if (entity instanceof Point && entity.parents.length > 0) entity.update();
+                    else if (entity instanceof CompassArc && entity.update) entity.update();
                 });
+            }
+            /* Attacher un arc de construction à ce qu'il construit : l'écartement
+               se lit sur un point, la visée sur un autre. */
+            /* UN MOTIF SE RELIT COMME UN MOTIF. La rosace, la graine de vie, le
+               yin-yang, l'octogramme, l'hexagramme, l'escargot de Pythagore : ce
+               sont des figures ENTIÈRES, faites d'arcs et de points sans nom. Lus
+               pièce par pièce, ils ne donnaient rien du tout — l'énoncé de la
+               rosace tenait en « Place les points A et B tels que AB = 4,8 cm »,
+               et n'importe qui aurait dessiné autre chose. Le bâtisseur dit donc
+               ce qu'il a construit, et l'énoncé le rend d'une phrase.
+
+               Le marqueur voyage avec la figure (enregistrement, lien, reprise
+               après un rejeu) : sans cela il disparaissait au premier arrêt de
+               l'animation, et l'énoncé changeait tout seul. */
+            marquerMotif(depuis, nom, rayonPx, mot) {
+                const cle = 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
+                let tete = null;
+                for (let i = depuis; i < this.entities.length; i++) {
+                    const e = this.entities[i];
+                    /* Les poses d'instrument ne portent pas la marque : elles ne
+                       sont pas la figure, et c'est sur une PIÈCE que le nom doit
+                       s'accrocher pour être relu. */
+                    if (e instanceof ToolAnimation) continue;
+                    e.motifCle = cle;
+                    if (!tete) tete = e;
+                }
+                if (tete) {
+                    tete.motifNom = nom;
+                    tete.motifCm = Math.round(rayonPx / UNIT * (this.cmScale || 1) * 10) / 10;
+                    tete.motifMot = mot || 'de rayon';
+                }
+            }
+            arcVivant(arc, rayonRef, viseRef, demiOuverture) {
+                if (rayonRef) arc.rayonRef = rayonRef;
+                if (viseRef && typeof demiOuverture === 'number') {
+                    arc.viseRef = viseRef;
+                    arc.demiOuverture = demiOuverture;
+                }
+                return arc;
             }
             /* UN CERCLE DE 3 CM RESTE UN CERCLE DE 3 CM QUAND ON LE DÉPLACE.
                Un cercle se retient par deux points : son centre, et un point du
@@ -37732,6 +38057,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             pgCm(v) { return String(Math.round(v * 10) / 10).replace('.', ',') + ' cm'; }
             pgNom(p) { return (p && p.label) ? p.label : '?'; }
+            /* Un rapport s'écrit à la française — 1,5 et non 1.5 — et sans queue
+               de décimales : 0,7071067811865476 n'est le rapport de rien qu'un
+               élève puisse reporter. */
+            pgNombre(x) {
+                const v = Math.round(Number(x) * 100) / 100;
+                return String(v).replace('.', ',');
+            }
             /* Un point est-il montrable dans un énoncé ? Il lui faut un nom : on
                ne dicte pas « place le point sans nom ». */
             pgNomme(p) { return p instanceof Point && p.label && p.visible !== false; }
@@ -37858,22 +38190,36 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 for (const [p0, v0] of voisins) {
                     if (vus.has(p0) || v0.length !== 2) continue;
                     const cycle = [p0];
-                    vus.add(p0);
                     let prec = p0, cur = v0[0], ok = true;
                     while (cur !== p0) {
                         const v = voisins.get(cur) || [];
                         if (v.length !== 2 || cycle.length > 24) { ok = false; break; }
-                        cycle.push(cur); vus.add(cur);
+                        cycle.push(cur);
                         const suiv = v[0] === prec ? v[1] : v[0];
                         prec = cur; cur = suiv;
                     }
-                    if (ok && cycle.length >= 3) trouves.push(cycle);
+                    /* ON NE MARQUE QUE CE QU'ON A VRAIMENT TROUVÉ. Les sommets
+                       parcourus étaient marqués « vus » AU FUR ET À MESURE, même
+                       quand la marche échouait : l'hexagone, dont un sommet porte
+                       le rayon en plus des deux côtés, faisait échouer la marche
+                       en ce sommet — et les cinq autres, déjà marqués, ne
+                       restaient plus pour le repêchage par le contour. L'énoncé
+                       de l'hexagone énumérait donc six segments sans jamais dire
+                       le mot « hexagone ». */
+                    if (ok && cycle.length >= 3) {
+                        cycle.forEach(p => vus.add(p));
+                        trouves.push(cycle);
+                    }
                 }
                 /* Le contour, pour ce que les degrés ont empêché de voir. */
                 const restants = [...voisins.keys()].filter(p => !vus.has(p));
                 if (restants.length >= 4 && restants.length <= 12) {
                     const contour = this.pgEnveloppe(restants);
-                    if (contour.length === restants.length
+                    /* Le contour n'a pas à passer par TOUS les points restants :
+                       le centre d'un hexagone est à l'intérieur, et le rayon qui
+                       en part n'est pas un côté. Il suffit que chaque côté du
+                       contour soit un trait réellement présent. */
+                    if (contour.length >= 3
                         && contour.every((p, i) => (voisins.get(p) || [])
                             .includes(contour[(i + 1) % contour.length]))) {
                         /* On repart du sommet posé le premier : « DCBA » et
@@ -37900,6 +38246,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                On reconnaît le motif — un cercle, et n arcs de MÊME rayon dont
                les centres sont sur ce cercle, régulièrement répartis — et on
                l'énonce d'une phrase, celle-là même que le logiciel sait tracer. */
+            /* Les pièces d'un motif, regroupées par leur marque. */
+            pgMotifs() {
+                const parCle = new Map();
+                this.entities.forEach((e) => {
+                    if (!e.motifCle) return;
+                    if (!parCle.has(e.motifCle)) parCle.set(e.motifCle, { pieces: [] });
+                    const g = parCle.get(e.motifCle);
+                    g.pieces.push(e);
+                    if (e.motifNom) { g.nom = e.motifNom; g.cm = e.motifCm; g.mot = e.motifMot; }
+                });
+                const out = [];
+                parCle.forEach((g, cle) => {
+                    if (!g.nom || g.pieces.length < 2) return;
+                    out.push({ cle, nom: g.nom, cm: g.cm || 0, mot: g.mot || 'de rayon',
+                               pieces: g.pieces });
+                });
+                return out;
+            }
             pgRosaces() {
                 const out = [];
                 const pris = new Set();
@@ -37972,6 +38336,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     consommes.add(d.centre);
                     if (!parDessin.has(dernier)) parDessin.set(dernier, []);
                     parDessin.get(dernier).push(d);
+                });
+                const motifs = this.pgMotifs();
+                const parMotif = new Map();
+                motifs.forEach((m) => {
+                    let dernier = -1;
+                    m.pieces.forEach((e) => {
+                        consommes.add(e);
+                        dernier = Math.max(dernier, this.entities.indexOf(e));
+                    });
+                    if (!parMotif.has(dernier)) parMotif.set(dernier, []);
+                    parMotif.get(dernier).push(m);
                 });
                 const rosaces = this.pgRosaces();
                 const parRosace = new Map();
@@ -38060,6 +38435,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                                          || v === 1.25 || v === 1.75) });
                         });
                     }
+                    if (parMotif.has(i)) {
+                        viderLibres();
+                        parMotif.get(i).forEach(m => faits.push({
+                            t: 'motif', nom: m.nom, cm: m.cm, mot: m.mot }));
+                    }
                     if (parRosace.has(i)) {
                         viderLibres();
                         parRosace.get(i).forEach(r => faits.push({
@@ -38082,16 +38462,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (e instanceof Point) {
                         if (!this.pgNomme(e)) return;
                         const par = e.parents || [];
-                        if (par.length === 2 && par[0] instanceof Point && par[1] instanceof Point) {
+                        /* LA RAISON D'ÊTRE DU POINT SE LIT AVANT SA FORME. Un
+                           symétrique de centre O a deux points pour parents, un
+                           milieu aussi : la règle « deux points ⇒ milieu »
+                           passait donc en premier et l'énoncé annonçait « Place
+                           le milieu A' de [AO] » là où la figure disait « le
+                           symétrique de A par rapport à O ». Depuis que les
+                           figures magiques écrivent leurs images (rotation,
+                           translation, agrandissement), la confusion touchait
+                           aussi le pentagone : « Place le milieu E de [BM] ».
+                           Le sous-type dit ce qu'est le point ; on le lit
+                           d'abord, la forme des parents ensuite. */
+                        if (e.subType === 'symmetry_central' || e.subType === 'symmetry_axial') {
+                            viderLibres();
+                            faits.push({ t: 'symetrique', p: e, source: par[0], par: par[1],
+                                         axial: e.subType === 'symmetry_axial' });
+                        } else if (e.subType === 'rotation' && par.length === 2) {
+                            viderLibres();
+                            faits.push({ t: 'image', genre: 'rotation', p: e,
+                                         source: par[0], centre: par[1],
+                                         deg: Math.round(-(e.transParam || 0) * 180 / Math.PI),
+                                         k: (typeof e.transK === 'number') ? e.transK : 1 });
+                        } else if (e.subType === 'homothetie' && par.length === 2) {
+                            viderLibres();
+                            faits.push({ t: 'image', genre: 'homothetie', p: e,
+                                         source: par[0], centre: par[1],
+                                         k: (typeof e.transParam === 'number') ? e.transParam : 1 });
+                        } else if (e.subType === 'translation' && par.length === 3) {
+                            viderLibres();
+                            faits.push({ t: 'image', genre: 'translation', p: e,
+                                         source: par[0], d: par[1], e2: par[2] });
+                        } else if (par.length === 2 && par[0] instanceof Point && par[1] instanceof Point) {
                             viderLibres();
                             faits.push({ t: 'milieu', p: e, a: par[0], b: par[1] });
                         } else if (par.length === 2) {
                             viderLibres();
                             faits.push({ t: 'intersection', p: e, o1: par[0], o2: par[1] });
-                        } else if (e.subType === 'symmetry_central' || e.subType === 'symmetry_axial') {
-                            viderLibres();
-                            faits.push({ t: 'symetrique', p: e, source: par[0], par: par[1],
-                                         axial: e.subType === 'symmetry_axial' });
                         } else if (par.length === 1) {
                             viderLibres();
                             faits.push({ t: 'pointSur', p: e, support: par[0] });
@@ -38128,6 +38534,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (e instanceof Line) {
                         faits.push({ t: 'droite', a: e.p1, b: e.p2, nom: e.nomDroite });
                     } else if (e instanceof Angle) {
+                        /* UN ANGLE SANS NOMS NE SE DIT PAS. L'escargot de
+                           Pythagore marque douze angles droits sur des sommets
+                           anonymes : l'énoncé alignait douze fois « L'angle A??
+                           est droit », ce qui n'apprend rien et ne se refait
+                           pas. On garde la marque sur la figure, on la tait dans
+                           le texte. */
+                        if (!this.pgNomme(e.p1) || !this.pgNomme(e.p2) || !this.pgNomme(e.p3)) return;
                         const v = Math.round(e.getAngleValue());
                         faits.push({ t: 'angle', a: e.p1, s: e.p2, b: e.p3, deg: v,
                                      droit: Math.abs(v - 90) < 1 });
@@ -38149,7 +38562,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (this.pgNomme(q) && !vus.includes(q)) vus.push(q);
                     });
                 });
-                return faits;
+                /* UN CARRÉ A SES ANGLES DROITS : ON NE LE REDIT PAS QUATRE FOIS.
+                   L'énoncé du carré magique disait « Trace un carré ABCD de
+                   4,8 cm de côté. » puis « L'angle BAD est droit. L'angle CBA est
+                   droit. L'angle DCB est droit. L'angle ADC est droit. » — quatre
+                   lignes qui ne demandent rien de plus, et qui font douter de la
+                   première. Le codage reste sur la figure, où il a sa place ; le
+                   texte, lui, ne répète pas la définition. */
+                const impliquent = new Set();
+                faits.forEach((f) => {
+                    if (f.t !== 'polygone' || !f.pts) return;
+                    const nature = (typeof f.nature === 'object') ? f.nature.nom : f.nature;
+                    if (nature !== 'carré' && nature !== 'rectangle') return;
+                    f.pts.forEach(p => impliquent.add(p));
+                });
+                return faits.filter((f) => !(f.t === 'angle' && f.droit
+                    && impliquent.has(f.a) && impliquent.has(f.s) && impliquent.has(f.b)));
             }
             /* Les points qu'un fait met en jeu — ceux qui, après lui, sont posés
                sur la feuille et peuvent servir d'ancrage au suivant. */
@@ -38157,12 +38585,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 switch (f.t) {
                     case 'points': return f.noms || [];
                     case 'rosace': return [f.centre];
-                    case 'dessin': return [];
+                    case 'dessin': case 'motif': return [];
                     case 'polygone': return f.pts || [];
                     case 'segment': case 'droite': case 'demidroite': return [f.a, f.b];
                     case 'cercle': return [f.centre, f.bord];
                     case 'milieu': return [f.a, f.b, f.p];
-                    case 'intersection': case 'pointSur': case 'symetrique': return [f.p];
+                    case 'intersection': case 'pointSur': case 'symetrique': case 'image': return [f.p];
                     case 'perpendiculaire': case 'parallele': return [f.par];
                     case 'angle': return [f.a, f.s, f.b];
                     case 'arc': return [f.centre];
@@ -38250,6 +38678,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                ne portent pas de lettre — et là c'est honnête. */
             pgDesigner(o) {
                 if (!o) return null;
+                /* LE BÂTISSEUR PEUT DIRE LUI-MÊME CE QU'IL A TRACÉ. La médiatrice
+                   d'un cercle circonscrit est une droite sans nom, portée par
+                   deux croisements d'arcs anonymes : le centre se lisait « le
+                   point O, intersection de la droite précédente et de la droite
+                   précédente », qui ne désigne rien. */
+                if (o.roleDroite) return o.roleDroite;
                 const N = (p) => this.pgNom(p);
                 const nom = (p) => !!(p && this.pgNomme(p));
                 const deux = (a, b) => nom(a) && nom(b);
@@ -38489,6 +38923,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return `Place un point ${N(f.p)} sur `
                             + `${this.pgDesignerOuGenre(f.support)}${ou}.`;
                     }
+                    case 'image': {
+                        /* Une image de transformation se dit avec le nom de la
+                           transformation — c'est le vocabulaire du cours, et
+                           c'est ce qui rend l'énoncé refaisable. */
+                        if (f.genre === 'translation')
+                            return `Place l'image ${N(f.p)} de ${N(f.source)} par la translation `
+                                + `qui envoie ${N(f.d)} sur ${N(f.e2)}.`;
+                        if (f.genre === 'homothetie')
+                            return `Place l'image ${N(f.p)} de ${N(f.source)} par l'homothétie de `
+                                + `centre ${N(f.centre)} et de rapport ${this.pgNombre(f.k)}.`;
+                        const sens = (f.deg < 0) ? "dans le sens des aiguilles d'une montre"
+                                                 : "dans le sens inverse des aiguilles d'une montre";
+                        const tour = `la rotation de centre ${N(f.centre)} et d'angle `
+                                   + `${Math.abs(f.deg)}° ${sens}`;
+                        return (Math.abs(f.k - 1) < 1e-6)
+                            ? `Place l'image ${N(f.p)} de ${N(f.source)} par ${tour}.`
+                            : `Place l'image ${N(f.p)} de ${N(f.source)} par ${tour}, `
+                              + `puis ramène-la à ${this.pgNombre(f.k)} fois la distance à `
+                              + `${N(f.centre)}.`;
+                    }
                     case 'symetrique':
                         return `Place le symétrique ${N(f.p)} de ${N(f.source)} par rapport `
                             + (f.axial
@@ -38509,6 +38963,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             : `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} mesure ${f.deg}°.`;
                     case 'dessin':
                         return `Trace un ${f.nom} de ${this.pgCm(f.cm)}.`;
+                    case 'motif':
+                        return `Trace ${f.nom}${f.cm ? ` de ${this.pgCm(f.cm)} ${f.mot || 'de rayon'}` : ''}.`;
                     case 'rosace':
                         return `Trace une rosace à ${f.petales} pétales, de centre ${N(f.centre)} `
                             + `et de rayon ${this.pgCm(f.cm)}.`;
@@ -38656,6 +39112,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return [`Marque un point ${N(f.p)} sur `
                             + `${this.pgDesignerOuGenre(f.support)}`
                             + `${this.pgOuSurLeSupport(f)}.`];
+                    case 'image': {
+                        if (f.genre === 'translation')
+                            return [`Au compas, reporte la longueur ${N(f.d)}${N(f.e2)} depuis `
+                                + `${N(f.source)}, et la longueur ${N(f.d)}${N(f.source)} depuis `
+                                + `${N(f.e2)} : les deux arcs se croisent en ${N(f.p)}.`];
+                        if (f.genre === 'homothetie')
+                            return [`À la règle, trace la droite (${N(f.centre)}${N(f.source)}).`,
+                                `Au compas, reporte ${this.pgNombre(Math.abs(f.k))} fois `
+                                + `${N(f.centre)}${N(f.source)} depuis ${N(f.centre)} `
+                                + `${f.k < 0 ? "de l'autre côté" : "du même côté"} : c'est ${N(f.p)}.`];
+                        return [`Au rapporteur, mesure ${Math.abs(f.deg)}° depuis `
+                            + `[${N(f.centre)}${N(f.source)}) et trace la demi-droite lue.`,
+                            `Au compas, reporte ${N(f.centre)}${N(f.source)} sur cette demi-droite : `
+                            + `c'est ${N(f.p)}.`];
+                    }
                     case 'symetrique':
                         return f.axial
                             ? [`À l'équerre, descends la perpendiculaire de ${N(f.source)} à l'axe, `
@@ -38684,6 +39155,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             : [`Au rapporteur, centre sur ${N(f.s)}, le zéro sur `
                                + `[${N(f.s)}${N(f.a)}) : marque ${f.deg}°, puis trace `
                                + `[${N(f.s)}${N(f.b)}) à la règle.`];
+                    case 'motif':
+                        /* Un motif au compas se fait d'un seul écartement : on
+                           mesure le rayon une fois, tout le reste se reporte. */
+                        return [`Ouvre le compas de ${this.pgCm(f.cm)} — c'est la SEULE longueur `
+                            + `que tu mesureras.`,
+                            `Sans changer l'écartement, trace ${f.nom} : chaque point se reporte `
+                            + `sur le tracé précédent.`];
                     case 'dessin': {
                         /* UNE SEULE LONGUEUR SE MESURE. Le reste se reporte, et
                            le programme le dit étape par étape — sans quoi il
@@ -40362,7 +40840,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 0h';
+        window.GM_VERSION = '2026-09-08 · 1h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

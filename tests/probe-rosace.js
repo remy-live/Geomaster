@@ -175,9 +175,15 @@ const ck = (nom, ok, detail) => {
   ck('LE COMPAS DESSINE pendant qu\'il tourne', rejeu.dessinantes > 40,
      rejeu.dessinantes + ' images sur ' + rejeu.images + ' (0 avant)');
   /* Un tour complet plus six pétales de 120° : l'aiguille en voit largement
-     plus que les 239° d'avant, où seuls les DÉPLACEMENTS la faisaient tourner. */
+     plus que les 239° d'avant, où seuls les DÉPLACEMENTS la faisaient tourner.
+
+     Le NOMBRE d'angles distincts ne mesure pas la figure, il mesure la cadence
+     du navigateur : sous charge — six sondes en parallèle — le rejeu s'échantillonne
+     moins finement, et le seuil de 90 faisait échouer une rosace parfaitement
+     tracée pour 87 relevés. C'est l'AMPLITUDE qui dit que l'aiguille a fait le
+     tour ; le compte ne sert qu'à écarter un saut d'un angle à l'autre. */
   ck('  et il tourne vraiment : plus d\'un tour d\'amplitude',
-     rejeu.amplitude > 360 && rejeu.anglesDistincts > 90,
+     rejeu.amplitude > 360 && rejeu.anglesDistincts > 50,
      rejeu.amplitude + '° sur ' + rejeu.anglesDistincts + ' angles distincts');
 
   console.log('\n=== le « ? » que le refus promettait ===');

@@ -824,6 +824,78 @@ est un dessin, pas une figure.
 
 L'audit est vert sur les 174 phrases, et il tourne avec les autres sondes.
 
+### Les figures magiques tiennent quand on tire dessus
+
+L'audit des consignes ne voyait pas les figures de la grille — carré, hexagone,
+rosace, yin-yang, symétries, rotation… : elles ne passent par aucune phrase, on
+les prend dans un tiroir et l'on clique. **`tests/audit-magiques.js`** leur
+applique les mêmes trois règles, plus une quatrième qui ne vaut que pour elles :
+la figure doit se relire en un énoncé.
+
+Puis on a mesuré ce qui compte vraiment : la figure survit-elle au premier geste
+de l'élève ? Avant, après avoir tiré le sommet A de 60 px à gauche et 40 px en
+haut :
+
+| figure | à la construction | après avoir tiré A |
+|---|---|---|
+| triangle équilatéral | 240 / 240 / 240 | **303 / 246 / 240** |
+| carré | 240 / 240 / 240 / 240 | **303 / 240 / 240 / 209** |
+| symétrie centrale | OA = OA′ = 437 | **OA = 487, OA′ = 437** |
+| translation | AA′ = DO = 488 | **AA′ = 519, DO = 488** |
+| cercle circonscrit | 163 / 163 / 163 | **193 / 163 / 163** |
+
+Les bâtisseurs calculaient une position, puis l'oubliaient. La figure était juste
+une fois — à l'instant du clic — et fausse au geste suivant, ce qui est
+exactement le contraire de ce qu'un logiciel de géométrie doit apprendre.
+
+Le point sait désormais dire d'où il vient. Trois relations de plus, et ce sont
+les trois transformations du programme : **tourner** autour d'un centre,
+**glisser** d'un vecteur, **agrandir** depuis un centre. C n'est plus « un point
+à 240 px de A » mais *« B tourné de 60° autour de A »* ; le quatrième sommet du
+carré est *« D glissé de A vers B »* ; le centre du cercle circonscrit est
+*« le croisement des deux médiatrices »* — un vrai croisement, pas la formule du
+circoncentre. Les arcs de construction suivent : leur écartement se lit sur un
+point de la figure, leur visée sur le point qu'ils fabriquent.
+
+`tests/probe-magiques-tiennent.js` vérifie la **propriété**, pas les longueurs :
+la figure a le droit de changer de taille, pas de cesser d'être un carré. Treize
+figures, treize propriétés qui résistent.
+
+Au passage, deux choses qui disparaissaient en silence. Arrêter le rejeu d'une
+figure magique **relit la feuille depuis l'historique** : tout ce qui n'était pas
+enregistré s'évaporait alors sans que rien ne bouge à l'écran. Les marques « ceci
+est un trait de construction » et le nom d'une droite voyagent maintenant avec la
+figure.
+
+### L'énoncé d'une figure magique
+
+Une figure qui ne sait pas se raconter est une figure que le logiciel ne comprend
+pas. Relues, la moitié des constructions de la grille ne donnaient rien :
+
+| figure | avant | après |
+|---|---|---|
+| hexagone | *Place les points A et B. Trace le segment [AB].* | *…Trace un hexagone régulier BCDEFG de 4,8 cm de côté.* |
+| pentagone | *…Place le milieu B de [BA]. Place le milieu E de [BM].* | *…Trace un pentagone régulier ABCDE de 5,6 cm de côté.* |
+| rosace | *Place les points A et B.* | *…Trace une rosace à six pétales de 4,8 cm de rayon.* |
+| escargot de Pythagore | *L'angle AB? est droit.* × 12 | *…Trace l'escargot de Pythagore de 4,8 cm de côté.* |
+| cercle circonscrit | *…intersection de la droite précédente et de la droite précédente.* | *…intersection de la médiatrice de [AB] et de la médiatrice de [BC].* |
+| carré | *…L'angle BAD est droit.* × 4 | *Trace un carré ABCD de 4,8 cm de côté.* |
+
+Cinq causes, toutes de la même famille : **la figure ne disait pas ce qu'elle
+était**. Les sommets d'un hexagone n'avaient pas de nom — sans nom, rien à lire.
+La détection de polygone marquait comme « vus » les sommets d'un cycle qu'elle
+n'avait pas réussi à fermer, et le repêchage par le contour ne les retrouvait
+plus. Un angle marqué sur des points anonymes s'écrivait `AB?`. Le carré redisait
+quatre fois ce que sa définition contient déjà. Et les motifs décoratifs — rosace,
+graine de vie, yin-yang, octogramme, hexagramme, escargot — n'étaient qu'un tas
+d'arcs ; le bâtisseur les signe maintenant, et l'énoncé les rend d'une phrase.
+
+Le pentagone méritait un mot de plus : sa construction du nombre d'or piochait
+les lettres B, M et E avant que les sommets n'aient les leurs, et le pentagone se
+relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; les
+points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
+appartiennent à la construction, qui se voit à l'écran, pas à la figure.
+
 ### Un carré et ses diagonales reste un carré
 
 La détection de polygone demandait des sommets de degré 2. Les diagonales les
@@ -1466,7 +1538,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 90 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 96 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
