@@ -125,6 +125,61 @@ const ck = (nom, ok, detail) => {
      relu.avec.some(l => /SANS CHANGER L'ÉCARTEMENT/.test(l))
      && relu.avec.some(l => /sixième report/.test(l)), relu.avec.join(' | '));
 
+  console.log('\n=== au rejeu, le compas TOURNE et il DESSINE ===');
+  /* « pour le cercle, le compas ne bouge pas ; pour les arcs à l'intérieur, il
+     ne dessine rien, on voit que la fin de l'arc. »
+     Deux causes, l'une et l'autre nées du choix de faire la rosace en VRAIES
+     figures plutôt qu'en traces de compas :
+       — le tracé progressif n'était affiché que devant un CompassArc ;
+       — et le cercle était posé AVANT son animation, alors que le rejeu regarde
+         l'objet qui SUIT.
+     Mesuré sur la version précédente : 0 image où le compas dessine, et une
+     amplitude de 239° pour six pétales et un tour complet. */
+  const rejeu = await page.evaluate(async () => {
+    const app = window.app;
+    const suivi = [];
+    const vraiRender = app.render.bind(app);
+    app.render = function () {
+      vraiRender();
+      const w = app.compassWidget;
+      if (app.isToolAnimating) {
+        suivi.push({ angle: w ? Math.round(w.angle * 180 / Math.PI) : null,
+                     dessine: !!app.ArcTracing });
+      }
+    };
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace une rosace de 3 cm', true);
+    /* Chaque animation de tracé doit être suivie de la figure qu'elle trace :
+       c'est là que le rejeu va chercher quoi dessiner. */
+    const mal = [];
+    app.entities.forEach((e, i) => {
+      if (!(e instanceof ToolAnimation) || e.originalType !== 'trace') return;
+      const suivant = app.entities[i + 1];
+      if (!(suivant instanceof Arc || suivant instanceof Circle
+            || suivant instanceof CompassArc)) {
+        mal.push(suivant ? suivant.constructor.name : '(rien)');
+      }
+    });
+    app.replayIndex = 0; app.fastForward(0);
+    app.playStepLoop(0, app.entities.length);
+    await new Promise(r => setTimeout(r, 9000));
+    app.render = vraiRender;
+    const angles = [...new Set(suivi.map(x => x.angle))];
+    return { images: suivi.length, mal,
+             dessinantes: suivi.filter(x => x.dessine).length,
+             anglesDistincts: angles.length,
+             amplitude: angles.length ? Math.max(...angles) - Math.min(...angles) : 0 };
+  });
+  ck('chaque tracé est suivi de la figure qu\'il trace', rejeu.mal.length === 0,
+     rejeu.mal.length ? 'suivi de : ' + rejeu.mal.join(', ') : 'les 7');
+  ck('LE COMPAS DESSINE pendant qu\'il tourne', rejeu.dessinantes > 40,
+     rejeu.dessinantes + ' images sur ' + rejeu.images + ' (0 avant)');
+  /* Un tour complet plus six pétales de 120° : l'aiguille en voit largement
+     plus que les 239° d'avant, où seuls les DÉPLACEMENTS la faisaient tourner. */
+  ck('  et il tourne vraiment : plus d\'un tour d\'amplitude',
+     rejeu.amplitude > 360 && rejeu.anglesDistincts > 90,
+     rejeu.amplitude + '° sur ' + rejeu.anglesDistincts + ' angles distincts');
+
   console.log('\n=== le « ? » que le refus promettait ===');
   const bouton = await page.evaluate(() => {
     const app = window.app;

@@ -26017,7 +26017,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const nextIndex = this.replayIndex + 1;
                     if (nextIndex < this.entities.length) {
                         const nextEnt = this.entities[nextIndex];
-                        const isTracing = nextEnt instanceof CompassArc;
+                        /* LE COMPAS DOIT DESSINER, MÊME QUAND CE QU'IL TRACE EST
+                           UNE VRAIE FIGURE. Le tracé progressif n'était affiché
+                           que devant un CompassArc — c'est-à-dire une TRACE de
+                           construction. La rosace, elle, est faite d'un vrai
+                           cercle et de vrais arcs, pour que le programme de
+                           construction sache la relire : le compas tournait donc
+                           à vide, et l'on ne voyait l'arc qu'à la fin. Pire, pour
+                           le cercle entier il ne tournait même pas — sans le
+                           drapeau ArcTracing, l'interpolation prend le plus court
+                           chemin de 0 à 2π, c'est-à-dire aucun. */
+                        const traceAuCompas = anim instanceof ToolAnimation
+                            && anim.widgetType === 'compass' && anim.originalType === 'trace';
+                        const isTracing = nextEnt instanceof CompassArc
+                            || (traceAuCompas
+                                && (nextEnt instanceof Arc || nextEnt instanceof Circle));
                         const isLinearTracing = (nextEnt instanceof LinearObject || nextEnt instanceof Segment || nextEnt instanceof Line || nextEnt instanceof Ray) && (anim instanceof ToolAnimation && anim.originalType === 'trace' && (anim.widgetType === 'ruler' || anim.widgetType === 'setsquare'));
                         if (anim instanceof ToolAnimation && anim.widgetType === 'compass' && isTracing && this.compassWidget) {
                             const w = this.compassWidget;
@@ -32926,15 +32940,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        compas, et l'énoncé relu dira « de rayon 3 cm ». */
                     const bord = new Point(o.x + rayon, o.y, ''); bord.visible = false;
                     this.addEntity(bord);
-                    const cercle = new Circle(O, bord, st); this.addEntity(cercle);
                     const outils = this.cslDetaille();
+                    /* LE GESTE D'ABORD, LA FIGURE ENSUITE : le rejeu dessine le
+                       trait en cours en regardant l'objet qui SUIT l'animation.
+                       Le cercle posé avant la sienne, le compas tournait sur une
+                       feuille blanche. */
                     if (outils) {
                         const a = new ToolAnimation('trace',
                             { x: O.x, y: O.y, angle: 0, radius: rayon },
                             { x: O.x, y: O.y, angle: Math.PI * 2, radius: rayon });
                         a.widgetType = 'compass'; this.addEntity(a);
                     }
-                    let precedent = null;
+                    const cercle = new Circle(O, bord, st); this.addEntity(cercle);
+                    /* Le compas finit le cercle à 2π : le déplacement vers le
+                       premier pétale part de là, sans saut. */
+                    let precedent = outils ? { x: O.x, y: O.y, angle: Math.PI * 2 } : null;
                     for (let i = 0; i < petales; i++) {
                         const ang = i * (Math.PI * 2 / petales);
                         /* SUR le cercle, pas à côté : le centre du pétale est un
@@ -32945,7 +32965,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.addEntity(C);
                         const deb = ang + Math.PI * 2 / 3, fin = ang + Math.PI * 4 / 3;
                         if (outils) {
-                            const dep = precedent || { x: O.x, y: O.y, angle: 0 };
+                            const dep = precedent;
                             const m = new ToolAnimation('move',
                                 { x: dep.x, y: dep.y, angle: dep.angle, radius: rayon },
                                 { x: C.x, y: C.y, angle: deb, radius: rayon });
@@ -39434,7 +39454,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-07 · 6h';
+        window.GM_VERSION = '2026-09-07 · 8h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

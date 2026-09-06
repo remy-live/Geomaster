@@ -701,6 +701,15 @@ même centre, même rayon, mêmes six pétales.
 Un autre nombre de pétales se dessine, et l'on prévient que les reports ne
 retombent alors plus sur le premier point.
 
+**Le compas dessine vraiment.** Aux instruments, il tournait à vide : le tracé
+progressif n'était affiché que devant un *CompassArc* — une trace de
+construction — alors que la rosace est faite d'un vrai cercle et de vrais arcs,
+justement pour que le programme de construction sache la relire. Et le cercle
+était posé **avant** son animation, quand le rejeu regarde l'objet qui la
+**suit**. Mesuré sur les deux versions, même rejeu : **0** image où le compas
+dessinait, amplitude 239° ; maintenant 95 images sur 116 et 475° — un tour
+complet, puis les six pétales.
+
 ### Le « ? » qui n'existait pas
 
 Quand la barre éclair ne comprenait pas une phrase, elle répondait *« Le « ? »
