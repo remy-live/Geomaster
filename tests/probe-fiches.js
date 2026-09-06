@@ -41,9 +41,21 @@ const ck = (nom, ok, detail) => {
       catch (e) { r = { ok: false, message: 'EXCEPTION ' + e.message }; }
       const c = app.entities.find(e => e instanceof Circle);
       const R = c ? Math.hypot(c.p2.x - c.p1.x, c.p2.y - c.p1.y) : 0;
+      /* UN SOMMET SE RECONNAÎT À SA PLACE, PAS À SON NOMBRE DE PARENTS. La
+         sonde les cherchait à « un seul parent », ce qui était vrai du temps où
+         chaque sommet était posé à l'angle calculé puis rattaché au cercle.
+         Maintenant qu'ils se CONSTRUISENT, ils ont deux parents — l'arc de
+         report et le cercle, ou la médiatrice et le cercle — et le premier, lui,
+         n'en a qu'un. On les prend donc pour ce qu'ils sont : les points nommés,
+         visibles, posés sur le cercle, le centre excepté. */
       const sommets = app.entities.filter(e => e instanceof Point && e.label
-                                            && e.parents && e.parents.length === 1);
-      const cordes = app.entities.filter(e => e instanceof Segment);
+        && e.visible !== false && c && e !== c.p1
+        && Math.abs(Math.hypot(e.x - c.p1.x, e.y - c.p1.y) - R) < 0.5);
+      /* Et les CORDES sont les traits de la figure : la construction en pose
+         aussi — la médiatrice d'une corde, la droite d'un diamètre — et ce ne
+         sont pas des côtés de l'étoile. */
+      const cordes = app.entities.filter(e => e instanceof Segment
+        && !app.estTraceDeConstruction(e));
       /* Tous les sommets sont-ils SUR le cercle, et régulièrement répartis ? */
       const surCercle = sommets.every(p =>
         Math.abs(Math.hypot(p.x - c.p1.x, p.y - c.p1.y) - R) < 0.5);

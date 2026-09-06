@@ -11600,11 +11600,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const c2 = getCircleData(obj2);
                     rawPoints = MathUtils.intersectCircleCircle(c1.c, c1.r, c2.c, c2.r);
                 }
+                /* UN ARC DESSINÉ COURT RESTE UN CERCLE ENTIER POUR LE CROISEMENT.
+                   Quand on reporte un écartement, on ne trace qu'un bout d'arc —
+                   juste de quoi couper le cercle — mais le point cherché est le
+                   croisement de DEUX CERCLES ; le petit trait n'est que la partie
+                   qu'on a pris la peine d'encrer.
+
+                   En bornant le croisement au trait visible, un déplacement un peu
+                   vif faisait sortir le point de sa fenêtre : mesuré, une étoile à
+                   douze branches déplacée de 70 px perdait trois sommets et ses
+                   écarts passaient de 30° à 15°–60°. L'arc qui se déclare ENTIER
+                   est donc croisé comme le cercle qu'il est. */
                 return rawPoints.filter(pt => {
                     let ok1 = true;
                     let ok2 = true;
-                    if (obj1 instanceof Arc || obj1 instanceof CompassArc) ok1 = MathUtils.isPointOnArc(pt, obj1);
-                    if (obj2 instanceof Arc || obj2 instanceof CompassArc) ok2 = MathUtils.isPointOnArc(pt, obj2);
+                    if ((obj1 instanceof Arc || obj1 instanceof CompassArc) && !obj1.entier) ok1 = MathUtils.isPointOnArc(pt, obj1);
+                    if ((obj2 instanceof Arc || obj2 instanceof CompassArc) && !obj2.entier) ok2 = MathUtils.isPointOnArc(pt, obj2);
                     return ok1 && ok2;
                 });
             },
@@ -33493,6 +33504,308 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                les deux triangles de l'étoile de David ; à huit, un pas de 2
                donne deux carrés croisés, un pas de 3 un tracé d'un seul trait.
                ============================================================ */
+            /* ---- PARTAGER UN CERCLE, AU COMPAS ----------------------------
+               « Les points sont placés sur le cercle mais arbitrairement, pas en
+               utilisant le compas et les arcs de cercle. »
+
+               C'était vrai, et c'est le même défaut que celui des dessins au
+               compas : les sommets d'une étoile étaient posés à l'angle calculé,
+               2π/n, puis rattachés au cercle pour qu'ils y glissent. Ils y
+               tenaient, mais rien ne DISAIT d'où ils venaient — et une figure
+               dont on ne peut pas refaire le geste n'est pas une construction,
+               c'est un dessin qui a l'air juste.
+
+               Deux gestes suffisent à presque tout, et ce sont ceux qu'on fait à
+               la main :
+
+                 · REPORTER l'écartement de proche en proche sur le cercle. Le
+                   rayon s'y reporte exactement six fois — c'est le fait
+                   élémentaire dont sortent l'hexagone, le triangle et la rosace.
+                 · COUPER UN ARC EN DEUX par la médiatrice de sa corde. Elle
+                   passe par le centre : deux arcs de MÊME écartement pris sur P
+                   et sur Q se croisent en un point X, et [OX) recoupe le cercle
+                   au milieu de l'arc. De six on passe à douze, de quatre à huit,
+                   de cinq à dix.
+
+               Ce qui ne se construit pas ainsi ne se construit pas du tout : sept,
+               neuf et onze parts sont impossibles à la règle et au compas — c'est
+               le théorème de Gauss-Wantzel, et le logiciel le dit au lieu de faire
+               semblant. Il partage alors le cercle au RAPPORTEUR, et l'annonce. */
+
+            /* L'écartement, pris et reporté : un arc de compas qui vise un point
+               et qui SUIT la figure quand on la déplace. */
+            cslArcCompas(centre, rayon, viser, paire, outils, precedent, couleur) {
+                const cible = Math.atan2(viser.y - centre.y, viser.x - centre.x);
+                const demi = 0.45;
+                if (outils) {
+                    const dep = precedent || { x: centre.x, y: centre.y, angle: cible - demi };
+                    const m = new ToolAnimation('move',
+                        { x: dep.x, y: dep.y, angle: dep.angle, radius: rayon },
+                        { x: centre.x, y: centre.y, angle: cible - demi, radius: rayon });
+                    m.widgetType = 'compass'; this.addEntity(m);
+                    const tr = new ToolAnimation('trace',
+                        { x: centre.x, y: centre.y, angle: cible - demi, radius: rayon },
+                        { x: centre.x, y: centre.y, angle: cible + demi, radius: rayon });
+                    tr.widgetType = 'compass'; this.addEntity(tr);
+                }
+                const arc = new CompassArc(centre, rayon, cible - demi, cible + demi, false);
+                arc.entier = true;
+                arc.color = couleur || '#ff9900';
+                arc.rayonPaire = { a: paire[0], b: paire[1], k: paire[2] || 1 };
+                this.addEntity(arc);
+                return { arc, pose: { x: centre.x, y: centre.y, angle: cible + demi } };
+            }
+
+            /* REPORTER une longueur depuis un point du cercle : le sommet suivant
+               est le CROISEMENT de l'arc et du cercle, pas un angle calculé. */
+            cslReporterSurCercle(cercle, O, depuis, rayon, paire, versX, versY,
+                                 nom, outils, precedent) {
+                const g = this.cslArcCompas(depuis, rayon, { x: versX, y: versY },
+                                           paire, outils, precedent);
+                const p = new Point(versX, versY, nom || '', [g.arc, cercle]);
+                p.update();
+                g.arc.viseRef = p; g.arc.demiOuverture = 0.45;
+                this.addEntity(p);
+                return { p, pose: g.pose };
+            }
+
+            /* COUPER L'ARC PQ EN DEUX. La médiatrice d'une corde passe par le
+               centre : deux arcs de même écartement, leur croisement X, et [OX)
+               recoupe le cercle au milieu de l'arc. L'écartement vaut le rayon
+               tant que la corde n'est pas trop longue ; pour un diamètre il faut
+               ouvrir davantage, comme à la main. */
+            cslCouperArc(cercle, O, R, P, Q, nom, outils, precedent) {
+                const mx = (P.x + Q.x) / 2, my = (P.y + Q.y) / 2;
+                const demiCorde = Math.hypot(Q.x - P.x, Q.y - P.y) / 2;
+                let ux = mx - O.x, uy = my - O.y;
+                let d = Math.hypot(ux, uy);
+                if (d < 1e-6) {           // une corde qui passe par le centre : un diamètre
+                    ux = -(Q.y - P.y); uy = Q.x - P.x;
+                    d = Math.hypot(ux, uy) || 1;
+                }
+                ux /= d; uy /= d;
+                const dOmid = Math.hypot(mx - O.x, my - O.y);
+                const voulu = Math.max(0, 1.15 * R - dOmid);
+                const r = Math.max(R, Math.hypot(demiCorde, voulu) * 1.02);
+                const h = Math.sqrt(Math.max(1, r * r - demiCorde * demiCorde));
+                const X = { x: mx + ux * h, y: my + uy * h };
+                const kr = r / R;
+                const g1 = this.cslArcCompas(P, r, X, [O, cercle.p2, kr], outils, precedent,
+                                             'rgba(255,153,0,0.55)');
+                const g2 = this.cslArcCompas(Q, r, X, [O, cercle.p2, kr], outils, g1.pose,
+                                             'rgba(255,153,0,0.55)');
+                const pX = new Point(X.x, X.y, '', [g1.arc, g2.arc]);
+                pX.update(); pX.visible = false; this.addEntity(pX);
+                g1.arc.viseRef = pX; g1.arc.demiOuverture = 0.45;
+                g2.arc.viseRef = pX; g2.arc.demiOuverture = 0.45;
+                /* La médiatrice, en trait de construction : elle porte le point
+                   cherché et ne le montre pas encore. Un SEGMENT [OX] suffit —
+                   le milieu de l'arc est entre les deux — et il ne barre pas la
+                   feuille comme le ferait une droite. */
+                const med = new Segment(O, pX, { color: '#999999', width: 1 });
+                med.dash = [5, 5];
+                if (outils) {
+                    const a = Math.atan2(pX.y - O.y, pX.x - O.x);
+                    const tr = new ToolAnimation('trace', { x: O.x, y: O.y, angle: a },
+                                                          { x: O.x, y: O.y, angle: a });
+                    tr.widgetType = 'ruler'; this.addEntity(tr);
+                }
+                this.addEntity(med);
+                if (outils) this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                const M = new Point(O.x + ux * R, O.y + uy * R, nom || '', [cercle, med]);
+                M.update(); this.addEntity(M);
+                return { p: M, pose: g2.pose };
+            }
+
+            /* Le point diamétralement opposé : la droite (PO) recoupe le cercle. */
+            cslOppose(cercle, O, P, outils, cacher) {
+                const d = new Line(P, O, { color: '#999999', width: 1 });
+                d.dash = [5, 5];
+                if (outils) {
+                    const a = Math.atan2(O.y - P.y, O.x - P.x);
+                    const tr = new ToolAnimation('trace', { x: P.x, y: P.y, angle: a },
+                                                          { x: P.x, y: P.y, angle: a });
+                    tr.widgetType = 'ruler'; this.addEntity(tr);
+                }
+                this.addEntity(d);
+                if (outils) this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                const p = new Point(2 * O.x - P.x, 2 * O.y - P.y, '', [cercle, d]);
+                p.update();
+                /* Il est SOMMET quand on partage en quatre, simple appui quand on
+                   cherche le rayon perpendiculaire du pentagone : c'est à celui
+                   qui construit de le dire. Caché d'office, le partage en huit ne
+                   rendait que sept sommets — mesuré, des écarts de 45° et un
+                   de 90°. */
+                if (cacher) p.visible = false;
+                this.addEntity(p);
+                return p;
+            }
+
+            /* DIRE COMMENT LE CERCLE A ÉTÉ PARTAGÉ. Un élève qui voit sept
+               sommets régulièrement répartis a le droit de savoir qu'ils n'ont
+               PAS été obtenus au compas — et pourquoi ils ne peuvent pas l'être.
+               Se taire, ici, laisserait croire que tout se construit. */
+            cslDirePartage(n, part) {
+                if (part && part.exact === false) {
+                    return `Attention : partager un cercle en ${n} ne se fait PAS à la règle `
+                        + `et au compas — Gauss et Wantzel l'ont démontré, ce n'est pas une `
+                        + `limite de l'outil. Les ${n} sommets sont donc placés au RAPPORTEUR, `
+                        + `de ${this.pgNombre(part.degres)}° en ${this.pgNombre(part.degres)}°.`;
+                }
+                if (n === 6 || n === 3) {
+                    return 'Rien ne se mesure : le rayon se reporte SIX FOIS exactement sur '
+                        + 'le cercle, et c\'est de là que tout vient.';
+                }
+                if (n === 12) {
+                    return 'Rien ne se mesure : on reporte le rayon six fois, puis on coupe '
+                        + 'chaque arc en deux — la médiatrice d\'une corde passe par le centre.';
+                }
+                if (n === 4 || n === 8) {
+                    return 'Rien ne se mesure : on trace le diamètre, on le coupe en deux par '
+                        + 'sa médiatrice pour avoir quatre parts'
+                        + (n === 8 ? ', puis on recoupe chaque arc en deux.' : '.');
+                }
+                return 'Rien ne se mesure : le côté du pentagone se construit au NOMBRE D\'OR '
+                    + '— le milieu du rayon perpendiculaire, un arc jusqu\'au premier sommet — '
+                    + 'puis il se reporte sur le cercle'
+                    + (n === 10 ? ', et l\'on coupe chaque arc en deux.' : '.');
+            }
+
+            /* Combien de parts sait-on faire au compas, et comment ? */
+            cslPlanDePartage(n) {
+                if (n === 3 || n === 6) return { base: 6, doubler: 0, prendre: n === 3 ? 2 : 1 };
+                if (n === 12) return { base: 6, doubler: 1, prendre: 1 };
+                if (n === 4) return { base: 4, doubler: 0, prendre: 1 };
+                if (n === 8) return { base: 4, doubler: 1, prendre: 1 };
+                if (n === 5) return { base: 5, doubler: 0, prendre: 1 };
+                if (n === 10) return { base: 5, doubler: 1, prendre: 1 };
+                return null;   // 7, 9, 11 : Gauss-Wantzel
+            }
+            /* PARTAGER LE CERCLE EN n PARTS. Rend les n points, dans l'ordre du
+               tour, et dit s'ils sont EXACTS — c'est-à-dire obtenus au compas et
+               non posés à l'angle calculé. */
+            cslPartagerCercle(cercle, O, bord, R, n, outils) {
+                const debut = this.entities.length;
+                const a0 = -Math.PI / 2;
+                const pt = (a) => ({ x: O.x + Math.cos(a) * R, y: O.y + Math.sin(a) * R });
+                const plan = this.cslPlanDePartage(n);
+                let pose = outils ? { x: O.x, y: O.y, angle: Math.PI * 2 } : null;
+
+                /* SEPT, NEUF, ONZE : le partage est IMPOSSIBLE à la règle et au
+                   compas — Gauss et Wantzel l'ont démontré, ce n'est pas une
+                   limite du logiciel. On partage alors au rapporteur, et l'on
+                   pose l'instrument pour que cela se voie. */
+                if (!plan) {
+                    const S = [];
+                    for (let k = 0; k < n; k++) {
+                        const q = pt(a0 + k * 2 * Math.PI / n);
+                        const p = new Point(q.x, q.y, '', [cercle]);
+                        this.addEntity(p); S.push(p);
+                    }
+                    if (outils) {
+                        const po = { x: O.x, y: O.y, angle: 0 };
+                        const a = new ToolAnimation('move', po, po);
+                        a.widgetType = 'protractor'; this.addEntity(a);
+                        this.addEntity(new ToolAnimation('protractorHide', {}, {}));
+                    }
+                    return { pts: S, exact: false, degres: Math.round(3600 / n) / 10 };
+                }
+
+                let base = [];
+                if (plan.base === 6) {
+                    /* Le rayon se reporte SIX fois exactement : c'est le seul
+                       partage qui ne demande rien d'autre que l'écartement. */
+                    const P0 = new Point(pt(a0).x, pt(a0).y, '', [cercle]);
+                    this.addEntity(P0); base.push(P0);
+                    for (let k = 1; k < 6; k++) {
+                        const q = pt(a0 + k * Math.PI / 3);
+                        const r = this.cslReporterSurCercle(cercle, O, base[k - 1], R,
+                            [O, bord, 1], q.x, q.y, '', outils, pose);
+                        base.push(r.p); pose = r.pose;
+                    }
+                } else if (plan.base === 4) {
+                    const P0 = new Point(pt(a0).x, pt(a0).y, '', [cercle]);
+                    this.addEntity(P0); base.push(P0);
+                    const P2 = this.cslOppose(cercle, O, P0, outils, false);
+                    const g1 = this.cslCouperArc(cercle, O, R, P0, P2, '', outils, pose);
+                    pose = g1.pose;
+                    const g2 = this.cslCouperArc(cercle, O, R, P2, P0, '', outils, pose);
+                    pose = g2.pose;
+                    base.push(P2, g1.p, g2.p);
+                } else {
+                    /* CINQ PARTS : le nombre d'or. Le rayon perpendiculaire, son
+                       milieu M, le cercle de centre M passant par le premier
+                       sommet — il recoupe le diamètre en E, et la longueur du
+                       premier sommet à E est exactement le côté du pentagone. */
+                    const P0 = new Point(pt(a0).x, pt(a0).y, '', [cercle]);
+                    this.addEntity(P0); base.push(P0);
+                    const A2 = this.cslOppose(cercle, O, P0, outils, true);
+                    const gB = this.cslCouperArc(cercle, O, R, P0, A2, '', outils, pose);
+                    pose = gB.pose;
+                    const B = gB.p; B.visible = false;
+                    const Mm = new Point(0, 0, '', [O, B]); Mm.update();
+                    Mm.visible = false; this.addEntity(Mm);
+                    const dOB = new Line(B, O, { color: '#999999', width: 1 });
+                    dOB.dash = [5, 5]; this.addEntity(dOB);
+                    const rM = Math.hypot(P0.x - Mm.x, P0.y - Mm.y);
+                    const ux = (B.x - O.x) / R, uy = (B.y - O.y) / R;
+                    const vise = { x: Mm.x - ux * rM, y: Mm.y - uy * rM };
+                    const gE = this.cslArcCompas(Mm, rM, vise, [Mm, P0, 1], outils, pose);
+                    pose = gE.pose;
+                    const E = new Point(vise.x, vise.y, '', [gE.arc, dOB]);
+                    E.update(); E.visible = false; this.addEntity(E);
+                    gE.arc.viseRef = E; gE.arc.demiOuverture = 0.45;
+                    const cote = Math.hypot(P0.x - E.x, P0.y - E.y);
+                    for (let k = 1; k < 5; k++) {
+                        const q = pt(a0 + k * 2 * Math.PI / 5);
+                        const r = this.cslReporterSurCercle(cercle, O, base[k - 1], cote,
+                            [P0, E, 1], q.x, q.y, '', outils, pose);
+                        base.push(r.p); pose = r.pose;
+                    }
+                }
+
+                /* Dans l'ordre du tour : les gestes n'ont pas suivi le cercle. */
+                const tour = (p) => {
+                    const a = Math.atan2(p.y - O.y, p.x - O.x) - a0;
+                    return (a + Math.PI * 4) % (Math.PI * 2);
+                };
+                base.sort((u, v) => tour(u) - tour(v));
+
+                for (let d = 0; d < (plan.doubler || 0); d++) {
+                    const double = [];
+                    for (let k = 0; k < base.length; k++) {
+                        double.push(base[k]);
+                        const g = this.cslCouperArc(cercle, O, R, base[k],
+                            base[(k + 1) % base.length], '', outils, pose);
+                        pose = g.pose;
+                        g.p.visible = true;
+                        double.push(g.p);
+                    }
+                    base = double;
+                }
+
+                let S = base;
+                if (plan.prendre && plan.prendre > 1) {
+                    S = base.filter((p, i) => i % plan.prendre === 0);
+                    base.forEach((p, i) => { if (i % plan.prendre !== 0) p.visible = false; });
+                }
+
+                if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
+
+                /* SANS LES INSTRUMENTS, LA FIGURE ET RIEN D'AUTRE. La construction
+                   EXISTE quand même — les sommets en dépendent, et c'est elle qui
+                   les tient quand on déplace le cercle — mais elle ne se montre
+                   qu'à qui a demandé les instruments. */
+                if (!outils) {
+                    for (let i = debut; i < this.entities.length; i++) {
+                        const e = this.entities[i];
+                        if (e instanceof CompassArc || (e instanceof LinearObject
+                            && this.estTraceDeConstruction(e))) e.visible = false;
+                    }
+                }
+                return { pts: S, exact: true };
+            }
+
             cslEtoileBranches(brut, t, fait, rate) {
                 const mots = { trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8,
                                neuf: 9, dix: 10, onze: 11, douze: 12 };
@@ -33533,19 +33846,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     const cercle = new Circle(O, bord, st); this.addEntity(cercle);
                     if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
-                    /* LES SOMMETS SONT DES POINTS DU CERCLE : ils en dépendent,
-                       comme le point d'une rosace ou l'intersection d'une
-                       sécante. Un point posé « là où ça tombe juste » ne serait
-                       pas une construction. */
+                    /* LES SOMMETS SE CONSTRUISENT, ils ne se placent pas. Ils
+                       dépendaient bien du cercle — ils y glissaient — mais leur
+                       position venait d'une division de 2π : rien sur la feuille
+                       ne disait d'où ils sortaient. On les obtient maintenant en
+                       reportant l'écartement du compas et en coupant les arcs en
+                       deux, et chacun est le CROISEMENT de son arc et du cercle. */
+                    const part = this.cslPartagerCercle(cercle, O, bord, R, n, outils);
+                    const S = part.pts;
                     const pris = [nomO];
-                    const S = [];
-                    for (let k = 0; k < n; k++) {
-                        const ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+                    S.forEach((p) => {
                         const nom = this.cslNomLibre(pris); pris.push(nom);
-                        const p = new Point(o.x + Math.cos(ang) * R, o.y + Math.sin(ang) * R,
-                                            nom, [cercle]);
-                        this.addEntity(p); S.push(p);
-                    }
+                        p.label = nom;
+                    });
                     if (contour) {
                         /* LE CONTOUR DE L'ÉTOILE : ses creux sont les points où
                            les cordes se croisent. On les CALCULE, on ne les
@@ -33596,8 +33909,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                               + `referme avant d'avoir tout parcouru, et il faut ${morceaux} `
                               + `tracés séparés — c'est ce qui donne ${morceaux} polygones `
                               + `superposés.`)
-                        + (n === 6 ? ' À six branches, les sommets se reportent au COMPAS : '
-                            + 'le rayon se reporte six fois exactement.' : ''));
+                        + ' ' + this.cslDirePartage(n, part));
                     message = `Étoile à ${n} branches, de ${pas} en ${pas}, `
                         + `dans un cercle de rayon ${cm(R)} cm`;
                 });
@@ -36476,26 +36788,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(bord);
                 const cercle = this.cslPoserStyle(new Circle(centre, bord));
                 this.addEntity(cercle);
-                const pts = [];
-                for (let i = 0; i < sommets; i++) {
-                    const a = -Math.PI / 2 + i * 2 * Math.PI / sommets;
-                    /* INSCRIT VEUT DIRE SUR LE CERCLE. Les sommets étaient des
-                       points libres qui tombaient juste : en déplaçant le cercle
-                       ils restaient sur place, et le polygone n'était plus
-                       inscrit du tout. Ils en dépendent maintenant. */
-                    const p = new Point(o.x + Math.cos(a) * rayon, o.y + Math.sin(a) * rayon,
-                                        noms[i] || '', [cercle]);
-                    this.addEntity(p); pts.push(p);
-                }
+                /* INSCRIT VEUT DIRE CONSTRUIT SUR LE CERCLE. Les sommets ont
+                   d'abord été des points libres qui tombaient juste ; on les a
+                   rattachés au cercle pour qu'ils y glissent ; mais leur place
+                   venait encore d'une division de 2π. On les obtient maintenant
+                   comme on les obtient à la main : en reportant l'écartement du
+                   compas, et en coupant les arcs en deux. */
+                const outils = this.cslDetaille();
+                const part = this.cslPartagerCercle(cercle, centre, bord, rayon, sommets, outils);
+                const pts = part.pts;
+                pts.forEach((p, i) => { p.label = noms[i] || ''; });
                 for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
                 this.cslPoserPolygone(pts);
                 this._cslSujet = noms.slice();
                 const cote = 2 * rayon * Math.sin(Math.PI / sommets);
                 const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 100) / 100;
                 this.cslDire(`Les ${sommets} sommets sont sur le cercle : le côté vaut `
-                    + `2 × R × sin(180°/${sommets}) = ${String(cm(cote)).replace('.', ',')} cm`
-                    + (sommets === 6 ? ` — pour un hexagone, c'est exactement le rayon, et `
-                        + `c'est pour cela qu'il se construit au compas sans rien mesurer.` : '.'));
+                    + `2 × R × sin(180°/${sommets}) = ${String(cm(cote)).replace('.', ',')} cm. `
+                    + this.cslDirePartage(sommets, part));
                 return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} `
                     + `inscrit dans le cercle de centre ${nomO} et de rayon `
                     + `${String(cm(rayon)).replace('.', ',')} cm`);
@@ -40921,7 +41231,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 2h';
+        window.GM_VERSION = '2026-09-08 · 3h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

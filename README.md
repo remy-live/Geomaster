@@ -896,6 +896,68 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### Les sommets d'une étoile se construisent, ils ne se placent pas
+
+*« Pour les étoiles, les points sont placés sur le cercle mais arbitrairement,
+pas en utilisant le compas et les arcs de cercle. »* C'était exactement cela. Les
+sommets dépendaient bien du cercle — ils y glissaient — mais leur position venait
+d'une seule ligne :
+
+```js
+const ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+```
+
+Une division de 2π. Rien sur la feuille ne disait d'où ils sortaient, et l'on ne
+pouvait pas refaire le geste : c'est un dessin qui a l'air juste, pas une
+construction.
+
+**Deux gestes suffisent à presque tout**, et ce sont ceux qu'on fait à la main.
+*Reporter* l'écartement de proche en proche — le rayon se reporte six fois
+exactement sur le cercle, c'est le fait élémentaire dont sortent l'hexagone, le
+triangle et la rosace. Et *couper un arc en deux* par la médiatrice de sa corde,
+qui passe par le centre : de six on passe à douze, de quatre à huit, de cinq à
+dix. Le côté du pentagone, lui, se construit au **nombre d'or** — le milieu du
+rayon perpendiculaire, un arc jusqu'au premier sommet — puis il se reporte.
+
+Chaque sommet est désormais le **croisement** de son arc et du cercle. Seul le
+tout premier point du tour est posé : il faut bien commencer quelque part.
+
+| branches | sommets construits | au tracé | agrandi | déplacé |
+|---|---|---|---|---|
+| 5 | 4 / 5 | 72° | 72° | 72° |
+| 6 | 5 / 6 | 60° | 60° | 60° |
+| 8 | 7 / 8 | 45° | 45° | 45° |
+| 10 | 9 / 10 | 36° | 36° | 36° |
+| 12 | 11 / 12 | 30° | 30° | 30° |
+
+**Ce qui ne se construit pas ainsi ne se construit pas du tout.** Sept, neuf et
+onze parts sont impossibles à la règle et au compas — c'est le théorème de
+Gauss-Wantzel, pas une limite de l'outil. Le logiciel le dit et sort le
+rapporteur : *« Attention : partager un cercle en 7 ne se fait PAS à la règle et
+au compas […]. Les 7 sommets sont donc placés au RAPPORTEUR, de 51,4° en 51,4°. »*
+Se taire laisserait croire que tout se construit.
+
+**Un arc dessiné court reste un cercle entier pour le croisement.** Quand on
+reporte un écartement on n'encre qu'un bout d'arc, mais le point cherché est le
+croisement de deux *cercles*. En bornant le croisement au trait visible, un
+déplacement un peu vif faisait sortir le point de sa fenêtre : mesuré, une étoile
+à douze branches déplacée de 70 px perdait trois sommets et ses écarts passaient
+de 30° à 15°–60°.
+
+**Sans les instruments, la figure et rien d'autre.** La construction existe
+toujours — c'est elle qui tient les sommets — mais elle ne se montre qu'à qui a
+demandé les instruments.
+
+Les **polygones inscrits** avaient le même défaut, et sont passés par le même
+chemin : l'hexagone, le carré et le triangle équilatéral inscrits gardent
+maintenant 60°, 90° et 120° après qu'on a agrandi puis déplacé leur cercle.
+
+Reste la **rosace**, dont les six centres de pétale sont encore posés à l'angle.
+Là, ce sont les pétales eux-mêmes qui font le report — l'arc d'un pétale va d'un
+voisin à l'autre — et les prendre pour croisements suppose de traiter leurs
+extrémités, où le calcul est fragile. Le geste est juste, son écriture ne l'est
+pas encore.
+
 ### Le lien porte la figure, pas sa relecture
 
 L'énoncé engendré est un **texte relu** sur la figure — le panneau le dit
@@ -1592,7 +1654,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 97 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 98 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

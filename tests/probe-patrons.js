@@ -40,6 +40,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       plis: seg.filter(s => s.dash && s.dash.length).length,
       decoupes: seg.filter(s => !(s.dash && s.dash.length)).length,
       longueurs: seg.map(lg),
+      /* LES CÔTÉS DE LA FIGURE, sans les traits de construction. Un polygone
+         inscrit se construit maintenant au compas : la médiatrice d'une corde y
+         laisse un segment gris pointillé, qui n'est pas un côté. On ne peut pas
+         filtrer les pointillés dans « longueurs » — les PLIS d'un patron sont
+         eux aussi en pointillés — d'où ce champ à part. */
+      cotes: seg.filter(e => !app.estTraceDeConstruction(e)).map(lg),
       /* Chaque arête, par ses deux bouts arrondis : c'est avec ça qu'on vérifie
          qu'un patron se replie — les bords qui se rejoignent sont égaux. */
       aretes: seg.map(s => [Math.round(s.p1.x), Math.round(s.p1.y),
@@ -479,10 +485,10 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
                                       ['carré', 4, 4.24],
                                       ['triangle équilatéral', 3, 5.2]]) {
     const r = await faire(`Trace un ${figure} inscrit dans un cercle de rayon 3 cm`, false);
-    const cotes = [...new Set(r.longueurs.map(l => Math.round(l * 100) / 100))];
+    const cotes = [...new Set(r.cotes.map(l => Math.round(l * 100) / 100))];
     ck(`« un ${figure} inscrit dans un cercle de rayon 3 cm »`,
        r.ok && r.cercles.length === 1 && presque(r.cercles[0], 3)
-       && r.longueurs.length === n, r.message);
+       && r.cotes.length === n, r.message + ' — ' + r.cotes.length + ' côtés');
     /* Le côté d'un polygone régulier inscrit vaut 2 R sin(180°/n). */
     ck(`  son côté vaut 2 × 3 × sin(180°/${n}) = ${attendu} cm`,
        cotes.length === 1 && presque(cotes[0], attendu, 0.01), JSON.stringify(cotes));
