@@ -13697,24 +13697,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                « la perpendiculaire à d » désignerait un objet qu'on ne voit
                nommé nulle part. En italique, comme au cours, et posé un peu au
                delà du trait pour ne pas s'y coucher. */
+            /* OÙ LE NOM SE POSE. Il était cloué au second point : sur une figure
+               chargée il tombait sur un autre trait, et rien ne permettait de
+               l'écarter. On le fait GLISSER le long de la droite — c'est le
+               geste qu'on a au tableau — et la place choisie est retenue avec la
+               figure. `nomT` est le paramètre le long de (p1 p2) : 1, c'est le
+               second point, c'est-à-dire exactement où il se posait avant. */
+            ancreNomDroite(bout) {
+                const p2 = bout || this.p2;
+                if (!this.p1 || !p2) return null;
+                const dx = p2.x - this.p1.x, dy = p2.y - this.p1.y;
+                const L = Math.hypot(dx, dy) || 1;
+                const ux = dx / L, uy = dy / L;
+                const t = (this.nomT === undefined) ? 1 : this.nomT;
+                const ax = this.p1.x + dx * t, ay = this.p1.y + dy * t;
+                return { x: ax + ux * 22 - uy * 14, y: ay + uy * 22 + ux * 14, ux, uy };
+            }
             dessinerNomDroite(ctx, couleur, bout) {
                 /* La parallèle et la perpendiculaire n'ont pas de second point :
                    elles le calculent. Elles passent donc le leur, et une droite
                    nommée (d') porte son nom comme les autres. */
                 const p2 = bout || this.p2;
                 if (!this.nomDroite || !this.p1 || !p2) return;
-                const dx = p2.x - this.p1.x, dy = p2.y - this.p1.y;
-                const L = Math.hypot(dx, dy) || 1;
-                const ux = dx / L, uy = dy / L;
+                const a = this.ancreNomDroite(p2);
+                if (!a) return;
                 ctx.save();
                 ctx.fillStyle = couleur || '#333';
                 ctx.font = "italic bold 15px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.setLineDash([]);
-                ctx.fillText(this.nomDroite, p2.x + ux * 22 - uy * 14,
-                                             p2.y + uy * 22 + ux * 14);
+                ctx.fillText(this.nomDroite, a.x, a.y);
                 ctx.restore();
+            }
+            /* Le nom est-il sous le doigt ? C'est ce qui permet de l'attraper. */
+            nomDroiteTouche(mx, my, bout) {
+                if (!this.nomDroite) return false;
+                const a = this.ancreNomDroite(bout || this.p2);
+                if (!a) return false;
+                return Math.hypot(mx - a.x, my - a.y) < 16;
             }
         }
         /* Unités proposées par le bouton cyclique du menu contextuel. null =
@@ -14182,10 +14203,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!this.p1 || !p2) return;
                 const s = this.getStyle("black", o.isHovered, o.isToDelete);
                 MathUtils.drawInfiniteLineFromVector(ctx, this.p1.x, this.p1.y, p2.x - this.p1.x, p2.y - this.p1.y, s.color, s.width, s.dash);
-                /* (d') porte son nom comme (d). La méthode vit sur LinearObject,
-                   dont la parallèle n'hérite pas : elle lui prête son second
-                   point, qu'elle est seule à savoir calculer. */
-                LinearObject.prototype.dessinerNomDroite.call(this, ctx, s.color, p2);
+                /* (d') porte son nom comme (d). Les méthodes vivent sur
+                   LinearObject, dont la parallèle n'hérite pas : elles lui sont
+                   recopiées plus bas, et elle leur prête le second point qu'elle
+                   est seule à savoir calculer. */
+                this.dessinerNomDroite(ctx, s.color, p2);
             }
         }
         class PerpendicularLine extends GeometryObject {
@@ -14235,9 +14257,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.stroke();
                     ctx.restore();
                 }
-                LinearObject.prototype.dessinerNomDroite.call(this, ctx, s.color, p2);
+                this.dessinerNomDroite(ctx, s.color, p2);
             }
         }
+        /* La parallèle et la perpendiculaire ne descendent pas de LinearObject —
+           elles n'ont pas de second point, elles le calculent. Mais une droite
+           nommée porte son nom, qu'on puisse le lire et le déplacer, quelle que
+           soit la façon dont elle a été construite. */
+        ['ancreNomDroite', 'dessinerNomDroite', 'nomDroiteTouche'].forEach((m) => {
+            ParallelLine.prototype[m] = LinearObject.prototype[m];
+            PerpendicularLine.prototype[m] = LinearObject.prototype[m];
+        });
         /* ============================================================
            ENCRE LIBRE — le stylo qui ne transforme rien
            ------------------------------------------------------------
@@ -18934,6 +18964,63 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 input.onblur = () => validate();
             }
+            /* NOMMER UNE DROITE, comme on renomme un point : double-clic dessus,
+               on tape la lettre. Au cours c'est une MINUSCULE — d, d', d₁, Δ —
+               et c'est ce qu'on propose ; mais on n'impose rien, un professeur
+               écrit ce qu'il veut. Un nom vide efface le nom. */
+            nommerDroite(obj, clientX, clientY) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = obj.nomDroite || '';
+                input.placeholder = 'd';
+                const r = this.canvas.getBoundingClientRect();
+                Object.assign(input.style, {
+                    position: 'fixed', left: (clientX - 30) + 'px', top: (clientY - 16) + 'px',
+                    width: '60px', height: '30px', font: 'italic bold 15px Arial, sans-serif',
+                    textAlign: 'center', border: '1px solid #3498db', borderRadius: '6px',
+                    background: '#fff', boxShadow: '0 2px 6px rgba(0,0,0,.15)', outline: 'none',
+                    padding: '0', zIndex: 10000,
+                });
+                void r;
+                document.body.appendChild(input);
+                input.focus(); input.select();
+                this.activeRenameInput = input;
+                let parti = false;
+                const fermer = () => {
+                    if (parti) return;
+                    parti = true;
+                    input.onblur = null;
+                    if (input.parentNode) input.parentNode.removeChild(input);
+                    if (this.activeRenameInput === input) this.activeRenameInput = null;
+                    this.render();
+                };
+                const valider = () => {
+                    input.onblur = null;
+                    const nom = input.value.trim();
+                    if (nom !== (obj.nomDroite || '')) {
+                        this.saveState();
+                        /* Deux droites du même nom, et « la perpendiculaire à d »
+                           ne désigne plus rien : on refuse, et on fait clignoter
+                           celle qui porte déjà ce nom. */
+                        const prise = nom && this.entities.find(e => e !== obj && e.nomDroite === nom);
+                        if (prise) {
+                            this.showToast(`(${nom}) est déjà le nom d'une autre droite.`);
+                        } else {
+                            obj.nomDroite = nom || null;
+                            if (obj.nomDroite && this.cslMemoire) {
+                                this.cslMemoire().droites[obj.nomDroite] = obj;
+                            }
+                        }
+                    }
+                    fermer();
+                };
+                input.onkeydown = (k) => {
+                    if (k.key === 'Enter') { k.preventDefault(); valider(); }
+                    if (k.key === 'Escape') { k.preventDefault(); fermer(); }
+                    k.stopPropagation();
+                };
+                input.onblur = () => valider();
+            }
             syncViewWithTeacher() {
                 if (!this.importedView) return;
                 const prof = this.importedView;
@@ -19279,14 +19366,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const DEFAUTS_QUEUE = {
                     1: { 3: '', 4: '', 5: 0, 6: 0, 7: 0, 8: -0.79, 9: 1, 10: 1, 11: 14 },
                     2: { 3: 0, 4: 2, 5: 0, 6: 0, 7: -15, 8: 0, 9: 0 },
-                    3: { 3: 0, 4: 2, 5: 0 },
-                    4: { 3: 0, 4: 2, 5: 0 },
+                    3: { 3: 0, 4: 2, 5: 0, 7: 1 },
+                    4: { 3: 0, 4: 2, 5: 0, 7: 1 },
                     5: { 3: 0, 4: 2, 5: 0, 6: 'none', 7: 0.2 },
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
                     9: { 4: 16, 5: 0, 6: (window.GM_POLICE_PILE || "GeoSans, 'Segoe UI', Arial, sans-serif"), 7: 0, 8: this.couleurCompacte('#fff9c4'), 9: '' },
-                    10: { 3: 0, 4: 2, 5: 0 },
-                    11: { 3: 0, 4: 2, 5: 0 },
+                    10: { 3: 0, 4: 2, 5: 0, 7: 1 },
+                    11: { 3: 0, 4: 2, 5: 0, 7: 1 },
                     12: { 5: 0, 6: 2, 7: 0 },
                     14: { 4: 0, 5: 1, 6: 0, 7: 2, 8: 100 },
                 };
@@ -19354,7 +19441,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         /* Le nom d'une droite voyage aussi : « Trace une droite d »
                            partagée par lien revenait anonyme, et « la
                            perpendiculaire à d » ne trouvait plus rien. */
-                        else arr.push(e.nomDroite || 0);
+                        /* Et l'endroit où on l'a glissé le long du trait : sans
+                           lui, un nom écarté à la main revenait se coucher sur
+                           le trait qu'on avait justement voulu dégager. En fin
+                           de groupe, comme le reste. */
+                        else arr.push(e.nomDroite || 0,
+                            e.nomT === undefined ? 1 : Math.round(e.nomT * 100) / 100);
                     }
                     else if (e instanceof TextLabel) {
                         /* Les enrichissements s'ajoutent EN FIN de ligne, sous forme
@@ -19585,8 +19677,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.lengthUnit = (d[9] && d[9] !== "0" && GM_UNITES.indexOf(d[9]) !== -1) ? d[9] : null;
                             obj.fleche = (d[10] === "1");
                         }
-                        else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
-                        else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
+                        else if (typeId === 3) { obj = new Line(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; if (d[7] !== undefined && d[7] !== '') obj.nomT = parseFloat(d[7]); }
+                        else if (typeId === 4) { obj = new Ray(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; if (d[7] !== undefined && d[7] !== '') obj.nomT = parseFloat(d[7]); }
                         else if (typeId === 5) {
                             obj = new Circle(null, null); obj.color = idx2col(d[3]);
                             obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : [];
@@ -19639,8 +19731,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.souligne = !!(bits & 4); obj.cadre = !!(bits & 8);
                             if (d[8] !== undefined && d[8] !== '') obj.fond = idx2col(d[8]);
                             if (d[9]) obj.morceaux = this.lireMorceaux(obj.text, d[9]);
-                        } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
-                        else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; }
+                        } else if (typeId === 10) { obj = new ParallelLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; if (d[7] !== undefined && d[7] !== '') obj.nomT = parseFloat(d[7]); }
+                        else if (typeId === 11) { obj = new PerpendicularLine(null, null); obj.color = idx2col(d[3]); obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : []; if (d[6] && d[6] !== '0') obj.nomDroite = d[6]; if (d[7] !== undefined && d[7] !== '') obj.nomT = parseFloat(d[7]); }
                         else if (typeId === 12) {
                             obj = new Arc(null, parseFloat(d[2]), parseFloat(d[3]), parseFloat(d[4]));
                             obj.color = idx2col(d[5]);
@@ -21984,6 +22076,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return;
                     }
 
+                    /* 1 ter. UNE DROITE SE NOMME COMME UN POINT. On l'écrivait
+                       depuis la consigne — « Trace une droite d » — et nulle part
+                       ailleurs : une droite tracée à la main restait anonyme pour
+                       toujours. Double-clic sur son nom, ou sur elle, et on
+                       l'appelle. APRÈS la mesure : sur un segment qui affiche sa
+                       longueur, le double-clic sert d'abord à fixer cette
+                       longueur, et ce geste-là existait avant. */
+                    const droiteNommable = this.droiteSousLeNom(rawMouse.x, rawMouse.y)
+                        || this.droiteSousLaSouris(rawMouse.x, rawMouse.y);
+                    if (droiteNommable) {
+                        this.nommerDroite(droiteNommable, e.clientX, e.clientY);
+                        return;
+                    }
+
                     // 2. Double-clic sur un Texte (Éditer avec le nouveau système)
                     const targetText = this.entities.slice().reverse().find(ent => ent instanceof TextLabel && ent.isNear(rawMouse.x, rawMouse.y));
                     if (targetText) {
@@ -23249,6 +23355,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     };
                     // le nom d'une droite — d, d', d1 ; absent des fichiers d'avant
                     if (e.nomDroite) data.nomDroite = e.nomDroite;
+                    // et l'endroit où on l'a glissé le long du trait
+                    if (e.nomT !== undefined) data.nomT = e.nomT;
                     if (e instanceof Point) {
                         data.x = e.x;
                         data.y = e.y;
@@ -23414,6 +23522,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             obj.lineWidth = data.lineWidth || 2;
                             // absent d'un fichier d'avant : la droite est anonyme
                             if (data.nomDroite) obj.nomDroite = data.nomDroite;
+                            if (data.nomT !== undefined) obj.nomT = data.nomT;
                             if (obj instanceof Segment) {
                                 obj.showLength = data.showLength || false;
                                 obj.measureOffset = data.measureOffset || -15;
@@ -26998,6 +27107,50 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 return [...vus];
             }
+            /* Quel nom de droite est sous le doigt ? On rend l'objet, pas le
+               nom : c'est lui qu'on va faire glisser. */
+            droiteSousLeNom(mx, my) {
+                for (let i = this.entities.length - 1; i >= 0; i--) {
+                    const e = this.entities[i];
+                    if (!e || !e.nomDroite || !e.nomDroiteTouche) continue;
+                    if (e.hidden === true || e.visible === false) continue;
+                    const bout = e.getDynamicP2 ? e.getDynamicP2() : e.p2;
+                    if (e.nomDroiteTouche(mx, my, bout)) return e;
+                }
+                return null;
+            }
+            /* Le trait lui-même — pour le nommer d'un double-clic. Segments,
+               demi-droites, droites, parallèles et perpendiculaires : tout ce
+               qui est droit se nomme. */
+            droiteSousLaSouris(mx, my) {
+                for (let i = this.entities.length - 1; i >= 0; i--) {
+                    const e = this.entities[i];
+                    if (!e || e.hidden === true || e.visible === false) continue;
+                    if (!(e instanceof LinearObject || e instanceof ParallelLine
+                          || e instanceof PerpendicularLine)) continue;
+                    if (this.estTraceDeConstruction && this.estTraceDeConstruction(e)) continue;
+                    if (e.isNear && e.isNear(mx, my)) return e;
+                }
+                return null;
+            }
+            /* On le fait glisser LE LONG de la droite : le nom d'une droite ne
+               flotte pas à côté d'elle, il la longe. */
+            glisserNomDroite(obj, mx, my) {
+                const bout = obj.getDynamicP2 ? obj.getDynamicP2() : obj.p2;
+                if (!obj.p1 || !bout) return;
+                const vx = bout.x - obj.p1.x, vy = bout.y - obj.p1.y;
+                const l2 = vx * vx + vy * vy;
+                if (l2 < 1e-6) return;
+                let t = ((mx - obj.p1.x) * vx + (my - obj.p1.y) * vy) / l2;
+                /* Un segment et une demi-droite ont des bouts : le nom y reste.
+                   Une droite n'en a pas, mais on ne le laisse pas partir à
+                   l'infini — deux longueurs de part et d'autre suffisent. */
+                const nom = obj.constructor.name;
+                if (nom === 'Segment') t = Math.max(0, Math.min(1, t));
+                else if (nom === 'Ray') t = Math.max(0, Math.min(3, t));
+                else t = Math.max(-2, Math.min(3, t));
+                obj.nomT = t;
+            }
             deplacerSelection(dx, dy) {
                 const sel = this.selection;
                 if (!sel.length) return;
@@ -27545,6 +27698,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // pas un état de l'appareil : on le remet à zéro ici, puisque
                     // l'outil curseur ne crée jamais rien.
                     this.tactileMode = false;
+                    /* LE NOM D'UNE DROITE SE DÉPLACE LE LONG DE LA DROITE. Il
+                       était cloué au second point, et sur une figure chargée il
+                       tombait sur un autre trait sans qu'on puisse l'écarter.
+                       On regarde cela en premier : la lettre est petite, et il
+                       faut pouvoir l'attraper même au-dessus du trait. */
+                    const nomVise = this.droiteSousLeNom(mousePos.x, mousePos.y);
+                    if (nomVise) {
+                        this.saveState();
+                        this.deplaceNomDroite = nomVise;
+                        e.preventDefault();
+                        this.render();
+                        return;
+                    }
                     /* APPUYER DANS LA SÉLECTION, C'EST LA PRENDRE. On regarde
                        cela AVANT le point le plus proche : sans quoi un appui
                        sur un sommet de la figure sélectionnée ne déplacerait que
@@ -27556,7 +27722,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (x >= boite.x0 - m && x <= boite.x1 + m
                             && y >= boite.y0 - m && y <= boite.y1 + m) {
                             this.saveState();
-                            this.deplaceSelection = { x, y, bouge: false };
+                            /* LA POSITION BRUTE, PAS CELLE DE L'AIMANT. Voir
+                               handlePointerMove : l'aimant est fait pour poser un
+                               point sur un autre, pas pour téléporter une figure
+                               entière. */
+                            this.deplaceSelection = { x: mousePos.x, y: mousePos.y, bouge: false };
                             e.preventDefault();
                             this.render();
                             return;
@@ -28512,12 +28682,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.render();
                     return;
                 }
+                if (this.deplaceNomDroite) {
+                    this.glisserNomDroite(this.deplaceNomDroite, rawMouse.x, rawMouse.y);
+                    this.render();
+                    return;
+                }
                 if (this.deplaceSelection) {
+                    /* LA FIGURE TREMBLAIT. Le déplacement suivait la position
+                       AIMANTÉE du curseur : dès qu'on passait à moins de 12 px
+                       d'un point de la feuille, le curseur sautait dessus et la
+                       figure entière avec lui. Mesuré, en tirant une sélection
+                       le long d'une rangée de points : au lieu de 3 px par
+                       image, +14 px puis +13 px, trois fois de suite — un
+                       tremblement, exactement.
+
+                       L'aimant est fait pour POSER un point sur un autre. Ici le
+                       curseur n'est qu'une poignée : ce qu'il faut suivre, c'est
+                       la main, pas ce qu'elle frôle. */
                     const d = this.deplaceSelection;
-                    const dx = x - d.x, dy = y - d.y;
+                    const dx = rawMouse.x - d.x, dy = rawMouse.y - d.y;
                     if (dx || dy) {
                         this.deplacerSelection(dx, dy);
-                        d.x = x; d.y = y; d.bouge = true;
+                        d.x = rawMouse.x; d.y = rawMouse.y; d.bouge = true;
                         this.render();
                     }
                     return;
@@ -28628,6 +28814,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.viderSelection();
                     }
                     this.render();
+                    return;
+                }
+                if (this.deplaceNomDroite) {
+                    this.deplaceNomDroite = null;
+                    this.saveState(); this.render();
                     return;
                 }
                 if (this.deplaceSelection) {
@@ -38956,7 +39147,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 22h';
+        window.GM_VERSION = '2026-09-07 · 0h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

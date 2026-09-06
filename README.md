@@ -653,6 +653,24 @@ La sonde ne vérifie pas que le texte est joli : elle le **rejoue**. L'énoncé
 nommés sont comparées à celles de départ — pas seulement les côtés, justement
 parce que les côtés seuls ne fixent pas un quadrilatère.
 
+### Nommer une droite, et poser son nom où l'on veut
+
+Une droite se nommait par la consigne — *« Trace une droite d »* — et nulle part
+ailleurs : une droite tracée à la main restait anonyme pour toujours. Un
+**double-clic** sur le trait ouvre maintenant de quoi l'appeler, comme on
+renomme un point. La minuscule du cours est proposée (*d*, *d'*, *Δ*), sans être
+imposée, et un nom déjà pris est refusé — sans quoi *« la perpendiculaire à d »*
+ne désignerait plus rien.
+
+Le nom était **cloué au second point** de la droite : sur une figure chargée il
+tombait sur un autre trait, et rien ne permettait de l'écarter. On l'**attrape et
+on le fait glisser le long de la droite** — le geste du tableau. La place choisie
+suit la figure : fichier, lien de partage, bibliothèque.
+
+Une parallèle ou une perpendiculaire nommée n'écrivait pas son nom du tout : la
+méthode qui le dessine vit sur `LinearObject`, dont elles ne descendent pas.
+Elles en héritent maintenant, et *(d')* porte son nom comme *(d)*.
+
 ### Le cadre de sélection
 
 Avec l'outil **curseur**, un glissé depuis le vide trace un **cadre** ; tout ce
@@ -676,6 +694,15 @@ Deux règles, et elles ne sont pas des détails :
   et le carré déplacé a toujours quatre côtés de 3 cm.
 
 Le geste marche aussi **au doigt**, et le zoom ne le fausse pas.
+
+**La figure tremblait en la déplaçant.** Le déplacement suivait la position
+**aimantée** du curseur : dès qu'on passait à moins de 12 px d'un point de la
+feuille, le curseur sautait dessus — et la figure entière avec lui. Mesuré, en
+tirant une sélection le long d'une rangée de points : au lieu de 3 px par image,
+**+14 px puis +13 px**, trois fois de suite. L'aimant est fait pour *poser* un
+point sur un autre ; ici le curseur n'est qu'une poignée, et ce qu'il faut suivre
+c'est la main, pas ce qu'elle frôle. Le déplacement lit maintenant la position
+brute : 80 images, 32 passées à portée d'aimant, **3 px à chaque fois**.
 
 ### Où sur la feuille, et de quelle couleur
 
@@ -1251,7 +1278,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 89 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 90 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
