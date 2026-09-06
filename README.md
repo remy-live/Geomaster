@@ -515,6 +515,30 @@ indépendants du code — dix de plus :
 Le reste est listé dans [`IDEES.md`](IDEES.md), en tête, parce que c'est le plus
 urgent.
 
+### Le cadre de sélection
+
+Avec l'outil **curseur**, un glissé depuis le vide trace un **cadre** ; tout ce
+qui s'y trouve entier est pris. Un glissé **dans** la sélection la déplace en
+bloc. **Maj** ajoute un second cadre au premier ; **Échap**, un clic dans le
+vide ou un changement d'outil relâchent.
+
+Avant, ce glissé ne faisait rien du tout : on ne pouvait déplacer qu'un point à
+la fois, et bouger une figure entière demandait de tirer chaque sommet en
+espérant le même écart.
+
+Deux règles, et elles ne sont pas des détails :
+
+- **Un objet n'entre dans le cadre que s'il y est entier.** Un segment dont une
+  seule extrémité serait prise se déplacerait en se déformant : on croirait
+  bouger la figure, on la casserait.
+- **On ne déplace que les points libres.** Un milieu, un symétrique, un point
+  d'intersection sont *calculés* — les tirer n'aurait pas de sens. Ils suivent
+  d'eux-mêmes parce que leurs parents ont bougé. Vérifié : après un déplacement,
+  chaque milieu est encore **exactement** au milieu de son côté, à 0 pixel près,
+  et le carré déplacé a toujours quatre côtés de 3 cm.
+
+Le geste marche aussi **au doigt**, et le zoom ne le fausse pas.
+
 ### Où sur la feuille, et de quelle couleur
 
 *« Trace un carré en haut à gauche, puis un rectangle en haut à droite, puis un
@@ -1089,7 +1113,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 86 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 87 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

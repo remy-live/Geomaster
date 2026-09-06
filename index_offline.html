@@ -9187,7 +9187,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="toolbar">
             <div class="group-label">Action</div>
             <button class="tool-btn active" onclick="app.setTool('move')" aria-label="Déplacer / Sélectionner"
-                data-tooltip="Déplacer / Sélectionner">
+                data-tooltip="Déplacer / Sélectionner — glissez depuis le vide pour encadrer plusieurs objets, puis glissez dedans pour les déplacer ensemble">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                     <path d="M7 2l12 11.2-5.8.5 3.3 7.3-2.2.9-3.2-7.3L7 18z" />
                 </svg>
@@ -20844,6 +20844,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.polygonPoints = [];
                             this.anglePoints = [];
                             this.render();
+                        } else if (this.cadreSelection || (this._selection && this._selection.length)) {
+                            /* Échap relâche d'abord la sélection multiple : c'est
+                               elle qu'on vient de faire, c'est elle qu'on veut
+                               défaire. */
+                            this.cadreSelection = null;
+                            this.viderSelection();
+                            this.render();
                         } else if (this.selectedObject) {
                             this.selectedObject = null;
                             document.getElementById('contextMenu').style.display = 'none';
@@ -23618,6 +23625,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (btnPaint) btnPaint.classList.remove('active');
                     this.canvas.style.cursor = 'default';
                 }
+                /* CHANGER D'OUTIL RELÂCHE LA SÉLECTION. Sans cela, le cadre en
+                   pointillés et les anneaux bleus restaient affichés sous un
+                   outil qui ne sait rien en faire : on croyait que la figure
+                   était encore prise. */
+                if (toolName !== 'move') {
+                    this.cadreSelection = null;
+                    this.deplaceSelection = null;
+                    this.viderSelection();
+                }
                 this.currentTool = toolName;
                 this.resetInteraction();
                 // l'invitation de la feuille vide s'efface dès qu'on prend un outil
@@ -25698,6 +25714,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
 
+                this.dessinerSelection(this.ctx);
+
                 if (this.isToolAnimating) {
                     const anim = this.entities[this.replayIndex];
                     const nextIndex = this.replayIndex + 1;
@@ -26747,6 +26765,166 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
             }
 
+            /* ============================================================
+               LE CADRE DE SÉLECTION, ET CE QU'ON EN FAIT
+
+               À la souris, un glissé depuis le vide ne faisait RIEN : mesuré,
+               ni cadre, ni sélection, ni le moindre changement d'état. On ne
+               pouvait déplacer qu'un point à la fois, et l'outil curseur ne
+               savait donc pas déplacer une figure — il fallait tirer chaque
+               sommet l'un après l'autre, en espérant le même écart.
+
+               UN OBJET N'ENTRE DANS LE CADRE QUE S'IL Y EST ENTIER. Un segment
+               dont une seule extrémité serait prise se déplacerait en se
+               déformant : on croirait bouger la figure, on la casserait. La
+               règle vaut pour tout — un cercle par son centre ET son bord, un
+               angle par ses trois points.
+
+               ET L'ON NE DÉPLACE QUE LES POINTS LIBRES. Un milieu, un
+               symétrique, un point d'intersection sont CALCULÉS : les tirer
+               n'aurait pas de sens. Ils suivent d'eux-mêmes, parce que leurs
+               parents, eux, ont bougé — c'est updateDependents qui les
+               replace, exactement comme lorsqu'on tire un seul sommet.
+               ============================================================ */
+            get selection() {
+                if (!this._selection) this._selection = [];
+                /* Un objet effacé pendant qu'il était sélectionné ne doit pas
+                   rester dans la liste : on la relit contre la figure. */
+                this._selection = this._selection.filter(o => this.entities.includes(o));
+                return this._selection;
+            }
+            set selection(v) { this._selection = v || []; }
+            viderSelection() {
+                if (this._selection && this._selection.length) {
+                    this._selection = [];
+                    return true;
+                }
+                this._selection = [];
+                return false;
+            }
+            /* Les points qui DÉFINISSENT un objet. C'est par eux qu'on décide
+               s'il est dans le cadre, et par eux qu'on le déplace. */
+            pointsDe(e) {
+                const out = [];
+                const push = (p) => { if (p instanceof Point && !out.includes(p)) out.push(p); };
+                if (e instanceof Point) { push(e); return out; }
+                push(e.p1); push(e.p2); push(e.p3); push(e.center);
+                if (Array.isArray(e.points)) e.points.forEach(push);
+                if (e.refLine) { push(e.refLine.p1); push(e.refLine.p2); }
+                return out;
+            }
+            /* Ce qui tient tout entier dans le cadre. Les traces de construction
+               et les instruments n'y entrent pas : on sélectionne une FIGURE. */
+            objetsDansCadre(x0, y0, x1, y1) {
+                const gx0 = Math.min(x0, x1), gx1 = Math.max(x0, x1);
+                const gy0 = Math.min(y0, y1), gy1 = Math.max(y0, y1);
+                const dedans = (p) => p.x >= gx0 && p.x <= gx1 && p.y >= gy0 && p.y <= gy1;
+                return this.entities.filter((e) => {
+                    if (e instanceof ToolAnimation) return false;
+                    if (e.visible === false && !this.showHidden) return false;
+                    if (e.hidden === true && !this.showHidden) return false;
+                    const pts = this.pointsDe(e);
+                    if (pts.length) return pts.every(dedans);
+                    /* Un texte, une image : ils n'ont pas de points, mais ils ont
+                       une position. */
+                    if (typeof e.x === 'number' && typeof e.y === 'number') return dedans(e);
+                    return false;
+                });
+            }
+            /* La boîte qui entoure la sélection — c'est elle qu'on montre, et
+               c'est dedans qu'un appui veut dire « déplace tout ça ». */
+            boiteSelection() {
+                const sel = this.selection;
+                if (!sel.length) return null;
+                let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+                const voir = (x, y) => {
+                    x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+                    y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+                };
+                sel.forEach((e) => {
+                    const pts = this.pointsDe(e);
+                    if (pts.length) pts.forEach(p => voir(p.x, p.y));
+                    else if (typeof e.x === 'number') voir(e.x, e.y);
+                });
+                if (!isFinite(x0)) return null;
+                return { x0, y0, x1, y1 };
+            }
+            /* Les points qu'on a le droit de tirer : ceux qui ne se déduisent
+               pas de deux autres. Un point POSÉ SUR un objet (un seul parent)
+               est du voyage : son objet part avec lui, et la reprojection le
+               remet exactement où il était par rapport à lui. */
+            pointsMobilesDe(objets) {
+                const vus = new Set();
+                objets.forEach((e) => {
+                    this.pointsDe(e).forEach((p) => {
+                        if (!p.parents || p.parents.length < 2) vus.add(p);
+                    });
+                });
+                return [...vus];
+            }
+            deplacerSelection(dx, dy) {
+                const sel = this.selection;
+                if (!sel.length) return;
+                this.pointsMobilesDe(sel).forEach((p) => { p.x += dx; p.y += dy; });
+                /* Les textes et les images n'ont pas de points : ils portent leur
+                   position eux-mêmes. */
+                sel.forEach((e) => {
+                    if (!(e instanceof Point) && !this.pointsDe(e).length
+                        && typeof e.x === 'number' && typeof e.y === 'number') {
+                        e.x += dx; e.y += dy;
+                    }
+                });
+                this.updateDependents();
+            }
+            /* Le cadre est-il vraiment un cadre ? Un clic qui bouge de trois
+               pixels est un clic, pas un glissé : il doit vider la sélection,
+               pas en faire une vide. */
+            cadreEstUnGeste() {
+                const c = this.cadreSelection;
+                if (!c) return false;
+                const z = this.view.zoom || 1;
+                return Math.abs(c.x1 - c.x0) * z > 4 || Math.abs(c.y1 - c.y0) * z > 4;
+            }
+            dessinerSelection(ctx) {
+                const z = this.view.zoom || 1;
+                const boite = this.boiteSelection();
+                if (boite) {
+                    const m = 10 / z;
+                    ctx.save();
+                    ctx.strokeStyle = '#1565c0';
+                    ctx.lineWidth = 1.5 / z;
+                    ctx.setLineDash([6 / z, 4 / z]);
+                    ctx.strokeRect(boite.x0 - m, boite.y0 - m,
+                                   boite.x1 - boite.x0 + 2 * m, boite.y1 - boite.y0 + 2 * m);
+                    ctx.setLineDash([]);
+                    /* Chaque point retenu porte un anneau : la boîte dit
+                       « jusqu'où », les anneaux disent « quoi ». */
+                    ctx.strokeStyle = '#1565c0';
+                    ctx.lineWidth = 2 / z;
+                    const vus = new Set();
+                    this.selection.forEach((e) => this.pointsDe(e).forEach((p) => {
+                        if (vus.has(p)) return;
+                        vus.add(p);
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 7 / z, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }));
+                    ctx.restore();
+                }
+                const c = this.cadreSelection;
+                if (c && this.cadreEstUnGeste()) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(21, 101, 192, 0.10)';
+                    ctx.strokeStyle = '#1565c0';
+                    ctx.lineWidth = 1 / z;
+                    ctx.setLineDash([5 / z, 4 / z]);
+                    const x = Math.min(c.x0, c.x1), y = Math.min(c.y0, c.y1);
+                    const w = Math.abs(c.x1 - c.x0), h = Math.abs(c.y1 - c.y0);
+                    ctx.fillRect(x, y, w, h);
+                    ctx.strokeRect(x, y, w, h);
+                    ctx.restore();
+                }
+            }
             handlePointerDown(e) {
                 if (this.isLocked) return;
                 this.lastUsedWidgetForCreation = null;
@@ -27231,6 +27409,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     // pas un état de l'appareil : on le remet à zéro ici, puisque
                     // l'outil curseur ne crée jamais rien.
                     this.tactileMode = false;
+                    /* APPUYER DANS LA SÉLECTION, C'EST LA PRENDRE. On regarde
+                       cela AVANT le point le plus proche : sans quoi un appui
+                       sur un sommet de la figure sélectionnée ne déplacerait que
+                       ce sommet, et déformerait ce qu'on croyait déplacer en
+                       bloc. */
+                    const boite = this.boiteSelection();
+                    if (boite) {
+                        const m = 10 / (this.view.zoom || 1);
+                        if (x >= boite.x0 - m && x <= boite.x1 + m
+                            && y >= boite.y0 - m && y <= boite.y1 + m) {
+                            this.saveState();
+                            this.deplaceSelection = { x, y, bouge: false };
+                            e.preventDefault();
+                            this.render();
+                            return;
+                        }
+                    }
+                    /* Rien sous le doigt : c'est un cadre qui commence. Maj
+                       ajoute à la sélection au lieu de la remplacer. */
+                    if (!closestPoint && !clickedText && !targetWidget) {
+                        this.cadreSelection = { x0: x, y0: y, x1: x, y1: y,
+                                                ajout: !!e.shiftKey };
+                        if (!e.shiftKey) this.viderSelection();
+                        e.preventDefault();
+                        this.render();
+                        return;
+                    }
+                    if (this.viderSelection()) this.render();
                     if (closestPoint || clickedText) this.saveState();
                     if (closestPoint && closestPoint.parents.length !== 2) {
                         this.draggedPoint = closestPoint;
@@ -28164,6 +28370,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 }
+                if (this.cadreSelection) {
+                    this.cadreSelection.x1 = x;
+                    this.cadreSelection.y1 = y;
+                    this.render();
+                    return;
+                }
+                if (this.deplaceSelection) {
+                    const d = this.deplaceSelection;
+                    const dx = x - d.x, dy = y - d.y;
+                    if (dx || dy) {
+                        this.deplacerSelection(dx, dy);
+                        d.x = x; d.y = y; d.bouge = true;
+                        this.render();
+                    }
+                    return;
+                }
                 if (this.currentTool === 'move' && !this.tactileMode) {
                     if (this.draggedPoint) {
                         if (this.draggedPoint.parents.length === 1) {
@@ -28245,6 +28467,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             handlePointerUp(e) {
                 if (this.isLocked) return;
                 this.activePointers.delete(e.pointerId);
+                if (this.cadreSelection) {
+                    const c = this.cadreSelection;
+                    /* On demande AVANT d'oublier le cadre : cadreEstUnGeste le
+                       lit sur l'objet vivant, et le mettre à null d'abord
+                       répondait toujours « non ». */
+                    const geste = this.cadreEstUnGeste();
+                    this.cadreSelection = null;
+                    if (geste) {
+                        const pris = this.objetsDansCadre(c.x0, c.y0, c.x1, c.y1);
+                        this.selection = c.ajout
+                            ? this.selection.concat(pris.filter(o => !this.selection.includes(o)))
+                            : pris;
+                        /* Le message APPREND le geste ; il ne le commente pas.
+                           Une fois suffit — après, il ne ferait que gêner. */
+                        if (this.selection.length && !this._ditCadre) {
+                            this._ditCadre = true;
+                            const n = this.selection.length;
+                            this.showToast(`${n} objet${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}`
+                                + ' — glissez dedans pour les déplacer ensemble');
+                        }
+                    } else {
+                        /* Un clic dans le vide, sans glisser : on relâche. */
+                        this.viderSelection();
+                    }
+                    this.render();
+                    return;
+                }
+                if (this.deplaceSelection) {
+                    const bouge = this.deplaceSelection.bouge;
+                    this.deplaceSelection = null;
+                    if (bouge) { this.saveState(); this.render(); }
+                    return;
+                }
                 if (this.traitCroquis) {
                     const trait = this.traitCroquis;
                     const question = (this.currentTool === 'magic_croquis');
@@ -37168,7 +37423,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 07h';
+        window.GM_VERSION = '2026-09-06 · 10h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
