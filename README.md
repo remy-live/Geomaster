@@ -896,6 +896,59 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### On ne reporte que ce qu'on a d'abord pris
+
+*« Pour la translation, il manque à un moment le fait que le compas prend
+l'écartement entre l'origine du vecteur et le point dont on veut faire
+l'image. »* C'est le geste fondateur du compas, et il est en deux temps : on
+**pose** la pointe sur un point et la mine sur un autre — voilà l'écartement, et
+il vaut une longueur qui existe sur la figure — puis on **porte** ce même
+écartement ailleurs. Le second geste ne se justifie que par le premier. Un compas
+qui s'ouvre tout seul au centre de l'arc qu'il va tracer fait apparaître une
+longueur venue de nulle part.
+
+D'où une règle, et un audit qui l'applique à tout — `tests/audit-ecartement.js` :
+
+> Chaque fois que l'écartement du compas **change**, il doit changer à un endroit
+> où la longueur existe : la pointe sur un point de la figure, la mine sur un
+> autre, à la bonne distance et dans la bonne direction.
+
+Garder l'écartement pour reporter dix fois est légitime — c'est même tout
+l'intérêt. Ce qui ne l'est pas, c'est de l'obtenir sans le prendre. **26 cas** sur
+les vingt et une constructions magiques et dix-huit consignes au compas :
+
+- **la translation** ouvrait le compas au centre de l'arc, de 10 px au rayon
+  voulu. Elle prend maintenant DE sur le vecteur, puis DP entre l'origine et le
+  point — les deux longueurs que la propriété du parallélogramme met en jeu ;
+- **la médiatrice** ouvrait « aux sept dixièmes de AB » — une longueur que rien
+  ne porte et qu'aucun élève ne saurait régler. Elle prend AB : la longueur du
+  segment lui-même, qui dépasse toujours la moitié, et dont les deux arcs se
+  croisent aux sommets des triangles équilatéraux de [AB]. Même correction pour
+  les deux médiatrices du cercle circonscrit et celles du yin-yang ;
+- **la bissectrice** ouvrait à `60` — soixante pixels. Elle prend le plus court
+  des deux côtés de l'angle, puis la distance entre les deux intersections ;
+- **le pentagone** passait de l'écartement du nombre d'or (268 px) à celui du
+  côté (282 px) en se déplaçant, sans montrer où la nouvelle longueur avait été
+  prise ;
+- **la spirale du carré** faisait grandir son rayon de côté en côté, mais le bout
+  de la spirale n'était qu'une paire de coordonnées : l'écartement se prenait
+  entre le sommet et *rien*. Le bout est maintenant un point de la figure ;
+- **les étoiles et les polygones inscrits** ne montraient pas la prise du rayon
+  sur `[O, bord]` avant le premier report.
+
+**Deux gestes légitimes, pas un.** On peut aussi *ouvrir le compas à une mesure*
+que l'énoncé donne en centimètres, réglée sur la règle graduée : c'est le geste
+du triangle 5-3-4. Il introduit une longueur venue du dehors et doit donc se
+**déclarer** — l'audit l'accepte et le compte à part. Un triangle *équilatéral*,
+lui, reporte le côté qu'il vient de tracer : il le prend sur [AB].
+
+Restent deux écartements **déclarés faute de mieux**, et c'est plus honnête que
+de les taire : le sixième du rayon des deux points du yin-yang, qui est une
+proportion du dessin et non une longueur de la figure ; et les parts du rayon de
+base des dessins au compas, dont le programme écrit dit déjà comment on les
+obtient — *« construis le milieu d'un rayon à la médiatrice »* — mais dont
+l'animation saute encore le partage.
+
 ### Les sommets d'une étoile se construisent, ils ne se placent pas
 
 *« Pour les étoiles, les points sont placés sur le cercle mais arbitrairement,
@@ -1654,7 +1707,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 98 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 99 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

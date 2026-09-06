@@ -16448,7 +16448,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 let baseAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
                 let dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
-                let radius = dist * 0.7;
+                /* L'ÉCARTEMENT EST AB, ET IL SE PREND. On ouvrait « sept dixièmes
+                   de AB » — une longueur que rien sur la feuille ne porte, et
+                   qu'aucun élève ne saurait régler. Pointe sur A, mine sur B :
+                   c'est la longueur du segment lui-même, elle convient toujours
+                   (elle dépasse la moitié), et les deux arcs se croisent aux
+                   sommets des deux triangles équilatéraux de [AB]. */
+                let radius = dist;
+                this.priseEcartement(pA, pB, radius, null);
                 
                 let midX = pA.x + (pB.x - pA.x)/2;
                 let midY = pA.y + (pB.y - pA.y)/2;
@@ -16925,7 +16932,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     + `du pentagone : on la reporte 4 fois sur le cercle.`;
                 const angleStep = Math.PI * 2 / 5;
                 let points = [pB];
-                let currentCompass = {x: midX, y: midY, angle: angleME, radius: distMA};
+                /* AE EST LE CÔTÉ : ON LE PREND AVANT DE LE REPORTER. Le compas
+                   passait de l'écartement du nombre d'or (268 px) à celui du côté
+                   (282 px) en se déplaçant, sans que rien ne montre où cette
+                   nouvelle longueur avait été prise. */
+                let currentCompass = this.priseEcartement(pB, ptE, s,
+                    { x: midX, y: midY, angle: angleME, radius: distMA });
                 for (let i = 1; i < 5; i++) {
                     /* Chaque sommet est A tourné d'un cinquième de tour autour
                        de O — le report de AE le vérifie, la figure le retient. */
@@ -17264,7 +17276,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let pMid1 = new Point(0, 0, "", [pB, center]); pMid1.update();
                 let pMid2 = new Point(0, 0, "", [pC, center]); pMid2.update();
                 
-                let rMed = radius * 0.65;
+                /* L'écartement de la médiatrice est la corde elle-même — ici le
+                   rayon, puisqu'on cherche le milieu d'un demi-diamètre. */
+                let rMed = radius;
+                this.priseEcartement(center, pB, rMed, null);
                 // Mediatrice 1 (center-pB)
                 let arcM1_c = new CompassArc(center, rMed, angleAB - 1.2, angleAB + 1.2, false); arcM1_c.color = "rgba(255,0,0,0.3)";
                 let animM1_c = new ToolAnimation('trace', {x: center.x, y: center.y, angle: angleAB - 1.2, radius: rMed}, {x: center.x, y: center.y, angle: angleAB + 1.2, radius: rMed});
@@ -17272,7 +17287,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let arcM1_b = new CompassArc(pB, rMed, angleAB + Math.PI - 1.2, angleAB + Math.PI + 1.2, false); arcM1_b.color = "rgba(255,0,0,0.3)";
                 let animM1_b = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: angleAB + Math.PI - 1.2, radius: rMed}, {x: pB.x, y: pB.y, angle: angleAB + Math.PI + 1.2, radius: rMed});
                 animM1_b.widgetType = 'compass'; this.addEntity(animM1_b); this.addEntity(arcM1_b);
-                let dMid1 = Math.sqrt(rMed*rMed - (radius/2)*(radius/2));
+                let dMid1 = Math.sqrt(Math.max(1, rMed*rMed - (radius/2)*(radius/2)));
                 let int1_a = new Point(pMid1.x + Math.cos(angleAB - Math.PI/2)*dMid1, pMid1.y + Math.sin(angleAB - Math.PI/2)*dMid1, ""); int1_a.visible = false;
                 let int1_b = new Point(pMid1.x + Math.cos(angleAB + Math.PI/2)*dMid1, pMid1.y + Math.sin(angleAB + Math.PI/2)*dMid1, ""); int1_b.visible = false;
                 let sMed1 = new Segment(int1_a, int1_b, {color: "rgba(255,0,0,0.3)", width: 1, dash: true});
@@ -17319,7 +17334,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let c2 = new CompassArc(pMid2, r3, 0, Math.PI*2, false); c2.color = segAB.color;
                 
                 let animMove3 = new ToolAnimation('move', {x: pMid2.x, y: pMid2.y, angle: angleAB + Math.PI*2, radius: r2}, {x: pMid1.x, y: pMid1.y, angle: angleAB, radius: r3});
-                animMove3.widgetType = 'compass'; this.addEntity(animMove3);
+                animMove3.widgetType = 'compass';
+                /* LE SIXIÈME DU RAYON EST UNE PROPORTION DU DESSIN, pas une
+                   longueur de la figure : les deux points du yin-yang valent le
+                   sixième du grand rayon depuis toujours, et rien sur la feuille
+                   ne porte cette longueur. On le DÉCLARE plutôt que de laisser
+                   croire que le compas l'a prise quelque part. */
+                animMove3.ecartementDeclare = 'proportion du dessin : le sixième du rayon';
+                this.addEntity(animMove3);
                 let animT3 = new ToolAnimation('trace', {x: pMid1.x, y: pMid1.y, angle: angleAB, radius: r3}, {x: pMid1.x, y: pMid1.y, angle: angleAB + Math.PI*2, radius: r3});
                 animT3.widgetType = 'compass'; this.addEntity(animT3); this.addEntity(c1);
                 
@@ -17783,9 +17805,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(angBase);
                 
                 this.stepInstructions[this.entities.length] = "On trace un arc de cercle centré sur le sommet de l'angle.";
-                let radius = 60; 
                 let a1 = Math.atan2(pA.y - pB.y, pA.x - pB.x);
                 let a2 = Math.atan2(pC.y - pB.y, pC.x - pB.x);
+                /* L'ÉCARTEMENT SE PREND SUR UN CÔTÉ DE L'ANGLE. Il valait 60 —
+                   soixante pixels, une longueur qui n'est nulle part sur la
+                   feuille et qu'aucun élève ne saurait régler. On prend le plus
+                   court des deux côtés : l'arc coupe alors les deux à coup sûr. */
+                const cote1 = Math.hypot(pA.x - pB.x, pA.y - pB.y);
+                const cote2 = Math.hypot(pC.x - pB.x, pC.y - pB.y);
+                let radius = Math.min(cote1, cote2);
+                this.priseEcartement(pB, cote1 <= cote2 ? pA : pC, radius, null);
                 
                 let arc1 = new CompassArc(pB, radius, a1 - 0.2, a1 + 0.2, false); arc1.color = '#e91e63';
                 let animArc1 = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: a1 - 0.2, radius: radius}, {x: pB.x, y: pB.y, angle: a1 + 0.2, radius: radius});
@@ -17803,9 +17832,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 
                 this.stepInstructions[this.entities.length] = "À partir des intersections, on trace deux arcs de même rayon qui se croisent.";
                 let aBisect = a1 + (Math.atan2(Math.sin(a2-a1), Math.cos(a2-a1)) / 2);
-                let L = radius + 60;
+                /* LE SECOND ÉCARTEMENT SE PREND ENTRE LES DEUX INTERSECTIONS.
+                   Il valait « le rayon plus soixante » ; c'est maintenant la
+                   distance de l'une à l'autre — les deux arcs se croisent alors
+                   au sommet du triangle équilatéral, toujours du bon côté. */
+                let arcRadius = Math.hypot(pt2.x - pt1.x, pt2.y - pt1.y);
+                let demi = arcRadius / 2;
+                let L = radius * Math.cos(Math.abs(Math.atan2(Math.sin(a2-a1), Math.cos(a2-a1))) / 2)
+                        + Math.sqrt(Math.max(1, arcRadius*arcRadius - demi*demi));
                 let ptCross = new Point(pB.x + Math.cos(aBisect)*L, pB.y + Math.sin(aBisect)*L, ""); ptCross.visible = false;
-                let arcRadius = Math.hypot(ptCross.x - pt1.x, ptCross.y - pt1.y);
+                this.priseEcartement(pt1, pt2, arcRadius, null);
                 
                 let aPt1Cross = Math.atan2(ptCross.y - pt1.y, ptCross.x - pt1.x);
                 let arc3 = new CompassArc(pt1, arcRadius, aPt1Cross - 0.3, aPt1Cross + 0.3, false); arc3.color = '#ff9900';
@@ -17847,7 +17883,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 const drawMediatriceHelper = (P1, P2, arcColor) => {
                     const dist = Math.hypot(P2.x - P1.x, P2.y - P1.y);
-                    const rMed = dist * 0.7;
+                    /* Même écartement que la médiatrice magique : la corde
+                       elle-même, prise entre ses deux extrémités. */
+                    const rMed = dist;
                     const h = Math.sqrt(Math.max(0.01, rMed * rMed - (dist / 2) ** 2));
                     const midX = (P1.x + P2.x) / 2;
                     const midY = (P1.y + P2.y) / 2;
@@ -17856,6 +17894,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const cA = { x: midX + nx * h, y: midY + ny * h };
                     const cB = { x: midX - nx * h, y: midY - ny * h };
 
+                    this.priseEcartement(P1, P2, rMed, null);
                     const aAC = Math.atan2(cA.y - P1.y, cA.x - P1.x);
                     const arc1 = new CompassArc(P1, rMed, aAC - 0.4, aAC + 0.4, false); arc1.color = arcColor;
                     arc1.rayonPaire = { a: P1, b: P2, k: 0.7 };
@@ -18224,7 +18263,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const cible = Math.atan2(vers.y - centre.y, vers.x - centre.x);
                     const a = ouverture || 0.35;
                     const pose = (angle, radius) => ({ x: centre.x, y: centre.y, angle, radius });
-                    const ouvre = new ToolAnimation('move', pose(cible - a, 10), pose(cible - a, r));
+                    /* LE COMPAS PREND L'ÉCARTEMENT LÀ OÙ LA LONGUEUR EXISTE.
+                       Il s'ouvrait directement au centre de l'arc, de 10 px au
+                       rayon voulu : la longueur sortait de nulle part. Or on ne
+                       reporte que ce qu'on a d'abord PRIS — pointe sur D, mine
+                       sur E pour la longueur du vecteur, pointe sur D et mine
+                       sur le point pour la distance de D au point. C'est ce
+                       premier geste qui fait comprendre pourquoi le second est
+                       légitime ; sans lui, le report est un tour de passe-passe. */
+                    if (paire) {
+                        const [P, Q] = paire;
+                        const aPQ = Math.atan2(Q.y - P.y, Q.x - P.x);
+                        const prise = new ToolAnimation('move',
+                            { x: P.x, y: P.y, angle: aPQ, radius: 0 },
+                            { x: P.x, y: P.y, angle: aPQ, radius: r });
+                        prise.widgetType = 'compass';
+                        this.addEntity(prise);
+                    }
+                    /* Puis il se porte au centre de l'arc SANS changer d'écartement. */
+                    const depart = paire ? { x: paire[0].x, y: paire[0].y,
+                                             angle: Math.atan2(paire[1].y - paire[0].y,
+                                                               paire[1].x - paire[0].x), radius: r }
+                                         : pose(cible - a, 10);
+                    const ouvre = new ToolAnimation('move', depart, pose(cible - a, r));
                     ouvre.widgetType = 'compass';
                     this.addEntity(ouvre);
                     const anim = new ToolAnimation('trace', pose(cible - a, r), pose(cible + a, r));
@@ -23840,7 +23901,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             startState: e.startState,
                             endState: e.endState,
                             targetId: e.targetId,
-                            counterClockwise: e.counterClockwise
+                            counterClockwise: e.counterClockwise,
+                            /* « cet écartement a été réglé sur la règle graduée » :
+                               une déclaration, pas un détail d'affichage. */
+                            ecartementMesure: e.ecartementMesure || undefined,
+                            ecartementDeclare: e.ecartementDeclare || undefined
                         };
                     }
                     const data = {
@@ -23985,6 +24050,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         obj.widgetType = data.widgetType;
                         obj.targetId = data.targetId;
                         if (data.counterClockwise !== undefined) obj.counterClockwise = data.counterClockwise;
+                        if (data.ecartementMesure) obj.ecartementMesure = true;
+                        if (data.ecartementDeclare) obj.ecartementDeclare = data.ecartementDeclare;
                     } else if (data.type === 'Point') {
                         obj = new Point(data.x, data.y, data.label, [], data.id, data.subType);
                         if (typeof data.transParam === 'number') obj.transParam = data.transParam;
@@ -24675,6 +24742,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     tete.motifCm = Math.round(rayonPx / UNIT * (this.cmScale || 1) * 10) / 10;
                     tete.motifMot = mot || 'de rayon';
                 }
+            }
+            /* LE COMPAS PREND L'ÉCARTEMENT [PQ] : pointe sur P, mine sur Q. Un
+               seul geste, mais c'est LUI qui autorise tous les reports qui
+               suivent — sans lui, la longueur sort de nulle part. Rend la pose du
+               compas, pour enchaîner sans saut. */
+            priseEcartement(P, Q, rayon, precedent) {
+                const a = Math.atan2(Q.y - P.y, Q.x - P.x);
+                const r = (typeof rayon === 'number') ? rayon
+                                                      : Math.hypot(Q.x - P.x, Q.y - P.y);
+                const dep = precedent || { x: P.x, y: P.y, angle: a };
+                const venir = new ToolAnimation('move',
+                    { x: dep.x, y: dep.y, angle: dep.angle, radius: 0 },
+                    { x: P.x, y: P.y, angle: a, radius: 0 });
+                venir.widgetType = 'compass'; this.addEntity(venir);
+                const prise = new ToolAnimation('move',
+                    { x: P.x, y: P.y, angle: a, radius: 0 },
+                    { x: P.x, y: P.y, angle: a, radius: r });
+                prise.widgetType = 'compass'; this.addEntity(prise);
+                return { x: P.x, y: P.y, angle: a, radius: r };
+            }
+            /* OUVRIR LE COMPAS, DE L'UNE DES DEUX FAÇONS. Soit on PREND
+               l'écartement entre deux points de la figure — c'est le geste
+               fondateur, et il ne demande rien d'autre que la figure. Soit on
+               l'OUVRE À UNE MESURE que l'énoncé donne en centimètres, réglée sur
+               la règle graduée : geste légitime lui aussi, mais qui introduit une
+               longueur venue du dehors, et qui doit donc se DÉCLARER. Ce qui
+               n'est ni l'un ni l'autre est une longueur sortie de nulle part. */
+            ouvrirCompas(centre, viseAngle, rayon, precedent, paire) {
+                if (paire && paire[0] && paire[1]) {
+                    const d = Math.hypot(paire[1].x - paire[0].x, paire[1].y - paire[0].y);
+                    if (Math.abs(d - rayon) < 1) {
+                        const pose = this.priseEcartement(paire[0], paire[1], rayon, precedent);
+                        const venir = new ToolAnimation('move',
+                            { x: pose.x, y: pose.y, angle: pose.angle, radius: rayon },
+                            { x: centre.x, y: centre.y, angle: viseAngle, radius: rayon });
+                        venir.widgetType = 'compass'; this.addEntity(venir);
+                        return pose;
+                    }
+                }
+                const dep = precedent || { x: centre.x, y: centre.y, angle: viseAngle };
+                const ouvre = new ToolAnimation('move',
+                    { x: dep.x, y: dep.y, angle: dep.angle, radius: 10 },
+                    { x: centre.x, y: centre.y, angle: viseAngle, radius: rayon });
+                ouvre.widgetType = 'compass';
+                ouvre.ecartementMesure = true;
+                this.addEntity(ouvre);
+                return { x: centre.x, y: centre.y, angle: viseAngle, radius: rayon };
             }
             arcVivant(arc, rayonRef, viseRef, demiOuverture) {
                 if (rayonRef) arc.rayonRef = rayonRef;
@@ -33534,10 +33648,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
             /* L'écartement, pris et reporté : un arc de compas qui vise un point
                et qui SUIT la figure quand on la déplace. */
-            cslArcCompas(centre, rayon, viser, paire, outils, precedent, couleur) {
+            cslArcCompas(centre, rayon, viser, paire, outils, precedent, couleur, prendre) {
                 const cible = Math.atan2(viser.y - centre.y, viser.x - centre.x);
                 const demi = 0.45;
                 if (outils) {
+                    /* ON NE REPORTE QUE CE QU'ON A D'ABORD PRIS. Quand l'écartement
+                       CHANGE, il doit changer là où la longueur existe : pointe sur
+                       un point, mine sur un autre. Le compas s'ouvrait au centre de
+                       l'arc qu'il allait tracer — la longueur sortait de nulle part,
+                       et le report devenait un tour de passe-passe. */
+                    if (prendre && prendre[0] && prendre[1]) {
+                        const [P, Q] = prendre;
+                        const aPQ = Math.atan2(Q.y - P.y, Q.x - P.x);
+                        const dep0 = precedent || { x: P.x, y: P.y, angle: aPQ };
+                        const venir = new ToolAnimation('move',
+                            { x: dep0.x, y: dep0.y, angle: dep0.angle, radius: 0 },
+                            { x: P.x, y: P.y, angle: aPQ, radius: 0 });
+                        venir.widgetType = 'compass'; this.addEntity(venir);
+                        const prise = new ToolAnimation('move',
+                            { x: P.x, y: P.y, angle: aPQ, radius: 0 },
+                            { x: P.x, y: P.y, angle: aPQ, radius: rayon });
+                        prise.widgetType = 'compass'; this.addEntity(prise);
+                        precedent = { x: P.x, y: P.y, angle: aPQ };
+                    }
                     const dep = precedent || { x: centre.x, y: centre.y, angle: cible - demi };
                     const m = new ToolAnimation('move',
                         { x: dep.x, y: dep.y, angle: dep.angle, radius: rayon },
@@ -33559,9 +33692,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             /* REPORTER une longueur depuis un point du cercle : le sommet suivant
                est le CROISEMENT de l'arc et du cercle, pas un angle calculé. */
             cslReporterSurCercle(cercle, O, depuis, rayon, paire, versX, versY,
-                                 nom, outils, precedent) {
+                                 nom, outils, precedent, prendre) {
                 const g = this.cslArcCompas(depuis, rayon, { x: versX, y: versY },
-                                           paire, outils, precedent);
+                                           paire, outils, precedent, null, prendre);
                 const p = new Point(versX, versY, nom || '', [g.arc, cercle]);
                 p.update();
                 g.arc.viseRef = p; g.arc.demiOuverture = 0.45;
@@ -33584,15 +33717,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     d = Math.hypot(ux, uy) || 1;
                 }
                 ux /= d; uy /= d;
-                const dOmid = Math.hypot(mx - O.x, my - O.y);
-                const voulu = Math.max(0, 1.15 * R - dOmid);
-                const r = Math.max(R, Math.hypot(demiCorde, voulu) * 1.02);
+                /* L'ÉCARTEMENT SE PREND SUR LA CORDE ELLE-MÊME : pointe sur P,
+                   mine sur Q. C'est une longueur qui EXISTE, et elle convient
+                   toujours — les deux arcs se croisent alors à √3 fois la
+                   demi-corde du milieu, donc toujours au-delà du cercle, du
+                   diamètre à l'arc le plus court. On ouvrait auparavant « un peu
+                   plus que le rayon », une longueur que rien sur la feuille ne
+                   portait. */
+                const r = demiCorde * 2;
                 const h = Math.sqrt(Math.max(1, r * r - demiCorde * demiCorde));
                 const X = { x: mx + ux * h, y: my + uy * h };
-                const kr = r / R;
-                const g1 = this.cslArcCompas(P, r, X, [O, cercle.p2, kr], outils, precedent,
-                                             'rgba(255,153,0,0.55)');
-                const g2 = this.cslArcCompas(Q, r, X, [O, cercle.p2, kr], outils, g1.pose,
+                const g1 = this.cslArcCompas(P, r, X, [P, Q, 1], outils, precedent,
+                                             'rgba(255,153,0,0.55)', [P, Q]);
+                const g2 = this.cslArcCompas(Q, r, X, [P, Q, 1], outils, g1.pose,
                                              'rgba(255,153,0,0.55)');
                 const pX = new Point(X.x, X.y, '', [g1.arc, g2.arc]);
                 pX.update(); pX.visible = false; this.addEntity(pX);
@@ -33719,8 +33856,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(P0); base.push(P0);
                     for (let k = 1; k < 6; k++) {
                         const q = pt(a0 + k * Math.PI / 3);
+                        /* Au PREMIER report seulement, le compas prend le rayon —
+                           pointe sur le centre, mine sur le bord. Les cinq
+                           suivants gardent l'écartement : c'est tout l'intérêt. */
                         const r = this.cslReporterSurCercle(cercle, O, base[k - 1], R,
-                            [O, bord, 1], q.x, q.y, '', outils, pose);
+                            [O, bord, 1], q.x, q.y, '', outils, pose, k === 1 ? [O, bord] : null);
                         base.push(r.p); pose = r.pose;
                     }
                 } else if (plan.base === 4) {
@@ -33750,7 +33890,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const rM = Math.hypot(P0.x - Mm.x, P0.y - Mm.y);
                     const ux = (B.x - O.x) / R, uy = (B.y - O.y) / R;
                     const vise = { x: Mm.x - ux * rM, y: Mm.y - uy * rM };
-                    const gE = this.cslArcCompas(Mm, rM, vise, [Mm, P0, 1], outils, pose);
+                    const gE = this.cslArcCompas(Mm, rM, vise, [Mm, P0, 1], outils, pose,
+                                                null, [Mm, P0]);
                     pose = gE.pose;
                     const E = new Point(vise.x, vise.y, '', [gE.arc, dOB]);
                     E.update(); E.visible = false; this.addEntity(E);
@@ -33759,7 +33900,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     for (let k = 1; k < 5; k++) {
                         const q = pt(a0 + k * 2 * Math.PI / 5);
                         const r = this.cslReporterSurCercle(cercle, O, base[k - 1], cote,
-                            [P0, E, 1], q.x, q.y, '', outils, pose);
+                            [P0, E, 1], q.x, q.y, '', outils, pose, k === 1 ? [P0, E] : null);
                         base.push(r.p); pose = r.pose;
                     }
                 }
@@ -33954,7 +34095,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     for (let k = 0; k < 4; k++) this.cslSegment(V[k], V[(k + 1) % 4]);
                     /* On part du sommet opposé au premier centre : le compas y
                        est déjà ouvert d'un côté. */
-                    let P = { x: V[3].x, y: V[3].y };
+                    /* LE BOUT DE LA SPIRALE EST UN POINT DE LA FIGURE. Il n'était
+                       qu'une paire de coordonnées : l'écartement du quart de tour
+                       suivant — deux côtés, puis trois — se prenait donc entre le
+                       sommet et RIEN. On pose le point, invisible, et le compas
+                       s'ouvre entre lui et le sommet où l'on pique : c'est
+                       exactement le geste, et il se voit. */
+                    let P = V[3];
                     let precedent = null;
                     for (let k = 0; k < quarts; k++) {
                         const C = V[k % 4];
@@ -33962,6 +34109,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const a1 = Math.atan2(P.y - C.y, P.x - C.x);
                         const a2 = a1 + Math.PI / 2;
                         if (outils) {
+                            precedent = this.priseEcartement(C, P, r, precedent);
                             if (precedent) {
                                 const m = new ToolAnimation('move',
                                     { x: precedent.x, y: precedent.y, angle: precedent.angle,
@@ -33980,7 +34128,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (st.width) arc.lineWidth = st.width;
                         if (st.dash) { arc.dash = [5, 5]; arc.styleDemande = true; }
                         this.addEntity(arc);
-                        P = { x: C.x + Math.cos(a2) * r, y: C.y + Math.sin(a2) * r };
+                        P = new Point(C.x + Math.cos(a2) * r, C.y + Math.sin(a2) * r, '');
+                        P.visible = false; this.addEntity(P);
                     }
                     if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
                     this.cslDire('On pique le compas sur les sommets du carré EN TOURNANT, et le '
@@ -34129,7 +34278,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 { x: precedent.x, y: precedent.y, angle: precedent.angle,
                                   radius: precedent.r },
                                 { x: cx, y: cy, angle: a1, radius: r });
-                            m.widgetType = 'compass'; this.addEntity(m);
+                            m.widgetType = 'compass';
+                            /* UNE PART DU RAYON DE BASE. Le programme écrit le dit
+                               déjà — « construis le milieu d'un rayon à la
+                               médiatrice : voilà le demi-rayon, sans avoir rien
+                               mesuré » — mais l'animation, elle, saute ce partage
+                               et rouvre le compas d'un coup. On le déclare : le
+                               geste manque, il n'est pas caché. */
+                            if (Math.abs(r - (precedent.r || 0)) > 1) {
+                                m.ecartementDeclare = 'une part du rayon de base, '
+                                    + 'partagé à la médiatrice — le partage n\'est pas encore joué';
+                            }
+                            this.addEntity(m);
                         }
                         const tr = new ToolAnimation('trace',
                             { x: cx, y: cy, angle: a1, radius: r },
@@ -37647,9 +37807,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const r = MathUtils.dist(versC.x, versC.y, pC.x, pC.y);
                 const vise = Math.atan2(pC.y - versC.y, pC.x - versC.x);
                 const pose = (ang, ray) => ({ x: versC.x, y: versC.y, angle: ang, radius: ray });
-                const ouvrir = new ToolAnimation('move', pose(vise - 0.4, 10), pose(vise - 0.4, r));
-                ouvrir.widgetType = 'compass';
-                this.addEntity(ouvrir);
+                this.ouvrirCompas(versC, vise - 0.4, r, null, [pA, pB]);
                 const tracer = new ToolAnimation('trace', pose(vise - 0.4, r), pose(vise + 0.4, r));
                 tracer.widgetType = 'compass';
                 const arc = new CompassArc(versC, r, vise - 0.4, vise + 0.4, false);
@@ -37731,9 +37889,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     : "Le compas, ouvert à l'hypoténuse, coupe la perpendiculaire.";
                 const vise = Math.atan2(pC.y - centre.y, pC.x - centre.x);
                 const pose = (ang, ray) => ({ x: centre.x, y: centre.y, angle: ang, radius: ray });
-                const ouvrir = new ToolAnimation('move', pose(vise - 0.45, 10), pose(vise - 0.45, r));
-                ouvrir.widgetType = 'compass';
-                this.addEntity(ouvrir);
+                this.ouvrirCompas(centre, vise - 0.45, r, null, [pA, pB]);
                 const tracer = new ToolAnimation('trace', pose(vise - 0.45, r), pose(vise + 0.45, r));
                 tracer.widgetType = 'compass';
                 const arc = new CompassArc(centre, r, vise - 0.45, vise + 0.45, false);
@@ -37768,9 +37924,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const cible = Math.atan2(vers.y - centre.y, vers.x - centre.x);
                     const dep = cible - 0.45, fin = cible + 0.45;
                     const pose = (ang, ray) => ({ x: centre.x, y: centre.y, angle: ang, radius: ray });
-                    const ouvrir = new ToolAnimation('move', pose(dep, 10), pose(dep, r));
-                    ouvrir.widgetType = 'compass';
-                    this.addEntity(ouvrir);
+                    /* Un triangle ÉQUILATÉRAL reporte le côté qu'on vient de
+                       tracer : le compas le PREND sur [AB]. Un triangle 5-3-4
+                       ouvre à une mesure de l'énoncé — autre geste, et il se
+                       déclare. */
+                    this.ouvrirCompas(centre, dep, r, null, [pA, pB]);
                     const tracer = new ToolAnimation('trace', pose(dep, r), pose(fin, r));
                     tracer.widgetType = 'compass';
                     const trait = new CompassArc(centre, r, dep, fin, false);
@@ -41231,7 +41389,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 3h';
+        window.GM_VERSION = '2026-09-08 · 4h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
