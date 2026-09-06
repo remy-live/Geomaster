@@ -545,6 +545,60 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('  et deux cercles trop éloignés : on le dit, on n\'invente pas de point',
      !croix.loin.ok && /ne se coupent pas/.test(croix.loin.msg), croix.loin.msg);
 
+  console.log('\n=== UN CARRÉ ET SES DIAGONALES RESTE UN CARRÉ ===');
+  /* La détection de polygone demandait des sommets de degré 2 : les diagonales
+     les portaient à 3, et la figure la plus banale du collège était décrite trait
+     par trait. Sa construction aux instruments devenait alors « les arcs se
+     croisent en D » avec un écartement de 4,2 cm — la DIAGONALE, ce nombre
+     qu'aucun manuel n'écrit et dont l'élève ne comprend pas d'où il sort.
+     On cherche donc aussi le CONTOUR : l'enveloppe convexe, quand tous ses côtés
+     sont tracés. */
+  const diag = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    const A = new Point(400, 750, 'A'), B = new Point(550, 750, 'B');
+    const C = new Point(550, 600, 'C'), D = new Point(400, 600, 'D');
+    [A, B, C, D].forEach(x => app.addEntity(x));
+    [[A, B], [B, C], [C, D], [D, A]].forEach(([u, v]) =>
+      app.addEntity(new Segment(u, v, { color: '#000', width: 2 })));
+    app.addEntity(new Segment(A, C, { color: '#000', width: 2 }));
+    app.addEntity(new Segment(B, D, { color: '#000', width: 2 }));
+    return { faits: app.lireFigure().map(f => f.t),
+             sans: app.programmeDeConstruction(false) || [],
+             avec: app.programmeDeConstruction(true) || [] };
+  });
+  diag.avec.forEach((l, i) => console.log('  ' + (i + 1) + '. ' + l));
+  ck('la figure est lue comme un CARRÉ, pas comme six traits',
+     /^Trace un carré/.test(diag.sans[0] || ''), diag.sans[0]);
+  ck('  et ses diagonales sont dites pour ce qu\'elles sont',
+     diag.sans.filter(l => /4,2 cm/.test(l)).length === 2, diag.sans.join(' | '));
+  /* « Tu oublies de parler de perpendiculaire. » */
+  ck('aux instruments, c\'est L\'ÉQUERRE qui donne les sommets',
+     diag.avec.some(l => /équerre, trace la perpendiculaire/.test(l)),
+     diag.avec.join(' | '));
+  ck('  et la diagonale ne sert plus d\'écartement de compas',
+     !diag.avec.some(l => /écartement de 4,2 cm/.test(l)),
+     diag.avec.filter(l => /4,2/.test(l)).join(' | ') || 'aucun');
+
+  console.log('\n=== trois points à angle droit : l\'équerre, pas deux arcs ===');
+  const equerre = await page.evaluate(() => {
+    const app = window.app;
+    const un = (pts) => {
+      app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+      pts.forEach(([n, x, y]) => app.addEntity(new Point(x, y, n)));
+      return app.programmeDeConstruction(true) || [];
+    };
+    return { droit: un([['A', 400, 700], ['B', 550, 700], ['C', 400, 550]]),
+             quelconque: un([['A', 400, 700], ['B', 560, 700], ['C', 470, 560]]) };
+  });
+  ck('l\'angle droit se construit à l\'équerre',
+     equerre.droit.some(l => /équerre, trace la perpendiculaire à \(AB\)/.test(l)),
+     equerre.droit.join(' | '));
+  ck('  mais un triangle quelconque garde ses deux arcs',
+     equerre.quelconque.filter(l => /Au compas, écartement/.test(l)).length === 2
+     && equerre.quelconque.some(l => /arcs se croisent/.test(l)),
+     equerre.quelconque.join(' | '));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

@@ -248,6 +248,40 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      voyage && voyage.nom === 'd' && voyage.nomT === 0.3 && voyage.nomD === -38,
      JSON.stringify(voyage));
 
+  console.log('\n=== un cercle de 3 cm reste un cercle de 3 cm ===');
+  /* Un cercle se retient par son centre et un point du bord qui règle le rayon.
+     Ce second point est libre et caché : en tirant le CENTRE, il restait sur
+     place et le rayon changeait. Mesuré : « le cercle de centre A et de rayon
+     3 cm » passait à 4,7 cm après 80 px. Ce n'est pas un déplacement, c'est une
+     déformation. */
+  const av = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace le cercle de centre A et de rayon 3 cm', false);
+    app.setTool('move'); app.render();
+    const A = app.entities.find(e => e instanceof Point && e.label === 'A');
+    const c = app.entities.find(e => e instanceof Circle);
+    return { x: A.x, y: A.y,
+             r: Math.round(Math.hypot(c.p2.x - c.p1.x, c.p2.y - c.p1.y)) };
+  });
+  const D0 = S(av.x, av.y);
+  await page.mouse.move(D0.x, D0.y); await page.mouse.down();
+  for (let i = 1; i <= 8; i++) {
+    await page.mouse.move(D0.x - i * 10, D0.y - i * 6); await page.waitForTimeout(15);
+  }
+  await page.mouse.up(); await page.waitForTimeout(60);
+  const ap = await page.evaluate(() => {
+    const app = window.app;
+    const A = app.entities.find(e => e instanceof Point && e.label === 'A');
+    const c = app.entities.find(e => e instanceof Circle);
+    return { bouge: Math.round(Math.hypot(c.p1.x - c.p2.x, c.p1.y - c.p2.y)),
+             x: A.x, y: A.y };
+  });
+  const parcouru = Math.round(Math.hypot(ap.x - av.x, ap.y - av.y));
+  ck('on tire le centre : le cercle SUIT sans changer de rayon',
+     parcouru > 60 && ap.bouge === av.r,
+     'tiré de ' + parcouru + ' px — rayon ' + av.r + ' px → ' + ap.bouge + ' px');
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

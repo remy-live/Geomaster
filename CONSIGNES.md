@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**199 phrases**, dont 199 passent.
+**206 phrases**, dont 206 passent.
 
 Quelques principes qui valent partout :
 
@@ -82,18 +82,30 @@ Quelques principes qui valent partout :
 |---|---|
 | Trace un chat | Chat au compas — 8 cercles |
 | Trace un panda | Panda au compas — 8 cercles, 1 arc |
-| Trace un tigre | Tigre au compas — 8 cercles, 3 arcs |
-| Trace un écureuil | Écureuil au compas — 5 cercles, 3 arcs, 2 traits |
 | Trace une souris | Souris au compas — 9 cercles |
 | Trace une chouette | Chouette au compas — 5 cercles, 3 arcs, 2 traits |
 | Trace un ourson | Ourson au compas — 7 cercles |
 | Trace un lapin | Lapin au compas — 6 cercles, 4 arcs |
 | Trace une coccinelle | Coccinelle au compas — 7 cercles, 1 arc, 1 trait |
 | Trace un poisson | Poisson au compas — 1 cercle, 3 arcs, 5 traits |
-| Trace une tortue | Tortue au compas — 7 cercles, 6 traits |
 | Trace un escargot | Escargot au compas — 2 cercles, 7 arcs, 3 traits |
 | Trace un cœur | Cœur au compas — 2 arcs, 2 traits |
 | Trace un chat de 5 cm | Chat au compas — 8 cercles |
+
+## Les fiches de dessins géométriques
+
+| Ce qu'on écrit | Ce que le logiciel répond |
+|---|---|
+| Trace une étoile à 5 branches | Étoile à 5 branches, de 2 en 2, dans un cercle de rayon 3,4 cm |
+| Trace une étoile à 6 branches | Étoile à 6 branches, de 2 en 2, dans un cercle de rayon 3,4 cm |
+| Trace une étoile à 8 branches | Étoile à 8 branches, de 3 en 3, dans un cercle de rayon 3,4 cm |
+| Trace une étoile à 8 branches de 2 en 2 | Étoile à 8 branches, de 2 en 2, dans un cercle de rayon 3,4 cm |
+| Trace le contour d'une étoile à 5 branches | Étoile à 5 branches, de 2 en 2, dans un cercle de rayon 3,4 cm |
+| Trace une étoile à 12 branches de 5 cm | Étoile à 12 branches, de 5 en 5, dans un cercle de rayon 5 cm |
+| Trace une spirale du carré | Spirale du carré — 8 quarts de tour, sur un carré de 0,7 cm de côté |
+| Trace une spirale du carré de 12 quarts | Spirale du carré — 12 quarts de tour, sur un carré de 0,7 cm de côté |
+| Trace un papier polaire | Papier polaire — 5 cercles et 12 rayons, rayon 4 cm |
+| Trace une cible à 16 rayons et 4 cercles | Papier polaire — 4 cercles et 16 rayons, rayon 4 cm |
 
 ## Cercles (suite)
 

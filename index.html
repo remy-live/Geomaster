@@ -8432,17 +8432,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div class="consigne-groupe">Dessins au compas</div>
             <a onclick="app.exempleConsigne('Trace un chat')">Chat</a>
             <a onclick="app.exempleConsigne('Trace un panda')">Panda</a>
-            <a onclick="app.exempleConsigne('Trace un tigre')">Tigre</a>
-            <a onclick="app.exempleConsigne('Trace un écureuil')">Écureuil</a>
             <a onclick="app.exempleConsigne('Trace une souris')">Souris</a>
             <a onclick="app.exempleConsigne('Trace une chouette')">Chouette · hibou</a>
             <a onclick="app.exempleConsigne('Trace un ourson')">Ourson</a>
             <a onclick="app.exempleConsigne('Trace un lapin')">Lapin</a>
             <a onclick="app.exempleConsigne('Trace une coccinelle')">Coccinelle</a>
             <a onclick="app.exempleConsigne('Trace un poisson')">Poisson</a>
-            <a onclick="app.exempleConsigne('Trace une tortue')">Tortue</a>
             <a onclick="app.exempleConsigne('Trace un escargot')">Escargot</a>
             <a onclick="app.exempleConsigne('Trace un cœur de 4 cm')">Cœur de 4 cm</a>
+            <div class="consigne-groupe">Les fiches de dessins</div>
+            <a onclick="app.exempleConsigne('Trace une étoile à 5 branches')">Étoile à 5 branches</a>
+            <a onclick="app.exempleConsigne('Trace une étoile à 6 branches')">Étoile à 6 branches (de David)</a>
+            <a onclick="app.exempleConsigne('Trace une étoile à 8 branches')">Étoile à 8 branches</a>
+            <a onclick="app.exempleConsigne(&quot;Trace le contour d'une étoile à 5 branches&quot;)">…son contour seul</a>
+            <a onclick="app.exempleConsigne('Trace une spirale du carré')">Spirale du carré (au compas)</a>
+            <a onclick="app.exempleConsigne('Trace un papier polaire')">Papier polaire</a>
+            <a onclick="app.exempleConsigne('Trace une cible à 16 rayons et 4 cercles')">Cible à 16 rayons</a>
             <div class="consigne-groupe">Figures</div>
             <a onclick="app.exempleConsigne('Trace un carré ABCD de 3 cm de côté')">Carré ABCD de 3 cm de côté</a>
             <a onclick="app.exempleConsigne('Trace un rectangle ABCD de 5 cm sur 3 cm')">Rectangle ABCD de 5 cm sur 3 cm</a>
@@ -13849,16 +13854,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ['c', 0, 0.34, 0.44],                        // le museau
                 ['c', 0, 0.16, 0.13],                        // la truffe
             ] },
-            tigre: { nom: 'tigre', r: 150, pieces: [
-                ['c', 0, 0, 1],
-                ['c', -0.74, -0.70, 0.34], ['c', 0.74, -0.70, 0.34],
-                ['c', -0.36, -0.18, 0.14], ['c', 0.36, -0.18, 0.14],
-                ['c', -0.24, 0.36, 0.28], ['c', 0.24, 0.36, 0.28],     // les bajoues
-                ['c', 0, 0.18, 0.14],
-                ['a', -0.55, -0.95, 0.55, 55, 105],          // les rayures du front
-                ['a', 0, -1.05, 0.55, 55, 125],
-                ['a', 0.55, -0.95, 0.55, 75, 125],
-            ] },
             coccinelle: { nom: 'coccinelle', r: 150, pieces: [
                 ['c', 0, 0, 1],                              // le corps
                 ['a', 0, -1.10, 0.45, 20, 160],              // la tête
@@ -13877,16 +13872,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ['s', -0.15, -0.40, 0.05, -0.70],
                 ['s', 0.05, -0.70, 0.30, -0.34],             // la nageoire
             ] },
-            tortue: { nom: 'tortue', r: 150, pieces: [
-                ['c', 0, 0, 1],                              // la carapace
-                ['c', 0, 0, 0.45],
-                ['c', 0, -1.15, 0.30],                       // la tête
-                ['c', -0.80, -0.80, 0.24], ['c', 0.80, -0.80, 0.24],   // les pattes
-                ['c', -0.80, 0.80, 0.24], ['c', 0.80, 0.80, 0.24],
-                ['s', 0, -0.45, 0, -1], ['s', 0, 0.45, 0, 1],
-                ['s', -0.39, -0.23, -0.87, -0.50], ['s', 0.39, -0.23, 0.87, -0.50],
-                ['s', -0.39, 0.23, -0.87, 0.50], ['s', 0.39, 0.23, 0.87, 0.50],
-            ] },
             escargot: { nom: 'escargot', r: 130, pieces: [
                 /* LA COQUILLE EST UNE VRAIE SPIRALE AU COMPAS : des demi-tours
                    pris alternativement sur DEUX pointes distantes de 0,14, et
@@ -13901,24 +13886,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ['s', -1.48, 0.62, -1.76, 0.18],             // les antennes
                 ['s', -1.28, 0.58, -1.16, 0.14],
                 ['c', -1.80, 0.12, 0.08], ['c', -1.13, 0.09, 0.08],
-            ] },
-            ecureuil: { nom: 'écureuil', r: 120, pieces: [
-                ['c', -0.35, 0.50, 0.75],                    // le corps
-                ['c', -0.80, -0.45, 0.40],                   // la tête
-                ['c', -1.08, -0.75, 0.15], ['c', -0.55, -0.78, 0.15],  // les oreilles
-                ['c', -0.95, -0.52, 0.07],                   // l'œil
-                /* LA QUEUE EN PANACHE : deux arcs de MÊME CENTRE, la moitié
-                   droite d'un grand cercle et celle d'un petit, refermées en bas
-                   par un trait et en haut par un arc qui la fait retomber. Trois
-                   cercles emboîtés — la première version — se lisaient comme une
-                   cible posée à côté de l'animal ; un croissant ouvert — la
-                   seconde — comme un pont décollé du dos. Le pied de la queue
-                   est TANGENT au corps : c'est ce qui la rattache. */
-                ['a', 0.40, 0.30, 0.95, 270, 90],
-                ['a', 0.40, 0.30, 0.42, 270, 90],
-                ['s', 0.40, 1.25, 0.40, 0.72],               // le pied de la queue
-                ['a', 0.40, -0.385, 0.265, 90, 270],         // le bout, qui retombe
-                ['s', -1.15, 1.28, 0.55, 1.28],              // le sol
             ] },
             lapin: { nom: 'lapin', r: 140, pieces: [
                 ['c', 0, 0, 1],
@@ -13952,12 +13919,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             souris: 'souris', mulot: 'souris',
             chouette: 'chouette', hibou: 'chouette',
             ourson: 'ourson', ours: 'ourson', nounours: 'ourson',
-            tigre: 'tigre', chattigre: 'tigre',
             coccinelle: 'coccinelle', betealadieu: 'coccinelle',
             poisson: 'poisson',
-            tortue: 'tortue',
             escargot: 'escargot',
-            ecureuil: 'ecureuil',
             lapin: 'lapin',
             coeur: 'coeur',
         };
@@ -24342,6 +24306,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (entity instanceof Point && entity.parents.length > 0) entity.update();
                 });
             }
+            /* UN CERCLE DE 3 CM RESTE UN CERCLE DE 3 CM QUAND ON LE DÉPLACE.
+               Un cercle se retient par deux points : son centre, et un point du
+               bord qui règle le rayon. Ce second point est libre et caché — il
+               ne sert qu'à porter la mesure. En tirant le centre, il restait
+               donc sur place, et le rayon changeait : mesuré, « le cercle de
+               centre A et de rayon 3 cm » passait à 4,7 cm après 80 px de
+               déplacement. Ce n'est pas un déplacement, c'est une déformation.
+
+               La poignée de rayon suit donc le centre. Celle qu'on a nommée, ou
+               qui sert à autre chose sur la figure, ne bouge pas : elle
+               appartient à la figure, pas au cercle. */
+            emporterRayons(centre, dx, dy) {
+                if (!centre || (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9)) return;
+                const sertAilleurs = new Set();
+                this.entities.forEach((e) => {
+                    if (e instanceof Circle) { if (e.p1) sertAilleurs.add(e.p1); return; }
+                    (e.parents || []).forEach(q => { if (q instanceof Point) sertAilleurs.add(q); });
+                    if (e instanceof Polygon && e.points) e.points.forEach(q => sertAilleurs.add(q));
+                    if (e instanceof Angle) [e.p1, e.p2, e.p3].forEach(q => sertAilleurs.add(q));
+                    if (e instanceof Arc && e.center) sertAilleurs.add(e.center);
+                    if (e && e.p1) sertAilleurs.add(e.p1);
+                    if (e && e.p2) sertAilleurs.add(e.p2);
+                });
+                this.entities.forEach((e) => {
+                    if (!(e instanceof Circle) || e.p1 !== centre || !e.p2) return;
+                    const b = e.p2;
+                    if (b.label || b.visible !== false) return;
+                    if ((b.parents || []).length) return;
+                    if (sertAilleurs.has(b)) return;
+                    b.x += dx; b.y += dy;
+                });
+            }
             getNetworkToDelete(target) {
                 let toDelete = [target];
                 let changed = true;
@@ -28996,6 +28992,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 if (this.currentTool === 'move' && !this.tactileMode) {
                     if (this.draggedPoint) {
+                        const dep = { x: this.draggedPoint.x, y: this.draggedPoint.y };
                         if (this.draggedPoint.parents.length === 1) {
                             const pObj = this.draggedPoint.parents[0];
                             const p = Array.isArray(pObj) ? { constructor: { name: 'Segment' }, p1: pObj[0], p2: pObj[1] } : pObj;
@@ -29006,6 +29003,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.draggedPoint.x = x;
                             this.draggedPoint.y = y;
                         }
+                        this.emporterRayons(this.draggedPoint,
+                            this.draggedPoint.x - dep.x, this.draggedPoint.y - dep.y);
                         this.updateDependents();
                         this.render();
                     } else if (this.draggedText) {
@@ -31172,6 +31171,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    seulement : la palette du professeur n'est pas touchée. */
                 const lu = this.cslLireStyle(phraseEleve.toLowerCase());
                 this._cslStyleLigne = lu.style;
+                /* Le drapeau « décor » ne vaut que pour la consigne en cours. */
+                this._cslDecor = false;
                 const brut = lu.dit ? this.cslSansStyle(phraseEleve) : phraseEleve;
                 const t = brut.toLowerCase();
                 const fait = (quoi) => {
@@ -31182,8 +31183,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     // ce qui vient d'être tracé sert à la consigne suivante
                     this.cslMemoriser(this.entities.slice(avant));
-                    // le codage ne parle que de ce que CETTE consigne a construit
-                    this.codageDeConstruction(avant);
+                    /* Le codage ne parle que de ce que CETTE consigne a
+                       construit — et il ne parle pas du tout d'un DESSIN. Sur une
+                       étoile à douze branches, coder les douze cordes égales
+                       posait cent quarante marques sur une figure décorative :
+                       le codage sert à dire ce qu'un énoncé impose, pas à
+                       constater ce qu'un joli tracé produit. */
+                    if (!this._cslDecor) this.codageDeConstruction(avant);
                     this.saveState();
                     this.render();
                     return { ok: true, message: quoi + (lu.dit ? ' — ' + lu.dit : ''),
@@ -31234,6 +31240,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const solide = this.cslSolide(brut, t, fait, rate);
                         if (solide) return solide;
                     }
+                    /* La spirale DU CARRÉ passe avant l'escargot de Pythagore,
+                       qui est l'autre spirale du logiciel et attrapait le mot. */
+                    if (/spirale/.test(t) && /carr[ée]|quarts?\s+de\s+tour/.test(t)) {
+                        const sp = this.cslSpiraleCarre(brut, t, fait, rate);
+                        if (sp) return sp;
+                    }
                     if (/flocon|koch|spirale|th[ée]odore|escargot\s+de\s+pythagore/.test(t)) {
                         const surprise = this.cslFigureCachee(brut, t, fait, rate);
                         if (surprise) return surprise;
@@ -31246,10 +31258,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const ros = this.cslRosace(brut, t, fait, rate);
                         if (ros) return ros;
                     }
+                    /* LES ÉTOILES, LA SPIRALE DU CARRÉ ET LE PAPIER POLAIRE
+                       passent tôt : « étoile à 5 branches » contient « 5 », que
+                       la règle des polygones lirait comme un nombre de côtés, et
+                       « spirale » partirait vers l'escargot de Pythagore. */
+                    if (/[ée]toile/.test(t) && /branches?|pointes?|de\s+\d+\s+en\s+\d+|de\s+(?:deux|trois|quatre|cinq)\s+en\s+/.test(t)) {
+                        const et = this.cslEtoileBranches(brut, t, fait, rate);
+                        if (et) return et;
+                    }
+                    if (/papier\s+polaire|cercle\s+polaire|cible/.test(t)) {
+                        const pp = this.cslPapierPolaire(brut, t, fait, rate);
+                        if (pp) return pp;
+                    }
                     /* LES DESSINS AU COMPAS passent avant tout le reste : « trace
                        un chat » ne doit pas partir vers une règle qui verrait un
                        autre mot, et « un cœur » ne doit pas devenir un carré. */
-                    if (/(?:chat|chaton|minou|panda|souris|mulot|chouette|hibou|ourson|nounours|tigre|coccinelle|poisson|tortue|escargot|ecureuil|lapin|coeur)/
+                    if (/(?:chat|chaton|minou|panda|souris|mulot|chouette|hibou|ourson|nounours|coccinelle|poisson|escargot|lapin|coeur)/
                             .test(this.cslSansAccent(t))) {
                         const dessin = this.cslDessinAuCompas(brut, t, fait, rate);
                         if (dessin) return dessin;
@@ -33089,6 +33113,251 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return null;
             }
             /* ============================================================
+               LES ÉTOILES À N BRANCHES
+
+               La figure des fiches : un cercle, N points reportés dessus, et on
+               relie DE k EN k. Les cordes se croisent, et l'étoile paraît. C'est
+               la construction la plus payante du cycle 3 — elle ne demande qu'un
+               compas et une règle, et elle donne un dessin dont l'élève est
+               fier.
+
+               Le pas par défaut est le plus « pointu » : 2 pour cinq et six
+               branches, 3 pour sept et huit. À six branches, un pas de 2 donne
+               les deux triangles de l'étoile de David ; à huit, un pas de 2
+               donne deux carrés croisés, un pas de 3 un tracé d'un seul trait.
+               ============================================================ */
+            cslEtoileBranches(brut, t, fait, rate) {
+                const mots = { trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8,
+                               neuf: 9, dix: 10, onze: 11, douze: 12 };
+                const chiffre = (m) => m ? (/^\d+$/.test(m) ? Number(m) : mots[m.toLowerCase()]) : null;
+                const mb = brut.match(/(\d+|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze)\s*(?:branches?|pointes?|sommets?)/i);
+                let n = chiffre(mb && mb[1]) || 5;
+                if (n < 5 || n > 12) return rate('Une étoile se trace à partir de cinq branches, '
+                    + 'et jusqu\'à douze.');
+                const mp = brut.match(/de\s+(\d+|deux|trois|quatre|cinq)\s+en\s+\1/i)
+                    || brut.match(/de\s+(\d+|deux|trois|quatre|cinq)\s+en\s+(?:\d+|deux|trois|quatre|cinq)/i);
+                const motsPas = { deux: 2, trois: 3, quatre: 4, cinq: 5 };
+                let pas = mp ? (/^\d+$/.test(mp[1]) ? Number(mp[1]) : motsPas[mp[1].toLowerCase()])
+                             : Math.max(2, Math.floor((n - 1) / 2));
+                if (pas < 2 || pas > n / 2) pas = Math.max(2, Math.floor((n - 1) / 2));
+                const contour = /contour|sans\s+les\s+traits|sans\s+les\s+cordes/.test(t);
+                const R = this.cslLongueurPx(brut) || 3.4 * UNIT / (this.cmScale || 1);
+                const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10)
+                    .replace('.', ',');
+                let message = null;
+                this._cslDecor = true;
+                this.cslBatir([], () => {
+                    const st = this.cslStyle();
+                    const o = this.cslPlaceLibre(0, 0);
+                    const outils = this.cslDetaille();
+                    const nomO = this.cslNomLibre([]);
+                    const O = new Point(o.x, o.y, nomO); this.addEntity(O);
+                    if (outils) {
+                        const a = new ToolAnimation('trace',
+                            { x: O.x, y: O.y, angle: 0, radius: R },
+                            { x: O.x, y: O.y, angle: Math.PI * 2, radius: R });
+                        a.widgetType = 'compass'; this.addEntity(a);
+                    }
+                    const bord = new Point(o.x + R, o.y, ''); bord.visible = false;
+                    this.addEntity(bord);
+                    const cercle = new Circle(O, bord, st); this.addEntity(cercle);
+                    if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                    /* LES SOMMETS SONT DES POINTS DU CERCLE : ils en dépendent,
+                       comme le point d'une rosace ou l'intersection d'une
+                       sécante. Un point posé « là où ça tombe juste » ne serait
+                       pas une construction. */
+                    const pris = [nomO];
+                    const S = [];
+                    for (let k = 0; k < n; k++) {
+                        const ang = -Math.PI / 2 + k * 2 * Math.PI / n;
+                        const nom = this.cslNomLibre(pris); pris.push(nom);
+                        const p = new Point(o.x + Math.cos(ang) * R, o.y + Math.sin(ang) * R,
+                                            nom, [cercle]);
+                        this.addEntity(p); S.push(p);
+                    }
+                    if (contour) {
+                        /* LE CONTOUR DE L'ÉTOILE : ses creux sont les points où
+                           les cordes se croisent. On les CALCULE, on ne les
+                           devine pas — un contour dessiné à vue ne serait plus
+                           la même figure que les cordes qui le donnent. */
+                        const som = [];
+                        for (let k = 0; k < n; k++) {
+                            som.push(S[k]);
+                            const a1 = S[k], b1 = S[(k + pas) % n];
+                            const a2 = S[(k + 1) % n], b2 = S[(k + 1 - pas + n * 2) % n];
+                            const d = (b1.x - a1.x) * (b2.y - a2.y) - (b1.y - a1.y) * (b2.x - a2.x);
+                            if (Math.abs(d) < 1e-9) continue;
+                            const u = ((a2.x - a1.x) * (b2.y - a2.y)
+                                     - (a2.y - a1.y) * (b2.x - a2.x)) / d;
+                            const c = new Point(a1.x + u * (b1.x - a1.x),
+                                                a1.y + u * (b1.y - a1.y), '');
+                            c.visible = false; this.addEntity(c);
+                            som.push(c);
+                        }
+                        for (let k = 0; k < som.length; k++) {
+                            this.cslSegment(som[k], som[(k + 1) % som.length]);
+                        }
+                    } else {
+                        /* On relie de pas en pas. Quand pas et n ont un diviseur
+                           commun — six branches de deux en deux —, le chemin se
+                           referme avant d'avoir tout parcouru : il faut repartir
+                           du sommet suivant. C'est exactement ce qui donne les
+                           DEUX triangles de l'étoile de David. */
+                        const vus = new Set();
+                        for (let d = 0; d < n; d++) {
+                            if (vus.has(d)) continue;
+                            let k = d;
+                            do {
+                                vus.add(k);
+                                const suivant = (k + pas) % n;
+                                this.cslSegment(S[k], S[suivant]);
+                                k = suivant;
+                            } while (k !== d);
+                        }
+                    }
+                    const pgcd = (a, b) => b ? pgcd(b, a % b) : a;
+                    const morceaux = pgcd(n, pas);
+                    this.cslDire(`On partage le cercle en ${n} et l'on relie de ${pas} en ${pas}. `
+                        + (morceaux === 1
+                            ? 'Le chemin passe par tous les sommets et revient au départ : '
+                              + "l'étoile se trace d'un seul trait, sans lever le crayon."
+                            : `${n} et ${pas} ont ${morceaux} en commun : le chemin se `
+                              + `referme avant d'avoir tout parcouru, et il faut ${morceaux} `
+                              + `tracés séparés — c'est ce qui donne ${morceaux} polygones `
+                              + `superposés.`)
+                        + (n === 6 ? ' À six branches, les sommets se reportent au COMPAS : '
+                            + 'le rayon se reporte six fois exactement.' : ''));
+                    message = `Étoile à ${n} branches, de ${pas} en ${pas}, `
+                        + `dans un cercle de rayon ${cm(R)} cm`;
+                });
+                return message ? fait(message) : rate("Je n'ai pas su tracer cette étoile.");
+            }
+            /* ============================================================
+               LA SPIRALE DU CARRÉ
+
+               « Il faut piquer avec ton compas sur les sommets du carré en
+               tournant. » Chaque quart de tour est pris sur le sommet suivant,
+               et le rayon grandit du côté à chaque fois : c, 2c, 3c… La spirale
+               ne se mesure pas, elle se REPORTE — et elle se referme d'elle-même
+               parce que quatre quarts de tour font un tour.
+               ============================================================ */
+            cslSpiraleCarre(brut, t, fait, rate) {
+                const mots = { trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8,
+                               neuf: 9, dix: 10, douze: 12 };
+                const mq = brut.match(/(\d+|trois|quatre|cinq|six|sept|huit|neuf|dix|douze)\s*(?:quarts?|arcs?|tours?)/i);
+                let quarts = 8;
+                if (mq) {
+                    const v = /^\d+$/.test(mq[1]) ? Number(mq[1]) : mots[mq[1].toLowerCase()];
+                    if (/tours?/i.test(mq[0])) quarts = Math.max(1, Math.min(16, v * 4));
+                    else quarts = Math.max(2, Math.min(16, v));
+                }
+                const c = this.cslLongueurPx(brut) || 0.7 * UNIT / (this.cmScale || 1);
+                const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10)
+                    .replace('.', ',');
+                let message = null;
+                this._cslDecor = true;
+                this.cslBatir([], () => {
+                    const st = this.cslStyle();
+                    const o = this.cslPlaceLibre(0, 0);
+                    const outils = this.cslDetaille();
+                    /* Le carré des pointes, tracé à la règle : c'est lui qu'on
+                       pique, et il reste sur la figure. */
+                    const pris = [];
+                    const V = [[0, 0], [c, 0], [c, c], [0, c]].map(([x, y]) => {
+                        const nom = this.cslNomLibre(pris); pris.push(nom);
+                        const p = new Point(o.x + x, o.y + y, nom);
+                        this.addEntity(p); return p;
+                    });
+                    for (let k = 0; k < 4; k++) this.cslSegment(V[k], V[(k + 1) % 4]);
+                    /* On part du sommet opposé au premier centre : le compas y
+                       est déjà ouvert d'un côté. */
+                    let P = { x: V[3].x, y: V[3].y };
+                    let precedent = null;
+                    for (let k = 0; k < quarts; k++) {
+                        const C = V[k % 4];
+                        const r = Math.hypot(P.x - C.x, P.y - C.y);
+                        const a1 = Math.atan2(P.y - C.y, P.x - C.x);
+                        const a2 = a1 + Math.PI / 2;
+                        if (outils) {
+                            if (precedent) {
+                                const m = new ToolAnimation('move',
+                                    { x: precedent.x, y: precedent.y, angle: precedent.angle,
+                                      radius: precedent.r },
+                                    { x: C.x, y: C.y, angle: a1, radius: r });
+                                m.widgetType = 'compass'; this.addEntity(m);
+                            }
+                            const tr = new ToolAnimation('trace',
+                                { x: C.x, y: C.y, angle: a1, radius: r },
+                                { x: C.x, y: C.y, angle: a2, radius: r });
+                            tr.widgetType = 'compass'; this.addEntity(tr);
+                            precedent = { x: C.x, y: C.y, angle: a2, r };
+                        }
+                        const arc = new Arc(C, r, a1, a2);
+                        if (st.color) arc.color = st.color;
+                        if (st.width) arc.lineWidth = st.width;
+                        if (st.dash) { arc.dash = [5, 5]; arc.styleDemande = true; }
+                        this.addEntity(arc);
+                        P = { x: C.x + Math.cos(a2) * r, y: C.y + Math.sin(a2) * r };
+                    }
+                    if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                    this.cslDire('On pique le compas sur les sommets du carré EN TOURNANT, et le '
+                        + 'rayon grandit du côté à chaque quart de tour. Rien ne se mesure : '
+                        + 'chaque arc part exactement où le précédent s\'arrête. Essayez « une '
+                        + 'spirale de 12 quarts », ou repartez d\'un autre sommet pour les '
+                        + 'entremêler.');
+                    message = `Spirale du carré — ${quarts} quarts de tour, `
+                        + `sur un carré de ${cm(c)} cm de côté`;
+                });
+                return message ? fait(message) : rate("Je n'ai pas su tracer cette spirale.");
+            }
+            /* ============================================================
+               LE PAPIER POLAIRE
+
+               La cible sur laquelle les fiches font poser un pavage : des cercles
+               concentriques et des rayons. Ce n'est pas un fond d'écran, c'est
+               une FIGURE — on la trace, on l'imprime, et on colorie dessus.
+               ============================================================ */
+            cslPapierPolaire(brut, t, fait, rate) {
+                const nombres = [...brut.matchAll(/(\d+)\s*(rayons?|secteurs?|cercles?|couronnes?)/gi)];
+                let rayons = 12, cercles = 5;
+                nombres.forEach((m) => {
+                    const v = Number(m[1]);
+                    if (/rayons?|secteurs?/i.test(m[2])) rayons = Math.max(3, Math.min(36, v));
+                    else cercles = Math.max(1, Math.min(12, v));
+                });
+                const R = this.cslLongueurPx(brut) || 4 * UNIT / (this.cmScale || 1);
+                const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10)
+                    .replace('.', ',');
+                let message = null;
+                this._cslDecor = true;
+                this.cslBatir([], () => {
+                    const st = this.cslStyle();
+                    const o = this.cslPlaceLibre(0, 0);
+                    const nomO = this.cslNomLibre([]);
+                    const O = new Point(o.x, o.y, nomO); this.addEntity(O);
+                    for (let k = 1; k <= cercles; k++) {
+                        const r = R * k / cercles;
+                        const b = new Point(o.x + r, o.y, ''); b.visible = false;
+                        this.addEntity(b);
+                        this.addEntity(new Circle(O, b, st));
+                    }
+                    for (let k = 0; k < rayons; k++) {
+                        const ang = -Math.PI / 2 + k * 2 * Math.PI / rayons;
+                        const p = new Point(o.x + Math.cos(ang) * R, o.y + Math.sin(ang) * R, '');
+                        p.visible = false; this.addEntity(p);
+                        this.cslSegment(O, p);
+                    }
+                    const deg = String(Math.round(3600 / rayons) / 10).replace('.', ',');
+                    this.cslDire(`${rayons} rayons, donc des secteurs de ${deg}° : `
+                        + 'on les obtient au rapporteur, ou en partageant le cercle au compas quand '
+                        + 'le nombre s\'y prête. C\'est le support des pavages : on colorie de '
+                        + 'proche en proche, et le motif tourne avec la figure.');
+                    message = `Papier polaire — ${cercles} cercle${cercles > 1 ? 's' : ''} `
+                        + `et ${rayons} rayons, rayon ${cm(R)} cm`;
+                });
+                return message ? fait(message) : rate("Je n'ai pas su tracer ce papier polaire.");
+            }
+            /* ============================================================
                LES DESSINS AU COMPAS : un chat, un panda, une chouette…
 
                Ce sont des cercles et des arcs, et rien d'autre — c'est tout
@@ -33121,6 +33390,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const R = this.cslLongueurPx(brut) || d.r;
                 const noms = this.cslNoms(brut);
                 let message = null;
+                this._cslDecor = true;
                 this.cslBatir([], () => {
                     const st = this.cslStyle();
                     const o = this.cslPlaceLibre(0, 0);
@@ -33128,8 +33398,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const rad = (deg) => deg * Math.PI / 180;
                     /* Le centre du dessin porte un nom : c'est par lui qu'on
                        commence, et l'énoncé relu s'y accroche. */
-                    const nomO = noms.find(n => !this.cslPointNomme(n)) || this.cslNomLibre([]);
+                    const pris = [];
+                    const nomLibre = () => { const n = this.cslNomLibre(pris); pris.push(n); return n; };
+                    const nomO = noms.find(n => !this.cslPointNomme(n)) || nomLibre();
+                    if (!pris.includes(nomO)) pris.push(nomO);
+                    /* Le repère du dessin : c'est par lui que l'énoncé relu
+                       retrouve le rayon de base. Il ne porte aucun trait, donc
+                       on ne le montre pas — les centres des cercles, eux, sont
+                       là. */
                     const O = new Point(o.x, o.y, nomO);
+                    O.visible = false;
                     O.dessinCompasCentre = cle; O.dessinCompasR = R;
                     this.addEntity(O);
                     let precedent = null;
@@ -33159,7 +33437,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (genre === 'c') {
                             const [, x, y, r] = piece;
                             const cx = o.x + x * R, cy = o.y + y * R, rr = r * R;
-                            const c = new Point(cx, cy, ''); c.visible = false;
+                            /* UN CERCLE A UN CENTRE, ET ON DOIT POUVOIR LE
+                               PRENDRE. Les centres étaient cachés : le dessin
+                               était un décor qu'on ne pouvait pas toucher, et un
+                               cercle sans centre n'est pas une figure de
+                               géométrie. Ils sont nommés et visibles, comme celui
+                               de « Trace le cercle de centre A » ; seul le point
+                               qui règle le rayon reste caché, là aussi comme
+                               ailleurs. */
+                            const c = new Point(cx, cy, nomLibre());
                             const b = new Point(cx + rr, cy, ''); b.visible = false;
                             this.addEntity(c); this.addEntity(b);
                             compas(cx, cy, rr, 0, Math.PI * 2);
@@ -33170,7 +33456,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const [, x, y, r, deb, fin] = piece;
                             const cx = o.x + x * R, cy = o.y + y * R, rr = r * R;
                             const a1 = rad(deb), a2 = rad(fin < deb ? fin + 360 : fin);
-                            const c = new Point(cx, cy, ''); c.visible = false;
+                            /* Un arc aussi a un centre : c'est la pointe du
+                               compas, et elle se déplace. */
+                            const c = new Point(cx, cy, nomLibre());
                             this.addEntity(c);
                             compas(cx, cy, rr, a1, a2);
                             const arc = new Arc(c, rr, a1, a2);
@@ -37367,11 +37655,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (para(0, 2) || para(1, 3)) return 'trapèze';
                 return 'quadrilatère';
             }
+            /* L'ENVELOPPE CONVEXE, en marche arrière : le balayage de Graham
+               par la chaîne monotone. Elle sert à retrouver le CONTOUR d'une
+               figure quand des diagonales brouillent les degrés. */
+            pgEnveloppe(pts) {
+                if (pts.length < 3) return [];
+                const P = pts.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y));
+                const cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+                const bas = [];
+                for (const p of P) {
+                    while (bas.length >= 2 && cr(bas[bas.length - 2], bas[bas.length - 1], p) <= 0) bas.pop();
+                    bas.push(p);
+                }
+                const haut = [];
+                for (let i = P.length - 1; i >= 0; i--) {
+                    const p = P[i];
+                    while (haut.length >= 2 && cr(haut[haut.length - 2], haut[haut.length - 1], p) <= 0) haut.pop();
+                    haut.push(p);
+                }
+                bas.pop(); haut.pop();
+                return bas.concat(haut);
+            }
             /* Les cycles de segments : c'est ainsi qu'on retrouve une figure là
                où il n'y a que des traits. Un sommet de degré 2 exactement, et le
-               cycle se referme : c'est un polygone. Un carré ET ses diagonales
-               donne des sommets de degré 3 — on ne force pas, on décrira les
-               traits un par un. */
+               cycle se referme : c'est un polygone.
+
+               UN CARRÉ ET SES DIAGONALES portait chaque sommet au degré 3, et la
+               détection abandonnait : la figure la plus banale du collège était
+               décrite trait par trait, et sa construction aux instruments
+               devenait « les arcs se croisent en D » avec un écartement de
+               4,2 cm — la DIAGONALE, ce nombre qu'aucun manuel n'écrit. On
+               cherche donc aussi le CONTOUR : si tous les points restants sont
+               sur leur enveloppe convexe et que chaque côté de celle-ci est
+               tracé, c'est le polygone, et ce qui reste dedans, ce sont ses
+               diagonales. */
             pgPolygones() {
                 const trouves = [];
                 const pris = new Set();
@@ -37413,6 +37730,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         prec = cur; cur = suiv;
                     }
                     if (ok && cycle.length >= 3) trouves.push(cycle);
+                }
+                /* Le contour, pour ce que les degrés ont empêché de voir. */
+                const restants = [...voisins.keys()].filter(p => !vus.has(p));
+                if (restants.length >= 4 && restants.length <= 12) {
+                    const contour = this.pgEnveloppe(restants);
+                    if (contour.length === restants.length
+                        && contour.every((p, i) => (voisins.get(p) || [])
+                            .includes(contour[(i + 1) % contour.length]))) {
+                        /* On repart du sommet posé le premier : « DCBA » et
+                           « ABCD » sont le même carré, mais l'un se lit. */
+                        let dep = 0;
+                        contour.forEach((p, i) => {
+                            if (this.entities.indexOf(p) < this.entities.indexOf(contour[dep])) dep = i;
+                        });
+                        trouves.push(contour.slice(dep).concat(contour.slice(0, dep)));
+                    }
                 }
                 return trouves;
             }
@@ -38057,10 +38390,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 l.push(`À la règle graduée, place ${N(p)} à `
                                     + `${this.pgCm(this.pgLongueur(anc[0], p))} de ${N(anc[0])}.`);
                             } else {
-                                anc.forEach(r => l.push(`Au compas, écartement de `
-                                    + `${this.pgCm(this.pgLongueur(r, p))}, pointe sur ${N(r)} : `
-                                    + `trace un arc.`));
-                                l.push(`Les arcs se croisent en ${N(p)}.`);
+                                /* L'ÉQUERRE AVANT LE COMPAS QUAND L'ANGLE EST
+                                   DROIT. Croiser deux arcs est toujours vrai,
+                                   mais il faut alors donner la DIAGONALE — ce
+                                   nombre qu'aucun manuel n'écrit, et dont
+                                   l'élève ne comprend pas d'où il sort. Quand le
+                                   point se pose à angle droit d'un trait déjà
+                                   là, on le dit : c'est le geste du cours. */
+                                const droit = anc.find((r) => {
+                                    const autre = anc.find(q => q !== r);
+                                    if (!autre) return false;
+                                    const ux = autre.x - r.x, uy = autre.y - r.y;
+                                    const vx = p.x - r.x, vy = p.y - r.y;
+                                    const n1 = Math.hypot(ux, uy), n2 = Math.hypot(vx, vy);
+                                    if (n1 < 1 || n2 < 1) return false;
+                                    return Math.abs((ux * vx + uy * vy) / (n1 * n2)) < 0.02;
+                                });
+                                if (droit) {
+                                    const autre = anc.find(q => q !== droit);
+                                    l.push(`À l'équerre, trace la perpendiculaire à `
+                                        + `(${N(droit)}${N(autre)}) passant par ${N(droit)}.`);
+                                    l.push(`Au compas (ou à la règle graduée), reporte `
+                                        + `${this.pgCm(this.pgLongueur(droit, p))} depuis `
+                                        + `${N(droit)} sur cette perpendiculaire : c'est ${N(p)}.`);
+                                } else {
+                                    anc.forEach(r => l.push(`Au compas, écartement de `
+                                        + `${this.pgCm(this.pgLongueur(r, p))}, pointe sur ${N(r)} : `
+                                        + `trace un arc.`));
+                                    l.push(`Les arcs se croisent en ${N(p)}.`);
+                                }
                             }
                             connus.push(p);
                         });
@@ -39839,7 +40197,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-07 · 12h';
+        window.GM_VERSION = '2026-09-07 · 16h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

@@ -714,9 +714,8 @@ complet, puis les six pétales.
 
 `Trace un chat`, `Trace un panda`, `Trace un tigre de 5 cm`…
 
-Treize dessins qui ne demandent **que le compas et la règle** : chat, panda,
-tigre, écureuil, souris, chouette, ourson, lapin, coccinelle, poisson, tortue,
-escargot, cœur. L'intérêt n'est pas décoratif — l'élève reporte des écartements
+Dix dessins qui ne demandent **que le compas et la règle** : chat, panda,
+souris, chouette, ourson, lapin, coccinelle, poisson, escargot, cœur. L'intérêt n'est pas décoratif — l'élève reporte des écartements
 pendant une heure sans s'apercevoir qu'il travaille.
 
 Le répertoire vient des fiches *Dessins géométriques* et du livre **« Dessiner
@@ -726,6 +725,11 @@ pièces — `['c', x, y, r]` un cercle, `['a', x, y, r, début, fin]` un arc,
 c'est ajouter une ligne, et tous héritent du même compas, du même style et du
 même programme de construction. `de 5 cm` change ce rayon, et tout suit.
 
+**Chaque cercle a un centre visible, nommé, qu'on peut prendre.** Ils étaient
+cachés : le dessin était un décor qu'on ne pouvait pas toucher, et un cercle sans
+centre n'est pas une figure de géométrie. Seul le point qui règle le rayon reste
+caché, comme pour n'importe quel cercle du logiciel.
+
 Ce sont de **vraies figures** — des `Circle` et des `Arc`, pas des traces de
 compas — pour que la feuille sache les relire, les enregistrer, les exporter et
 les rejouer. Et l'énoncé relu ne les énumère pas : décrit pièce par pièce, un
@@ -733,6 +737,60 @@ chat donnait huit fois *« Trace le cercle de centre ? et de rayon 4 cm »*, des
 phrases que personne ne pourrait suivre puisqu'elles ne disent pas où poser les
 cercles les uns par rapport aux autres. Il se relit **comme un chat** :
 *« Trace un chat de 4 cm »* — et cette phrase-là se rejoue.
+
+### Les fiches « Dessins géométriques »
+
+`Trace une étoile à 5 branches`, `à 6 branches`, `à 8 branches de 2 en 2`,
+`le contour d'une étoile à 5 branches`, `Trace une spirale du carré`,
+`Trace un papier polaire`, `Trace une cible à 16 rayons et 4 cercles`.
+
+**L'étoile à N branches** : un cercle, N points reportés dessus — de vrais points
+*du* cercle, qui en dépendent —, et l'on relie de *k* en *k*. Le pas décide de
+tout, et la bulle le dit : à six branches de deux en deux, six et deux ont deux en
+commun, le chemin se referme après trois sommets et il faut **deux tracés** — ce
+sont les deux triangles de l'étoile de David. À huit branches, de trois en trois
+se trace d'un seul trait ; de deux en deux donne deux carrés croisés. Le
+**contour** se demande aussi : ses creux sont les croisements des cordes,
+calculés et non devinés.
+
+**La spirale du carré** : « il faut piquer avec ton compas sur les sommets du
+carré en tournant ». Chaque quart de tour est pris sur le sommet suivant et le
+rayon grandit du côté — *c*, 2*c*, 3*c*… Rien ne se mesure : chaque arc part
+exactement où le précédent s'arrête, et la sonde le vérifie au centième de pixel.
+
+**Le papier polaire** : la cible sur laquelle les fiches font poser un pavage.
+Ce n'est pas un fond d'écran mais une figure — on la trace, on l'imprime, on
+colorie dessus.
+
+Ces figures sont **décoratives** : elles ne portent aucun codage d'égalité. Coder
+les douze cordes égales d'une étoile posait cent quarante marques — le codage dit
+ce qu'un énoncé impose, pas ce qu'un joli tracé produit.
+
+### Un carré et ses diagonales reste un carré
+
+La détection de polygone demandait des sommets de degré 2. Les diagonales les
+portent à 3 : la figure la plus banale du collège était décrite trait par trait,
+et sa construction aux instruments devenait *« les arcs se croisent en D »* avec
+un écartement de **4,2 cm** — la diagonale, ce nombre qu'aucun manuel n'écrit et
+dont l'élève ne comprend pas d'où il sort.
+
+On cherche donc aussi le **contour** : l'enveloppe convexe des points restants,
+quand tous ses côtés sont tracés. Le carré redevient un carré, ses diagonales
+sont dites pour ce qu'elles sont, et l'équerre reprend sa place.
+
+Même correction pour trois points libres : **quand l'angle est droit, on le dit
+à l'équerre** au lieu de croiser deux arcs dont l'un mesure la diagonale. Un
+triangle quelconque, lui, garde ses deux arcs.
+
+### Un cercle de 3 cm reste un cercle de 3 cm
+
+Un cercle se retient par son centre et un point du bord qui règle le rayon. Ce
+second point est libre et caché : en tirant le **centre**, il restait sur place
+et le rayon changeait. Mesuré : *« le cercle de centre A et de rayon 3 cm »*
+passait à **4,7 cm** après 80 px de déplacement. Ce n'est pas un déplacement,
+c'est une déformation. La poignée de rayon suit maintenant le centre — sauf si
+elle porte un nom ou sert ailleurs sur la figure, auquel cas elle appartient à la
+figure et pas au cercle.
 
 ### Le « ? » qui n'existait pas
 
@@ -1364,7 +1422,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **199 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **206 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

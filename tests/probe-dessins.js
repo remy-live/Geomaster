@@ -14,8 +14,12 @@ const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
 
-const BETES = ['chat', 'panda', 'souris', 'chouette', 'ourson', 'tigre', 'coccinelle',
-               'poisson', 'tortue', 'escargot', 'écureuil', 'lapin', 'cœur'];
+const BETES = ['chat', 'panda', 'souris', 'chouette', 'ourson', 'coccinelle',
+               'poisson', 'escargot', 'lapin', 'cœur'];
+
+/* Le tigre, la tortue et l'écureuil ont été retirés à la demande : trois
+   dessins qu'on ne gardait que pour le nombre. */
+const RETIRES = ['tigre', 'tortue', 'écureuil'];
 
 let fail = 0;
 const ck = (nom, ok, detail) => {
@@ -30,8 +34,15 @@ const ck = (nom, ok, detail) => {
   page.on('pageerror', e => errs.push(e.message));
   await page.goto(PAGE);
   await page.waitForFunction(() => window.app);
+  /* La fenêtre « une sauvegarde a été trouvée » s'ouvre après coup : si elle
+     arrive au milieu d'un glissé, elle couvre le canevas et le geste s'arrête. */
+  await page.waitForTimeout(2000);
+  await page.evaluate(() => {
+    const m = document.getElementById('customModal');
+    if (m && getComputedStyle(m).display !== 'none') window.app.closeModal();
+  });
 
-  console.log('\n=== treize dessins, et tous se tracent ===');
+  console.log('\n=== dix dessins, et tous se tracent ===');
   const tout = await page.evaluate((betes) => {
     const app = window.app;
     return betes.map((n) => {
@@ -54,15 +65,21 @@ const ck = (nom, ok, detail) => {
       });
       const larg = Math.round(Math.max(...xs) - Math.min(...xs));
       const haut = Math.round(Math.max(...ys) - Math.min(...ys));
+      /* UN CERCLE A UN CENTRE, ET ON DOIT POUVOIR LE PRENDRE. Les centres
+         étaient cachés : le dessin était un décor qu'on ne pouvait pas
+         toucher, et un cercle sans centre n'est pas une figure de géométrie. */
+      const cercles = app.entities.filter(e => e instanceof Circle);
+      const centresVus = cercles.every(c => c.p1 && c.p1.visible !== false && c.p1.label);
       return { n, ok: !!(r && r.ok), msg: (r && r.message) || '',
-               pieces: pieces.length, traces, larg, haut,
+               pieces: pieces.length, traces, larg, haut, centresVus,
+               cercles: cercles.length,
                astuce: (r && r.astuce) || '' };
     });
   }, BETES);
   tout.forEach((x) => {
     console.log('  ' + ('« Trace un ' + x.n + ' »').padEnd(28) + ' → ' + x.msg);
   });
-  ck('les treize sont comprises', tout.every(x => x.ok),
+  ck('les dix sont comprises', tout.every(x => x.ok),
      tout.filter(x => !x.ok).map(x => x.n).join(', ') || 'toutes');
   ck('  chacune a au moins quatre pièces', tout.every(x => x.pieces >= 4),
      tout.map(x => x.n + ':' + x.pieces).join(' '));
@@ -74,6 +91,9 @@ const ck = (nom, ok, detail) => {
   ck('  et chacune tient dans un cadre raisonnable',
      tout.every(x => x.larg > 60 && x.larg < 1200 && x.haut > 60 && x.haut < 1200),
      tout.map(x => x.n + ' ' + x.larg + '×' + x.haut).join(' · '));
+  ck('  chaque cercle a un centre VISIBLE et nommé, qu\'on peut prendre',
+     tout.every(x => x.centresVus),
+     tout.filter(x => !x.centresVus).map(x => x.n).join(', ') || 'tous');
   ck('  la bulle dit avec quoi on la trace',
      tout.every(x => /compas et la règle/.test(x.astuce)), tout[0].astuce.slice(0, 80));
 
@@ -168,6 +188,60 @@ const ck = (nom, ok, detail) => {
   ck('  et aux instruments on dit par quoi on commence',
      relu.avecOutils.some(l => /Ouvre le compas de 4 cm/.test(l)),
      relu.avecOutils.join(' | '));
+
+  console.log('\n=== ce qui a été retiré est bien parti ===');
+  const partis = await page.evaluate((noms) => {
+    const app = window.app;
+    return noms.map((n) => {
+      app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+      const r = app.executerConsigneAvec('Trace un ' + n, false);
+      return { n, ok: !!(r && r.ok) };
+    });
+  }, RETIRES);
+  ck('tigre, tortue et écureuil ne sont plus proposés',
+     partis.every(x => !x.ok), partis.filter(x => x.ok).map(x => x.n).join(', ') || 'aucun');
+
+  console.log('\n=== on prend un cercle par son centre, et il garde son rayon ===');
+  /* « Pourquoi ne peut-on pas bouger les cercles ? C'est surprenant d'avoir des
+     cercles sans centre. » */
+  /* Le rejeu du bloc précédent laisse la feuille dans un état de lecture : on
+     repart d'une page neuve plutôt que de démêler ce qu'il en reste. */
+  await page.goto(PAGE);
+  await page.waitForFunction(() => window.app);
+  await page.waitForTimeout(2000);
+  await page.evaluate(() => {
+    const m = document.getElementById('customModal');
+    if (m && getComputedStyle(m).display !== 'none') window.app.closeModal();
+  });
+  const prise = await page.evaluate(() => {
+    const app = window.app;
+    app.entities = []; app.historyPast = []; if (app.cslOublier) app.cslOublier();
+    app.executerConsigneAvec('Trace un chat', false);
+    app.setTool('move'); app.render();
+    const o = app.entities.filter(e => e instanceof Circle)[1];
+    const r = app.canvas.getBoundingClientRect();
+    return { cx: o.p1.x, cy: o.p1.y, nom: o.p1.label,
+             rayon: Math.round(Math.hypot(o.p2.x - o.p1.x, o.p2.y - o.p1.y)),
+             cl: r.left, ct: r.top, view: app.view };
+  });
+  const T = (x, y) => ({ x: prise.cl + (x * prise.view.zoom + prise.view.x),
+                         y: prise.ct + (y * prise.view.zoom + prise.view.y) });
+  const C0 = T(prise.cx, prise.cy);
+  await page.mouse.move(C0.x, C0.y); await page.mouse.down();
+  for (let i = 1; i <= 8; i++) {
+    await page.mouse.move(C0.x - i * 9, C0.y - i * 7); await page.waitForTimeout(15);
+  }
+  await page.mouse.up(); await page.waitForTimeout(60);
+  const bouge = await page.evaluate(() => {
+    const o = window.app.entities.filter(e => e instanceof Circle)[1];
+    return { x: o.p1.x, y: o.p1.y,
+             rayon: Math.round(Math.hypot(o.p2.x - o.p1.x, o.p2.y - o.p1.y)) };
+  });
+  const parcouru = Math.round(Math.hypot(bouge.x - prise.cx, bouge.y - prise.cy));
+  ck('le centre d\'une oreille se prend et se déplace', parcouru > 60,
+     'centre « ' + prise.nom + ' » tiré de ' + parcouru + ' px');
+  ck('  et le cercle garde son rayon', bouge.rayon === prise.rayon,
+     prise.rayon + ' px → ' + bouge.rayon + ' px');
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
