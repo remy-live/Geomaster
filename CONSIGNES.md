@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**181 phrases**, dont 181 passent.
+**185 phrases**, dont 185 passent.
 
 Quelques principes qui valent partout :
 
@@ -71,6 +71,10 @@ Quelques principes qui valent partout :
 | Trace le cercle de diamètre [AB] | Cercle de diamètre [AB] |
 | Trace un cercle de circonférence 12 cm | Cercle de centre E de circonférence 12 cm |
 | Trace le cercle circonscrit au triangle ABC | Cercle circonscrit à ABC |
+| Trace une rosace | Rosace à 6 pétales, de centre A et de rayon 3 cm |
+| Trace une rosace de 4 cm | Rosace à 6 pétales, de centre A et de rayon 4 cm |
+| Trace une rosace à 8 pétales | Rosace à 8 pétales, de centre A et de rayon 3 cm |
+| Trace une graine de vie | Rosace à 6 pétales, de centre A et de rayon 3 cm |
 | Trace le cercle inscrit dans le triangle ABC | Cercle inscrit dans ABC |
 | Trace un rayon du cercle | Rayon [AE] |
 | Trace une corde du cercle | Corde [EF] |

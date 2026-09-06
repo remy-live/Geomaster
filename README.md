@@ -677,6 +677,38 @@ Une parallèle ou une perpendiculaire nommée n'écrivait pas son nom du tout : 
 méthode qui le dessine vit sur `LinearObject`, dont elles ne descendent pas.
 Elles en héritent maintenant, et *(d')* porte son nom comme *(d)*.
 
+### La rosace
+
+`Trace une rosace`, `Trace une rosace de 4 cm`, `Trace une rosace à 8 pétales`,
+`Trace une graine de vie`.
+
+La figure **existait déjà** — au bout d'un outil pris dans une grille — mais
+aucune phrase ne la déclenchait : « trace une rosace » répondait *« Je n'ai pas
+compris »*. Elle est maintenant une consigne comme les autres, et **aux
+instruments** le compas fait le tour : on ouvre l'écartement une fois, on trace
+le cercle, puis on reporte ce même écartement de proche en proche. C'est la
+seule construction du collège où l'on ne mesure rien, et la bulle dit pourquoi :
+le sixième report retombe exactement sur le premier point.
+
+Les six centres de pétales sont de **vrais points du cercle** — ils en
+dépendent —, et les pétales de vrais arcs : sans quoi le programme de
+construction relu sur la figure aurait déclaré la feuille vide. Et il la relit
+**comme une rosace** : *« Trace une rosace à 6 pétales, de centre A et de rayon
+4 cm »*, une phrase au lieu de sept *« Trace un arc de cercle de centre ? »* —
+qui, elles, n'auraient jamais permis de la refaire. Vérifié en la rejouant :
+même centre, même rayon, mêmes six pétales.
+
+Un autre nombre de pétales se dessine, et l'on prévient que les reports ne
+retombent alors plus sur le premier point.
+
+### Le « ? » qui n'existait pas
+
+Quand la barre éclair ne comprenait pas une phrase, elle répondait *« Le « ? »
+de la barre donne la liste de ce que je sais faire »* — et il n'y avait **aucun
+« ? » dans cette barre**. La réponse envoyait chercher un bouton absent. Il y en
+a un, à côté de « Tracer » : il ouvre le panneau des consignes sur la liste des
+exemples, tous cliquables.
+
 ### Le cadre de sélection
 
 Avec l'outil **curseur**, un glissé depuis le vide trace un **cadre** ; tout ce
@@ -1298,7 +1330,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **181 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **185 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

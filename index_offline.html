@@ -5023,6 +5023,22 @@
 
         #ceFermer:hover { background: #f1f5f9; color: #475569; }
 
+        /* Le même bouton que la croix, à côté d'elle : « ? » ouvre la liste de
+           ce que le logiciel sait tracer. */
+        #ceAideBtn {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            color: #64748b;
+            font: 600 15px 'Segoe UI', sans-serif;
+            cursor: pointer;
+        }
+
+        #ceAideBtn:hover { background: #f1f5f9; color: #334155; }
+
         #ceBas {
             display: flex;
             align-items: center;
@@ -5063,7 +5079,7 @@
         @media (pointer: coarse) {
             #consigneEclair { padding-top: max(6vh, 30px); }
             #ceGo { min-height: 44px; padding: 0 16px; }
-            #ceFermer { width: 40px; height: 40px; }
+            #ceFermer, #ceAideBtn { width: 40px; height: 40px; }
             #ceOutils { min-height: 40px; font-size: 13.5px; }
             #ceOutils input { width: 20px; height: 20px; }
             /* La place manque : le rappel clavier ne sert à rien au doigt. */
@@ -8411,6 +8427,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Trace le cercle de centre A de rayon [AC]')">…de rayon [AC]</a>
             <a onclick="app.exempleConsigne('Trace le cercle de diamètre [AB]')">…de diamètre [AB]</a>
             <a onclick="app.exempleConsigne('Trace le cercle circonscrit au triangle ABC')">…circonscrit au triangle ABC</a>
+            <a onclick="app.exempleConsigne('Trace une rosace de 3 cm')">Rosace de 3 cm (au compas)</a>
+            <a onclick="app.exempleConsigne('Trace une rosace à 8 pétales')">Rosace à 8 pétales</a>
             <div class="consigne-groupe">Figures</div>
             <a onclick="app.exempleConsigne('Trace un carré ABCD de 3 cm de côté')">Carré ABCD de 3 cm de côté</a>
             <a onclick="app.exempleConsigne('Trace un rectangle ABCD de 5 cm sur 3 cm')">Rectangle ABCD de 5 cm sur 3 cm</a>
@@ -8571,6 +8589,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     placeholder="Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm"
                     aria-label="Écrire une consigne">
                 <button id="ceGo" onclick="app.lancerConsigneEclair()">Tracer</button>
+                <!-- LE « ? » QUE LE REFUS PROMETTAIT. Quand une phrase n'était
+                     pas comprise, la réponse disait « le ? de la barre donne la
+                     liste de ce que je sais faire » — et il n'y avait pas de ?
+                     dans cette barre. Il y en a un. -->
+                <button id="ceAideBtn" onclick="app.aideDepuisEclair()"
+                    data-tooltip="Ce que je sais faire" aria-label="Ce que je sais faire">?</button>
                 <button id="ceFermer" onclick="app.fermerConsigneEclair()" aria-label="Fermer">✕</button>
             </div>
             <div id="ceBas">
@@ -15748,6 +15772,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (voile) voile.classList.remove('ouvert');
                 const champ = document.getElementById('ceChamp');
                 if (champ) champ.blur();
+            }
+            /* « Le ? de la barre donne la liste de ce que je sais faire » : voilà
+               ce qu'il fait. On ferme la barre éclair, on ouvre le panneau des
+               consignes sur son onglet « Consignes », et on déplie la liste des
+               exemples — c'est la même liste, et elle est cliquable. */
+            aideDepuisEclair() {
+                this.fermerConsigneEclair();
+                const boite = document.getElementById('instructionBox');
+                if (boite && (boite.style.display === 'none' || boite.style.display === '')) {
+                    this.toggleInstructions();
+                }
+                if (this.ongletEnonce) this.ongletEnonce('consignes');
+                const aide = document.getElementById('consigneAide');
+                if (aide) aide.style.display = 'block';
             }
             reponseConsigneEclair(r) {
                 const boite = document.getElementById('ceReponse');
@@ -30992,6 +31030,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const surprise = this.cslFigureCachee(brut, t, fait, rate);
                         if (surprise) return surprise;
                     }
+                    /* LA ROSACE EXISTAIT, mais seulement au bout d'un outil pris
+                       dans une grille : « trace une rosace » répondait « Je n'ai
+                       pas compris ». Elle passe avant la règle du cercle, qui
+                       aurait vu « rayon 3 cm » et tracé un cercle tout seul. */
+                    if (/\brosaces?\b|graine\s+de\s+vie|fleur\s+de\s+vie/.test(t)) {
+                        const ros = this.cslRosace(brut, t, fait, rate);
+                        if (ros) return ros;
+                    }
                     /* LES CONFIGURATIONS D'ANGLES PASSENT TÔT. Leurs mots sont
                        sans ambiguïté, mais les règles suivantes les volaient
                        toutes : « angles correspondants » partait coder les angles
@@ -32825,6 +32871,117 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 return null;
+            }
+            /* ============================================================
+               LA ROSACE
+
+               Six pétales, et pas une mesure : on ouvre le compas d'un rayon,
+               on trace le cercle, puis on REPORTE ce même écartement six fois
+               autour — le sixième report retombe sur le premier point, et c'est
+               ce qui prouve que le côté de l'hexagone vaut le rayon. C'est la
+               plus belle construction du collège, et la seule où l'on ne mesure
+               rien.
+
+               Elle existait déjà, mais seulement au bout d'un outil pris dans
+               une grille de figures : « trace une rosace » répondait « Je n'ai
+               pas compris ».
+
+               Les six centres de pétales sont de VRAIS points du cercle — ils
+               en dépendent — et les pétales de vrais arcs, pas des traces de
+               compas : sans quoi le programme de construction relu sur la
+               figure aurait déclaré la feuille vide.
+               ============================================================ */
+            cslRosace(brut, t, fait, rate) {
+                const graine = /graine\s+de\s+vie|fleur\s+de\s+vie/.test(t);
+                /* « à 8 pétales », « à six pétales » : la rosace classique en a
+                   six parce que le rayon se reporte six fois exactement. Un
+                   autre nombre se dessine, mais alors les pétales ne se
+                   referment plus sur eux-mêmes — on le dit. */
+                const mots = { trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8,
+                               neuf: 9, dix: 10, douze: 12 };
+                const mp = brut.match(/(\d+|trois|quatre|cinq|six|sept|huit|neuf|dix|douze)\s*p[ée]tales?/i);
+                let petales = 6;
+                if (mp) {
+                    const v = /^\d+$/.test(mp[1]) ? Number(mp[1]) : mots[mp[1].toLowerCase()];
+                    if (v >= 3 && v <= 12) petales = v;
+                }
+                const rayon = this.cslLongueurPx(brut) || 3 * UNIT / (this.cmScale || 1);
+                /* « de centre A », quand A est déjà posé : c'est CE point-là le
+                   centre. Sans quoi l'énoncé relu — « Place le point A. Trace
+                   une rosace de centre A » — posait un second point B à côté. */
+                const dit = (brut.match(/centre\s+([A-Z]'{0,2})(?=[\s,;.]|$)/) || [])[1];
+                const deja = dit ? this.cslPointNomme(dit) : null;
+                const noms = this.cslNoms(brut);
+                const nomO = deja ? dit
+                    : (noms.find(n => !this.cslPointNomme(n)) || this.cslNomLibre([]));
+                const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10)
+                    .replace('.', ',');
+                let message = null;
+                this.cslBatir([], () => {
+                    const st = this.cslStyle();
+                    const o = deja || this.cslPlaceLibre(0, 0);
+                    const O = deja || new Point(o.x, o.y, nomO);
+                    if (!deja) this.addEntity(O);
+                    /* Le point du bord donne le rayon : c'est l'écartement du
+                       compas, et l'énoncé relu dira « de rayon 3 cm ». */
+                    const bord = new Point(o.x + rayon, o.y, ''); bord.visible = false;
+                    this.addEntity(bord);
+                    const cercle = new Circle(O, bord, st); this.addEntity(cercle);
+                    const outils = this.cslDetaille();
+                    if (outils) {
+                        const a = new ToolAnimation('trace',
+                            { x: O.x, y: O.y, angle: 0, radius: rayon },
+                            { x: O.x, y: O.y, angle: Math.PI * 2, radius: rayon });
+                        a.widgetType = 'compass'; this.addEntity(a);
+                    }
+                    let precedent = null;
+                    for (let i = 0; i < petales; i++) {
+                        const ang = i * (Math.PI * 2 / petales);
+                        /* SUR le cercle, pas à côté : le centre du pétale est un
+                           point du cercle, et il en dépend. */
+                        const C = new Point(O.x + Math.cos(ang) * rayon,
+                                            O.y + Math.sin(ang) * rayon, '', [cercle]);
+                        C.visible = false;
+                        this.addEntity(C);
+                        const deb = ang + Math.PI * 2 / 3, fin = ang + Math.PI * 4 / 3;
+                        if (outils) {
+                            const dep = precedent || { x: O.x, y: O.y, angle: 0 };
+                            const m = new ToolAnimation('move',
+                                { x: dep.x, y: dep.y, angle: dep.angle, radius: rayon },
+                                { x: C.x, y: C.y, angle: deb, radius: rayon });
+                            m.widgetType = 'compass'; this.addEntity(m);
+                            const tr = new ToolAnimation('trace',
+                                { x: C.x, y: C.y, angle: deb, radius: rayon },
+                                { x: C.x, y: C.y, angle: fin, radius: rayon });
+                            tr.widgetType = 'compass'; this.addEntity(tr);
+                            precedent = { x: C.x, y: C.y, angle: fin };
+                        }
+                        const arc = new Arc(C, rayon, deb, fin);
+                        if (st.color) arc.color = st.color;
+                        if (st.width) arc.lineWidth = st.width;
+                        if (st.dash) { arc.dash = [5, 5]; arc.styleDemande = true; }
+                        this.addEntity(arc);
+                    }
+                    if (outils) this.addEntity(new ToolAnimation('compassHide', {}, {}));
+                    if (petales === 6) {
+                        this.cslDire('On n\'y mesure RIEN : on ouvre le compas du rayon, on trace '
+                            + 'le cercle, puis on reporte ce même écartement de proche en proche. '
+                            + 'Le sixième report retombe exactement sur le premier point — c\'est '
+                            + 'ce qui prouve que le côté de l\'hexagone régulier vaut le rayon.');
+                    } else {
+                        this.cslDire(`Avec ${petales} pétales, les reports ne retombent plus sur `
+                            + 'le premier point : seule la rosace à SIX pétales se construit au '
+                            + 'compas sans rien mesurer.');
+                    }
+                    if (graine) {
+                        this.cslDire('La « graine de vie » est cette même rosace : six pétales '
+                            + 'autour d\'un cercle, tous du même rayon.');
+                    }
+                    message = `Rosace à ${petales} pétales, de centre ${nomO} `
+                        + `et de rayon ${cm(rayon)} cm`;
+                });
+                return message ? fait(message)
+                               : rate("Je n'ai pas su tracer cette rosace.");
             }
             /* ============================================================
                LES CONFIGURATIONS D'ANGLES
@@ -36913,9 +37070,60 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return i < j ? i + '-' + j : j + '-' + i;
             }
             /* ---- LA LECTURE : de la figure aux FAITS ---------------------- */
+            /* UNE ROSACE SE RELIT COMME UNE ROSACE, pas comme sept arcs sans
+               rapport entre eux. Décrite arc par arc, elle donnait « Trace un
+               arc de cercle de centre ? et de rayon 3 cm » sept fois — les
+               centres des pétales n'ont pas de nom, et surtout la phrase ne
+               disait pas où l'arc commence : personne n'aurait pu la refaire.
+               On reconnaît le motif — un cercle, et n arcs de MÊME rayon dont
+               les centres sont sur ce cercle, régulièrement répartis — et on
+               l'énonce d'une phrase, celle-là même que le logiciel sait tracer. */
+            pgRosaces() {
+                const out = [];
+                const pris = new Set();
+                this.entities.forEach((c) => {
+                    if (!(c instanceof Circle) || this.estTraceDeConstruction(c)) return;
+                    if (!c.p1 || !c.p2) return;
+                    const R = MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y);
+                    if (R < 1) return;
+                    const arcs = this.entities.filter(e => e instanceof Arc && !pris.has(e)
+                        && !this.estTraceDeConstruction(e) && e.center
+                        && Math.abs(e.radius - R) < 1
+                        && Math.abs(MathUtils.dist(e.center.x, e.center.y, c.p1.x, c.p1.y) - R) < 1);
+                    if (arcs.length < 3) return;
+                    /* Régulièrement répartis : sinon ce n'est pas une rosace,
+                       c'est un cercle avec des arcs posés dessus. */
+                    const angles = arcs
+                        .map(a => Math.atan2(a.center.y - c.p1.y, a.center.x - c.p1.x))
+                        .map(x => (x + Math.PI * 4) % (Math.PI * 2))
+                        .sort((u, v) => u - v);
+                    const pas = Math.PI * 2 / arcs.length;
+                    for (let i = 1; i < angles.length; i++) {
+                        if (Math.abs((angles[i] - angles[i - 1]) - pas) > 0.02) return;
+                    }
+                    arcs.forEach(a => pris.add(a));
+                    out.push({ cercle: c, arcs, centre: c.p1, bord: c.p2,
+                               cm: Math.round(R / UNIT * (this.cmScale || 1) * 10) / 10,
+                               petales: arcs.length });
+                });
+                return out;
+            }
             lireFigure() {
                 const faits = [];
                 const consommes = new Set();
+                const rosaces = this.pgRosaces();
+                const parRosace = new Map();
+                rosaces.forEach((r) => {
+                    let dernier = -1;
+                    [r.cercle].concat(r.arcs).forEach((e) => {
+                        consommes.add(e);
+                        dernier = Math.max(dernier, this.entities.indexOf(e));
+                    });
+                    r.arcs.forEach(a => consommes.add(a.center));
+                    consommes.add(r.bord);
+                    if (!parRosace.has(dernier)) parRosace.set(dernier, []);
+                    parRosace.get(dernier).push(r);
+                });
                 const polys = this.pgPolygones();
                 const parPremier = new Map();
                 polys.forEach((pts) => {
@@ -36972,6 +37180,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     libresEnAttente = [];
                 };
                 this.entities.forEach((e, i) => {
+                    if (parRosace.has(i)) {
+                        viderLibres();
+                        parRosace.get(i).forEach(r => faits.push({
+                            t: 'rosace', centre: r.centre, cm: r.cm, petales: r.petales }));
+                    }
                     if (parPremier.has(i)) {
                         viderLibres();
                         parPremier.get(i).forEach(pts => faits.push({
@@ -37063,6 +37276,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             pgPointsDuFait(f) {
                 switch (f.t) {
                     case 'points': return f.noms || [];
+                    case 'rosace': return [f.centre];
                     case 'polygone': return f.pts || [];
                     case 'segment': case 'droite': case 'demidroite': return [f.a, f.b];
                     case 'cercle': return [f.centre, f.bord];
@@ -37412,6 +37626,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return f.droit
                             ? `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} est droit.`
                             : `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} mesure ${f.deg}°.`;
+                    case 'rosace':
+                        return `Trace une rosace à ${f.petales} pétales, de centre ${N(f.centre)} `
+                            + `et de rayon ${this.pgCm(f.cm)}.`;
                     case 'arc':
                         return `Trace un arc de cercle de centre ${N(f.centre)} et de rayon `
                             + `${this.pgCm(f.cm)}.`;
@@ -37559,6 +37776,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             : [`Au rapporteur, centre sur ${N(f.s)}, le zéro sur `
                                + `[${N(f.s)}${N(f.a)}) : marque ${f.deg}°, puis trace `
                                + `[${N(f.s)}${N(f.b)}) à la règle.`];
+                    case 'rosace': {
+                        /* La seule construction du collège où l'on ne mesure
+                           rien : on ouvre le compas une fois, et on reporte. */
+                        const l = [`Ouvre le compas de ${this.pgCm(f.cm)}, pose la pointe sur `
+                            + `${N(f.centre)} et trace le cercle.`,
+                            `SANS CHANGER L'ÉCARTEMENT, pose la pointe sur un point du cercle et `
+                            + `trace un arc d'un bord à l'autre ; recommence de proche en proche.`];
+                        if (f.petales === 6) {
+                            l.push('Le sixième report retombe exactement sur le premier point : '
+                                + "c'est ce qui prouve que le côté de l'hexagone régulier vaut le "
+                                + 'rayon.');
+                        }
+                        return l;
+                    }
                     case 'arc':
                         return [`Avec le compas, écartement de ${this.pgCm(f.cm)}, pointe sur `
                             + `${N(f.centre)} : trace l'arc.`];
@@ -39203,7 +39434,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-07 · 2h';
+        window.GM_VERSION = '2026-09-07 · 6h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
