@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**176 phrases**, dont 176 passent.
+**181 phrases**, dont 181 passent.
 
 Quelques principes qui valent partout :
 
@@ -32,8 +32,13 @@ Quelques principes qui valent partout :
 | Place un point A | Point A placé |
 | Place 3 points A, B, C non alignés | 3 points placés : A, B, C |
 | Place les points A, B, C alignés | 3 points placés : A, B, C |
+| Place les points A et B tels que AB = 4 cm | 2 points placés : A, B |
+| Place les points A, B et C tels que AB = 5 cm, AC = 4 cm et BC = 3 cm | 3 points placés : A, B, C |
 | Place un point M sur [AB] | M sur [AB] |
+| Place un point M sur [AB] tel que AM = 2 cm | M sur [AB], à 2 cm de A |
 | Place un point M sur le cercle | M sur le cercle de centre A |
+| Place un point M sur le cercle de centre A tel que BM = 4 cm | M sur le cercle de centre A, à 4 cm de B |
+| Place le point C, intersection du cercle de centre A et du cercle de centre B | C — intersection du cercle de centre A et du cercle de centre B |
 | Place le milieu I de [AB] | I est le milieu de [AB] |
 | Place les milieux I de [AB] et J de [AC] | Milieux : I, J |
 | Place le point I intersection de (AB) et (CD) | I — intersection de (AB) et (CD) |

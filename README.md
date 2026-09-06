@@ -524,7 +524,7 @@ celui qu'on corrige à la main, un cahier après l'autre.
 
 **Trois onglets** dans la fenêtre de l'énoncé, parce que ce sont trois textes
 différents : **Mon énoncé** (celui qu'on écrit, auquel rien ne touche),
-**Énoncé de la figure**, **Aux instruments**.
+**La figure**, **Aux instruments**.
 
 Les deux derniers sont **relus sur la figure** et se refont à chaque changement :
 on trace, et l'énoncé se rédige à côté. Un bouton les recopie dans « Mon
@@ -532,7 +532,7 @@ on trace, et l'énoncé se rédige à côté. Un bouton les recopie dans « Mon
 qui, au bout de trois essais, empilait le texte sans qu'on distingue plus ce
 qu'on avait écrit de ce que la machine avait relu.
 
-**Énoncé de la figure** — ce qu'il faut obtenir, sans dire comment.
+**La figure** — ce qu'il faut obtenir, sans dire comment.
 
 > Trace un triangle ABC tel que AB = 5 cm, BC = 3 cm et CA = 4 cm.
 
@@ -557,9 +557,44 @@ Quatre choses font la différence entre un texte plausible et un texte juste :
   raccourcit vraiment les données.
 - **Quatre longueurs n'enferment pas un quadrilatère.** On peut l'articuler comme
   un pantographe sans en changer un seul côté : l'énoncé promettait une figure et
-  en autorisait une infinité. Il donne maintenant les **diagonales issues du
-  premier sommet**, qui le triangulent — c'est d'ailleurs exactement ce que fait
-  la construction au compas.
+  en autorisait une infinité. Il donne maintenant les **diagonales issues d'un
+  sommet**, qui le triangulent — c'est d'ailleurs exactement ce que fait la
+  construction au compas. Le mot *diagonale*, lui, n'est pas écrit : la phrase
+  portait « (ce sont les diagonales issues de A) », et ce mot-là renvoyait la
+  phrase relue vers la règle des diagonales, qui répondait « De quelle figure ? ».
+  Un énoncé qui ne se relit pas n'est pas un énoncé.
+- **Pas n'importe quel sommet : un sommet qui voit toute la figure.** Sur un
+  pentagone **concave**, l'éventail depuis A sort de la figure au sommet
+  rentrant — produits vectoriels +362 900, +236 375, **−121 375** : le signe
+  change. Les triangles se retournent, et l'énoncé rejoué **dépliait** la figure
+  (BE passait de 11,1 à 20,3 cm, mesuré). Le programme cherche donc un sommet
+  dont l'éventail garde le même sens, et fait tourner la liste pour partir de
+  là. Si aucun ne convient, il ne fait pas semblant : il écrit la figure point
+  par point et le dit.
+- **Un objet a un nom : on le dit.** Le texte écrivait *« Place un point H sur le
+  trait précédent »* — celui qui lit doit remonter la liste, et si deux traits
+  ont été faits entre-temps, il se trompe. C'est maintenant *« sur le cercle de
+  centre F »*, *« sur le segment [AB] »*, *« intersection **du** segment [AB] et
+  **du** segment [CD] »* — avec l'article contracté, parce qu'on écrit du
+  français et pas un gabarit.
+- **Chaque ligne doit tenir la suivante.** Sur une rosace, le programme écrivait
+  *« 1. Place les points A et B. »*, puis, deux lignes plus loin, *« Place le
+  point C, intersection des deux cercles »*. A et B pouvaient être à un
+  centimètre l'un de l'autre : les cercles ne se coupaient plus, et le point C de
+  la ligne 4 n'existait pas — **la ligne 1 rendait les suivantes fausses**. Chaque
+  point est maintenant **accroché** à ce qui est déjà posé : une longueur le met
+  sur un cercle, deux le fixent, une troisième choisit le côté. *« Place les
+  points A et B tels que AB = 2,7 cm »*, *« Place un point D sur le cercle de
+  centre C tel que AD = 1,4 cm et BD = 1,4 cm »*. Le tout premier point, lui,
+  n'a rien avant lui, et c'est juste : une figure se pose où l'on veut sur la
+  feuille. Vérifié en rejouant la rosace entière : sept lignes, aucune refusée,
+  écart maximal 0,002 cm.
+- **Le point du bord d'un cercle n'est pas une étape.** Un cercle se retient par
+  deux points — son centre et un point du bord, qui règle le rayon — mais
+  l'énoncé dit déjà *« de rayon 3 cm »*. Annoncer « Place les points F et G »
+  puis ne plus jamais parler de G, c'est faire lire une ligne pour rien. Il n'est
+  effacé que s'il ne sert à rien d'autre : dès qu'un rayon [FG] est tracé, il
+  revient.
 
 - **Le carré et le rectangle se font à l'équerre.** La méthode générale au compas
   est juste, mais elle passe par la *diagonale* — « écartement de 4,2 cm » pour un
@@ -1191,7 +1226,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **176 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **181 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

@@ -1960,21 +1960,48 @@
             margin: 0 4px
         }
 
+        /* LE PANNEAU EST FLEX, MAIS PAS SES ENFANTS : « Énoncé libre » était un
+           bloc ordinaire, si bien que le « flex: 1 » du champ ne s'appliquait à
+           rien et que seul le plafond de 400 px décidait de sa hauteur. Un
+           énoncé de professeur suivi du programme recopié mesurait 630 px : les
+           230 derniers étaient hors du champ, et le panneau — agrandi à 694 px —
+           gardait de la place vide en dessous. Mesuré, puis corrigé : la colonne
+           se prolonge jusqu'au champ, qui prend ce qui reste. */
+        #enonceLibre {
+            flex: 1;
+            min-height: 0;
+            flex-direction: column
+        }
+
         #instrContent {
             padding: 10px;
             flex: 1;
+            min-height: 90px;
             overflow-y: auto;
             font-family: 'Segoe UI', sans-serif;
-            font-size: 14px;
+            /* 13 px et non 14 : à 340 px de large, « Trace un pentagone BCDEA
+               tel que… » tenait sur cinq lignes. */
+            font-size: 13px;
             outline: 0;
-            line-height: 1.5;
+            line-height: 1.45;
             color: #333;
-            max-height: 400px
+            max-height: none
+        }
+
+        /* Ce qui vient d'être recopié se voit une seconde, le temps qu'on sache
+           où regarder — sinon on croit qu'il ne s'est rien passé. */
+        #instrContent .enonce-neuf {
+            animation: enonceNeuf 1.6s ease-out
+        }
+
+        @keyframes enonceNeuf {
+            0%, 55% { background: #fef9c3 }
+            100% { background: transparent }
         }
 
         #instrContent h3 {
             margin-top: 0;
-            font-size: 16px;
+            font-size: 14px;
             color: #2980b9;
             border-bottom: 2px solid #eee;
             padding-bottom: 4px
@@ -3628,15 +3655,16 @@
         }
         .enonce-onglets button {
             background: transparent; border: 1px solid transparent; border-bottom: none;
-            padding: 6px 12px; border-radius: 8px 8px 0 0; cursor: pointer;
-            font: inherit; font-size: 13px; color: #64748b; min-height: 32px;
+            padding: 6px 9px; border-radius: 8px 8px 0 0; cursor: pointer;
+            font: inherit; font-size: 12px; color: #64748b; min-height: 32px;
+            white-space: nowrap;
         }
         .enonce-onglets button:hover { background: #f1f5f9; color: #334155; }
         .enonce-onglets button.actif {
             background: #fff; border-color: #e2e8f0; color: #0f172a; font-weight: 600;
             margin-bottom: -1px;
         }
-        #enonceGenere { padding: 10px 12px; }
+        #enonceGenere { padding: 10px 12px; flex: 1; overflow-y: auto; min-height: 0; }
         #enonceGenereTexte ol { margin: 0 0 10px; padding-left: 22px; }
         #enonceGenereTexte li { margin: 4px 0; line-height: 1.45; }
         #enonceGenereTexte p { margin: 4px 0 10px; line-height: 1.5; }
@@ -8412,7 +8440,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     onclick="app.ongletEnonce('mien');">Mon énoncé</button>
                 <button role="tab" data-onglet="figure"
                     onclick="app.ongletEnonce('figure');"
-                    data-tooltip="Ce que la figure demande, sans dire comment">Énoncé de la figure</button>
+                    data-tooltip="L'énoncé lu sur la figure : ce qu'elle demande, sans dire comment">La figure</button>
                 <button role="tab" data-onglet="outils"
                     onclick="app.ongletEnonce('outils');"
                     data-tooltip="La marche à suivre, geste par geste">Aux instruments</button>
@@ -30929,8 +30957,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        AC = 6 cm » trace un LOSANGE, dont la diagonale est une
                        mesure parmi d'autres. Le mot seul ne suffisait pas à
                        décider, et la seconde phrase était refusée. */
-                    if (/\bdiagonales\b/.test(t)
-                        || /^\s*(?:trace|tracer|construis|construire|dessine|dessiner|marque)\s+(?:la\s+|une\s+|sa\s+)?diagonale\b/.test(t)) {
+                    /* « … tel que AB = 5 cm, AC = 7 cm et AD = 4 cm » DÉCRIT une
+                       figure par ses mesures : le mot « diagonale » qui traînerait
+                       dans la phrase ne demande pas de tracer des diagonales. Trois
+                       mesures explicites suffisent à trancher. */
+                    const decritParMesures =
+                        (brut.match(/\b[A-Z]'{0,2}\s*[A-Z]'{0,2}\s*=\s*\d/g) || []).length >= 3;
+                    if (!decritParMesures
+                        && (/\bdiagonales\b/.test(t)
+                            || /^\s*(?:trace|tracer|construis|construire|dessine|dessiner|marque)\s+(?:la\s+|une\s+|sa\s+)?diagonale\b/.test(t))) {
                         return this.cslDiagonales(brut, t, fait, rate);
                     }
                     /* « Trace 3 points A, B, C » se dit autant que « Place » : c'est
@@ -31390,11 +31425,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return fait(`${combien} diagonale${combien > 1 ? 's' : ''} de ${pts.map(p => p.label).join('')}`);
             }
-            /* Le point où deux droites se croisent. */
+            /* DEUX CERCLES SE COUPENT AUSSI. La règle ne connaissait que les
+               droites : « Place le point C, intersection du cercle de centre A
+               et du cercle de centre B » — la phrase même que le programme de
+               construction écrit pour une rosace — recevait « De quoi et de
+               quoi ? ». L'énoncé relu sur la figure ne se rejouait donc pas, et
+               tout ce qui suivait tombait à côté. */
+            cslObjetsCroises(brut) {
+                const objets = [];
+                const re = /cercle\s+de\s+centre\s+([A-Z]'{0,2})(?:\s+et\s+de\s+rayon\s+(\d+(?:[.,]\d+)?)\s*(mm|cm|dm|m))?|[\[\(]([A-Z]'{0,2})([A-Z]'{0,2})[\]\)]/g;
+                let m;
+                while ((m = re.exec(brut))) {
+                    if (m[1]) {
+                        const c = this.cslPointNomme(m[1]);
+                        if (!c) return null;
+                        const rayon = m[2] ? this.cslLongueurPx(m[2] + ' ' + m[3]) : null;
+                        const cercles = this.entities.filter(e => e instanceof Circle && e.p1 === c);
+                        const cible = rayon
+                            ? cercles.find(e => Math.abs(MathUtils.dist(e.p1.x, e.p1.y,
+                                e.p2.x, e.p2.y) - rayon) < 2)
+                            : cercles[0];
+                        if (!cible) return null;
+                        objets.push({ t: 'cercle', c,
+                            r: MathUtils.dist(cible.p1.x, cible.p1.y, cible.p2.x, cible.p2.y) });
+                    } else {
+                        const a = this.cslPointNomme(m[4]), b = this.cslPointNomme(m[5]);
+                        if (!a || !b) return null;
+                        objets.push({ t: 'droite', a, b });
+                    }
+                }
+                return objets.length >= 2 ? objets.slice(0, 2) : null;
+            }
+            /* Le point où deux objets se croisent. */
             cslIntersection(brut, t, fait, rate) {
+                const croises = this.cslObjetsCroises(brut);
+                if (croises && croises.some(o => o.t === 'cercle')) {
+                    return this.cslIntersectionCercle(brut, croises, fait, rate);
+                }
                 const paires = [...brut.matchAll(/[\[\(]([A-Z]'{0,2})([A-Z]'{0,2})[\]\)]/g)];
                 if (paires.length < 2) {
-                    return rate("De quoi et de quoi ? Écrivez « Place le point I intersection de (AB) et (CD) ».");
+                    return rate("De quoi et de quoi ? Écrivez « Place le point I intersection de (AB) et (CD) »"
+                        + ", ou « intersection du cercle de centre A et du cercle de centre B ».");
                 }
                 const q = paires.slice(0, 2).map(m => [this.cslPointNomme(m[1]), this.cslPointNomme(m[2])]);
                 const inconnu = q.flat().findIndex(p => !p);
@@ -31407,6 +31478,60 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const nom = autres[0] || this.cslNomLibre([]);
                 this.addEntity(new Point(a.x + k * (b.x - a.x), a.y + k * (b.y - a.y), nom));
                 return fait(`${nom} — intersection de (${a.label}${b.label}) et (${c.label}${d.label})`);
+            }
+            /* Cercle-cercle, ou cercle-droite. Deux solutions le plus souvent :
+               on prend CELLE DU HAUT, toujours la même, et on le dit. Ce choix
+               n'appauvrit rien — la figure et son image dans un miroir sont la
+               même figure, et tout ce qui suit est relatif à ce point. */
+            cslIntersectionCercle(brut, objets, fait, rate) {
+                const [o1, o2] = objets;
+                const cer = objets.filter(o => o.t === 'cercle');
+                const dro = objets.filter(o => o.t === 'droite');
+                const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10).replace('.', ',');
+                let sols = [];
+                if (cer.length === 2) {
+                    const [A, B] = cer;
+                    const dx = B.c.x - A.c.x, dy = B.c.y - A.c.y, D = Math.hypot(dx, dy);
+                    if (D < 1e-6) return rate('Ces deux cercles ont le même centre : ils ne se coupent pas.');
+                    if (D > A.r + B.r + 0.5 || D < Math.abs(A.r - B.r) - 0.5) {
+                        return rate(`Ces deux cercles ne se coupent pas : leurs centres sont à `
+                            + `${cm(D)} cm, pour des rayons de ${cm(A.r)} cm et ${cm(B.r)} cm.`);
+                    }
+                    const a = (A.r * A.r - B.r * B.r + D * D) / (2 * D);
+                    const h = Math.sqrt(Math.max(0, A.r * A.r - a * a));
+                    const mx = A.c.x + a * dx / D, my = A.c.y + a * dy / D;
+                    sols = [{ x: mx + h * dy / D, y: my - h * dx / D },
+                            { x: mx - h * dy / D, y: my + h * dx / D }];
+                } else {
+                    const C = cer[0], L = dro[0];
+                    const vx = L.b.x - L.a.x, vy = L.b.y - L.a.y;
+                    const n = Math.hypot(vx, vy);
+                    if (n < 1e-6) return rate('Cette droite est mal définie.');
+                    const ux = vx / n, uy = vy / n;
+                    const px = C.c.x - L.a.x, py = C.c.y - L.a.y;
+                    const proj = px * ux + py * uy;
+                    const d = Math.abs(px * uy - py * ux);
+                    if (d > C.r + 0.5) {
+                        return rate(`Cette droite ne coupe pas le cercle : elle en passe à `
+                            + `${cm(d)} cm, pour un rayon de ${cm(C.r)} cm.`);
+                    }
+                    const h = Math.sqrt(Math.max(0, C.r * C.r - d * d));
+                    sols = [{ x: L.a.x + (proj + h) * ux, y: L.a.y + (proj + h) * uy },
+                            { x: L.a.x + (proj - h) * ux, y: L.a.y + (proj - h) * uy }];
+                }
+                sols.sort((p, q) => p.y - q.y);
+                const cites = [];
+                objets.forEach(o => o.t === 'cercle' ? cites.push(o.c.label)
+                                                    : cites.push(o.a.label, o.b.label));
+                const nom = this.cslNoms(brut).filter(x => !cites.includes(x)
+                    && !this.cslPointNomme(x))[0] || this.cslNomLibre([]);
+                this.addEntity(new Point(sols[0].x, sols[0].y, nom));
+                if (sols.length > 1 && MathUtils.dist(sols[0].x, sols[0].y, sols[1].x, sols[1].y) > 2) {
+                    this.cslDire('Il y a deux points d\'intersection : celui du haut est pris.');
+                }
+                const dire = (o) => o.t === 'cercle' ? `du cercle de centre ${o.c.label}`
+                                                    : `de (${o.a.label}${o.b.label})`;
+                return fait(`${nom} — intersection ${dire(o1)} et ${dire(o2)}`);
             }
             /* Un point posé SUR un objet : il y reste, parce qu'il en dépend. */
             cslPointSur(brut, t, fait, rate) {
@@ -31443,6 +31568,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!cer) return rate(`Le cercle de centre ${cercle[1]} n'est pas tracé.`);
                     }
                     const r = this.cslRayon(cer);
+                    /* « SUR CE CERCLE » NE DIT PAS OÙ SUR CE CERCLE. La condition
+                       était lue pour un segment et ignorée pour un cercle : le
+                       point tombait à l'angle par défaut, et l'énoncé relu ne
+                       redonnait pas la figure (mesuré : BD = 1,6 cm au lieu de
+                       1,4). Une distance à un point connu le fixe — au
+                       retournement près, comme deux cercles qui se coupent. */
+                    const conds = [...condition.matchAll(
+                        /([A-Z]'{0,2})([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)\b)/g)]
+                        .map((c) => {
+                            const depuis = [c[1], c[2]].find(x => x !== nom);
+                            const O = depuis ? this.cslPointNomme(depuis) : null;
+                            const d = this.cslLongueurPx(c[3]);
+                            return (O && d) ? { nom: depuis, O, d } : null;
+                        }).filter(Boolean);
+                    const cond = conds[0];
+                    if (cond && noms.length === 1) {
+                        const depuis = cond.nom, O = cond.O, d = cond.d;
+                        if (O && d) {
+                            const dx = O.x - cer.p1.x, dy = O.y - cer.p1.y;
+                            const D = Math.hypot(dx, dy);
+                            const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10).replace('.', ',');
+                            if (D < 1e-6 || D > r + d + 0.5 || D < Math.abs(r - d) - 0.5) {
+                                return rate(`Aucun point du cercle de centre `
+                                    + `${cer.p1.label || '·'} n'est à ${cm(d)} cm de ${depuis}.`);
+                            }
+                            const a0 = (r * r - d * d + D * D) / (2 * D);
+                            const h = Math.sqrt(Math.max(0, r * r - a0 * a0));
+                            const mx = cer.p1.x + a0 * dx / D, my = cer.p1.y + a0 * dy / D;
+                            let choix = [{ x: mx + h * dy / D, y: my - h * dx / D },
+                                         { x: mx - h * dy / D, y: my + h * dx / D }]
+                                .sort((u, v) => u.y - v.y);
+                            /* DEUX SOLUTIONS, SYMÉTRIQUES : une SECONDE distance
+                               tranche. Sans elle le point retombait de l'autre
+                               côté — mesuré sur une rosace, BD = 3,8 cm au lieu
+                               de 1,4. À défaut, on prend celle du haut. */
+                            const autres = conds.slice(1);
+                            if (autres.length) {
+                                const err = (s) => Math.max(...autres.map(c =>
+                                    Math.abs(MathUtils.dist(s.x, s.y, c.O.x, c.O.y) - c.d)));
+                                choix = choix.slice().sort((u, v) => err(u) - err(v));
+                            }
+                            const s = choix[0];
+                            this.addEntity(new Point(s.x, s.y, nom, [cer]));
+                            return fait(`${nom} sur le cercle de centre `
+                                + `${cer.p1.label || '·'}, à ${cm(d)} cm de ${depuis}`);
+                        }
+                    }
                     /* CHAQUE POINT SA PLACE. L'angle était figé à -0,6 rad : le
                        deuxième « Place un point sur ce cercle » posait son point
                        EXACTEMENT sur le premier. Deux points confondus, un
@@ -31523,8 +31695,131 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 return fait(`${noms.join(' et ')} sur ${dit}${precision}`);
             }
+            /* « PLACE LES POINTS A ET B » NE DIT PAS OÙ. Le logiciel répondait
+               « 2 points placés » et les posait à 4,2 cm l'un de l'autre : la
+               phrase promettait une figure et en autorisait une infinité. Pire,
+               « Place les points A, B et C tels que AB = 5 cm, AC = 4 cm et
+               BC = 3 cm » recevait la même réponse — mesuré : 3,9 / 3,9 / 4,5.
+               Les longueurs étaient LUES par personne.
+
+               Elles le sont maintenant : chaque point se pose par rapport à ceux
+               qui sont déjà là — une distance le met sur un cercle, deux le
+               fixent (au retournement près), trois choisissent le côté. Et si
+               les longueurs ne peuvent pas aller ensemble, on le dit au lieu de
+               poser les points n'importe où. */
+            cslPlacerMesures(brut, noms, fait, rate) {
+                const mes = [];
+                const re = /([A-Z]'{0,2})\s*([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|dm|m)\b/g;
+                let m;
+                while ((m = re.exec(brut))) {
+                    if (m[1] === m[2]) continue;
+                    const px = this.cslLongueurPx(m[3] + ' ' + m[4]);
+                    if (px) mes.push({ a: m[1], b: m[2], d: px });
+                }
+                if (!mes.length) return null;
+                /* Les noms cités dans les mesures comptent autant que ceux de la
+                   phrase : « Place le point B tel que AB = 3 cm » parle aussi de A. */
+                const tous = noms.slice();
+                mes.forEach(x => [x.a, x.b].forEach(n => { if (!tous.includes(n)) tous.push(n); }));
+                const dist = (a, b) => {
+                    const x = mes.find(v => (v.a === a && v.b === b) || (v.a === b && v.b === a));
+                    return x ? x.d : null;
+                };
+                /* Ce qui est déjà sur la feuille ne bouge pas : c'est l'ancrage. */
+                const pos = new Map();
+                tous.forEach((n) => {
+                    const p = this.cslPointNomme(n);
+                    if (p) pos.set(n, { x: p.x, y: p.y, deja: true });
+                });
+                const reste = tous.filter(n => !pos.has(n));
+                if (!reste.length) return null;
+                const connues = (n) => [...pos.keys()].filter(k => dist(n, k) !== null);
+                let garde = reste.length + 2;
+                while (reste.length && garde-- > 0) {
+                    /* On pose d'abord le point le mieux attaché : celui qui a le
+                       plus de longueurs vers ce qui est déjà en place. */
+                    reste.sort((x, y) => connues(y).length - connues(x).length);
+                    const n = reste.shift();
+                    const anc = connues(n).map(k => ({ k, p: pos.get(k), d: dist(n, k) }));
+                    if (!anc.length) {
+                        const o = this.cslPlaceLibre(0, 0);
+                        pos.set(n, { x: o.x, y: o.y });
+                        continue;
+                    }
+                    if (anc.length === 1) {
+                        /* Une seule longueur : le point est sur un cercle, on
+                           choisit un point de ce cercle — vers la droite, comme
+                           on pose un segment. */
+                        pos.set(n, { x: anc[0].p.x + anc[0].d, y: anc[0].p.y });
+                        continue;
+                    }
+                    /* Deux longueurs : intersection de deux cercles. */
+                    const A = anc[0], B = anc[1];
+                    const dx = B.p.x - A.p.x, dy = B.p.y - A.p.y;
+                    const D = Math.hypot(dx, dy);
+                    if (D < 1e-6 || D > A.d + B.d + 0.5 || D < Math.abs(A.d - B.d) - 0.5) {
+                        const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10).replace('.', ',');
+                        return rate(`Ces longueurs ne peuvent pas aller ensemble : `
+                            + `${A.k}${n} = ${cm(A.d)} cm et ${B.k}${n} = ${cm(B.d)} cm, `
+                            + `alors que ${A.k}${B.k} = ${cm(D)} cm.`);
+                    }
+                    const a = (A.d * A.d - B.d * B.d + D * D) / (2 * D);
+                    const h = Math.sqrt(Math.max(0, A.d * A.d - a * a));
+                    const mx = A.p.x + a * dx / D, my = A.p.y + a * dy / D;
+                    const s1 = { x: mx + h * dy / D, y: my - h * dx / D };
+                    const s2 = { x: mx - h * dy / D, y: my + h * dx / D };
+                    /* Deux solutions, symétriques l'une de l'autre. Une TROISIÈME
+                       longueur, s'il y en a une, dit laquelle : sinon la figure
+                       se reconstruisait retournée. */
+                    let choix = s1;
+                    const tiers = anc.slice(2);
+                    if (tiers.length) {
+                        const err = (s) => Math.min(...tiers.map(tt =>
+                            Math.abs(MathUtils.dist(s.x, s.y, tt.p.x, tt.p.y) - tt.d)));
+                        if (err(s2) < err(s1)) choix = s2;
+                    }
+                    pos.set(n, choix);
+                }
+                if (reste.length) return null;
+                /* ON VÉRIFIE AVANT DE RÉPONDRE « OUI ». Une longueur qui n'est
+                   pas tenue est un énoncé qui ment ; mieux vaut le refus. */
+                const rate1 = mes.find(x => {
+                    const A = pos.get(x.a), B = pos.get(x.b);
+                    if (!A || !B) return true;
+                    return Math.abs(MathUtils.dist(A.x, A.y, B.x, B.y) - x.d) > 1;
+                });
+                if (rate1) {
+                    const cm = (px) => String(Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10).replace('.', ',');
+                    return rate(`Je n'arrive pas à tenir ${rate1.a}${rate1.b} = `
+                        + `${cm(rate1.d)} cm avec les autres longueurs.`);
+                }
+                /* On recentre le tout sur une place libre, sans rien déformer. */
+                const neufs = tous.filter(n => !pos.get(n).deja);
+                if (!neufs.length) return null;
+                if (![...pos.values()].some(p => p.deja)) {
+                    const xs = neufs.map(n => pos.get(n).x), ys = neufs.map(n => pos.get(n).y);
+                    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+                    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+                    const o = this.cslPlaceLibre(0, 0);
+                    neufs.forEach((n) => {
+                        const p = pos.get(n);
+                        pos.set(n, { x: p.x - cx + o.x, y: p.y - cy + o.y });
+                    });
+                }
+                neufs.forEach((n) => {
+                    const p = pos.get(n);
+                    this.addEntity(new Point(p.x, p.y, n));
+                });
+                return fait(neufs.length > 1
+                    ? `${neufs.length} points placés : ${neufs.join(', ')}`
+                    : `Point ${neufs[0]} placé`);
+            }
             cslPlacer(brut, t, fait, rate) {
                 let noms = this.cslNoms(brut);
+                if (noms.length) {
+                    const parMesures = this.cslPlacerMesures(brut, noms, fait, rate);
+                    if (parMesures) return parMesures;
+                }
                 if (!noms.length) {
                     const combien = (t.match(/(\d+)\s*points?/) || [])[1];
                     const n = Math.max(1, Math.min(12, Number(combien) || 1));
@@ -34433,6 +34728,96 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                construction au compas de l'hexagone, et c'est aussi ce qui
                explique pourquoi l'hexagone est le seul qu'on trace sans mesurer :
                pour n = 6, le côté vaut exactement le rayon. */
+            /* ============================================================
+               UN POLYGONE DONNÉ PAR SES CÔTÉS ET SES DIAGONALES
+
+               « Trace un pentagone ABCDE tel que AB = 7,9 cm, BC = 5 cm,
+               CD = 4,7 cm, DE = 3 cm, EA = 4 cm, AC = 7,3 cm et AD = 5,1 cm »
+               ne traçait RIEN : le lecteur de consignes ne savait pas lire des
+               mesures deux à deux, et posait un polygone régulier de sa
+               fabrication. C'est pourtant l'énoncé que le logiciel écrit
+               lui-même quand il relit une figure — il ne savait donc pas se
+               relire.
+
+               Quatre longueurs de côtés n'enferment aucun quadrilatère : ce sont
+               les DIAGONALES issues du premier sommet qui le triangulent. On
+               construit donc de proche en proche, exactement comme au compas :
+               A et B posés, chaque sommet suivant est au croisement de deux
+               arcs. Des deux croisements, on garde celui qui CONTINUE dans le
+               même sens de rotation — sans quoi la figure se replierait sur
+               elle-même au premier sommet rentrant, et un pentagone concave
+               reviendrait convexe.
+               ============================================================ */
+            cslPolygoneMesures(brut, noms, sommets, fait, rate) {
+                if (noms.length < sommets || sommets < 3) return null;
+                const dits = {};
+                const re = /\b([A-Z]'{0,2})\s*([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|dm|m)\b/g;
+                let m;
+                while ((m = re.exec(brut))) {
+                    if (m[1] === m[2]) continue;
+                    const v = this.cslLongueurPx(m[3] + ' ' + m[4]);
+                    if (v > 0) dits[[m[1], m[2]].sort().join('')] = v;
+                }
+                const p = noms.slice(0, sommets);
+                const d = (a, b) => dits[[a, b].sort().join('')];
+                /* Il faut la chaîne complète : chaque côté, et chaque diagonale
+                   issue du premier sommet. S'il en manque une, on ne construit
+                   pas — un polygone à moitié mesuré n'est pas déterminé. */
+                for (let k = 0; k < sommets; k++) {
+                    if (!d(p[k], p[(k + 1) % sommets])) return null;
+                }
+                for (let k = 2; k <= sommets - 2; k++) if (!d(p[0], p[k])) return null;
+
+                const o = this.cslPlaceLibre(0, 0);
+                const pts = [{ x: 0, y: 0 }, { x: d(p[0], p[1]), y: 0 }];
+                let sens = 0;
+                for (let k = 2; k < sommets; k++) {
+                    const rA = d(p[0], p[k]), rP = d(p[k - 1], p[k]);
+                    const A = pts[0], Q = pts[k - 1];
+                    const dd = Math.hypot(Q.x - A.x, Q.y - A.y);
+                    if (dd < 1e-6 || dd > rA + rP || dd < Math.abs(rA - rP)) {
+                        return rate(`Ces mesures ne donnent pas de figure : le sommet `
+                            + `${p[k]} est hors d'atteinte depuis ${p[0]} et ${p[k - 1]}.`);
+                    }
+                    const a = (dd * dd + rA * rA - rP * rP) / (2 * dd);
+                    const h = Math.sqrt(Math.max(0, rA * rA - a * a));
+                    const ux = (Q.x - A.x) / dd, uy = (Q.y - A.y) / dd;
+                    const mx = A.x + ux * a, my = A.y + uy * a;
+                    const c1 = { x: mx - uy * h, y: my + ux * h };
+                    const c2 = { x: mx + uy * h, y: my - ux * h };
+                    /* Le sens de rotation est fixé par le PREMIER sommet libre, et
+                       tenu ensuite : c'est ce qui fait le tour du polygone dans un
+                       seul sens, concave ou non. */
+                    const croix = (P) => (Q.x - A.x) * (P.y - A.y) - (Q.y - A.y) * (P.x - A.x);
+                    if (!sens) sens = croix(c1) >= 0 ? 1 : -1;
+                    pts.push((croix(c1) * sens >= 0) ? c1 : c2);
+                }
+                const bx = pts.map(q => q.x), by = pts.map(q => q.y);
+                const cx = (Math.min(...bx) + Math.max(...bx)) / 2;
+                const cy = (Math.min(...by) + Math.max(...by)) / 2;
+                const poses = pts.map((q, i) => {
+                    const deja = this.cslPointNomme(p[i]);
+                    if (deja) return deja;
+                    const pt = new Point(o.x + q.x - cx, o.y + q.y - cy, p[i]);
+                    this.addEntity(pt);
+                    return pt;
+                });
+                for (let i = 0; i < sommets; i++) {
+                    this.cslSegment(poses[i], poses[(i + 1) % sommets]);
+                }
+                this.cslPoserPolygone(poses);
+                this._cslSujet = p.slice();
+                const cm = (px) => Math.round(px / UNIT * (this.cmScale || 1) * 10) / 10;
+                if (sommets > 3) {
+                    this.cslDire(`Les diagonales issues de ${p[0]} découpent le polygone en `
+                        + `${sommets - 2} triangles : c'est ce qui fixe la figure, car les `
+                        + `côtés seuls ne suffisent pas.`);
+                }
+                void cm;
+                const nom = { 3: 'Triangle', 4: 'Quadrilatère', 5: 'Pentagone', 6: 'Hexagone',
+                              7: 'Heptagone', 8: 'Octogone' }[sommets] || 'Polygone';
+                return fait(`${nom} ${p.join('')}`);
+            }
             cslPolygoneInscrit(brut, t, quoi, sommets, noms, fait) {
                 const ray = brut.match(/rayon\s*(?:de\s*|=\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
                 const dia = brut.match(/diam[èe]tre\s*(?:de\s*|=\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
@@ -34517,6 +34902,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
                 const L = cote || 150;
 
+                /* LES MESURES DEUX À DEUX passent avant tout le reste : c'est
+                   l'énoncé le plus précis qu'on puisse donner, et c'est celui que
+                   le logiciel écrit lui-même quand il relit une figure. */
+                {
+                    let nomsM = this.cslNoms(brut);
+                    while (nomsM.length < sommets) {
+                        const n = this.cslNomLibre(nomsM); if (!n) break; nomsM.push(n);
+                    }
+                    if (sommets >= 4 && nomsM.length >= sommets) {
+                        const fait2 = this.cslPolygoneMesures(brut, nomsM, sommets, fait, rate);
+                        if (fait2) return fait2;
+                    }
+                }
                 /* INSCRIT DANS UN CERCLE : c'est le RAYON qui est donné, pas le
                    côté. Le polygone se posait avec le rayon pris pour un côté —
                    juste par accident pour l'hexagone (où côté = rayon), faux
@@ -36172,6 +36570,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             && e.points.every(p => pts.includes(p))) consommes.add(e);
                     });
                 });
+                /* LE POINT DU BORD D'UN CERCLE N'EST PAS UNE ÉTAPE. Un cercle
+                   se retient par deux points — son centre et un point du bord,
+                   qui règle le rayon — mais l'énoncé dit déjà « de rayon 3 cm ».
+                   Annoncer « Place les points F et G » avant, puis ne plus
+                   jamais parler de G, c'est faire lire une ligne pour rien.
+                   On ne l'efface QUE s'il ne sert à rien d'autre. */
+                const sertAilleurs = new Set();
+                this.entities.forEach((e) => {
+                    if (this.estTraceDeConstruction(e) || e.hidden === true) return;
+                    (e.parents || []).forEach(q => { if (q instanceof Point) sertAilleurs.add(q); });
+                    if (e instanceof Polygon && e.points) e.points.forEach(q => sertAilleurs.add(q));
+                    if (e instanceof Angle) [e.p1, e.p2, e.p3].forEach(q => sertAilleurs.add(q));
+                    if (e instanceof Arc && e.center) sertAilleurs.add(e.center);
+                    if (e instanceof Circle) { sertAilleurs.add(e.p1); return; }
+                    if (e instanceof LinearObject || e instanceof ParallelLine
+                        || e instanceof PerpendicularLine) {
+                        if (e.p1) sertAilleurs.add(e.p1);
+                        if (e.p2) sertAilleurs.add(e.p2);
+                        if (e.refLine) { sertAilleurs.add(e.refLine.p1); sertAilleurs.add(e.refLine.p2); }
+                    }
+                });
+                this.entities.forEach((e) => {
+                    if (!(e instanceof Circle) || this.estTraceDeConstruction(e)) return;
+                    if (e.p2 && !sertAilleurs.has(e.p2)) consommes.add(e.p2);
+                });
                 let libresEnAttente = [];
                 const viderLibres = () => {
                     if (!libresEnAttente.length) return;
@@ -36253,7 +36676,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 });
                 viderLibres();
+                /* DEUXIÈME PASSE : chaque lot de points libres doit savoir ce
+                   qui était DÉJÀ posé avant lui — sans quoi « Place les points A
+                   et B » ne dit pas où, et tout ce qui suit devient un pari. */
+                const vus = [];
+                faits.forEach((f) => {
+                    if (f.t === 'points' || f.t === 'pointSur') f.connus = vus.slice();
+                    this.pgPointsDuFait(f).forEach((q) => {
+                        if (this.pgNomme(q) && !vus.includes(q)) vus.push(q);
+                    });
+                });
                 return faits;
+            }
+            /* Les points qu'un fait met en jeu — ceux qui, après lui, sont posés
+               sur la feuille et peuvent servir d'ancrage au suivant. */
+            pgPointsDuFait(f) {
+                switch (f.t) {
+                    case 'points': return f.noms || [];
+                    case 'polygone': return f.pts || [];
+                    case 'segment': case 'droite': case 'demidroite': return [f.a, f.b];
+                    case 'cercle': return [f.centre, f.bord];
+                    case 'milieu': return [f.a, f.b, f.p];
+                    case 'intersection': case 'pointSur': case 'symetrique': return [f.p];
+                    case 'perpendiculaire': case 'parallele': return [f.par];
+                    case 'angle': return [f.a, f.s, f.b];
+                    case 'arc': return [f.centre];
+                    default: return [];
+                }
             }
             /* Ce point-là est-il le symétrique d'un autre ? On ne le dit que si
                les nombres le disent. */
@@ -36296,18 +36745,203 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return null;
             }
+            /* DEPUIS QUEL SOMMET PEUT-ON DÉCOUPER LE POLYGONE EN TRIANGLES ?
+               Les diagonales issues d'un sommet ne le triangulent que si ce
+               sommet VOIT tous les autres — autrement dit si le polygone est en
+               étoile depuis lui. Sur un pentagone concave, l'éventail depuis A
+               sort de la figure au sommet rentrant : les triangles changent de
+               sens, et la reconstruction déplie la figure au lieu de la refaire.
+               Mesuré sur un vrai pentagone concave : BE passait de 11,1 à 20,3 cm.
+
+               On cherche donc un sommet qui marche. S'il n'y en a aucun, on ne
+               ment pas : la figure se décrit point par point. */
+            pgSommetEventail(pts) {
+                const n = pts.length;
+                for (let dep = 0; dep < n; dep++) {
+                    const p = pts.slice(dep).concat(pts.slice(0, dep));
+                    let signe = 0, bon = true;
+                    for (let k = 2; k < n; k++) {
+                        const A = p[0], Q = p[k - 1], P = p[k];
+                        const c = (Q.x - A.x) * (P.y - A.y) - (Q.y - A.y) * (P.x - A.x);
+                        if (Math.abs(c) < 1e-6) { bon = false; break; }
+                        const s = c > 0 ? 1 : -1;
+                        if (!signe) signe = s;
+                        else if (s !== signe) { bon = false; break; }
+                    }
+                    if (bon) return dep;
+                }
+                return -1;
+            }
             /* ---- LA RÉDACTION : des faits aux PHRASES --------------------- */
             pgListe(noms) {
                 if (noms.length === 1) return noms[0];
                 return noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1];
+            }
+            /* « SUR LE TRAIT PRÉCÉDENT » N'EST PAS UNE CONSIGNE. Celui qui la
+               lit doit remonter la liste pour savoir de quoi on parle, et si
+               deux traits ont été faits entre-temps il se trompe. Un objet a un
+               nom en géométrie : on le dit. On ne retombe sur « précédent » que
+               lorsque l'objet n'a vraiment pas de quoi se nommer — ses points
+               ne portent pas de lettre — et là c'est honnête. */
+            pgDesigner(o) {
+                if (!o) return null;
+                const N = (p) => this.pgNom(p);
+                const nom = (p) => !!(p && this.pgNomme(p));
+                const deux = (a, b) => nom(a) && nom(b);
+                if (o instanceof Circle) {
+                    return nom(o.p1) ? `le cercle de centre ${N(o.p1)}` : null;
+                }
+                if (o instanceof Arc) {
+                    return nom(o.center) ? `l'arc de centre ${N(o.center)}` : null;
+                }
+                if (o instanceof PerpendicularLine) {
+                    return nom(o.p1) ? `la perpendiculaire passant par ${N(o.p1)}` : null;
+                }
+                if (o instanceof ParallelLine) {
+                    return nom(o.p1) ? `la parallèle passant par ${N(o.p1)}` : null;
+                }
+                if (o instanceof Segment) {
+                    return deux(o.p1, o.p2) ? `le segment [${N(o.p1)}${N(o.p2)}]` : null;
+                }
+                if (o instanceof Ray) {
+                    return deux(o.p1, o.p2) ? `la demi-droite [${N(o.p1)}${N(o.p2)})` : null;
+                }
+                if (o instanceof Line) {
+                    if (o.nomDroite) return `la droite (${o.nomDroite})`;
+                    return deux(o.p1, o.p2) ? `la droite (${N(o.p1)}${N(o.p2)})` : null;
+                }
+                if (o instanceof Polygon && o.points && o.points.length
+                    && o.points.every(nom)) {
+                    const nature = this.pgNature(o.points);
+                    const mot = (typeof nature === 'object') ? nature.nom : nature;
+                    return `${/^[aeiouéè]/i.test(mot) ? "l'" : 'le '}${mot} `
+                        + `${o.points.map(N).join('')}`;
+                }
+                /* La perpendiculaire et la parallèle ne retiennent pas l'OBJET
+                   auquel elles se rapportent : le parseur leur passe un simple
+                   { p1, p2 }. Deux points nommés suffisent à en dire la droite. */
+                if (o.p1 instanceof Point && o.p2 instanceof Point && deux(o.p1, o.p2)) {
+                    return `la droite (${N(o.p1)}${N(o.p2)})`;
+                }
+                return null;
+            }
+            /* « PLACE LES POINTS A ET B » NE DIT PAS OÙ — et tout ce qui suit
+               en dépend. Sur une rosace, le programme écrivait :
+
+                   1. Place les points A et B.
+                   2. Trace le cercle de centre A et de rayon 2,7 cm.
+                   3. Trace le cercle de centre B et de rayon 2,7 cm.
+                   4. Place le point C, intersection des deux cercles.
+
+               A et B pouvaient être à un centimètre l'un de l'autre, ou à dix :
+               les deux cercles ne se coupaient plus, et le point C de la ligne 4
+               n'existait pas. La ligne 1 rendait les suivantes fausses.
+
+               Chaque point est donc ACCROCHÉ à ce qui est déjà posé : une
+               longueur le met sur un cercle, deux le fixent, une troisième
+               choisit le côté quand les deux solutions sont vraiment
+               différentes. Le tout premier point, lui, n'a rien avant lui — et
+               c'est juste : une figure se pose où l'on veut sur la feuille. */
+            pgAncres(p, connus) {
+                const cand = connus.filter(q => q !== p && this.pgNomme(q)
+                    && MathUtils.dist(q.x, q.y, p.x, p.y) > 2);
+                if (cand.length < 2) return cand.slice(0, 1);
+                cand.sort((a, b) => MathUtils.dist(a.x, a.y, p.x, p.y)
+                                  - MathUtils.dist(b.x, b.y, p.x, p.y));
+                const a1 = cand[0];
+                const reste = cand.slice(1);
+                /* Le deuxième ancrage ne doit pas être aligné avec le premier et
+                   le point : deux cercles tangents ne fixent rien. */
+                const ecart = (q) => Math.abs((q.x - a1.x) * (p.y - a1.y)
+                                            - (q.y - a1.y) * (p.x - a1.x))
+                                     / Math.max(1, MathUtils.dist(a1.x, a1.y, p.x, p.y));
+                reste.sort((a, b) => ecart(b) - ecart(a));
+                const a2 = reste[0];
+                if (ecart(a2) < 6) return [a1];
+                const out = [a1, a2];
+                /* Un troisième, seulement s'il tranche : hors de la droite
+                   (a1 a2), sinon il ne distingue pas les deux solutions. */
+                const hors = (q) => Math.abs((q.x - a1.x) * (a2.y - a1.y)
+                                           - (q.y - a1.y) * (a2.x - a1.x))
+                                    / Math.max(1, MathUtils.dist(a1.x, a1.y, a2.x, a2.y));
+                const a3 = reste.slice(1).filter(q => hors(q) > 25)
+                    .sort((a, b) => MathUtils.dist(a.x, a.y, p.x, p.y)
+                                  - MathUtils.dist(b.x, b.y, p.x, p.y))[0];
+                if (a3) out.push(a3);
+                return out;
+            }
+            /* Où, sur son support ? Un segment se mesure depuis une extrémité ;
+               un cercle, depuis n'importe quel point déjà posé. */
+            pgOuSurLeSupport(f) {
+                const p = f.p, s = f.support;
+                if (!p || !s) return '';
+                if (s instanceof Circle) {
+                    /* Le centre ne dit rien de plus — le rayon est déjà connu.
+                       Une distance à un AUTRE point met le point sur le cercle à
+                       deux endroits possibles ; une seconde choisit lequel. */
+                    const anc = this.pgAncres(p, (f.connus || []).filter(q => q !== s.p1))
+                        .slice(0, 2);
+                    if (!anc.length) return '';
+                    return ` tel que ${this.pgListe(anc.map(r =>
+                        `${this.pgNom(r)}${this.pgNom(p)} = ${this.pgCm(this.pgLongueur(r, p))}`))}`;
+                }
+                if (s && s.p1 instanceof Point && this.pgNomme(s.p1)) {
+                    return ` tel que ${this.pgNom(s.p1)}${this.pgNom(p)} = `
+                        + `${this.pgCm(this.pgLongueur(s.p1, p))}`;
+                }
+                return '';
+            }
+            pgPlacerPoints(f) {
+                const N = (p) => this.pgNom(p);
+                const pts = f.noms || [];
+                if (!pts.length) return null;
+                const connus = (f.connus || []).slice();
+                const mesures = [];
+                pts.forEach((p) => {
+                    this.pgAncres(p, connus).forEach((r) => {
+                        mesures.push(`${N(r)}${N(p)} = ${this.pgCm(this.pgLongueur(r, p))}`);
+                    });
+                    connus.push(p);
+                });
+                const plur = pts.length > 1;
+                const tete = `Place ${plur ? 'les points' : 'le point'} `
+                    + `${this.pgListe(pts.map(N))}`;
+                if (!mesures.length) return `${tete}.`;
+                return `${tete} ${plur ? 'tels' : 'tel'} que ${this.pgListe(mesures)}.`;
+            }
+            /* « intersection de le segment » : on écrit le français, pas le
+               gabarit. La désignation porte son article, on le contracte. */
+            pgDe(o, defaut) {
+                const d = this.pgDesignerOuGenre(o, defaut);
+                if (/^le /.test(d)) return 'du ' + d.slice(3);
+                if (/^les /.test(d)) return 'des ' + d.slice(4);
+                return 'de ' + d;
+            }
+            pgA(o, defaut) {
+                const d = this.pgDesignerOuGenre(o, defaut);
+                if (/^le /.test(d)) return 'au ' + d.slice(3);
+                if (/^les /.test(d)) return 'aux ' + d.slice(4);
+                return 'à ' + d;
+            }
+            /* Le repli, quand rien ne se nomme : au moins on dit quel genre de
+               trait c'est, plutôt que « le trait ». */
+            pgDesignerOuGenre(o, defaut) {
+                const d = this.pgDesigner(o);
+                if (d) return d;
+                if (o instanceof Circle) return 'le cercle précédent';
+                if (o instanceof Arc) return "l'arc précédent";
+                if (o instanceof Segment) return 'le segment précédent';
+                if (o instanceof Ray) return 'la demi-droite précédente';
+                if (o instanceof LinearObject || o instanceof ParallelLine
+                    || o instanceof PerpendicularLine) return 'la droite précédente';
+                return defaut || 'le trait précédent';
             }
             /* Sans outils : l'énoncé. Ce qu'il faut obtenir, pas comment. */
             pgSansOutils(f) {
                 const N = (p) => this.pgNom(p);
                 switch (f.t) {
                     case 'points':
-                        return `Place ${f.noms.length > 1 ? 'les points' : 'le point'} `
-                            + `${this.pgListe(f.noms.map(N))}.`;
+                        return this.pgPlacerPoints(f);
                     case 'segment':
                         return `Trace le segment [${N(f.a)}${N(f.b)}] de ${this.pgCm(f.cm)}.`;
                     case 'droite':
@@ -36351,38 +36985,59 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         /* QUATRE LONGUEURS NE DÉTERMINENT PAS UN QUADRILATÈRE. On
                            peut l'articuler comme un pantographe sans changer un
                            seul côté : l'énoncé promettait une figure et en
-                           autorisait une infinité. Les DIAGONALES issues du
-                           premier sommet le triangulent, et la figure devient
-                           unique — c'est d'ailleurs exactement ce que fait la
-                           construction au compas, plus bas. */
+                           autorisait une infinité. Les DIAGONALES issues d'un
+                           sommet le triangulent — à condition que ce sommet VOIE
+                           tous les autres. Sur une figure concave, il faut donc
+                           chercher lequel : depuis A, l'éventail sort de la
+                           figure et la reconstruction la déplie. */
+                        const dep = this.pgSommetEventail(p);
+                        if (dep < 0) {
+                            /* Aucun sommet ne convient : la figure ne se décrit pas
+                               par des longueurs. On ne fait pas semblant. */
+                            return null;
+                        }
+                        const q = p.slice(dep).concat(p.slice(0, dep));
+                        const nomsQ = q.map(N).join('');
+                        const cotesQ = q.map((x, k) => `${N(x)}${N(q[(k + 1) % n])} = `
+                            + `${this.pgCm(this.pgLongueur(x, q[(k + 1) % n]))}`);
                         const diagos = [];
                         for (let k = 2; k <= n - 2; k++) {
-                            diagos.push(`${N(p[0])}${N(p[k])} = `
-                                + `${this.pgCm(this.pgLongueur(p[0], p[k]))}`);
+                            diagos.push(`${N(q[0])}${N(q[k])} = `
+                                + `${this.pgCm(this.pgLongueur(q[0], q[k]))}`);
                         }
-                        const tout = mesures.concat(diagos);
-                        return `Trace un ${nature} ${noms} tel que ${this.pgListe(tout)}`
-                            + (diagos.length ? ` (${diagos.length > 1 ? 'ce sont les diagonales'
-                                : 'AC est la diagonale'} issue${diagos.length > 1 ? 's' : ''} `
-                                + `de ${N(p[0])}).` : '.');
+                        const tout = cotesQ.concat(diagos);
+                        void noms; void mesures;
+                        return `Trace un ${nature} ${nomsQ} tel que ${this.pgListe(tout)}.`;
                     }
                     case 'cercle':
                         return `Trace le cercle de centre ${N(f.centre)} et de rayon ${this.pgCm(f.cm)}.`;
                     case 'milieu':
                         return `Place le milieu ${N(f.p)} de [${N(f.a)}${N(f.b)}].`;
                     case 'intersection':
-                        return `Place le point ${N(f.p)}, intersection des deux objets précédents.`;
-                    case 'pointSur':
-                        return `Place un point ${N(f.p)} sur le trait précédent.`;
+                        return `Place le point ${N(f.p)}, intersection `
+                            + `${this.pgDe(f.o1)} et ${this.pgDe(f.o2)}.`;
+                    case 'pointSur': {
+                        /* « sur ce cercle » ne dit pas OÙ sur ce cercle : une
+                           distance à un point déjà posé le fixe. Sans elle,
+                           l'énoncé relu plaçait le point ailleurs. */
+                        const ou = this.pgOuSurLeSupport(f);
+                        return `Place un point ${N(f.p)} sur `
+                            + `${this.pgDesignerOuGenre(f.support)}${ou}.`;
+                    }
                     case 'symetrique':
                         return `Place le symétrique ${N(f.p)} de ${N(f.source)} par rapport `
-                            + (f.axial ? `à la droite ${f.axe ? '(' + f.axe + ')' : 'précédente'}.`
-                                       : `au point ${this.pgNom(f.par)}.`);
+                            + (f.axial
+                                ? (f.axe ? `à la droite (${f.axe}).`
+                                         : `${this.pgA(f.par, 'la droite précédente')}.`)
+                                : `au point ${this.pgNom(f.par)}.`);
                     case 'perpendiculaire':
-                        return `Trace la perpendiculaire à la droite précédente passant par `
-                            + `${N(f.par)}.`;
+                        return `Trace la perpendiculaire `
+                            + `${this.pgA(f.ref, 'la droite précédente')} `
+                            + `passant par ${N(f.par)}.`;
                     case 'parallele':
-                        return `Trace la parallèle à la droite précédente passant par ${N(f.par)}.`;
+                        return `Trace la parallèle `
+                            + `${this.pgA(f.ref, 'la droite précédente')} `
+                            + `passant par ${N(f.par)}.`;
                     case 'angle':
                         return f.droit
                             ? `L'angle ${N(f.a)}${N(f.s)}${N(f.b)} est droit.`
@@ -36398,9 +37053,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             pgAvecOutils(f) {
                 const N = (p) => this.pgNom(p);
                 switch (f.t) {
-                    case 'points':
-                        return [`Place ${f.noms.length > 1 ? 'les points' : 'le point'} `
-                            + `${this.pgListe(f.noms.map(N))}.`];
+                    case 'points': {
+                        /* Aux instruments, une longueur se REPORTE au compas —
+                           mais le premier point se pose à main levée, il n'a
+                           rien avant lui. */
+                        const pts = f.noms || [];
+                        const connus = (f.connus || []).slice();
+                        const l = [];
+                        pts.forEach((p) => {
+                            const anc = this.pgAncres(p, connus);
+                            if (!anc.length) l.push(`Place le point ${N(p)} où tu veux sur la feuille.`);
+                            else if (anc.length === 1) {
+                                l.push(`Au compas, écartement de `
+                                    + `${this.pgCm(this.pgLongueur(anc[0], p))}, pointe sur `
+                                    + `${N(anc[0])} : ${N(p)} est sur cet arc.`);
+                            } else {
+                                anc.forEach(r => l.push(`Au compas, écartement de `
+                                    + `${this.pgCm(this.pgLongueur(r, p))}, pointe sur ${N(r)} : `
+                                    + `trace un arc.`));
+                                l.push(`Les arcs se croisent en ${N(p)}.`);
+                            }
+                            connus.push(p);
+                        });
+                        return l;
+                    }
                     case 'segment':
                         return [`À la règle, trace un segment [${N(f.a)}${N(f.b)}] de ${this.pgCm(f.cm)}.`];
                     case 'droite':
@@ -36477,9 +37153,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             `À la règle, joins les deux croisements : cette droite coupe `
                             + `[${N(f.a)}${N(f.b)}] en son milieu ${N(f.p)}.`];
                     case 'intersection':
-                        return [`Marque le point ${N(f.p)} là où les deux traits se croisent.`];
+                        return [`Marque le point ${N(f.p)} là où ${this.pgDesignerOuGenre(f.o1)} `
+                            + `et ${this.pgDesignerOuGenre(f.o2)} se croisent.`];
                     case 'pointSur':
-                        return [`Marque un point ${N(f.p)} sur le trait précédent.`];
+                        return [`Marque un point ${N(f.p)} sur `
+                            + `${this.pgDesignerOuGenre(f.support)}`
+                            + `${this.pgOuSurLeSupport(f)}.`];
                     case 'symetrique':
                         return f.axial
                             ? [`À l'équerre, descends la perpendiculaire de ${N(f.source)} à l'axe, `
@@ -36491,12 +37170,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                `Au compas, reporte ${N(f.source)}${this.pgNom(f.par)} de l'autre côté `
                                + `de ${this.pgNom(f.par)} : c'est ${N(f.p)}.`];
                     case 'perpendiculaire':
-                        return [`Pose l'équerre : son bord contre la droite, son angle droit sur `
-                            + `${N(f.par)}. Trace le long de l'autre bord.`,
+                        return [`Pose l'équerre : son bord contre `
+                            + `${this.pgDesignerOuGenre(f.ref, 'la droite précédente')}, son angle `
+                            + `droit sur ${N(f.par)}. Trace le long de l'autre bord.`,
                             `Couche la règle sur le trait obtenu et prolonge-le.`];
                     case 'parallele':
-                        return [`Pose l'équerre le long de la droite, puis la règle contre l'équerre, `
-                            + `perpendiculairement.`,
+                        return [`Pose l'équerre contre `
+                            + `${this.pgDesignerOuGenre(f.ref, 'la droite précédente')}, puis la `
+                            + `règle contre l'équerre, perpendiculairement.`,
                             `Fais GLISSER l'équerre le long de la règle, sans la tourner, jusqu'à `
                             + `${N(f.par)} : trace le long de son bord.`];
                     case 'angle':
@@ -36512,6 +37193,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     default: return null;
                 }
             }
+            /* QUAND AUCUNE DESCRIPTION PAR LONGUEURS NE TIENT — une figure
+               quelconque, tracée à main levée, qu'aucun sommet ne voit en
+               entier — on la décrit pour ce qu'elle est : des points, puis des
+               traits. C'est moins élégant, et c'est vrai. */
+            pgPointParPoint(f) {
+                const N = (p) => this.pgNom(p);
+                const p = f.pts, n = p.length;
+                const traits = [];
+                for (let i = 0; i < n; i++) traits.push(`[${N(p[i])}${N(p[(i + 1) % n])}]`);
+                return [
+                    `Place les points ${this.pgListe(p.map(N))} — cette figure quelconque `
+                    + `ne se décrit pas par des longueurs : ses diagonales sortent d'elle-même.`,
+                    `Trace ${this.pgListe(traits)}.`,
+                ];
+            }
             programmeDeConstruction(avecOutils) {
                 const faits = this.lireFigure();
                 if (!faits.length) return null;
@@ -36520,9 +37216,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (avecOutils) {
                         const l = this.pgAvecOutils(f);
                         if (l) l.forEach(x => lignes.push(x));
+                        else if (f.t === 'polygone') this.pgPointParPoint(f).forEach(x => lignes.push(x));
                     } else {
                         const l = this.pgSansOutils(f);
                         if (l) lignes.push(l);
+                        else if (f.t === 'polygone') this.pgPointParPoint(f).forEach(x => lignes.push(x));
                     }
                 });
                 return lignes;
@@ -36595,14 +37293,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const titre = this._ongletEnonce === 'outils'
                     ? 'Programme de construction (aux instruments)'
                     : 'Programme de construction';
-                const html = `<h3>${ech(titre)}</h3><ol>`
-                    + lignes.map(l => `<li>${ech(l)}</li>`).join('') + '</ol>';
+                /* RECOPIÉ EN BAS D'UN ÉNONCÉ DÉJÀ ÉCRIT, LE TEXTE TOMBAIT SOUS
+                   LE PLI. Mesuré sur un énoncé de douze lignes : le champ
+                   montrait 420 px sur 630, le défilement restait à 0, et le
+                   bloc neuf commençait 102 px sous le bord — « c'est dans mon
+                   énoncé mais on ne le voit pas ». On le marque, et on va le
+                   chercher. */
+                const marque = 'pg-' + Date.now();
+                const html = `<div class="enonce-neuf" id="${marque}"><h3>${ech(titre)}</h3><ol>`
+                    + lignes.map(l => `<li>${ech(l)}</li>`).join('') + '</ol></div>';
                 const avant = (champ.innerHTML || '').trim();
                 /* L'exemple d'usine se remplace ; le texte d'un professeur, non. */
                 champ.innerHTML = (!avant || /^<h3>Exercice\s*:<\/h3>/.test(avant))
                     ? html : avant + html;
                 this.sauverEnonce && this.sauverEnonce();
                 this.ongletEnonce('mien');
+                const neuf = document.getElementById(marque);
+                if (neuf) {
+                    const rc = champ.getBoundingClientRect(), rn = neuf.getBoundingClientRect();
+                    champ.scrollTop += rn.top - rc.top - 8;
+                    /* Le surlignage a joué son rôle : on ne le laisse pas dans
+                       le texte que le professeur va enregistrer. */
+                    setTimeout(() => {
+                        neuf.classList.remove('enonce-neuf');
+                        neuf.removeAttribute('id');
+                        this.sauverEnonce && this.sauverEnonce();
+                    }, 1800);
+                }
                 this.showToast('Programme recopié dans « Mon énoncé » — à vous de le retoucher');
                 return lignes;
             }
@@ -36617,7 +37334,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const b = document.getElementById('btnEnonceLibre');
                 if (!z) return;
                 const ouvert = z.style.display !== 'none' && z.style.display !== '';
-                z.style.display = ouvert ? 'none' : 'block';
+                /* « flex » et non « block » : c'est ce qui laisse le champ de
+                   texte prendre toute la hauteur restante du panneau. */
+                z.style.display = ouvert ? 'none' : 'flex';
                 if (b) b.textContent = ouvert ? 'Énoncé libre ▾' : 'Énoncé libre ▴';
             }
             basculerAideConsigne() {
@@ -38093,7 +38812,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 14h';
+        window.GM_VERSION = '2026-09-06 · 18h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
