@@ -621,7 +621,9 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      JSON.stringify([pan.lignes[0].bandeau, pan.lignes[1].bandeau]));
   ck('l\'aide est là, repliée', pan.aideCachee === 'none' && pan.exemples >= 40,
      `${pan.exemples} exemples`);
-  ck('le texte libre de l\'énoncé est replié, pas supprimé',
+  /* Le texte libre est un ONGLET, plus un repli caché au coin bas-droit : à
+     l'ouverture on est sur « Consignes », et il attend derrière son nom. */
+  ck('le texte libre de l\'énoncé attend derrière son onglet, pas supprimé',
      pan.enonceReplie === 'none' && !!(await page.$('#instrContent')), pan.enonceReplie);
 
   console.log('\n=== on ne rejoue pas deux fois la même ligne ===');

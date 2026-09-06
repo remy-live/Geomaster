@@ -214,7 +214,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('rien à écrire, et on le dit au lieu d\'écrire du vide',
      vide === null, JSON.stringify(vide));
 
-  console.log('\n=== trois onglets : ce que J\'écris, et ce que la figure dit ===');
+  console.log('\n=== quatre onglets : ce que J\'écris, et ce que la figure dit ===');
   /* Le programme s'écrivait à la suite de l'énoncé du professeur : au bout de
      trois essais le texte devenait un empilement, et rien ne distinguait ce
      qu'on avait écrit de ce que la machine avait relu. */
@@ -229,16 +229,35 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     /* On ajoute un objet SANS retoucher à l'onglet : il doit suivre tout seul. */
     app.executerConsigneAvec('Place le milieu I de [AB]', false);
     const suivi = document.getElementById('enonceGenereTexte').textContent;
+    const barre = document.querySelector('.enonce-onglets');
+    const rangees = new Set([...barre.querySelectorAll('button')]
+        .map(x => Math.round(x.getBoundingClientRect().top))).size;
     return {
       noms: [...document.querySelectorAll('.enonce-onglets button')].map(x => x.textContent.trim()),
       ouvert: document.getElementById('enonceLibre').style.display,
+      volet: document.getElementById('voletConsignes').style.display,
+      enTete: barre.parentElement.id, rangees,
+      pastilles: [...document.querySelectorAll('.enonce-onglets button')]
+        .map(x => x.dataset.onglet + ':' + (x.dataset.plein || '-')).join(' '),
       vide, apres, suivi,
       mienCache: document.getElementById('instrContent').style.display,
       monEnonce: document.getElementById('instrContent').textContent,
     };
   });
-  ck('trois onglets dans la fenêtre de l\'énoncé', onglets.noms.length === 3,
-     JSON.stringify(onglets.noms));
+  /* « Il faut pouvoir trouver l'énoncé » : il était à DEUX niveaux de
+     profondeur — un « Énoncé libre ▾ » au coin bas-droit de la liste, puis les
+     onglets dessous. Ils sont maintenant la navigation du panneau. */
+  ck('quatre onglets, EN TÊTE du panneau et sur une seule ligne',
+     onglets.noms.length === 4 && onglets.enTete === 'instructionBox'
+     && onglets.rangees === 1,
+     JSON.stringify(onglets.noms) + ' — dans #' + onglets.enTete
+     + ', ' + onglets.rangees + ' rangée(s)');
+  ck('  « Consignes » en est un : la liste est un onglet comme les autres',
+     onglets.noms[0] === 'Consignes' && onglets.volet === 'none', onglets.volet);
+  /* Un onglet qu'on croit vide, on ne l'ouvre pas : il dit qu'il a de quoi lire. */
+  ck('  un point signale que la figure a un énoncé à montrer',
+     /figure:1/.test(onglets.pastilles) && /outils:1/.test(onglets.pastilles)
+     && !/mien:1/.test(onglets.pastilles), onglets.pastilles);
   /* « flex » et non « block » : c'est ce qui laisse le champ de texte occuper
      toute la hauteur restante du panneau. */
   ck('  le panneau s\'ouvre tout seul', onglets.ouvert === 'flex', onglets.ouvert);

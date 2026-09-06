@@ -1866,7 +1866,12 @@
                croix des consignes était couverte par celle de la palette. Elles
                s'ouvrent chacune de leur côté. */
             left: 110px;
-            width: 340px;
+            /* 396 px et non 340 : les quatre onglets tiennent alors sur UNE
+               ligne — à 340 ils passaient sur deux, et deux rangées d'onglets
+               pour quatre mots, c'est le contraire de « on trouve tout de
+               suite ». L'énoncé y respire aussi : « Trace un pentagone BCDEA
+               tel que… » tenait sur cinq lignes. */
+            width: 396px;
             background: #fff;
             border: 1px solid #ccc;
             border-radius: 8px;
@@ -3553,7 +3558,15 @@
         }
 
         .csl-pied button:hover { background: #f5f7f8; }
-        #btnEnonceLibre { margin-left: auto; }
+
+        /* La liste des consignes est un onglet parmi quatre : elle occupe la
+           colonne du panneau comme les autres, et c'est la liste qui défile. */
+        #voletConsignes {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0
+        }
 
         .instr-actions { display: flex; align-items: center; gap: 6px; }
 
@@ -3659,7 +3672,25 @@
             font: inherit; font-size: 12px; color: #64748b; min-height: 32px;
             white-space: nowrap;
         }
+        /* Sous 360 px de large — le panneau replié, ou le téléphone — quatre
+           onglets ne tiennent pas sur une ligne sans se serrer. */
+        @media (max-width: 700px) {
+            .enonce-onglets button { padding: 6px 7px; font-size: 11.5px }
+        }
         .enonce-onglets button:hover { background: #f1f5f9; color: #334155; }
+        /* UN ONGLET QUI A QUELQUE CHOSE À MONTRER LE DIT. Sans cela, « La
+           figure » ressemble à un onglet vide tant qu'on n'a pas cliqué —
+           et on ne clique pas sur ce qu'on croit vide. Le point ne paraît que
+           lorsque la feuille porte vraiment quelque chose. */
+        .enonce-onglets button[data-plein="1"]:not(.actif)::after {
+            content: '';
+            display: inline-block;
+            width: 5px; height: 5px;
+            margin-left: 5px;
+            vertical-align: 1px;
+            border-radius: 50%;
+            background: #0ea5e9;
+        }
         .enonce-onglets button.actif {
             background: #fff; border-color: #e2e8f0; color: #0f172a; font-weight: 600;
             margin-bottom: -1px;
@@ -8342,6 +8373,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <button class="instr-close" onclick="app.toggleInstructions()">✕</button>
             </span>
         </div>
+        <!-- LES ONGLETS SONT LA NAVIGATION DU PANNEAU, pas un sous-menu.
+             L'énoncé relu sur la figure — ce que ce panneau sait faire de plus
+             utile — était à DEUX niveaux de profondeur : il fallait d'abord
+             deviner « Énoncé libre ▾ », un petit bouton au coin bas-droit de la
+             liste, puis trouver les onglets dessous. « Il faut pouvoir trouver
+             l'énoncé » : il est maintenant nommé sur l'écran, dès l'ouverture,
+             et à un clic. -->
+        <div class="enonce-onglets" role="tablist">
+            <button role="tab" data-onglet="consignes" class="actif"
+                onclick="app.ongletEnonce('consignes');"
+                data-tooltip="Ce qu'on écrit, ligne par ligne : le logiciel le trace">Consignes</button>
+            <button role="tab" data-onglet="mien"
+                onclick="app.ongletEnonce('mien');"
+                data-tooltip="Le texte libre de l'énoncé, celui du professeur">Mon énoncé</button>
+            <button role="tab" data-onglet="figure"
+                onclick="app.ongletEnonce('figure');"
+                data-tooltip="L'énoncé lu sur la figure : ce qu'elle demande, sans dire comment">La figure</button>
+            <button role="tab" data-onglet="outils"
+                onclick="app.ongletEnonce('outils');"
+                data-tooltip="La marche à suivre, geste par geste">Aux instruments</button>
+        </div>
         <div id="consigneAide" class="consigne-aide" style="display:none;">
             <div class="consigne-groupe">Placer</div>
             <a onclick="app.exempleConsigne('Place 3 points A, B, C non alignés')">Place 3 points A, B, C non alignés</a>
@@ -8426,25 +8478,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <a onclick="app.exempleConsigne('Reporte la longueur AB à partir de C')">Reporte la longueur AB à partir de C</a>
             <a onclick="app.exempleConsigne('Trace un angle de 60°')">Trace un angle de 60°</a>
         </div>
-        <div id="consigneLignes"></div>
-        <div class="csl-pied">
-            <button onclick="app.ajouterConsigne()" data-tooltip="Ajouter une ligne">＋</button>
-            <button onclick="app.executerToutesConsignes()"
-                data-tooltip="Faire les lignes qui ne sont pas encore faites">▶ Tout faire</button>
-            <button id="btnEnonceLibre" onclick="app.basculerEnonceLibre()"
-                data-tooltip="Le texte libre de l'énoncé">Énoncé libre ▾</button>
+        <div id="voletConsignes">
+            <div id="consigneLignes"></div>
+            <div class="csl-pied">
+                <button onclick="app.ajouterConsigne()" data-tooltip="Ajouter une ligne">＋</button>
+                <button onclick="app.executerToutesConsignes()"
+                    data-tooltip="Faire les lignes qui ne sont pas encore faites">▶ Tout faire</button>
+            </div>
         </div>
         <div id="enonceLibre" style="display:none;">
-            <div class="enonce-onglets" role="tablist">
-                <button role="tab" data-onglet="mien" class="actif"
-                    onclick="app.ongletEnonce('mien');">Mon énoncé</button>
-                <button role="tab" data-onglet="figure"
-                    onclick="app.ongletEnonce('figure');"
-                    data-tooltip="L'énoncé lu sur la figure : ce qu'elle demande, sans dire comment">La figure</button>
-                <button role="tab" data-onglet="outils"
-                    onclick="app.ongletEnonce('outils');"
-                    data-tooltip="La marche à suivre, geste par geste">Aux instruments</button>
-            </div>
             <div class="instr-toolbar">
                 <button onpointerdown="event.preventDefault(); document.execCommand('bold', false, null);"
                     data-tooltip="Gras"><b>B</b></button>
@@ -13655,9 +13697,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                « la perpendiculaire à d » désignerait un objet qu'on ne voit
                nommé nulle part. En italique, comme au cours, et posé un peu au
                delà du trait pour ne pas s'y coucher. */
-            dessinerNomDroite(ctx, couleur) {
-                if (!this.nomDroite || !this.p1 || !this.p2) return;
-                const dx = this.p2.x - this.p1.x, dy = this.p2.y - this.p1.y;
+            dessinerNomDroite(ctx, couleur, bout) {
+                /* La parallèle et la perpendiculaire n'ont pas de second point :
+                   elles le calculent. Elles passent donc le leur, et une droite
+                   nommée (d') porte son nom comme les autres. */
+                const p2 = bout || this.p2;
+                if (!this.nomDroite || !this.p1 || !p2) return;
+                const dx = p2.x - this.p1.x, dy = p2.y - this.p1.y;
                 const L = Math.hypot(dx, dy) || 1;
                 const ux = dx / L, uy = dy / L;
                 ctx.save();
@@ -13666,8 +13712,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.setLineDash([]);
-                ctx.fillText(this.nomDroite, this.p2.x + ux * 22 - uy * 14,
-                                             this.p2.y + uy * 22 + ux * 14);
+                ctx.fillText(this.nomDroite, p2.x + ux * 22 - uy * 14,
+                                             p2.y + uy * 22 + ux * 14);
                 ctx.restore();
             }
         }
@@ -23556,6 +23602,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    à chaque changement de la figure — c'est le seul endroit qui
                    voie passer TOUS les changements, quel que soit l'outil. */
                 if (this.majProgramme) this.majProgramme();
+                if (this.majPastilleOnglets) this.majPastilleOnglets();
             }
             /* ANNULER PENDANT UN REJEU.
 
@@ -37054,19 +37101,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const N = (p) => this.pgNom(p);
                 switch (f.t) {
                     case 'points': {
-                        /* Aux instruments, une longueur se REPORTE au compas —
-                           mais le premier point se pose à main levée, il n'a
-                           rien avant lui. */
+                        /* UNE SEULE DISTANCE SE MESURE À LA RÈGLE. La première
+                           version écrivait « Au compas, écartement de 2,3 cm,
+                           pointe sur A : B est sur cet arc » — c'est vrai, et
+                           personne ne dicte cela : pour poser un point à 2,3 cm
+                           d'un autre, on prend la règle graduée. Le compas ne
+                           sert que lorsqu'il faut CROISER deux distances. */
                         const pts = f.noms || [];
                         const connus = (f.connus || []).slice();
                         const l = [];
                         pts.forEach((p) => {
                             const anc = this.pgAncres(p, connus);
-                            if (!anc.length) l.push(`Place le point ${N(p)} où tu veux sur la feuille.`);
+                            if (!anc.length) l.push(`Place un point ${N(p)}.`);
                             else if (anc.length === 1) {
-                                l.push(`Au compas, écartement de `
-                                    + `${this.pgCm(this.pgLongueur(anc[0], p))}, pointe sur `
-                                    + `${N(anc[0])} : ${N(p)} est sur cet arc.`);
+                                l.push(`À la règle graduée, place ${N(p)} à `
+                                    + `${this.pgCm(this.pgLongueur(anc[0], p))} de ${N(anc[0])}.`);
                             } else {
                                 anc.forEach(r => l.push(`Au compas, écartement de `
                                     + `${this.pgCm(this.pgLongueur(r, p))}, pointe sur ${N(r)} : `
@@ -37225,21 +37274,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 });
                 return lignes;
             }
-            /* TROIS ONGLETS, PARCE QUE CE SONT TROIS TEXTES DIFFÉRENTS.
-               « Mon énoncé » est écrit par le professeur, et rien ne doit y
-               toucher. Les deux autres sont RELUS sur la figure : ils se
-               refont à chaque changement au lieu de s'ajouter, et ils sont en
-               lecture seule — on ne corrige pas un miroir, on bouge la figure.
+            /* QUATRE ONGLETS, PARCE QUE CE SONT QUATRE TEXTES DIFFÉRENTS, et
+               ils sont EN TÊTE du panneau parce qu'un texte qu'on ne trouve pas
+               n'existe pas.
 
-               Le programme s'écrivait à la suite de l'énoncé : au bout de trois
-               essais le texte devenait un empilement, et plus rien ne distinguait
-               ce qu'on avait écrit de ce que la machine avait relu. */
+                 Consignes        ce qu'on écrit, ligne par ligne → la figure
+                 Mon énoncé       le texte libre du professeur ; rien n'y touche
+                 La figure        l'énoncé RELU sur la figure
+                 Aux instruments  la marche à suivre, geste par geste
+
+               Les deux derniers se refont à chaque changement au lieu de
+               s'ajouter, et ils sont en lecture seule — on ne corrige pas un
+               miroir, on bouge la figure. Ils étaient auparavant à deux niveaux
+               de profondeur, derrière un « Énoncé libre ▾ » au coin bas-droit de
+               la liste : personne ne les trouvait. */
             ongletEnonce(quel) {
                 this._ongletEnonce = quel;
+                const consignes = quel === 'consignes';
+                const volet = document.getElementById('voletConsignes');
                 const zone = document.getElementById('enonceLibre');
-                if (zone && (zone.style.display === 'none' || !zone.style.display)) {
-                    this.basculerEnonceLibre();
-                }
+                if (volet) volet.style.display = consignes ? '' : 'none';
+                /* « flex » et non « block » : c'est ce qui laisse le champ de
+                   texte prendre toute la hauteur restante du panneau. */
+                if (zone) zone.style.display = consignes ? 'none' : 'flex';
                 document.querySelectorAll('.enonce-onglets button').forEach((b) => {
                     b.classList.toggle('actif', b.dataset.onglet === quel);
                     b.setAttribute('aria-selected', b.dataset.onglet === quel ? 'true' : 'false');
@@ -37251,7 +37308,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (champ) champ.style.display = mien ? '' : 'none';
                 if (barre) barre.style.display = mien ? '' : 'none';
                 if (gen) gen.style.display = mien ? 'none' : '';
-                if (!mien) this.majProgramme();
+                if (!consignes && !mien) this.majProgramme();
+            }
+            /* Le point bleu sur « La figure » et « Aux instruments » : il dit
+               qu'il y a un énoncé à lire, sans qu'on ait besoin d'ouvrir pour
+               le savoir. Le test est volontairement bon marché — un objet
+               visible qui ne soit pas une trace de construction — parce qu'il
+               tourne à chaque changement de la figure. */
+            majPastilleOnglets() {
+                const plein = this.entities.some(e => e.hidden !== true
+                    && e.visible !== false && !this.estTraceDeConstruction(e));
+                document.querySelectorAll('.enonce-onglets button[data-onglet]').forEach((b) => {
+                    if (b.dataset.onglet !== 'figure' && b.dataset.onglet !== 'outils') return;
+                    b.dataset.plein = plein ? '1' : '0';
+                });
             }
             /* Le texte relu, refait à neuf. Appelé à l'ouverture de l'onglet ET
                à chaque changement de la figure : c'est ce qui fait qu'on trace,
@@ -37329,15 +37399,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this._ongletEnonce = avecOutils ? 'outils' : 'figure';
                 return this.copierProgrammeDansEnonce();
             }
+            /* Le bouton « Énoncé libre ▾ » n'existe plus : c'est un onglet. Le
+               nom reste, parce qu'il est appelé depuis la recherche de
+               commandes et depuis les sondes, et il fait ce qu'il promet —
+               montrer le texte libre, ou revenir aux consignes. */
             basculerEnonceLibre() {
-                const z = document.getElementById('enonceLibre');
-                const b = document.getElementById('btnEnonceLibre');
-                if (!z) return;
-                const ouvert = z.style.display !== 'none' && z.style.display !== '';
-                /* « flex » et non « block » : c'est ce qui laisse le champ de
-                   texte prendre toute la hauteur restante du panneau. */
-                z.style.display = ouvert ? 'none' : 'flex';
-                if (b) b.textContent = ouvert ? 'Énoncé libre ▾' : 'Énoncé libre ▴';
+                this.ongletEnonce(this._ongletEnonce === 'consignes' || !this._ongletEnonce
+                    ? 'mien' : 'consignes');
             }
             basculerAideConsigne() {
                 const a = document.getElementById('consigneAide');
@@ -38812,7 +38880,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-06 · 18h';
+        window.GM_VERSION = '2026-09-06 · 20h';
         const app = new GeometrieApp("geoCanvas");
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent

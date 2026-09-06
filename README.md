@@ -522,9 +522,18 @@ Le logiciel sait exécuter une suite de consignes. Il sait maintenant faire le
 C'est l'exercice « rédige un programme de construction » de tous les manuels —
 celui qu'on corrige à la main, un cahier après l'autre.
 
-**Trois onglets** dans la fenêtre de l'énoncé, parce que ce sont trois textes
-différents : **Mon énoncé** (celui qu'on écrit, auquel rien ne touche),
+**Quatre onglets en tête du panneau des consignes**, parce que ce sont quatre
+textes différents : **Consignes** (ce qu'on écrit ligne par ligne, et qui se
+trace), **Mon énoncé** (le texte libre du professeur, auquel rien ne touche),
 **La figure**, **Aux instruments**.
+
+Ils étaient à *deux* niveaux de profondeur : il fallait deviner un petit bouton
+« Énoncé libre ▾ » au coin bas-droit de la liste, puis trouver les onglets
+dessous. Personne ne les trouvait — « il faut pouvoir trouver l'énoncé ». Ils
+sont maintenant la navigation du panneau : nommés à l'écran dès l'ouverture, sur
+une seule ligne (le panneau est passé de 340 à 396 px pour cela), et **un point
+bleu** paraît sur « La figure » et « Aux instruments » dès que la feuille porte
+quelque chose — on n'ouvre pas un onglet qu'on croit vide.
 
 Les deux derniers sont **relus sur la figure** et se refont à chaque changement :
 on trace, et l'énoncé se rédige à côté. Un bouton les recopie dans « Mon
