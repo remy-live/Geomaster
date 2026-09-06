@@ -11106,9 +11106,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                 </div>
                 <input type="range" class="compact-slider" min="1" max="8" value="2" id="sliderThickness"
-                    oninput="app.setGlobalWidth(this.value)" data-tooltip="Changer l'épaisseur" style="flex: 1; accent-color: #0284c7; min-width: 50px;">
+                    oninput="app.setGlobalWidth(this.value)" data-tooltip="Changer l'épaisseur"
+                    style="flex: 1 1 36px; accent-color: #0284c7; min-width: 36px;">
+                <!-- LE NOMBRE NE DOIT PAS DÉBORDER DE SA CASE. Il portait
+                     « width: 14px » sans plus, mais c'est un élément flex : le
+                     curseur voisin le comprimait, et sa case tombait à 8 px de
+                     large. Le chiffre, lui, en fait quatorze — il débordait donc
+                     par la droite et venait se coller au bord du panneau, à 1 px,
+                     là où toutes les autres rangées s'arrêtent 15 à 34 px avant.
+                     « flex: 0 0 auto » lui rend sa case entière. -->
                 <span id="thicknessValue"
-                    style="font-weight: 600; font-size: 15px; width: 14px; text-align: right; color: #475569;">2</span>
+                    style="font-weight: 600; font-size: 15px; flex: 0 0 auto; min-width: 16px; text-align: right; color: #475569;">2</span>
             </div>
             <div class="p-divider"></div>
             <div class="p-grid-4">
@@ -17897,7 +17905,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.priseEcartement(P1, P2, rMed, null);
                     const aAC = Math.atan2(cA.y - P1.y, cA.x - P1.x);
                     const arc1 = new CompassArc(P1, rMed, aAC - 0.4, aAC + 0.4, false); arc1.color = arcColor;
-                    arc1.rayonPaire = { a: P1, b: P2, k: 0.7 };
+                    arc1.rayonPaire = { a: P1, b: P2, k: 1 };
                     const anim1 = new ToolAnimation('trace', {x: P1.x, y: P1.y, angle: aAC - 0.4, radius: rMed}, {x: P1.x, y: P1.y, angle: aAC + 0.4, radius: rMed});
                     anim1.widgetType = 'compass'; anim1.counterClockwise = false;
                     this.addEntity(anim1); this.addEntity(arc1);
@@ -17908,7 +17916,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToAD);
 
                     const arc3 = new CompassArc(P1, rMed, aAD - 0.4, aAD + 0.4, false); arc3.color = arcColor;
-                    arc3.rayonPaire = { a: P1, b: P2, k: 0.7 };
+                    arc3.rayonPaire = { a: P1, b: P2, k: 1 };
                     const anim3 = new ToolAnimation('trace', {x: P1.x, y: P1.y, angle: aAD - 0.4, radius: rMed}, {x: P1.x, y: P1.y, angle: aAD + 0.4, radius: rMed});
                     anim3.widgetType = 'compass'; anim3.counterClockwise = false;
                     this.addEntity(anim3); this.addEntity(arc3);
@@ -17919,7 +17927,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToB);
 
                     const arc2 = new CompassArc(P2, rMed, aBC + 0.4, aBC - 0.4, true); arc2.color = arcColor;
-                    arc2.rayonPaire = { a: P1, b: P2, k: 0.7 };
+                    arc2.rayonPaire = { a: P1, b: P2, k: 1 };
                     const anim2 = new ToolAnimation('trace', {x: P2.x, y: P2.y, angle: aBC + 0.4, radius: rMed}, {x: P2.x, y: P2.y, angle: aBC - 0.4, radius: rMed});
                     anim2.widgetType = 'compass'; anim2.counterClockwise = true;
                     this.addEntity(anim2); this.addEntity(arc2);
@@ -17930,7 +17938,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(moveToBD);
 
                     const arc4 = new CompassArc(P2, rMed, aBD + 0.4, aBD - 0.4, true); arc4.color = arcColor;
-                    arc4.rayonPaire = { a: P1, b: P2, k: 0.7 };
+                    arc4.rayonPaire = { a: P1, b: P2, k: 1 };
                     const anim4 = new ToolAnimation('trace', {x: P2.x, y: P2.y, angle: aBD + 0.4, radius: rMed}, {x: P2.x, y: P2.y, angle: aBD - 0.4, radius: rMed});
                     anim4.widgetType = 'compass'; anim4.counterClockwise = true;
                     this.addEntity(anim4); this.addEntity(arc4);
@@ -23039,6 +23047,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.isMagicConstructing && this.sansOutil && this.estTraceDeConstruction(entity)) {
                     return;
                 }
+                /* UNE FIGURE NE DIT PAS DEUX FOIS LA MÊME CHOSE. « J'ai deux
+                   angles droits ! » — et c'était vrai : deux petits carrés
+                   superposés au même croisement, décalés de quelques pixels, l'un
+                   noir et l'autre vert. Deux commandes avaient codé le même coin,
+                   chacune ayant raison de son côté, et l'élève lisait deux fois
+                   la même affirmation.
+
+                   On compare le SOMMET et les deux DIRECTIONS, pas les points :
+                   deux angles bâtis sur des points différents mais posés au même
+                   endroit sont le même angle. L'ordre des côtés n'y change rien.
+                   Le premier codage reste : c'est celui que la figure portait
+                   déjà. Deux angles de MÊME sommet et de côtés différents — les
+                   complémentaires AOC et COB — ne se ressemblent pas et vivent
+                   tous les deux. */
+                if (entity instanceof Angle && entity.p1 && entity.p2 && entity.p3) {
+                    const dir = (p, s) => Math.atan2(p.y - s.y, p.x - s.x);
+                    const proche = (u, v) =>
+                        Math.abs(((u - v) * 180 / Math.PI + 540) % 360 - 180) < 1;
+                    const s0 = entity.p2;
+                    const a0 = dir(entity.p1, s0), b0 = dir(entity.p3, s0);
+                    const deja = this.entities.some((e) => {
+                        if (!(e instanceof Angle) || !e.p1 || !e.p2 || !e.p3) return false;
+                        if (Math.hypot(e.p2.x - s0.x, e.p2.y - s0.y) > 0.5) return false;
+                        const a1 = dir(e.p1, e.p2), b1 = dir(e.p3, e.p2);
+                        return (proche(a0, a1) && proche(b0, b1))
+                            || (proche(a0, b1) && proche(b0, a1));
+                    });
+                    if (deja) return;
+                }
                 /* RANGER DEUX FOIS LE MÊME INSTRUMENT NE LE RANGE PAS DEUX FOIS.
                    Un bâtisseur qui range sa règle après chaque côté, et une fois
                    encore à la fin, empilait les « rulerHide » : sur un carré
@@ -23153,31 +23190,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     btn.dataset.tooltip = "Boucle (OFF)";
                 }
             }
+            /* UN BOUTON ALLUMÉ DOIT SE VOIR ALLUMÉ. Le crayon est actif au
+               démarrage — showPencil vaut true, l'infobulle dit « Crayon (ON) »,
+               la mine est bleue — mais la classe « active », celle qui dessine le
+               fond du bouton, n'était posée que par le CLIC. Mesuré à
+               l'ouverture : showPencil true, bouton actif false. Il fallait
+               l'éteindre puis le rallumer pour qu'il ait enfin l'air allumé.
+
+               L'apparence se déduit maintenant de l'état, en un seul endroit, et
+               s'applique aussi bien au démarrage qu'au clic. */
+            majBoutonCrayon() {
+                const on = !!this.showPencil;
+                const btn1 = document.getElementById('btnPencil');
+                if (btn1) {
+                    btn1.classList.toggle('active', on);
+                    btn1.dataset.tooltip = on ? "Crayon (ON)" : "Crayon (OFF)";
+                    const svg = btn1.querySelector('svg');
+                    if (svg) svg.style.color = on ? '#2980b9' : 'currentColor';
+                }
+                const btn2 = document.getElementById('stdPencilBtn');
+                if (btn2) {
+                    btn2.classList.toggle('active', on);
+                    btn2.style.color = on ? '#2980b9' : '#666';
+                }
+            }
             togglePencil() {
                 this.showPencil = !this.showPencil;
-                const btn1 = document.getElementById('btnPencil');
-                const btn2 = document.getElementById('stdPencilBtn');
-                if (btn1) {
-                    const svg = btn1.querySelector('svg');
-                    if (this.showPencil) {
-                        btn1.classList.add('active');
-                        btn1.dataset.tooltip = "Crayon (ON)";
-                        if(svg) svg.style.color = '#2980b9';
-                    } else {
-                        btn1.classList.remove('active');
-                        btn1.dataset.tooltip = "Crayon (OFF)";
-                        if(svg) svg.style.color = 'currentColor';
-                    }
-                }
-                if (btn2) {
-                    if (this.showPencil) {
-                        btn2.classList.add('active');
-                        btn2.style.color = '#2980b9';
-                    } else {
-                        btn2.classList.remove('active');
-                        btn2.style.color = '#666';
-                    }
-                }
+                this.majBoutonCrayon();
             }
             playFromStart() {
                 this.saveState();
@@ -41320,11 +41359,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const btnLoop = document.getElementById('stdLoopBtn');
             const btnPencil = document.getElementById('stdPencilBtn');
             app.showPencil = true;
-            const replayBtnPencil = document.getElementById('btnPencil');
-            if (replayBtnPencil) {
-                replayBtnPencil.classList.add('active');
-                replayBtnPencil.style.color = '#2980b9';
-            }
+            /* L'apparence se déduit de l'état — et une fois de plus au tour
+               suivant, car cette barre-ci se construit avant que l'autre existe. */
+            app.majBoutonCrayon();
+            requestAnimationFrame(() => app.majBoutonCrayon());
             btnPlay.onclick = () => {
                 app.togglePlayPause();
                 btnPlay.innerHTML = app.isPlaying ? "⏸" : "▶";
@@ -41363,16 +41401,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 app.isLooping = !app.isLooping;
                 btnLoop.classList.toggle('active');
             };
-            btnPencil.onclick = () => {
-                app.showPencil = !app.showPencil;
-                if (app.showPencil) {
-                    btnPencil.classList.add('active');
-                    btnPencil.style.color = '#2980b9';
-                } else {
-                    btnPencil.classList.remove('active');
-                    btnPencil.style.color = '#666';
-                }
-            };
+            btnPencil.onclick = () => { app.togglePencil(); };
             const originalRender = app.render.bind(app);
             app.render = (ctx) => {
                 originalRender(ctx);
@@ -41389,8 +41418,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 4h';
+        window.GM_VERSION = '2026-09-08 · 5h';
         const app = new GeometrieApp("geoCanvas");
+        /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
+           et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais
+           la classe « active », celle qui dessine le fond du bouton enfoncé,
+           n'était posée que par le dock élève, qui ne s'exécute pas ici. Il
+           fallait éteindre puis rallumer pour qu'il ait enfin l'air allumé.
+           L'apparence se déduit maintenant de l'état, dès l'ouverture. */
+        app.majBoutonCrayon();
         window.app = app;
         /* Les deux bandes qui défilent — l'en-tête et la barre d'outils — savent
            dire si elles cachent quelque chose. On le leur demande maintenant, puis

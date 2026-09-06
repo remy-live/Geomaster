@@ -73,7 +73,31 @@ const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
                 }
                 ecartement = r;
             });
-            return { fautes, mesures };
+            /* ET L'ARC S'AFFICHE LÀ OÙ LE COMPAS L'A TRACÉ. Le geste et la
+               trace sont deux objets distincts : rien n'oblige le second à suivre
+               le premier, et c'est arrivé — l'écartement de la médiatrice porté à
+               AB pendant que le rapport qui recalcule l'arc restait à 0,7 × AB.
+               Le compas tournait à un rayon, l'arc s'affichait à un autre. */
+            const decales = [];
+            app.entities.forEach((e, i) => {
+                if (!(e instanceof ToolAnimation) || e.widgetType !== 'compass') return;
+                if (e.originalType !== 'trace') return;
+                let suite = null;
+                for (let j = i + 1; j < Math.min(i + 4, app.entities.length); j++) {
+                    const q = app.entities[j];
+                    if (q instanceof CompassArc || q instanceof Arc || q instanceof Circle) { suite = q; break; }
+                }
+                if (!suite) return;
+                const c = suite.center || suite.p1;
+                if (!c) return;
+                const R = (suite instanceof Circle)
+                    ? Math.hypot(suite.p2.x - c.x, suite.p2.y - c.y) : suite.radius;
+                const dc = Math.hypot(c.x - e.endState.x, c.y - e.endState.y);
+                const dr = Math.abs(R - (e.endState.radius || 0));
+                if (dc > 1 || dr > 1) decales.push({ centre: Math.round(dc), rayon: Math.round(dr),
+                    compas: Math.round(e.endState.radius || 0), arc: Math.round(R) });
+            });
+            return { fautes, mesures, decales };
         };
 
         const poser = (pose) => {
@@ -178,7 +202,15 @@ const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
                 ? '   (' + x.mesures.length + ' écartement(s) déclarés : '
                   + [...new Set(x.mesures.map(m => typeof m === 'string' ? m : 'réglé à la règle'))]
                     .join(' ; ') + ')' : '';
-            if (!x.fautes.length) { console.log('  \x1b[32m✓\x1b[0m ' + nom + dit); return; }
+            const dec = x.decales || [];
+            if (dec.length) {
+                rate += dec.length;
+                console.log('  \x1b[31m✗\x1b[0m ' + nom + ' — ' + dec.length
+                    + ' arc(s) affichés ailleurs que là où le compas les a tracés :');
+                dec.slice(0, 3).forEach(d => console.log('        compas ' + d.compas
+                    + ' px, arc ' + d.arc + ' px ; centre décalé de ' + d.centre + ' px'));
+            }
+            if (!x.fautes.length) { if (!dec.length) console.log('  \x1b[32m✓\x1b[0m ' + nom + dit); return; }
             rate += x.fautes.length;
             console.log('  \x1b[31m✗\x1b[0m ' + nom + ' — ' + x.fautes.length
                 + ' écartement(s) pris nulle part :');

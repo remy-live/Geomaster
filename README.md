@@ -896,6 +896,43 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### L'arc s'affiche là où le compas l'a tracé
+
+*« Pour le dessin du triangle et ses médiatrices, l'endroit où le compas trace
+les arcs de cercle et les arcs de cercle ne sont pas au même endroit. »* Vrai, et
+c'était une régression du jour même : en portant l'écartement de la médiatrice de
+0,7 × AB à AB, j'avais laissé à **0,7** le rapport qui recalcule l'arc quand la
+figure bouge. Le compas tournait à un rayon, le trait s'affichait à un autre.
+
+Le geste et la trace sont deux objets distincts, et rien n'oblige le second à
+suivre le premier — sauf une règle, désormais dans l'audit : **toute animation de
+tracé au compas doit être suivie d'un arc de même centre et de même rayon**, au
+pixel près. Sept figures vérifiées à chaque exécution.
+
+### Un bouton allumé doit se voir allumé
+
+*« Le crayon est on mais il n'est pas montré actif, comme s'il était off. »* Le
+bouton naissait bleu et disait « Crayon (ON) » — les deux écrits en dur dans le
+HTML — mais la classe `active`, celle qui dessine le fond du bouton enfoncé,
+n'était posée que par le dock élève, qui ne s'exécute pas sur la page du
+professeur. Trois façons de dire « allumé », dont deux seulement au rendez-vous ;
+il fallait éteindre puis rallumer pour qu'il ait l'air de ce qu'il était depuis
+le début.
+
+L'apparence se déduit maintenant de l'état, en un seul endroit, appelé à
+l'ouverture comme au clic. `tests/probe-crayon-actif.js` vérifie les trois
+marques **ensemble** — classe, couleur, infobulle : une apparence à moitié juste
+est un mensonge à moitié.
+
+### Le numéro de l'épaisseur ne déborde plus de sa case
+
+Il portait `width: 14px`, mais c'est un élément flex : le curseur voisin le
+comprimait et sa case tombait à **8 px**. Le chiffre, qui en fait quatorze,
+débordait par la droite et venait se coller au bord du panneau — mesuré à **1 px**
+du bord, quand toutes les autres rangées s'arrêtent 15 à 34 px avant. `flex: 0 0
+auto` lui rend sa case entière, et le curseur cède les quelques pixels qu'il
+prenait en trop.
+
 ### On ne reporte que ce qu'on a d'abord pris
 
 *« Pour la translation, il manque à un moment le fait que le compas prend
@@ -1707,7 +1744,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 99 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 100 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
