@@ -952,6 +952,21 @@ reste enfoncée d'une extrémité à l'autre (mesuré : 1710 ms sur 381 px), là
 elle faisait deux appuis séparés en traversant la feuille au repos, ce qui n'est
 le geste de personne.
 
+Et parce qu'une visite guidée n'est pas un bac à sable, **la souris ne touche
+plus rien pendant qu'elle se déroule** : un simple survol suffisait à faire
+glisser un instrument sous la main de la visite, ou à changer l'outil qu'elle
+était en train de montrer. Un voile transparent avale les gestes, le clavier ne
+garde que les commandes du lecteur (← → espace échap), et seuls la barre et son
+curseur répondent. Les gestes de la visite, eux, naissent derrière le voile : ils
+ne le traversent pas.
+
+Le **curseur** de la barre compte en centièmes d'étape et porte un petit trait à
+chaque frontière : on glisse sans à-coups, on voit où l'on va, et la pastille
+avance dans la largeur de son étape pendant qu'elle se joue. Les durées qui la
+font avancer sont **mesurées**, étape par étape — un relevé, pas une promesse :
+la pastille n'atteint jamais la fin de son étape toute seule, c'est l'étape qui
+l'y pousse.
+
 Ce que la mesure a corrigé, à chaque tour :
 
 - **la médiatrice sortait du cadre** — 1298 px de large pour 1292 px visibles.
@@ -973,12 +988,48 @@ Ce que la mesure a corrigé, à chaque tour :
   étape sans rejeu, cela en démarrait un, qui remontait la figure au début : deux
   points posés, pause, reprise, et il n'en restait qu'un ;
 - **douze étapes, c'est trop pour avancer une par une** quand on cherche celle du
-  compas : la barre a un curseur.
+  compas : la barre a un curseur ;
+- **la barre changeait de taille sans arrêt.** Une étape qui montre quatre gestes
+  a quatre choses à dire : la barre montait et descendait sous le texte, et l'œil
+  suivait la barre au lieu de la figure. Deux lignes, toujours — 95 px, mesuré
+  d'un bout à l'autre de la visite ;
+- **la vue sautait au milieu des étapes.** Chacune recadrait à la fin, juste
+  après qu'on avait regardé la figure se faire. Les figures sont maintenant
+  posées d'emblée au milieu de ce qu'on voit, et il reste au plus **un** cadrage
+  par étape — celui qui accompagne l'apparition de la figure ;
+- **on ne visait pas tout à fait la pastille.** Le point d'une zone le plus proche
+  du curseur est par construction sur sa lisière : on prend maintenant le
+  barycentre, et l'on écarte les bords en sondant autour — le barycentre de la
+  zone « déplacer » du rapporteur tombait pile dans la colonne de ses trois
+  verrous, et le tirer ne le déplaçait pas ;
+- **la règle ne s'allongeait pas** : mesuré, elle passe de 400 à 506 px, et les
+  graduations suivent.
 
 Et un défaut trouvé au passage, qui ne concerne pas que la visite : un arc de
 compas dont le centre avait disparu — ce que laisse un rejeu arrêté en pleine
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
+
+### Un quart de tour se dit « perpendiculaire »
+
+> *« Place l'image D de B par la rotation de centre A et d'angle 90° dans le sens
+> inverse des aiguilles d'une montre. »*
+> *« Parler de rotation de 90°, c'est compliqué : parle plutôt de
+> perpendiculaire. »*
+
+La phrase était exacte, illisible, et surtout elle ne disait pas **comment
+faire**. Un quart de tour autour de A, c'est la perpendiculaire à (AB) en A et la
+même longueur reportée dessus — deux gestes que l'élève connaît :
+
+> Trace la perpendiculaire à (AB) passant par A, puis place D sur cette
+> perpendiculaire tel que AD = AB *(un quart de tour dans le sens inverse des
+> aiguilles d'une montre)*.
+
+Le sens reste dit, entre parenthèses, parce qu'il y a bien deux points sur cette
+perpendiculaire et qu'il faut choisir. Un demi-tour, lui, **est** une symétrie
+centrale : autant l'appeler par son nom — *« Place le symétrique D de B par
+rapport au point A. »* Un angle quelconque reste une rotation, il n'y a rien de
+plus simple à en dire.
 
 Le sommaire affiché dans l'aide est écrit **à partir** des étapes : une ligne
 ajoutée au programme s'ajoute toute seule à l'aide. La figure en cours est mise de

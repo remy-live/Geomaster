@@ -37,6 +37,13 @@
  *   — la figure en cours est mise de côté et REMISE EN PLACE à la sortie, à
  *     l'objet près, avec le cadrage, la vitesse de rejeu et les réglages : une
  *     visite ne coûte pas son travail à qui la demande ;
+ *   — pendant la visite, la SOURIS NE TOUCHE PLUS RIEN : un survol suffisait à
+ *     faire glisser un instrument sous la main de la visite. Seuls la barre, son
+ *     curseur et les touches du lecteur répondent ;
+ *   — la barre NE CHANGE PLUS DE TAILLE : certaines étapes changent trois fois de
+ *     phrase, et la barre montait et descendait sous le texte ;
+ *   — AUCUN ZOOM AU SEIN D'UNE ÉTAPE : la vue est posée une fois, au plus, et ne
+ *     bouge plus tant que l'étape dure ;
  *   — et l'on peut en sortir. La barre vit au-dessus de l'interface verrouillée
  *     par le rejeu — sans quoi une aide deviendrait une prison.
  */
@@ -163,6 +170,33 @@ const ck = (nom, ok, detail) => {
     await page.click('#btnModalConfirm');
     await page.waitForTimeout(400);
 
+    /* UN MOUCHARD SUR LA VUE. « Il ne faut pas qu'il y ait des zooms et des
+       dézooms au sein d'une même étape » : on relève chaque cadrage distinct
+       pendant l'étape, et l'on n'en tolère qu'un — celui qui pose la figure. */
+    await page.evaluate(() => {
+        const app = window.app;
+        app._vues = [];
+        const rendre = app.render.bind(app);
+        app.render = function () {
+            const v = Math.round(app.view.x) + '/' + Math.round(app.view.y)
+                    + '/' + (app.view.zoom || 1).toFixed(3);
+            if (app._vues && app._vues[app._vues.length - 1] !== v) app._vues.push(v);
+            return rendre();
+        };
+        const jouer = app.demoJouer.bind(app);
+        app.demoJouer = function (i) { app._vues = []; return jouer(i); };
+        /* Le relevé ne commence qu'une fois la vue remise d'aplomb : demoJouer
+           arrête d'abord le rejeu de l'étape PRÉCÉDENTE, ce qui redessine avec
+           SON cadrage à elle — un relevé qui n'appartient pas à l'étape qu'on
+           mesure. Vérifié à la trace : l'étape aux instruments n'a qu'un seul
+           cadrage, (0,0,1) puis (0,39,1), et pas de zoom du tout. */
+        app._vuesUtiles = () => {
+            const v = app._vues || [];
+            const d = v.indexOf('0/0/1.000');
+            return d < 0 ? v : v.slice(d);
+        };
+    });
+
     console.log('\n=== les étapes construisent vraiment ===');
     const total = onglet.titres.length;
     const vus = [];
@@ -193,6 +227,8 @@ const ck = (nom, ok, detail) => {
                      objets: app.entities.filter(x => !(x instanceof ToolAnimation)).length,
                      encre: !!app.traitCroquis,
                      boucle: !!app.isLooping,
+                     vues: app._vuesUtiles ? app._vuesUtiles().length : 0,
+                     style: JSON.stringify(app.globalStyle),
                      /* Un instrument SORTI n'est pas un instrument MONTRÉ. On note
                         où toggleWidget l'aurait posé — au centre de ce qu'on voit —
                         et l'on regarde s'il en a bougé, ou s'il a tourné. */
@@ -258,29 +294,135 @@ const ck = (nom, ok, detail) => {
        On exige qu'il ait bougé d'au moins 40 px, ou tourné d'au moins 0,1 rad. */
     const sortis = vus.flatMap((v, i) => v.outils.map(o => ({ ...o, etape: v.titre })));
     const inertes = sortis.filter(o => o.d < 40 && o.a < 0.1);
+    /* La vue de départ compte pour un relevé ; un cadrage en ajoute un. Au-delà
+       de deux, la figure a sauté sous les yeux au milieu de l'étape. */
+    const remuantes = vus.filter(v => v.vues > 2);
+    ck('  aucune étape ne zoome et dézoome sous les yeux',
+       remuantes.length === 0,
+       remuantes.length ? remuantes.map(v => v.titre + ' : ' + v.vues + ' cadrages').join(' | ')
+                        : 'au plus ' + Math.max(...vus.map(v => v.vues)) + ' cadrage par étape');
+    /* « De 2 à 3, remets un trait normal. » L'étape de la palette change le style
+       du crayon pour de bon — la suivante ne doit pas en hériter. */
+    const stylesDepart = await page.evaluate(() => window.app._demoStyleDepart || null);
+    ck('  chaque étape repart avec le crayon de l\'utilisateur',
+       vus.filter((v, i) => i > 1 && v.style !== vus[0].style).length === 0,
+       vus.map(v => JSON.parse(v.style).color).filter((c, i, t) => t.indexOf(c) === i).join(' '));
     ck('  chaque instrument sorti est VRAIMENT manipulé',
        sortis.length >= 4 && inertes.length === 0,
        sortis.map(o => o.n + ' ' + o.d + 'px/' + o.a + 'rad').join(', ')
        + (inertes.length ? ' — inerte(s) : ' + inertes.map(o => o.n).join(', ') : ''));
+
+    /* La douzième étape finie, la visite se termine d'elle-même — c'est ce qu'on
+       lui demande. Pour éprouver la barre, le voile et le curseur, il faut donc la
+       relancer : on repart à la première étape. */
+    /* Elle se termine d'elle-même : arrivée au bout de la dernière étape, elle
+       range tout et s'efface. On l'y mène et l'on attend. */
+    await page.evaluate((n) => window.app.demoVersEtape(String((n - 1) * 100)),
+                        onglet.titres.length);
+    let seule = false;
+    for (let t = 0; t < 100 && !seule; t++) {
+        await page.waitForTimeout(500);
+        seule = await page.evaluate(() => !window.app._demo);
+    }
+    ck('la visite se termine d\'elle-même à la dernière étape', seule);
+
+    await page.evaluate(() => {
+        const app = window.app;
+        app.demoDemarrer();
+        const b = document.getElementById('btnModalConfirm');
+        if (b && document.getElementById('customModal').style.display === 'flex') b.click();
+    });
+    await page.waitForTimeout(1200);
+
+    console.log('\n=== pendant la visite, la souris ne touche plus rien ===');
+    /* « La souris a une influence sur l'outil : quand on est en mode démo, il ne
+       faut pas d'interactivité sauf avec le slider et les touches du lecteur. »
+       Un simple survol suffisait à faire glisser une règle sous la main de la
+       visite. On met la visite en pause — rien ne doit donc bouger tout seul — et
+       l'on essaie de s'en mêler pour de bon. */
+    await page.evaluate(() => window.app.demoPause());
+    await page.waitForTimeout(400);
+    const coin = await page.evaluate(() => {
+        const c = document.getElementById('geoCanvas').getBoundingClientRect();
+        return { x: c.left, y: c.top };
+    });
+    const feuilleAvant = await page.evaluate(() => ({
+        n: window.app.entities.length, outil: window.app.currentTool,
+        dessus: (() => { const el = document.elementFromPoint(240, 780);
+                         return el ? (el.id || el.tagName) : null; })() }));
+    for (const [x, y] of [[160, 760], [980, 170], [320, 240]]) {
+        await page.mouse.move(coin.x + x, coin.y + y); await page.waitForTimeout(40);
+        await page.mouse.down(); await page.waitForTimeout(40);
+        await page.mouse.move(coin.x + x + 130, coin.y + y + 90); await page.waitForTimeout(40);
+        await page.mouse.up(); await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => {
+        const b = document.querySelector('.tool-btn[onclick="app.setTool(\'polygon\')"]');
+        const r = b.getBoundingClientRect();
+        window.__cible = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    const cible = await page.evaluate(() => window.__cible);
+    await page.mouse.click(cible.x, cible.y); await page.waitForTimeout(200);
+    await page.keyboard.press('KeyC'); await page.waitForTimeout(200);
+    const feuilleApres = await page.evaluate(() => ({
+        n: window.app.entities.length, outil: window.app.currentTool }));
+    ck('un voile couvre l\'interface', feuilleAvant.dessus === 'demoVoile',
+       String(feuilleAvant.dessus));
+    ck('  trois clics et glissés réels ne touchent pas la feuille',
+       feuilleApres.n === feuilleAvant.n, feuilleAvant.n + ' → ' + feuilleApres.n + ' objets');
+    ck('  ni le clic sur une icône, ni le raccourci clavier ne changent l\'outil',
+       feuilleApres.outil === feuilleAvant.outil,
+       feuilleAvant.outil + ' → ' + feuilleApres.outil);
+    await page.evaluate(() => window.app.demoPause());
+    await page.waitForTimeout(300);
+    /* Mais le lecteur, lui, répond. */
+    const avantFleche = await page.evaluate(() => window.app._demo.i);
+    await page.keyboard.press('ArrowRight'); await page.waitForTimeout(900);
+    const apresFleche = await page.evaluate(() => window.app._demo.i);
+    ck('  les touches du lecteur, elles, répondent',
+       apresFleche === avantFleche + 1,
+       'étape ' + (avantFleche + 1) + ' → ' + (apresFleche + 1) + ' à la flèche droite');
+
+    console.log('\n=== la barre ne change pas de taille ===');
+    /* Une étape qui montre quatre gestes change quatre fois de phrase : la barre
+       montait et descendait sous le texte, et l'œil suivait la barre au lieu de
+       la figure. */
+    const hauteurs = [];
+    for (let i = 0; i < 10; i++) {
+        hauteurs.push(await page.evaluate(() =>
+            Math.round(document.getElementById('demoBar').getBoundingClientRect().height)));
+        await page.waitForTimeout(900);
+    }
+    ck('elle garde la même hauteur d\'un bout à l\'autre',
+       new Set(hauteurs).size === 1, [...new Set(hauteurs)].join(' / ') + ' px');
 
     console.log('\n=== le curseur va où l\'on veut ===');
     /* Douze étapes, c'est trop pour avancer une par une quand on cherche celle du
        compas. */
     await page.evaluate(() => {
         const c = document.getElementById('demoCurseur');
-        c.value = '4'; window.app.demoVersEtape('4');
+        c.value = '437'; window.app.demoVersEtape('437');
     });
     await page.waitForTimeout(900);
     const saute = await page.evaluate(() => ({
         i: window.app._demo ? window.app._demo.i : -1,
         rang: document.getElementById('demoRang').textContent,
-        curseur: document.getElementById('demoCurseur').value,
-        max: document.getElementById('demoCurseur').max }));
+        max: document.getElementById('demoCurseur').max,
+        fond: document.getElementById('demoCurseur').style.background || '' }));
     ck('la barre a un curseur, et il mène à l\'étape voulue',
-       saute.i === 4 && saute.curseur === '4', JSON.stringify(saute));
-    ck('  et il couvre toute la visite',
-       parseInt(saute.max, 10) === onglet.titres.length - 1,
+       saute.i === 4, JSON.stringify({ i: saute.i, rang: saute.rang }));
+    /* « Mets les étapes par de petits traits, et on peut naviguer de façon fluide
+       entre chaque étape ou au sein de l'étape. » Un cran par étape faisait sauter
+       la pastille de douze en douze : elle compte en centièmes. */
+    ck('  il compte en centièmes d\'étape, pas en étapes',
+       parseInt(saute.max, 10) === onglet.titres.length * 100,
        '0 → ' + saute.max + ' pour ' + onglet.titres.length + ' étapes');
+    /* Les jalons : un trait clair à chaque frontière. Sans eux, on glisse à
+       l'aveugle sur une barre lisse. */
+    const jalons = (saute.fond.match(/rgba\(255, ?255, ?255, ?0\.62\)/g) || []).length;
+    ck('  et il porte un petit trait par étape',
+       jalons >= (onglet.titres.length - 1) * 2,
+       jalons / 2 + ' jalons pour ' + (onglet.titres.length - 1) + ' frontières');
 
     console.log('\n=== la pause SUSPEND, elle ne recommence pas ===');
     /* « Le bouton pause fait tout démarrer. » Elle coupait les minuteurs de

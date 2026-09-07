@@ -599,6 +599,38 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      && equerre.quelconque.some(l => /arcs se croisent/.test(l)),
      equerre.quelconque.join(' | '));
 
+  /* UN QUART DE TOUR SE DIT « PERPENDICULAIRE ». « Place l'image D de B par la
+     rotation de centre A et d'angle 90° dans le sens inverse des aiguilles d'une
+     montre » : c'est exact, c'est illisible, et surtout cela ne dit pas comment
+     faire. Un quart de tour autour de A, c'est la perpendiculaire à (AB) en A et
+     la même longueur reportée dessus — deux gestes que l'élève connaît. Un
+     demi-tour, lui, EST une symétrie centrale : autant l'appeler par son nom. */
+  const tours = await page.evaluate(() => {
+    const app = window.app;
+    const un = (deg) => {
+      app.entities = []; app.historyPast = [];
+      if (app.cslOublier) app.cslOublier();
+      const A = new Point(500, 600, 'A'), B = new Point(800, 600, 'B');
+      app.addEntity(A); app.addEntity(B);
+      const D = new Point(0, 0, 'D', [B, A], null, 'rotation');
+      /* transParam est en RADIANS — mesuré : lui passer 90 donnait « d'angle
+         5157° », c'est-à-dire 90 radians. */
+      D.transParam = deg * Math.PI / 180; D.update(); app.addEntity(D);
+      return (app.programmeDeConstruction(false) || []).join(' | ');
+    };
+    return { quart: un(90), demi: un(180), tiers: un(120) };
+  });
+  ck('un quart de tour se dit « perpendiculaire », pas « rotation de 90° »',
+     /perpendiculaire à \(AB\)/.test(tours.quart) && !/rotation/.test(tours.quart)
+     && /AD = AB/.test(tours.quart),
+     tours.quart);
+  ck('  et le sens reste dit : deux points conviennent sur cette perpendiculaire',
+     /quart de tour/.test(tours.quart) && /aiguilles/.test(tours.quart));
+  ck('  un demi-tour se dit « symétrique par rapport au point »',
+     /symétrique D de B par rapport au point A/.test(tours.demi), tours.demi);
+  ck('  mais un angle quelconque reste une rotation',
+     /rotation de centre A et d'angle 120°/.test(tours.tiers), tours.tiers);
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
