@@ -899,72 +899,92 @@ appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 ### Une aide qui se montre au lieu de se lire
 
 *« Dans l'aide on pourrait avoir un mode démo où ça balaye les fonctions avec
-une démo. »* Puis, la première version vue tourner : *« Il faut montrer où on
-appuie sur l'icône, ce qui apparaît […] il faut montrer la plupart des outils,
-le crayon magique, les constructions magiques […] il faut faire rêver. »*
+une démo. »* Puis la visite vue tourner, trois fois, et redressée trois fois :
 
-Les quatre onglets de l'aide **décrivent** le logiciel ; un cinquième le
-**fait**. Treize étapes jouées l'une après l'autre, environ trois minutes et
-demie : les outils un par un, la phrase écrite dans la barre du haut, la même
-phrase aux instruments, les quatre instruments posés sur la feuille, le crayon
-magique, le tiroir des constructions magiques, le cercle circonscrit, les
-transformations, l'hexagone au compas, l'étoile à cinq branches, la rosace, un
-chat en huit cercles, et l'énoncé qui se rédige tout seul.
+> *« Il faut montrer où on appuie sur l'icône, ce qui apparaît […] il faut faire
+> rêver. »*
+> *« Quand tu dessines un segment, il faut que tu gardes le curseur virtuel
+> enfoncé et que tu ailles un peu moins vite. »*
+> *« Pour les instruments, il faut montrer leur manipulation un par un. Il faut
+> qu'ils soient la star. L'idée est vraiment de montrer LES OUTILS de Géomaster,
+> pas de réaliser des figures. »*
+
+Cette dernière phrase a défait la moitié du programme. Cinq étapes montraient de
+belles figures — l'hexagone au compas, l'étoile à cinq branches, la rosace, le
+chat — et **aucune ne montrait un outil** : on regardait le logiciel faire, sans
+jamais voir avec quoi. Elles sont parties. Les quatre onglets de l'aide
+**décrivent** le logiciel ; le cinquième ne montre plus que des **outils**.
+
+Douze étapes, un peu plus de trois minutes :
+
+| | |
+|---|---|
+| **Les outils de tracé** | point, segment [AB] puis [BC], cercle, angle |
+| **La palette de style** | on choisit la couleur, le trait, l'épaisseur — puis on trace |
+| **Une phrase suffit** | la barre éclair, écrite lettre à lettre |
+| **Et le geste, si on le demande** | la même phrase aux instruments |
+| **La règle** | posée, déplacée, tournée, allongée |
+| **L'équerre** | posée, déplacée, tournée |
+| **Le rapporteur** | posé sur le sommet, tourné, **bloqué** |
+| **Le compas** | déplacé, ouvert, et il **trace** |
+| **Le crayon magique** | un carré tremblé devient un vrai carré |
+| **Les constructions magiques** | le tiroir de la baguette, et la médiatrice |
+| **Ouvrir, enregistrer, exporter** | le menu Fichier, et la vraie boîte d'exportation |
+| **L'énoncé se rédige tout seul** | le panneau de droite |
 
 Deux principes, et tout le reste en découle.
 
-**Rien n'est simulé.** Aucune capture, aucun film, aucun faux bouton : une main
-— le halo jaune des démonstrations enregistrées — va jusqu'à la vraie icône,
-l'allume, appuie ; la phrase s'écrit lettre à lettre dans la vraie barre ; le
-carré tremblé du crayon magique est tracé point par point sur la vraie feuille,
-et c'est le vrai reconnaisseur qui le redresse. C'est ce qui fait qu'une visite
-guidée ne peut pas mentir — le jour où une consigne cesse de marcher, la visite
-s'en aperçoit la première (et la sonde aussi, qui vérifie en plus que **chaque
-icône désignée existe** : une visite qui montre un bouton absent est pire qu'une
-visite absente).
+**Rien n'est simulé.** Aucune capture, aucun film, aucun faux bouton : une main —
+le halo jaune des démonstrations enregistrées — va jusqu'à la vraie icône,
+l'allume, appuie ; la phrase s'écrit dans la vraie barre ; le carré tremblé est
+tracé point par point sur la vraie feuille, et c'est le vrai reconnaisseur qui le
+redresse. Les instruments, eux, sont pris **par leurs vraies poignées** — et la
+visite ne les recopie pas : elle demande au logiciel lui-même où elles sont
+(`getHitZone`), de sorte qu'une poignée déplacée un jour ne rendra pas la visite
+menteuse, elle la suivra. La boîte d'exportation est ouverte par le vrai
+`requestExport`, avec la règle sortie exprès pour que sa question — « des
+instruments sont présents, on les emporte ? » — soit vraie.
 
 **On voit où on appuie.** Dire « on prend le compas » ne montre rien. La main va
 jusqu'à l'icône du compas, cette icône s'allume, la main appuie — et le compas
-paraît. Un geste, un endroit, un résultat.
+paraît. Un geste, un endroit, un résultat. Et un segment se **tire** : la main
+reste enfoncée d'une extrémité à l'autre (mesuré : 1710 ms sur 381 px), là où
+elle faisait deux appuis séparés en traversant la feuille au repos, ce qui n'est
+le geste de personne.
 
-*« Quand tu dessines un segment, il faut que tu gardes le curseur virtuel enfoncé
-et que tu ailles un peu moins vite. »* Un segment se **tire**, il ne se pointe pas
-deux fois : le segment, la droite, la demi-droite et le cercle se créent tous au
-glissement — on appuie sur la première extrémité, on tire, on relâche sur la
-seconde. La main faisait deux appuis séparés et traversait la feuille au repos
-entre les deux, ce qui n'est le geste de personne. Elle reste maintenant enfoncée
-d'un bout à l'autre, et l'on voit la figure naître sous elle : mesuré, 1710 ms
-d'appui maintenu sur 381 px pour le segment, 1700 ms sur 322 px pour le cercle —
-tous les autres appuis de la visite parcourent 0 px, parce que ce sont de vrais
-clics. Et toute la main a ralenti d'un tiers.
+Ce que la mesure a corrigé, à chaque tour :
 
-Le sommaire affiché dans l'aide est écrit **à partir** des étapes, pas recopié à
-côté : une ligne ajoutée au programme s'ajoute toute seule à l'aide. La figure
-en cours est mise de côté au départ — on prévient — et **remise en place à
-l'objet près** à la sortie, avec le cadrage, la vitesse de rejeu et les réglages
-du tiroir magique. La barre de commande (⏮ ⏸ ⏭ ✕) vit au-dessus de l'interface
-que le rejeu verrouille, sans quoi une aide deviendrait une prison.
-
-Trois choses mesurées en la regardant tourner, et corrigées :
-
-- **la médiatrice sortait du cadre.** C'est la figure la plus large de la visite
-  — le segment, quatre arcs qui débordent de part et d'autre, et la droite qui
-  traverse tout : 1298 px de large pour 1292 px visibles. Chaque étape cadre
-  maintenant sur sa figure ;
-- **une construction magique laisse le rejeu en boucle**, et c'est fait exprès :
-  on la regarde se refaire autant de fois qu'on veut. Mais la boucle débordait
-  sur l'étape suivante — à partir de la médiatrice, le rejeu ne s'arrêtait plus
-  jamais, et la visite passait de trois minutes et demie à treize ;
-- **le trait à main levée n'est pas un objet, c'est de l'encre.** Quitter
-  l'étape du crayon magique pendant qu'il dessine laissait le trait bleu à moitié
-  tracé sur la feuille : on le retrouvait en travers de la rosace, six étapes
-  plus loin.
+- **la médiatrice sortait du cadre** — 1298 px de large pour 1292 px visibles.
+  Chaque étape cadre maintenant sur sa figure ;
+- **une construction magique laisse le rejeu en boucle**, et c'est voulu ; mais la
+  boucle débordait sur l'étape suivante, et la visite passait de trois minutes à
+  treize ;
+- **le trait à main levée n'est pas un objet, c'est de l'encre** : quitter l'étape
+  du crayon magique en plein tracé le laissait en travers de la figure suivante ;
+- **la palette de style ne changeait rien de visible.** L'étape tapait sur les
+  pastilles au-dessus d'un triangle déjà tracé : les pastilles changeaient, le
+  triangle non. Elles règlent le style de *ce qu'on va tracer* — l'étape choisit
+  donc d'abord, et trace ensuite ; le second trait sort bleu, en pointillés et
+  deux fois plus épais que le premier ;
+- **la pause faisait tout démarrer.** Elle coupait les minuteurs de l'étape, et
+  reprendre la rejouait depuis le début. Chaque attente décompte maintenant le
+  temps *réel* et ne décompte rien en pause : on repart au milieu du geste. Au
+  passage, reprendre appelait `resumeAnimation()` dans tous les cas — sur une
+  étape sans rejeu, cela en démarrait un, qui remontait la figure au début : deux
+  points posés, pause, reprise, et il n'en restait qu'un ;
+- **douze étapes, c'est trop pour avancer une par une** quand on cherche celle du
+  compas : la barre a un curseur.
 
 Et un défaut trouvé au passage, qui ne concerne pas que la visite : un arc de
 compas dont le centre avait disparu — ce que laisse un rejeu arrêté en pleine
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
-automatique, silencieusement, au moment précis où l'on en aurait eu besoin. Un
-arc incomplet se laisse tomber comme un segment sans extrémités.
+automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
+
+Le sommaire affiché dans l'aide est écrit **à partir** des étapes : une ligne
+ajoutée au programme s'ajoute toute seule à l'aide. La figure en cours est mise de
+côté au départ — on prévient — et **remise en place à l'objet près** à la sortie,
+avec le cadrage, la vitesse de rejeu, le style du crayon et les réglages du tiroir
+magique.
 
 ### Une droite se déplace, et elle garde sa pente
 

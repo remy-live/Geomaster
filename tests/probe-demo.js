@@ -7,19 +7,28 @@
  *   montrer la plupart des outils, le crayon magique, les constructions
  *   magiques […] il faut faire rêver. »
  *
- * Les quatre premiers onglets de l'aide DÉCRIVENT le logiciel ; le cinquième le
- * FAIT. Treize étapes, sur la feuille, jouées l'une après l'autre — et rien n'y
- * est simulé : aucune capture, aucun film, aucun faux bouton. La main de la
- * visite appuie sur les VRAIES icônes, écrit dans la VRAIE barre, trace sur la
- * VRAIE feuille. C'est la seule façon de montrer un outil qui ne mente pas
- * quand l'outil change : le jour où une consigne cesse de marcher, la visite
- * s'en aperçoit, et cette sonde aussi.
+ *   « Pour les instruments, il faut montrer leur manipulation un par un. Il faut
+ *   qu'ils soient la star. L'idée est vraiment de montrer LES OUTILS de
+ *   Géomaster, pas de réaliser des figures. »
+ *
+ * Cette dernière phrase a défait la moitié du programme : cinq étapes montraient
+ * de belles figures — l'hexagone, l'étoile, la rosace, le chat au compas — et
+ * aucune ne montrait un outil. Ce qui reste ne montre que des OUTILS, et chaque
+ * instrument a son étape à lui, où on le prend, on le déplace, on le tourne, et
+ * où il sert.
+ *
+ * Rien n'y est simulé : aucune capture, aucun film, aucun faux bouton. La main de
+ * la visite appuie sur les VRAIES icônes, écrit dans la VRAIE barre, trace sur la
+ * VRAIE feuille — et prend les instruments par les VRAIES poignées, qu'elle
+ * demande au logiciel lui-même (getHitZone) au lieu de les recopier.
  *
  * Ce que la sonde tient :
  *
  *   — le sommaire est écrit À PARTIR des étapes, pas recopié à côté. Une ligne
  *     ajoutée au programme s'ajoute toute seule à l'aide, et ne peut pas mentir ;
  *   — CHAQUE étape construit vraiment quelque chose ;
+ *   — les QUATRE instruments ont chacun leur étape, et chacune le sort VRAIMENT
+ *     et le manipule : mesuré, l'instrument bouge et tourne pour de bon ;
  *   — la main VA sur les icônes, et sur les VRAIES : chaque cible que la visite
  *     désigne doit exister dans la page. Une visite qui montre un bouton absent
  *     est pire qu'une visite absente ;
@@ -84,8 +93,27 @@ const ck = (nom, ok, detail) => {
     ck('  et son sommaire vient des étapes elles-mêmes',
        JSON.stringify(onglet.lignes) === JSON.stringify(onglet.titres),
        onglet.lignes.length + ' lignes pour ' + onglet.titres.length + ' étapes');
-    ck('  la visite balaye largement le logiciel', onglet.titres.length >= 12,
+    ck('  la visite balaye largement le logiciel', onglet.titres.length >= 10,
        onglet.titres.length + ' étapes');
+    /* LES OUTILS, PAS LES FIGURES. Chaque instrument doit avoir son étape à lui :
+       une étape qui les sort tous les quatre à la file n'en montre aucun. */
+    const instr = ['#btn-ruler', '#btn-setsquare', '#btn-protractor', '#btn-compass'];
+    const chacun = await page.evaluate((ids) => {
+        const src = window.app.demoEtapes().map(e => String(e.faire));
+        return ids.map(id => ({ id, n: src.filter(t => t.includes(id)).length }));
+    }, instr);
+    ck('  chaque instrument a son étape, et une seule',
+       chacun.every(x => x.n === 1),
+       chacun.map(x => x.id.replace('#btn-', '') + '×' + x.n).join(' '));
+    const manip = await page.evaluate(() => {
+        const src = window.app.demoEtapes().map(e => String(e.faire)).join('\n');
+        return { bouge: (src.match(/outilBouger/g) || []).length,
+                 tourne: (src.match(/outilTourner/g) || []).length,
+                 zone: (src.match(/outilZone/g) || []).length };
+    });
+    ck('  et on l\'y manipule : on le déplace, on le tourne, on s\'en sert',
+       manip.bouge >= 4 && manip.tourne >= 3 && manip.zone >= 3,
+       JSON.stringify(manip));
 
     console.log('\n=== la main désigne des icônes qui EXISTENT ===');
     /* Les sélecteurs que la visite montre sont écrits en dur dans les étapes.
@@ -117,7 +145,8 @@ const ck = (nom, ok, detail) => {
         app.addEntity(new Segment(app.entities[0], app.entities[1], { color: '#000', width: 2 }));
         app.saveState();
         return { objets: app.entities.map(e => e.constructor.name + ':' + (e.label || '')),
-                 vitesse: app.playbackSpeed };
+                 vitesse: app.playbackSpeed,
+                 style: JSON.stringify(app.globalStyle) };
     });
     await page.evaluate(() => window.app.demoDemarrer());
     /* On attend que la modale soit POSÉE — elle met son bouton au foyer en
@@ -134,7 +163,7 @@ const ck = (nom, ok, detail) => {
     await page.click('#btnModalConfirm');
     await page.waitForTimeout(400);
 
-    console.log('\n=== les treize étapes construisent vraiment ===');
+    console.log('\n=== les étapes construisent vraiment ===');
     const total = onglet.titres.length;
     const vus = [];
     for (let k = 0; k < total; k++) {
@@ -146,7 +175,7 @@ const ck = (nom, ok, detail) => {
             await page.waitForTimeout(500); attente += 500;
             const e = await page.evaluate(() => {
                 const d = window.app._demo;
-                return { i: d ? d.i : -1, pret: !!(d && d.minuteur) };
+                return { i: d ? d.i : -1, pret: !!(d && d.fini) };
             });
             if (e.i !== k || e.pret) break;
         }
@@ -164,6 +193,23 @@ const ck = (nom, ok, detail) => {
                      objets: app.entities.filter(x => !(x instanceof ToolAnimation)).length,
                      encre: !!app.traitCroquis,
                      boucle: !!app.isLooping,
+                     /* Un instrument SORTI n'est pas un instrument MONTRÉ. On note
+                        où toggleWidget l'aurait posé — au centre de ce qu'on voit —
+                        et l'on regarde s'il en a bougé, ou s'il a tourné. */
+                     outils: (() => {
+                         const noms = { ruler: 'rulerWidget', setsquare: 'setSquareWidget',
+                                        protractor: 'protractorWidget', compass: 'compassWidget' };
+                         const c = (app.canvas.parentElement || app.canvas).getBoundingClientRect();
+                         const z = app.view.zoom || 1;
+                         const cx = (c.width / 2 - app.view.x) / z, cy = (c.height / 2 - app.view.y) / z;
+                         return Object.entries(noms)
+                             .filter(([n]) => app.activeWidgets && app.activeWidgets[n])
+                             .map(([n, champ]) => {
+                                 const w = app[champ];
+                                 return { n, d: Math.round(Math.hypot(w.x - cx, w.y - cy)),
+                                          a: +(Math.abs(w.angle || 0)).toFixed(2) };
+                             });
+                     })(),
                      dedans: ecran.x0 > -3 && ecran.y0 > -3
                           && ecran.x1 < boite.width + 3 && ecran.y1 < boite.height + 3,
                      cadre: [Math.round(ecran.x0), Math.round(ecran.y0),
@@ -207,14 +253,64 @@ const ck = (nom, ok, detail) => {
        en travers de la rosace deux étapes plus loin. */
     ck('  et aucune ne garde l\'encre de la précédente',
        vus.filter(v => v.encre).length === 0);
+    /* « Pour les instruments, il faut montrer leur MANIPULATION un par un. »
+       Sorti et laissé au centre, un instrument n'est pas montré : il est posé.
+       On exige qu'il ait bougé d'au moins 40 px, ou tourné d'au moins 0,1 rad. */
+    const sortis = vus.flatMap((v, i) => v.outils.map(o => ({ ...o, etape: v.titre })));
+    const inertes = sortis.filter(o => o.d < 40 && o.a < 0.1);
+    ck('  chaque instrument sorti est VRAIMENT manipulé',
+       sortis.length >= 4 && inertes.length === 0,
+       sortis.map(o => o.n + ' ' + o.d + 'px/' + o.a + 'rad').join(', ')
+       + (inertes.length ? ' — inerte(s) : ' + inertes.map(o => o.n).join(', ') : ''));
 
-    console.log('\n=== on peut mettre en pause, et sortir ===');
+    console.log('\n=== le curseur va où l\'on veut ===');
+    /* Douze étapes, c'est trop pour avancer une par une quand on cherche celle du
+       compas. */
+    await page.evaluate(() => {
+        const c = document.getElementById('demoCurseur');
+        c.value = '4'; window.app.demoVersEtape('4');
+    });
+    await page.waitForTimeout(900);
+    const saute = await page.evaluate(() => ({
+        i: window.app._demo ? window.app._demo.i : -1,
+        rang: document.getElementById('demoRang').textContent,
+        curseur: document.getElementById('demoCurseur').value,
+        max: document.getElementById('demoCurseur').max }));
+    ck('la barre a un curseur, et il mène à l\'étape voulue',
+       saute.i === 4 && saute.curseur === '4', JSON.stringify(saute));
+    ck('  et il couvre toute la visite',
+       parseInt(saute.max, 10) === onglet.titres.length - 1,
+       '0 → ' + saute.max + ' pour ' + onglet.titres.length + ' étapes');
+
+    console.log('\n=== la pause SUSPEND, elle ne recommence pas ===');
+    /* « Le bouton pause fait tout démarrer. » Elle coupait les minuteurs de
+       l'étape en cours, et reprendre la rejouait depuis le début. On mesure ce
+       qui compte : mise en pause au milieu d'un geste, la feuille NE SE VIDE PAS
+       et l'étape ne repart pas de zéro. */
+    await page.evaluate(() => window.app.demoVersEtape('0'));
+    await page.waitForTimeout(6000);
+    const avantPause = await page.evaluate(() => ({
+        n: window.app.entities.length, i: window.app._demo.i }));
     await page.evaluate(() => window.app.demoPause());
     const enPause = await page.evaluate(() => ({
         pause: !!(window.app._demo && window.app._demo.pause),
         bouton: document.getElementById('demoPause').textContent }));
     ck('la pause se voit sur le bouton', enPause.pause && enPause.bouton === '▶',
        JSON.stringify(enPause));
+    await page.waitForTimeout(2500);
+    const pendant = await page.evaluate(() => ({
+        n: window.app.entities.length, i: window.app._demo.i }));
+    ck('  en pause, rien ne bouge et rien ne recommence',
+       pendant.n === avantPause.n && pendant.i === avantPause.i,
+       avantPause.n + ' objets → ' + pendant.n);
+    await page.evaluate(() => window.app.demoPause());
+    await page.waitForTimeout(2500);
+    const apresPause = await page.evaluate(() => ({
+        n: window.app.entities.length, i: window.app._demo.i }));
+    ck('  et l\'on repart où l\'on s\'était arrêté, sans revenir au début',
+       apresPause.i === avantPause.i && apresPause.n >= avantPause.n,
+       avantPause.n + ' → ' + apresPause.n + ' objets, étape '
+       + (apresPause.i + 1));
 
     await page.evaluate(() => window.app.demoArreter());
     await page.waitForTimeout(300);
@@ -224,6 +320,7 @@ const ck = (nom, ok, detail) => {
         main: document.getElementById('demoMain').style.display,
         verrou: !!window.app.isLocked,
         vitesse: window.app.playbackSpeed,
+        style: JSON.stringify(window.app.globalStyle),
         vue: [window.app.view.x, window.app.view.y, window.app.view.zoom],
         instruments: Object.values(window.app.activeWidgets || {}).filter(Boolean).length,
         demo: !!window.app._demo }));
@@ -234,6 +331,11 @@ const ck = (nom, ok, detail) => {
        apres.instruments + ' instrument(s) restés sur la feuille');
     ck('la vitesse de rejeu est rendue', apres.vitesse === avant.vitesse,
        avant.vitesse + ' → ' + apres.vitesse);
+    /* L'étape de la palette change le style du trait POUR DE BON — c'est bien
+       l'idée. On sortait donc de la visite avec un crayon bleu, en pointillés et
+       deux fois trop épais, sans avoir rien demandé. */
+    ck('le style du crayon est rendu', apres.style === avant.style,
+       avant.style + ' → ' + apres.style);
     ck('le cadrage est rendu',
        JSON.stringify(apres.vue) === JSON.stringify([0, 0, 1]), JSON.stringify(apres.vue));
     ck('et la figure est rendue telle qu\'on l\'a trouvée',

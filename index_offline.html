@@ -1649,6 +1649,36 @@
             margin-top: 2px;
             line-height: 1.35;
         }
+        /* Le curseur de navigation : douze étapes, on va où l'on veut. Il est
+           discret — un filet et une pastille — pour ne pas concurrencer le texte
+           qu'il porte : c'est une commande de secours, pas le sujet. */
+        #demoBar #demoCurseur {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            margin: 9px 0 2px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.22);
+            cursor: pointer;
+        }
+        #demoBar #demoCurseur::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #f8fafc;
+            border: none;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+        }
+        #demoBar #demoCurseur::-moz-range-thumb {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #f8fafc;
+            border: none;
+        }
         #demoBar .demo-boutons { flex: 0 0 auto; display: flex; gap: 6px; }
         #demoBar .demo-boutons button {
             width: 34px;
@@ -7971,10 +8001,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          l'interface verrouillée pendant le rejeu : c'est le seul endroit d'où
          l'on peut mettre en pause, avancer, revenir ou sortir. -->
     <div id="demoBar" style="display:none;">
-        <div class="demo-rang"><span id="demoRang">1/8</span></div>
+        <div class="demo-rang"><span id="demoRang">1/12</span></div>
         <div class="demo-texte">
             <div id="demoTitre"></div>
             <div id="demoDit"></div>
+            <!-- DOUZE ÉTAPES, C'EST TROP POUR AVANCER UNE PAR UNE quand on
+                 cherche celle du compas : le curseur va où l'on veut. -->
+            <input type="range" id="demoCurseur" min="0" max="0" step="1" value="0"
+                aria-label="Aller à une étape de la visite"
+                oninput="app.demoVersEtape(this.value)">
         </div>
         <div class="demo-boutons">
             <button id="demoPrec" onclick="app.demoAller(-1)" data-tooltip="Étape précédente">⏮</button>
@@ -8015,15 +8050,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <div id="tab-demo" style="display:none;">
                     <div class="help-section">
                         <h3>🎬 La visite guidée</h3>
-                        <p>Treize étapes, sur votre feuille, jouées l'une après l'autre —
-                            environ trois minutes et demie. <strong>Rien n'est simulé</strong> :
-                            aucune image, aucun film. Une main va jusqu'à la vraie icône,
-                            l'allume, appuie — et vous voyez ce que ça fait.</p>
+                        <p>Douze étapes, sur votre feuille, jouées l'une après l'autre —
+                            un peu plus de trois minutes. Ce sont les <strong>outils</strong>
+                            qu'elle montre, un par un, et pas des figures à admirer.
+                            <strong>Rien n'est simulé</strong> : aucune image, aucun film. Une
+                            main va jusqu'à la vraie icône, l'allume, appuie — et vous voyez
+                            ce que ça fait.</p>
                         <ol id="demoSommaire" style="margin:8px 0 14px 18px; line-height:1.7;"></ol>
-                        <p style="color:#64748b; font-size:13px;">⏮ ⏸ ⏭ pour aller à votre
-                            rythme, ✕ pour sortir. Votre figure est mise de côté pendant la
-                            visite, et remise en place à la fin — avec votre cadrage et vos
-                            réglages.</p>
+                        <p style="color:#64748b; font-size:13px;">⏮ ⏸ ⏭ et le curseur de la
+                            barre pour aller à votre rythme et où vous voulez, ✕ pour sortir.
+                            La pause suspend : on repart où l'on s'était arrêté. Votre figure
+                            est mise de côté pendant la visite, et remise en place à la fin —
+                            avec votre cadrage et vos réglages.</p>
                         <button class="modal-btn modal-confirm" onclick="app.demoDemarrer()">
                             ▶ Lancer la démonstration</button>
                     </div>
@@ -40163,10 +40201,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                LA VISITE GUIDÉE
 
                « Dans l'aide on pourrait avoir un mode démo où ça balaye les
-               fonctions avec une démo. » Puis, la première version vue tourner :
-               « il faut montrer où on appuie sur l'icône, ce qui apparaît […] il
-               faut montrer la plupart des outils, le crayon magique, les
-               constructions magiques […] il faut faire rêver. »
+               fonctions avec une démo. » Puis, la visite vue tourner, trois fois,
+               et redressée trois fois :
+
+                 « Il faut montrer où on appuie sur l'icône, ce qui apparaît […]
+                 il faut faire rêver. »
+                 « Quand tu dessines un segment, il faut que tu gardes le curseur
+                 virtuel enfoncé et que tu ailles un peu moins vite. »
+                 « Pour les instruments, il faut montrer leur manipulation un par
+                 un. Il faut qu'ils soient la star. L'idée est vraiment de montrer
+                 LES OUTILS de Géomaster, pas de réaliser des figures. »
+
+               Cette dernière phrase a défait la moitié du programme. Cinq étapes
+               montraient de belles figures — l'hexagone, l'étoile, la rosace, le
+               chat au compas — et aucune ne montrait un outil : on regardait le
+               logiciel faire, sans jamais voir avec quoi. Elles sont parties. Ce
+               qui reste ne montre que des OUTILS, et chaque instrument a
+               maintenant son étape à lui, où on le prend, on le déplace, on le
+               tourne, et où il sert.
 
                Les quatre autres onglets DÉCRIVENT le logiciel ; celui-ci le FAIT.
 
@@ -40174,10 +40226,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                1. RIEN N'EST SIMULÉ. Aucune capture, aucun film, aucun faux
                   bouton : la main de la visite appuie sur les vraies icônes,
-                  écrit dans la vraie barre, trace sur la vraie feuille. C'est la
-                  seule façon honnête de montrer un outil, et la seule qui ne
-                  mente pas quand le logiciel change — le jour où une consigne
-                  cesse de marcher, la visite s'en aperçoit la première.
+                  écrit dans la vraie barre, trace sur la vraie feuille, et prend
+                  les instruments par les vraies poignées — elle demande d'ailleurs
+                  au logiciel LUI-MÊME où elles sont (getHitZone), au lieu de les
+                  recopier : une poignée déplacée un jour ne rendra pas la visite
+                  menteuse, elle la suivra.
 
                2. ON VOIT OÙ ON APPUIE. Dire « on prend le compas » ne montre
                   rien. La main VA jusqu'à l'icône du compas, cette icône
@@ -40209,6 +40262,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const bulle = document.getElementById('demoMainMot');
                 if (bulle && mot) bulle.textContent = mot;
             }
+            demoMainCacher() {
+                const main = document.getElementById('demoMain');
+                if (!main) return;
+                main.style.display = 'none';
+                main.classList.remove('appuie', 'a-un-mot', 'mot-gauche');
+                main.style.left = '-200px'; main.style.top = '-200px';
+                document.querySelectorAll('.gm-demo-vise')
+                    .forEach(e => e.classList.remove('gm-demo-vise'));
+            }
             /* Une construction magique ouvre le tiroir du rejeu, en bas — utile
                quand on construit, encombrant pendant une visite : il vient se
                poser DERRIÈRE la barre de la visite, qui en cache la moitié. On le
@@ -40219,28 +40281,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (tiroir) tiroir.classList.remove('open');
                 this.isDrawerOpen = false;
             }
-            demoMainCacher() {
-                const main = document.getElementById('demoMain');
-                if (!main) return;
-                main.style.display = 'none';
-                main.classList.remove('appuie', 'a-un-mot', 'mot-gauche');
-                main.style.left = '-200px'; main.style.top = '-200px';
-                document.querySelectorAll('.gm-demo-vise')
-                    .forEach(e => e.classList.remove('gm-demo-vise'));
-            }
 
             /* Les outils que chaque étape reçoit. Tous s'interrompent net dès que
-               la visite a changé d'étape ou s'est mise en pause : sans cela, une
-               étape abandonnée continuerait de cliquer par-dessus la suivante. */
-            demoGestes(d) {
+               la visite a changé d'étape : sans cela, une étape abandonnée
+               continuerait de cliquer par-dessus la suivante. La PAUSE, elle,
+               n'interrompt rien — elle suspend. */
+            demoGestes(d, jeton) {
                 const app = this;
                 const main = () => document.getElementById('demoMain');
-                const vivant = () => { if (app._demo !== d || d.pause) throw 'demo-arret'; };
+                const vivant = () => {
+                    if (app._demo !== d || d.jeton !== jeton) throw 'demo-arret';
+                };
+                /* UNE PAUSE QUI SUSPEND, PAS QUI RECOMMENCE. Elle coupait les
+                   minuteurs en cours ; reprendre rejouait donc l'étape depuis le
+                   début — « le bouton pause fait tout démarrer ». Chaque attente
+                   décompte maintenant le temps qui passe VRAIMENT, et ne décompte
+                   rien tant qu'on est en pause : on repart exactement là où l'on
+                   s'était arrêté, au milieu d'un geste s'il le faut. */
                 const tempo = (ms) => new Promise((ok, rate) => {
-                    const t = setTimeout(() => {
-                        if (app._demo !== d || d.pause) rate('demo-arret'); else ok();
-                    }, ms);
-                    d.attentes.push(t);
+                    let reste = ms, dernier = Date.now();
+                    const tic = () => {
+                        if (app._demo !== d || d.jeton !== jeton) return rate('demo-arret');
+                        const t = Date.now();
+                        if (!d.pause) reste -= (t - dernier);
+                        dernier = t;
+                        if (reste <= 0) return ok();
+                        d.attentes.push(setTimeout(tic, Math.max(16, Math.min(90, reste))));
+                    };
+                    d.attentes.push(setTimeout(tic, Math.max(16, Math.min(90, ms))));
                 });
                 const trouve = (cible) => typeof cible === 'string'
                     ? document.querySelector(cible) : (cible || null);
@@ -40257,10 +40325,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         button: 0, buttons: appuye ? 1 : 0 });
                     (cible || app.canvas).dispatchEvent(e);
                 };
+                /* OÙ SE PREND UN INSTRUMENT ? On ne le devine pas, on le DEMANDE :
+                   chaque instrument sait dire, pour un point donné, ce qu'on y
+                   attrape (getHitZone). On balaie autour de lui jusqu'à tomber sur
+                   la zone voulue. Le jour où une poignée change de place, la visite
+                   la suit toute seule au lieu de désigner le vide. */
+                const prise = (w, zone, loin) => {
+                    let trouvee = null;
+                    for (let r = 0; r <= 460; r += 5) {
+                        for (let t = 0; t < 60; t++) {
+                            const a = t * Math.PI / 30;
+                            const x = w.x + Math.cos(a) * r, y = w.y + Math.sin(a) * r;
+                            if (w.getHitZone && w.getHitZone(x, y) === zone) {
+                                if (!loin) return { x, y };
+                                trouvee = { x, y };
+                            }
+                        }
+                    }
+                    return trouvee;
+                };
+                const boites = { ruler: 'rulerWidget', setsquare: 'setSquareWidget',
+                                 protractor: 'protractorWidget', compass: 'compassWidget' };
                 const g = {
                     tempo, vivant,
                     /* Changer la phrase du bas SANS changer d'étape : une étape
-                       qui montre quatre outils a quatre choses à dire. */
+                       qui montre quatre gestes a quatre choses à dire. */
                     dire: (txt) => {
                         vivant();
                         const e = document.getElementById('demoDit');
@@ -40297,6 +40386,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const p = surEcran(x, y);
                         app.demoMainVers(p.x, p.y, mot);
                         await tempo(860);
+                        /* LE CURSEUR SUIT LA MAIN. Sans ce déplacement, la position
+                           de souris que connaît l'application restait celle du clic
+                           PRÉCÉDENT : l'élastique en pointillés de l'outil Angle
+                           partait alors vers un point où plus rien ne se passait,
+                           et l'on voyait des pointillés surgir de nulle part. */
+                        evt('pointermove', p.x, p.y, false);
                         const m = main(); if (m) m.classList.add('appuie');
                         evt('pointerdown', p.x, p.y, true);
                         await tempo(200);
@@ -40319,6 +40414,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const A = surEcran(x1, y1), B = surEcran(x2, y2);
                         app.demoMainVers(A.x, A.y, mot);
                         await tempo(880);
+                        evt('pointermove', A.x, A.y, false);
                         const m = main(); if (m) m.classList.add('appuie');
                         evt('pointerdown', A.x, A.y, true);
                         await tempo(280);
@@ -40336,6 +40432,93 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (m) m.classList.remove('appuie');
                         await tempo(420);
                     },
+                    /* Le même glissement, mais en coordonnées d'ÉCRAN : c'est ce
+                       qu'il faut pour attraper un instrument, dont les poignées se
+                       calculent dans le monde puis se lisent à l'écran. */
+                    glisserEcran: async (A, B, mot) => {
+                        vivant();
+                        app.lockInterface(false);
+                        app.demoMainVers(A.x, A.y, mot);
+                        await tempo(880);
+                        evt('pointermove', A.x, A.y, false);
+                        const m = main(); if (m) m.classList.add('appuie');
+                        evt('pointerdown', A.x, A.y, true);
+                        await tempo(280);
+                        const pas = 30;
+                        for (let i = 1; i <= pas; i++) {
+                            vivant();
+                            const p = B(i / pas);
+                            app.demoMainVers(p.x, p.y, mot, true);
+                            evt('pointermove', p.x, p.y, true);
+                            await tempo(42);
+                        }
+                        const f = B(1);
+                        evt('pointerup', f.x, f.y, false, window);
+                        await tempo(240);
+                        if (m) m.classList.remove('appuie');
+                        await tempo(420);
+                    },
+                    /* Prendre un instrument par sa zone « déplacer » et le poser
+                       ailleurs. */
+                    outilBouger: async (nom, dx, dy, mot) => {
+                        vivant();
+                        const w = app[boites[nom]];
+                        if (!w) return;
+                        const p = prise(w, 'move');
+                        if (!p) return;
+                        const A = surEcran(p.x, p.y), z = app.view.zoom || 1;
+                        await g.glisserEcran(A, (u) => ({ x: A.x + dx * z * u, y: A.y + dy * z * u }), mot);
+                    },
+                    /* Le prendre par sa poignée de rotation — la plus ÉLOIGNÉE de
+                       son origine, car le corps de la règle tourne lui aussi et la
+                       prise y est trop courte pour qu'un quart de tour se voie —
+                       et le faire tourner autour d'elle. */
+                    outilTourner: async (nom, degres, mot) => {
+                        vivant();
+                        const w = app[boites[nom]];
+                        if (!w) return;
+                        const p = prise(w, 'rotate', true);
+                        if (!p) return;
+                        const R = Math.hypot(p.x - w.x, p.y - w.y);
+                        const a0 = Math.atan2(p.y - w.y, p.x - w.x);
+                        const da = degres * Math.PI / 180;
+                        const A = surEcran(p.x, p.y);
+                        await g.glisserEcran(A, (u) => surEcran(
+                            w.x + Math.cos(a0 + da * u) * R,
+                            w.y + Math.sin(a0 + da * u) * R), mot);
+                    },
+                    /* Une zone quelconque de l'instrument — l'ouverture du compas,
+                       son crayon, le verrou du rapporteur — tirée d'un point à un
+                       autre, ou simplement touchée. */
+                    outilZone: async (nom, zone, deplacement, mot) => {
+                        vivant();
+                        const w = app[boites[nom]];
+                        if (!w) return null;
+                        const p = prise(w, zone);
+                        if (!p) return null;
+                        const A = surEcran(p.x, p.y);
+                        if (!deplacement) {
+                            await g.feuilleEcran(A, mot);
+                            return p;
+                        }
+                        await g.glisserEcran(A, (u) => surEcran(
+                            p.x + deplacement.dx * u, p.y + deplacement.dy * u), mot);
+                        return p;
+                    },
+                    feuilleEcran: async (p, mot) => {
+                        vivant();
+                        app.lockInterface(false);
+                        app.demoMainVers(p.x, p.y, mot);
+                        await tempo(860);
+                        evt('pointermove', p.x, p.y, false);
+                        const m = main(); if (m) m.classList.add('appuie');
+                        evt('pointerdown', p.x, p.y, true);
+                        await tempo(200);
+                        evt('pointerup', p.x, p.y, false, window);
+                        await tempo(200);
+                        if (m) m.classList.remove('appuie');
+                        await tempo(360);
+                    },
                     /* Un tracé à main levée : la main suit le trait. Elle passe en
                        mode rapide, sinon elle traînerait une demi-seconde derrière
                        le crayon. */
@@ -40345,6 +40528,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const p0 = surEcran(points[0][0], points[0][1]);
                         app.demoMainVers(p0.x, p0.y, mot);
                         await tempo(900);
+                        evt('pointermove', p0.x, p0.y, false);
                         const m = main(); if (m) m.classList.add('appuie');
                         evt('pointerdown', p0.x, p0.y, true);
                         for (let i = 1; i < points.length; i++) {
@@ -40382,30 +40566,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 for (let i = 0; i < texte.length; i++) {
                                     vivant();
                                     champ.value = texte.slice(0, i + 1);
-                                    await tempo(i % 3 === 0 ? 24 : 8);
+                                    await tempo(i % 3 === 0 ? 26 : 10);
                                 }
                             } else champ.value = texte;
                         }
-                        await tempo(420);
+                        await tempo(460);
                         await g.viser('#ceGo', 'On trace');
-                        await tempo(1100);
+                        await tempo(1200);
                         app.fermerConsigneEclair();
                         app.demoMainCacher();
-                        await tempo(260);
+                        await tempo(300);
                     },
                     /* Le rejeu geste par geste, puis on attend qu'il finisse : une
                        construction de trente gestes ne dure pas ce que dure une
-                       construction de trois. */
+                       construction de trois. Mais on borne l'attente à une minute :
+                       un rejeu qui ne se termine jamais immobiliserait la visite
+                       entière, et une visite bloquée est pire qu'une étape
+                       écourtée. */
                     rejeu: async () => {
                         vivant();
                         app.demoMainCacher();
                         app.playFromStart();
-                        /* On attend que le rejeu S'ARRÊTE, pas un temps deviné :
-                           une construction de trente gestes ne dure pas ce que
-                           dure une construction de trois. Mais on borne l'attente
-                           à une minute : un rejeu qui ne se termine jamais
-                           immobiliserait la visite entière, et une visite bloquée
-                           est pire qu'une étape écourtée. */
                         for (let n = 0; n < 500; n++) {
                             await tempo(120);
                             if (!app.isPlaying) break;
@@ -40414,23 +40595,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         app.lockInterface(false);
                     },
                     cadrer: (marge = 80) => { vivant(); app.cadrerSurFigure(marge); },
-                    /* Le tiroir magique s'ouvre au SURVOL, et la main de la visite
-                       ne survole rien : on l'ouvre comme le fait le doigt sur une
+                    /* Un menu du haut s'ouvre au SURVOL, et la main de la visite ne
+                       survole rien : on l'ouvre comme le fait le doigt sur une
                        tablette, par la classe que la barre pose elle-même. Mais on
-                       montre d'abord la baguette — sans quoi le tiroir paraîtrait
-                       tout seul, et l'on ne saurait pas d'où il sort. */
-                    tiroirMagique: async (ouvert, mot) => {
+                       montre d'abord le bouton — sans quoi le menu paraîtrait tout
+                       seul, et l'on ne saurait pas d'où il sort. */
+                    menuHaut: async (bouton, ouvert, mot) => {
                         vivant();
-                        const dd = [...document.querySelectorAll('.header-dropdown')]
-                            .find(x => x.querySelector('.magic-menu-content'));
+                        /* On désigne le MENU PAR SON BOUTON. Repérer le tiroir par
+                           ce qu'il contient revenait à prendre le premier menu qui
+                           ressemblait au bon : le menu Fichier ne s'ouvrait pas, et
+                           l'étape des imports ne montrait rien du tout. */
+                        const b = document.querySelector(bouton);
+                        const dd = b && b.closest('.header-dropdown');
                         if (!dd) return null;
                         if (ouvert !== false && mot) {
                             await g.viser(dd.querySelector('.top-btn'), mot, false);
                         }
                         dd.classList.toggle('gm-open', ouvert !== false);
-                        if (ouvert !== false) await tempo(520);
+                        if (ouvert !== false) await tempo(560);
                         return dd;
                     },
+                    tiroirMagique: (ouvert, mot) =>
+                        g.menuHaut('.top-btn[aria-label="Constructions Magiques"]', ouvert, mot),
                 };
                 return g;
             }
@@ -40455,22 +40642,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 const outil = (nom) => `.tool-btn[onclick="app.setTool('${nom}')"]`;
                 const magie = (nom) => `.magic-grid-item[onclick="app.setTool('${nom}')"]`;
+                /* Une figure simple, posée d'un coup, quand ce qu'on montre n'est
+                   pas la façon de la tracer mais ce qu'on en fait ensuite. */
+                const triangle = (a) => {
+                    const A = new Point(430, 300, 'A'), B = new Point(830, 330, 'B'),
+                          C = new Point(600, 620, 'C');
+                    a.addEntity(A); a.addEntity(B); a.addEntity(C);
+                    [[A, B], [B, C], [C, A]].forEach(([p, q]) =>
+                        a.addEntity(new Segment(p, q, { color: '#1f2937', width: 2 })));
+                    a.render();
+                    return [A, B, C];
+                };
                 return [
-                    { titre: 'Les outils, un par un',
-                      dit: 'Chaque icône de la colonne de gauche pose un objet. On appuie, on clique '
-                         + 'sur la feuille, l\'objet est là.',
+                    { titre: 'Les outils de tracé',
+                      dit: 'Chaque icône de la colonne de gauche pose un objet. On appuie, on '
+                         + 'trace sur la feuille, l\'objet est là.',
                       faire: async (a, g) => {
                           await g.viser(outil('point'), 'Le point');
                           g.dire('Trois points, posés à la main.');
-                          /* Les trois points sont placés pour que le CERCLE tienne
-                             dans ce qu'on voit : son rayon est CB, et il descendait
-                             trois pixels sous le bas de la feuille. */
                           await g.feuille(380, 270, 'A'); await g.feuille(760, 250, 'B');
                           await g.feuille(600, 500, 'C');
                           await g.viser(outil('segment'), 'Le segment');
                           g.dire('On appuie sur A, on TIRE jusqu\'à B, on relâche : le segment '
                                + 's\'accroche aux deux points et les suit.');
                           await g.glisser(380, 270, 760, 250, 'On tire de A vers B');
+                          g.dire('Et [BC], de la même façon : deux côtés, un sommet commun.');
+                          await g.glisser(760, 250, 600, 500, 'Puis de B vers C');
                           await g.viser(outil('circle'), 'Le cercle');
                           g.dire('Du centre vers le bord, sans lâcher : le rayon se lit tout seul.');
                           await g.glisser(600, 500, 760, 250, 'Du centre vers le bord');
@@ -40480,6 +40677,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                           a.setTool('move');
                           a.demoMainCacher();
                           g.cadrer(80);
+                          await g.tempo(1400);
+                      } },
+
+                    { titre: 'La palette de style',
+                      dit: 'À droite, trois pastilles : la couleur, le trait, l\'épaisseur. On tape '
+                         + 'dessus, ça tourne — on ne vise pas.',
+                      faire: async (a, g) => {
+                          /* ON CHOISIT D'ABORD, ON TRACE ENSUITE. La première
+                             version posait un triangle puis tapait sur les
+                             pastilles : les pastilles changeaient, le triangle
+                             non, et l'étape mentait. Les pastilles règlent le
+                             style de CE QU'ON VA TRACER — c'est cela qu'il faut
+                             montrer, et le trait qui sort le prouve. */
+                          const A = new Point(420, 300, 'A'), B = new Point(880, 300, 'B');
+                          a.addEntity(A); a.addEntity(B);
+                          a.addEntity(new Segment(A, B, { color: '#1f2937', width: 2 }));
+                          a.render();
+                          g.dire('Un trait ordinaire. Maintenant, la couleur : un appui, '
+                               + 'on passe à la suivante.');
+                          await g.viser('#puceCouleur', 'La couleur');
+                          await g.viser('#puceCouleur', 'Encore');
+                          g.dire('Le trait : plein, puis pointillés.');
+                          await g.viser('#puceTrait', 'Le trait');
+                          g.dire('L\'épaisseur : le chiffre dit où l\'on en est.');
+                          await g.viser('#puceEpaisseur', 'L\'épaisseur');
+                          await g.viser('#puceEpaisseur', 'Encore');
+                          g.dire('Et l\'on trace : le nouveau trait sort dans le style choisi.');
+                          await g.viser(outil('segment'), 'Le segment');
+                          await g.glisser(420, 560, 880, 560, 'Le même geste, l\'autre style');
+                          a.setTool('move');
+                          a.demoMainCacher();
+                          g.cadrer(130);
+                          await g.tempo(1600);
                       } },
 
                     { titre: 'Une phrase suffit',
@@ -40489,6 +40719,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                           await g.phrase('Trace un triangle ABC tel que AB = 5 cm, BC = 4 cm et CA = 3 cm',
                                          false);
                           g.cadrer(110);
+                          await g.tempo(1200);
                       } },
 
                     { titre: 'Et le geste, si on le demande',
@@ -40501,39 +40732,90 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                           await g.rejeu();
                       } },
 
-                    { titre: 'Les instruments qu\'on manipule',
-                      dit: 'Les quatre instruments de la trousse se posent sur la feuille. On les '
-                         + 'attrape, on les tourne, on trace le long.',
+                    { titre: 'La règle',
+                      dit: 'Elle se pose sur la feuille, se prend par le milieu, se tourne par sa '
+                         + 'poignée et s\'allonge par son bout.',
                       faire: async (a, g) => {
-                          /* Un segment sous les instruments : une trousse posée
-                             sur une feuille blanche ne montre rien, on ne voit
-                             pas qu'elle sert à mesurer et à tracer. */
-                          const A = new Point(430, 470, 'A'), B = new Point(830, 470, 'B');
+                          const A = new Point(360, 620, 'A'), B = new Point(880, 620, 'B');
                           a.addEntity(A); a.addEntity(B);
                           a.addEntity(new Segment(A, B, { color: '#1f2937', width: 2 }));
                           a.render();
-                          /* Chacun À SA PLACE. toggleWidget les pose tous au
-                             centre de la vue : les quatre sortis, on ne voyait
-                             qu'un tas où la règle passait sous le rapporteur et
-                             le compas par-dessus l'équerre. On les écarte à
-                             mesure qu'ils paraissent. */
-                          const poser = (w, dx, dy) => {
-                              if (!w) return;
-                              w.x += dx; w.y += dy; a.render();
-                          };
                           await g.viser('#btn-ruler', 'La règle graduée');
-                          poser(a.rulerWidget, -190, -190);
                           await g.tempo(700);
-                          await g.viser('#btn-setsquare', 'L\'équerre');
-                          poser(a.setSquareWidget, 190, -210);
-                          await g.tempo(700);
-                          await g.viser('#btn-protractor', 'Le rapporteur');
-                          poser(a.protractorWidget, -190, 220);
-                          await g.tempo(700);
-                          await g.viser('#btn-compass', 'Le compas');
-                          poser(a.compassWidget, 250, 190);
+                          g.dire('On la prend par le milieu et on la pose où l\'on veut.');
+                          await g.outilBouger('ruler', -110, 90, 'On la déplace');
+                          g.dire('On la fait tourner par la poignée qui dépasse, au bout.');
+                          await g.outilTourner('ruler', 24, 'On la tourne');
+                          g.dire('Et l\'on tire son bout pour l\'allonger : les graduations suivent, '
+                               + 'un centimètre reste un centimètre.');
+                          await g.outilZone('ruler', 'resize', { dx: 150, dy: 65 }, 'On l\'allonge');
                           a.demoMainCacher();
-                          await g.tempo(1800);
+                          await g.tempo(1500);
+                      } },
+
+                    { titre: 'L\'équerre',
+                      dit: 'Le même geste pour l\'équerre : on la pose, on la déplace, on la tourne '
+                         + 'jusqu\'à ce que son angle droit tombe où il faut.',
+                      faire: async (a, g) => {
+                          const A = new Point(340, 640, 'A'), B = new Point(940, 640, 'B');
+                          a.addEntity(A); a.addEntity(B);
+                          a.addEntity(new Segment(A, B, { color: '#1f2937', width: 2 }));
+                          a.render();
+                          await g.viser('#btn-setsquare', 'L\'équerre');
+                          await g.tempo(700);
+                          g.dire('On la prend par l\'intérieur, là où il n\'y a pas de bord à suivre.');
+                          await g.outilBouger('setsquare', -120, -40, 'On la déplace');
+                          g.dire('Et on la tourne : c\'est l\'angle droit qu\'on vise, pas la figure.');
+                          await g.outilTourner('setsquare', 34, 'On la tourne');
+                          a.demoMainCacher();
+                          await g.tempo(1500);
+                      } },
+
+                    { titre: 'Le rapporteur',
+                      dit: 'On le pose sur le sommet, on le tourne pour aligner le zéro — et on le '
+                         + 'BLOQUE : il ne bouge plus, on n\'a plus qu\'à lire.',
+                      faire: async (a, g) => {
+                          const O = new Point(560, 620, 'O'), P = new Point(960, 620, 'P'),
+                                Q = new Point(830, 330, 'Q');
+                          [O, P, Q].forEach(p => a.addEntity(p));
+                          a.addEntity(new Segment(O, P, { color: '#1f2937', width: 2 }));
+                          a.addEntity(new Segment(O, Q, { color: '#1f2937', width: 2 }));
+                          a.addEntity(new Angle(P, O, Q));
+                          a.render();
+                          await g.viser('#btn-protractor', 'Le rapporteur');
+                          await g.tempo(700);
+                          g.dire('On le prend par son centre, celui qu\'on pose sur le sommet.');
+                          /* Le rapporteur se pose SUR LE SOMMET : c'est tout son
+                             sens. Le décalage l'amène du centre de la vue jusqu'à
+                             O, pas « quelque part à côté ». */
+                          await g.outilBouger('protractor', -86, 170, 'On le pose sur le sommet');
+                          g.dire('On le tourne pour aligner le zéro sur un côté.');
+                          await g.outilTourner('protractor', -22, 'On le tourne');
+                          g.dire('Et le petit verrou le fige : posé, il ne se déplacera plus par '
+                               + 'mégarde pendant qu\'on lit.');
+                          await g.outilZone('protractor', 'toggleLock', null, 'On le bloque');
+                          a.demoMainCacher();
+                          await g.tempo(1500);
+                      } },
+
+                    { titre: 'Le compas',
+                      dit: 'La pointe, l\'écartement, la mine. C\'est l\'instrument qui ne mesure '
+                         + 'rien et qui reporte tout.',
+                      faire: async (a, g) => {
+                          const A = new Point(420, 560, 'A'), B = new Point(760, 560, 'B');
+                          a.addEntity(A); a.addEntity(B);
+                          a.addEntity(new Segment(A, B, { color: '#1f2937', width: 2 }));
+                          a.render();
+                          await g.viser('#btn-compass', 'Le compas');
+                          await g.tempo(700);
+                          g.dire('On le prend par sa branche et on plante la pointe où l\'on veut.');
+                          await g.outilBouger('compass', -80, 60, 'On le déplace');
+                          g.dire('La pastille de la molette ouvre les branches : voilà l\'écartement.');
+                          await g.outilZone('compass', 'resize', { dx: 105, dy: 0 }, 'On l\'ouvre');
+                          g.dire('Et l\'on prend le crayon pour tourner : le compas TRACE.');
+                          await g.outilZone('compass', 'trace', { dx: -150, dy: 150 }, 'On trace');
+                          a.demoMainCacher();
+                          await g.tempo(1500);
                       } },
 
                     { titre: 'Le crayon magique',
@@ -40549,7 +40831,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                + 'et le codage posé.');
                           a.setTool('move');
                           g.cadrer(120);
-                          await g.tempo(1500);
+                          await g.tempo(1600);
                       } },
 
                     { titre: 'Les constructions magiques',
@@ -40575,71 +40857,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                              toute la feuille : mesuré, la figure occupait 1298 px
                              de large pour 1292 px visibles. On cadre. */
                           g.cadrer(60);
-                          await g.tempo(1400);
+                          await g.tempo(1500);
                       } },
 
-                    { titre: 'Trois points, un cercle',
-                      dit: 'Le cercle circonscrit passe par les trois sommets. Ce n\'est pas un dessin '
-                         + 'approché : son centre est le croisement de deux médiatrices.',
+                    { titre: 'Ouvrir, enregistrer, exporter',
+                      dit: 'Le menu Fichier tient tout : ouvrir un travail, l\'enregistrer, poser une '
+                         + 'image ou un PDF en fond, et sortir la figure en PNG, SVG ou PDF.',
                       faire: async (a, g) => {
-                          a.magicUseTools = false; a.magicAnimate = true;
-                          await g.tiroirMagique(true, 'Le tiroir, encore');
-                          await g.viser(magie('magic_circumcircle'), 'Cercle circonscrit');
-                          await g.tiroirMagique(false);
-                          await g.feuille(470, 330, 'A'); await g.feuille(830, 400, 'B');
-                          await g.feuille(600, 660, 'C');
-                          await g.tempo(1800);
+                          triangle(a);
+                          /* La règle est sortie EXPRÈS : c'est elle qui fait poser
+                             à l'exportation sa vraie question — « des instruments
+                             sont présents, on les emporte ou non ? ». Sans elle, la
+                             boîte s'ouvrait quand même mais annonçait des
+                             instruments qui n'existaient pas : la visite montrait
+                             une fenêtre en train de mentir. */
+                          if (!a.activeWidgets.ruler) a.toggleWidget('ruler');
+                          if (a.rulerWidget) { a.rulerWidget.y += 210; a.rulerWidget.x -= 130; }
+                          g.cadrer(120);
+                          await g.menuHaut('.top-btn[aria-label="Menu Fichier"]', true,
+                                           'Le menu Fichier');
+                          g.dire('En haut, le document : ouvrir un travail, la bibliothèque de '
+                               + 'séances, coller un code reçu, enregistrer — et poser une image '
+                               + 'ou un PDF en fond.');
+                          await g.tempo(3000);
+                          g.dire('En bas, sortir un fichier : PNG, SVG, PDF, et même du LaTeX.');
+                          await g.tempo(2200);
+                          await g.menuHaut('.top-btn[aria-label="Menu Fichier"]', false);
+                          g.dire('On choisit ce qu\'on emporte : ici, les instruments sont sur la '
+                               + 'figure — les garde-t-on dans l\'image ?');
                           a.demoMainCacher();
-                          a.demoFermerTiroirRejeu();
-                          g.cadrer(70);
-                          await g.tempo(1200);
-                      } },
-
-                    { titre: 'Les transformations',
-                      dit: 'Le symétrique se construit, il ne se place pas — et il suit quand on '
-                         + 'déplace le point de départ.',
-                      faire: async (a, g) => {
-                          a.addEntity(new Point(430, 460, 'A'));
-                          a.addEntity(new Point(760, 460, 'B'));
-                          a.executerConsigneAvec('Trace le symétrique de A par rapport au point B', true);
-                          g.cadrer(100);
-                          await g.rejeu();
-                      } },
-
-                    { titre: 'Au compas, rien ne se mesure',
-                      dit: 'Le rayon se reporte six fois exactement sur le cercle : c\'est de là que '
-                         + 'vient l\'hexagone régulier, et d\'aucune mesure.',
-                      faire: async (a, g) => {
-                          await g.phrase('Trace un hexagone régulier de 3 cm', true, false);
-                          g.cadrer(90);
-                          await g.rejeu();
-                      } },
-
-                    { titre: 'Les figures des fiches',
-                      dit: 'Cinq parts d\'un cercle au compas, puis on relie de deux en deux : '
-                         + 'l\'étoile sort de la construction, pas d\'un gabarit.',
-                      faire: async (a, g) => {
-                          a.executerConsigneAvec('Trace une étoile à 5 branches', true);
-                          g.cadrer(90);
-                          await g.rejeu();
-                      } },
-
-                    { titre: 'La rosace',
-                      dit: 'Un cercle, et son rayon reporté tout autour. Six pétales, un seul '
-                         + 'écartement — celui qu\'on n\'a jamais rouvert.',
-                      faire: async (a, g) => {
-                          a.executerConsigneAvec('Trace une rosace', true);
-                          g.cadrer(90);
-                          await g.rejeu();
-                      } },
-
-                    { titre: 'Un chat, au compas',
-                      dit: 'Huit cercles. Une seule longueur se mesure — le rayon de base ; tout le '
-                         + 'reste se reporte, comme sur une fiche de dessin géométrique.',
-                      faire: async (a, g) => {
-                          a.executerConsigneAvec('Trace un chat', true);
-                          g.cadrer(80);
-                          await g.rejeu();
+                          a.requestExport('png');
+                          await g.tempo(3200);
+                          await g.viser('#exportModal .modal-cancel', 'On annule');
+                          a.demoMainCacher();
+                          await g.tempo(800);
                       } },
 
                     { titre: 'L\'énoncé se rédige tout seul',
@@ -40673,21 +40924,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this._demoVue = { x: this.view.x, y: this.view.y, zoom: this.view.zoom };
                     this._demoReglages = { outils: this.magicUseTools, anime: this.magicAnimate,
                                            outil: this.currentTool, vitesse: this.playbackSpeed,
-                                           tiroir: this.isDrawerOpen };
+                                           tiroir: this.isDrawerOpen,
+                                           /* L'étape de la palette change le style
+                                              du trait POUR DE BON — c'est bien
+                                              l'idée. On sortait donc de la visite
+                                              avec un crayon bleu, en pointillés et
+                                              deux fois trop épais, sans avoir rien
+                                              demandé. */
+                                           style: JSON.parse(JSON.stringify(this.globalStyle || {})) };
                     /* Le rejeu de la visite va plus vite que celui d'une classe :
-                       treize étapes à la vitesse d'une leçon feraient un quart
+                       douze étapes à la vitesse d'une leçon feraient un quart
                        d'heure, et personne ne regarde une visite un quart
-                       d'heure. Mesuré au réglage ordinaire (500 ms), le chat au
-                       compas prenait à lui seul plus d'une minute et demie. */
+                       d'heure. */
                     this.playbackSpeed = 180;
                     /* On FERME l'aide, on ne la bascule pas : appelée depuis
                        ailleurs, toggleHelp l'aurait ouverte — et verrouillée
                        par-dessus la visite. */
                     const aide = document.getElementById('helpModal');
                     if (aide && aide.style.display === 'flex') this.toggleHelp();
-                    this._demo = { etapes, i: 0, pause: false, minuteur: null, attentes: [] };
+                    this._demo = { etapes, i: 0, pause: false, jeton: 0, attentes: [], fini: false };
                     const barre = document.getElementById('demoBar');
                     if (barre) barre.style.display = 'flex';
+                    const curseur = document.getElementById('demoCurseur');
+                    if (curseur) { curseur.max = String(etapes.length - 1); curseur.value = '0'; }
                     this.demoJouer(0);
                 };
                 if (occupee) {
@@ -40701,11 +40960,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const d = this._demo;
                 if (!d) return;
                 this.demoNettoyer();
+                const jeton = ++d.jeton;
                 d.i = Math.max(0, Math.min(d.etapes.length - 1, i));
+                d.fini = false;
                 const et = d.etapes[d.i];
-                /* La feuille repart à neuf : instruments rangés, vue remise
-                   d'aplomb, figure effacée. Sans quoi la règle de l'étape 4
-                   resterait posée sur le chat de l'étape 12. */
                 if (this.stopAnimation) this.stopAnimation();
                 /* UNE CONSTRUCTION MAGIQUE LAISSE LE REJEU EN BOUCLE — c'est fait
                    exprès : on la regarde se refaire autant de fois qu'on veut.
@@ -40724,7 +40982,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    magique pendant qu'il dessine — un appui sur ⏭ suffit — laissait
                    le trait bleu à moitié tracé EN PLACE : il n'est pas dans les
                    objets, c'est de l'encre, et vider la feuille ne l'effaçait pas.
-                   On le voyait ensuite en travers de la rosace. */
+                   On le voyait ensuite en travers de la figure suivante. */
                 this.traitCroquis = null;
                 this.deplaceTrait = null;
                 ['ruler', 'setsquare', 'protractor', 'compass'].forEach(w => {
@@ -40737,31 +40995,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.demoMainCacher();
                 this.fermerConsigneEclair && this.fermerConsigneEclair();
                 this.demoFermerTiroirRejeu();
+                document.querySelectorAll('.header-dropdown.gm-open')
+                    .forEach(e => e.classList.remove('gm-open'));
                 this.demoAfficher();
                 this.render();
-                const g = this.demoGestes(d);
+                const g = this.demoGestes(d, jeton);
                 try {
                     await et.faire(this, g);
                     if (et.apres) et.apres(this);
+                    d.fini = true;
+                    this.demoMainCacher();
+                    await g.tempo(2400);
                 } catch (e) {
-                    /* Une étape interrompue (pause, étape suivante, sortie) n'est
-                       pas une panne : on s'arrête là, sans bruit. Une étape qui
-                       RATE ne doit pas arrêter la visite non plus. */
+                    /* Une étape interrompue (étape suivante, sortie) n'est pas une
+                       panne : on s'arrête là, sans bruit. Une étape qui RATE ne
+                       doit pas arrêter la visite non plus — on passe à la suite. */
                     if (e === 'demo-arret') return;
+                    d.fini = true;
                 }
-                if (this._demo !== d || d.pause) return;
-                this.demoMainCacher();
-                d.minuteur = setTimeout(() => {
-                    if (this._demo !== d || d.pause) return;
-                    if (d.i >= d.etapes.length - 1) this.demoArreter();
-                    else this.demoJouer(d.i + 1);
-                }, 2200);
+                if (this._demo !== d || d.jeton !== jeton) return;
+                if (d.i >= d.etapes.length - 1) this.demoArreter();
+                else this.demoJouer(d.i + 1);
             }
 
             demoNettoyer() {
                 const d = this._demo;
                 if (!d) return;
-                if (d.minuteur) { clearTimeout(d.minuteur); d.minuteur = null; }
                 if (d.attentes) { d.attentes.forEach(t => clearTimeout(t)); d.attentes = []; }
             }
 
@@ -40773,24 +41032,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 mets('demoRang', (d.i + 1) + '/' + d.etapes.length);
                 mets('demoTitre', et.titre);
                 mets('demoDit', et.dit);
+                const curseur = document.getElementById('demoCurseur');
+                if (curseur) {
+                    curseur.max = String(d.etapes.length - 1);
+                    curseur.value = String(d.i);
+                    curseur.setAttribute('aria-valuetext', (d.i + 1) + ' sur ' + d.etapes.length
+                        + ' : ' + et.titre);
+                }
                 const b = document.getElementById('demoPause');
                 if (b) { b.textContent = d.pause ? '▶' : '⏸';
                          b.dataset.tooltip = d.pause ? 'Reprendre' : 'Pause'; }
             }
 
+            /* SUSPENDRE, PAS RECOMMENCER. La pause coupait les minuteurs de
+               l'étape en cours ; reprendre la rejouait donc depuis le début — « le
+               bouton pause fait tout démarrer ». On ne coupe plus rien : les
+               attentes cessent simplement de décompter, et le rejeu s'arrête là où
+               il en est. On repart exactement au même endroit. */
             demoPause() {
                 const d = this._demo;
                 if (!d) return;
                 d.pause = !d.pause;
                 if (d.pause) {
-                    this.demoNettoyer();
-                    if (this.pauseAnimation) this.pauseAnimation();
-                    this.demoAfficher();
+                    /* On ne suspend le rejeu QUE s'il tournait — et l'on note
+                       qu'il tournait, pour ne relancer que celui-là. Reprendre
+                       appelait resumeAnimation() dans tous les cas : sur une étape
+                       sans rejeu, cela en DÉMARRAIT un, qui remontait la figure au
+                       début et la redessinait objet par objet. Mesuré : deux points
+                       posés, pause, reprise — et il n'en restait qu'un. « Le bouton
+                       pause fait tout démarrer. » */
+                    d.rejouait = !!this.isPlaying;
+                    if (d.rejouait && this.pauseAnimation) this.pauseAnimation();
                 } else {
-                    /* On reprend l'étape au début : une étape est un geste
-                       complet, et un geste coupé en deux ne montre rien. */
-                    this.demoJouer(d.i);
+                    if (d.rejouait && this.resumeAnimation) this.resumeAnimation();
+                    d.rejouait = false;
                 }
+                this.demoAfficher();
             }
 
             demoAller(pas) {
@@ -40799,6 +41076,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 d.pause = false;
                 if (pas > 0 && d.i >= d.etapes.length - 1) { this.demoArreter(); return; }
                 this.demoJouer(d.i + pas);
+            }
+
+            /* Le curseur de la barre : on va où l'on veut, sans compter les ⏭.
+               Douze étapes, c'est trop pour avancer une par une quand on cherche
+               celle du compas. */
+            demoVersEtape(n) {
+                const d = this._demo;
+                if (!d) return;
+                const i = Math.max(0, Math.min(d.etapes.length - 1, parseInt(n, 10) || 0));
+                if (i === d.i && !d.fini) return;
+                d.pause = false;
+                this.demoJouer(i);
             }
 
             demoArreter() {
@@ -40812,6 +41101,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.fermerConsigneEclair && this.fermerConsigneEclair();
                 document.querySelectorAll('.header-dropdown.gm-open')
                     .forEach(e => e.classList.remove('gm-open'));
+                const exp = document.getElementById('exportModal');
+                if (exp) exp.style.display = 'none';
                 ['ruler', 'setsquare', 'protractor', 'compass'].forEach(w => {
                     if (this.activeWidgets && this.activeWidgets[w]) this.toggleWidget(w);
                 });
@@ -40837,6 +41128,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.magicUseTools = this._demoReglages.outils;
                     this.magicAnimate = this._demoReglages.anime;
                     this.playbackSpeed = this._demoReglages.vitesse;
+                    if (this._demoReglages.style) {
+                        const st = this._demoReglages.style;
+                        if (this.setGlobalColor && st.color) this.setGlobalColor(st.color);
+                        if (this.setGlobalDash) this.setGlobalDash(!!(st.dash && st.dash.length));
+                        this.globalStyle.width = st.width;
+                        if (this.majPaletteCompacte) this.majPaletteCompacte();
+                        const rail = document.getElementById('widthRange');
+                        if (rail) rail.value = st.width;
+                    }
                     if (this._demoReglages.tiroir) {
                         const tiroir = document.getElementById('timelineDrawer');
                         if (tiroir) tiroir.classList.add('open');
@@ -42404,7 +42704,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 10h';
+        window.GM_VERSION = '2026-09-08 · 11h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais
