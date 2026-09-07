@@ -1688,8 +1688,8 @@
             pointer-events: none;
             z-index: 100001;
             display: none;
-            transition: left .62s cubic-bezier(.35, .1, .25, 1),
-                        top .62s cubic-bezier(.35, .1, .25, 1),
+            transition: left .82s cubic-bezier(.35, .1, .25, 1),
+                        top .82s cubic-bezier(.35, .1, .25, 1),
                         width .12s ease, height .12s ease, background .12s ease;
         }
         #demoMain.appuie {
@@ -40197,7 +40197,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const main = document.getElementById('demoMain');
                 if (!main) return;
                 main.style.display = 'block';
-                main.style.transitionDuration = rapide ? '.05s' : '.62s';
+                main.style.transitionDuration = rapide ? '.05s' : '.82s';
                 main.style.left = Math.round(x) + 'px';
                 main.style.top = Math.round(y) + 'px';
                 main.classList.toggle('a-un-mot', !!mot);
@@ -40275,14 +40275,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const b = el.getBoundingClientRect();
                         el.classList.add('gm-demo-vise');
                         app.demoMainVers(b.left + b.width / 2, b.top + b.height / 2, mot);
-                        await tempo(780);
+                        await tempo(1050);
                         if (appuyer) {
                             const m = main(); if (m) m.classList.add('appuie');
-                            await tempo(180);
-                            el.click();
-                            await tempo(220);
-                            if (m) m.classList.remove('appuie');
                             await tempo(240);
+                            el.click();
+                            await tempo(300);
+                            if (m) m.classList.remove('appuie');
+                            await tempo(340);
                         }
                         el.classList.remove('gm-demo-vise');
                         return el;
@@ -40296,14 +40296,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         app.lockInterface(false);
                         const p = surEcran(x, y);
                         app.demoMainVers(p.x, p.y, mot);
-                        await tempo(660);
+                        await tempo(860);
                         const m = main(); if (m) m.classList.add('appuie');
                         evt('pointerdown', p.x, p.y, true);
-                        await tempo(120);
+                        await tempo(200);
                         evt('pointerup', p.x, p.y, false, window);
-                        await tempo(140);
+                        await tempo(200);
                         if (m) m.classList.remove('appuie');
-                        await tempo(260);
+                        await tempo(360);
+                    },
+                    /* UN SEGMENT SE TIRE, IL NE SE POINTE PAS DEUX FOIS. Le
+                       segment, la droite, la demi-droite et le cercle se créent
+                       tous au GLISSEMENT : on appuie sur la première extrémité, on
+                       tire, on relâche sur la seconde. La visite faisait deux
+                       appuis séparés — la main lâchait entre les deux et
+                       traversait la feuille au repos, ce qui n'est le geste de
+                       personne. Elle reste maintenant enfoncée d'un bout à
+                       l'autre, et l'on voit la figure naître sous elle. */
+                    glisser: async (x1, y1, x2, y2, mot) => {
+                        vivant();
+                        app.lockInterface(false);
+                        const A = surEcran(x1, y1), B = surEcran(x2, y2);
+                        app.demoMainVers(A.x, A.y, mot);
+                        await tempo(880);
+                        const m = main(); if (m) m.classList.add('appuie');
+                        evt('pointerdown', A.x, A.y, true);
+                        await tempo(280);
+                        const pas = 26;
+                        for (let i = 1; i <= pas; i++) {
+                            vivant();
+                            const x = A.x + (B.x - A.x) * i / pas;
+                            const y = A.y + (B.y - A.y) * i / pas;
+                            app.demoMainVers(x, y, mot, true);
+                            evt('pointermove', x, y, true);
+                            await tempo(44);
+                        }
+                        evt('pointerup', B.x, B.y, false, window);
+                        await tempo(240);
+                        if (m) m.classList.remove('appuie');
+                        await tempo(420);
                     },
                     /* Un tracé à main levée : la main suit le trait. Elle passe en
                        mode rapide, sinon elle traînerait une demi-seconde derrière
@@ -40313,7 +40344,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         app.lockInterface(false);
                         const p0 = surEcran(points[0][0], points[0][1]);
                         app.demoMainVers(p0.x, p0.y, mot);
-                        await tempo(700);
+                        await tempo(900);
                         const m = main(); if (m) m.classList.add('appuie');
                         evt('pointerdown', p0.x, p0.y, true);
                         for (let i = 1; i < points.length; i++) {
@@ -40325,7 +40356,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                dix-huit millièmes par point, le carré tremblé
                                apparaissait d'un coup, et le tour de force ne se
                                voyait pas puisqu'on n'avait pas vu la main. */
-                            await tempo(34);
+                            await tempo(46);
                         }
                         const pf = surEcran(points[points.length - 1][0], points[points.length - 1][1]);
                         evt('pointerup', pf.x, pf.y, false, window);
@@ -40431,19 +40462,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                       faire: async (a, g) => {
                           await g.viser(outil('point'), 'Le point');
                           g.dire('Trois points, posés à la main.');
-                          await g.feuille(380, 300, 'A'); await g.feuille(760, 280, 'B');
-                          await g.feuille(600, 560, 'C');
+                          /* Les trois points sont placés pour que le CERCLE tienne
+                             dans ce qu'on voit : son rayon est CB, et il descendait
+                             trois pixels sous le bas de la feuille. */
+                          await g.feuille(380, 270, 'A'); await g.feuille(760, 250, 'B');
+                          await g.feuille(600, 500, 'C');
                           await g.viser(outil('segment'), 'Le segment');
-                          g.dire('On relie deux points : le segment s\'accroche à eux et les suit.');
-                          await g.feuille(380, 300); await g.feuille(760, 280);
+                          g.dire('On appuie sur A, on TIRE jusqu\'à B, on relâche : le segment '
+                               + 's\'accroche aux deux points et les suit.');
+                          await g.glisser(380, 270, 760, 250, 'On tire de A vers B');
                           await g.viser(outil('circle'), 'Le cercle');
-                          g.dire('Un centre, un point du bord — et le rayon se lit tout seul.');
-                          await g.feuille(600, 560); await g.feuille(760, 280);
+                          g.dire('Du centre vers le bord, sans lâcher : le rayon se lit tout seul.');
+                          await g.glisser(600, 500, 760, 250, 'Du centre vers le bord');
                           await g.viser(outil('angle'), 'L\'angle');
                           g.dire('Trois points, sommet au milieu : l\'angle est mesuré, pas dessiné.');
-                          await g.feuille(380, 300); await g.feuille(760, 280); await g.feuille(600, 560);
+                          await g.feuille(380, 270); await g.feuille(760, 250); await g.feuille(600, 500);
                           a.setTool('move');
                           a.demoMainCacher();
+                          g.cadrer(80);
                       } },
 
                     { titre: 'Une phrase suffit',
@@ -42368,7 +42404,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 9h';
+        window.GM_VERSION = '2026-09-08 · 10h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

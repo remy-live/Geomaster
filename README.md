@@ -927,6 +927,17 @@ visite absente).
 jusqu'à l'icône du compas, cette icône s'allume, la main appuie — et le compas
 paraît. Un geste, un endroit, un résultat.
 
+*« Quand tu dessines un segment, il faut que tu gardes le curseur virtuel enfoncé
+et que tu ailles un peu moins vite. »* Un segment se **tire**, il ne se pointe pas
+deux fois : le segment, la droite, la demi-droite et le cercle se créent tous au
+glissement — on appuie sur la première extrémité, on tire, on relâche sur la
+seconde. La main faisait deux appuis séparés et traversait la feuille au repos
+entre les deux, ce qui n'est le geste de personne. Elle reste maintenant enfoncée
+d'un bout à l'autre, et l'on voit la figure naître sous elle : mesuré, 1710 ms
+d'appui maintenu sur 381 px pour le segment, 1700 ms sur 322 px pour le cercle —
+tous les autres appuis de la visite parcourent 0 px, parce que ce sont de vrais
+clics. Et toute la main a ralenti d'un tiers.
+
 Le sommaire affiché dans l'aide est écrit **à partir** des étapes, pas recopié à
 côté : une ligne ajoutée au programme s'ajoute toute seule à l'aide. La figure
 en cours est mise de côté au départ — on prévient — et **remise en place à
