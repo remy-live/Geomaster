@@ -1728,13 +1728,20 @@
            voir appuyer. Le halo jaune et le rouge de l'appui sont ceux des
            démonstrations enregistrées (.cursor-highlighter) — c'est le même
            geste, il doit se reconnaître au même signe. */
+        /* LE DISQUE NE SAUTE PAS QUAND IL APPUIE. Il était centré par des marges
+           négatives valant la moitié de sa taille — mais la marge, elle, ne
+           s'anime pas : à l'instant de l'appui elle basculait d'un coup de -21 à
+           -13 px pendant que la taille, elle, se réduisait doucement. Mesuré
+           image par image : 11,3 px d'écart, le temps que la taille rattrape la
+           marge. Centré par transform, il ne peut plus bouger — quelle que soit
+           sa taille, son milieu reste sur le point visé. */
         #demoMain {
             position: fixed;
             left: -200px;
             top: -200px;
             width: 42px;
             height: 42px;
-            margin: -21px 0 0 -21px;
+            transform: translate(-50%, -50%);
             border-radius: 50%;
             background: rgba(255, 235, 59, 0.5);
             border: 2px solid rgba(255, 215, 0, 0.9);
@@ -1749,7 +1756,6 @@
         #demoMain.appuie {
             width: 26px;
             height: 26px;
-            margin: -13px 0 0 -13px;
             background: rgba(231, 76, 60, 0.55);
             border-color: rgba(231, 76, 60, 0.95);
         }
@@ -1757,11 +1763,13 @@
            bascule à gauche quand la main s'approche du bord — sans quoi il
            sortirait de l'écran, ce qui arrive tout le temps : la colonne des
            outils est à gauche, le tiroir magique tout à droite. */
+        /* Le mot est accroché au MILIEU du disque, pas à son bord : le bord bouge
+           quand le disque rétrécit, le milieu non. */
         #demoMainMot {
             position: absolute;
-            left: 34px;
+            left: 50%;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translate(24px, -50%);
             white-space: nowrap;
             max-width: 44vw;
             overflow: hidden;
@@ -1773,7 +1781,11 @@
             font: 600 12.5px/1.25 system-ui, -apple-system, 'Segoe UI', sans-serif;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
         }
-        #demoMain.mot-gauche #demoMainMot { left: auto; right: 34px; }
+        #demoMain.mot-gauche #demoMainMot {
+            left: auto;
+            right: 50%;
+            transform: translate(-24px, -50%);
+        }
         #demoMain:not(.a-un-mot) #demoMainMot { display: none; }
 
         /* PENDANT LA VISITE, LA SOURIS NE TOUCHE PLUS RIEN. « La souris a une
@@ -8514,6 +8526,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             </ul>
                         </div>
                     </div>
+                    <!-- LES QUATRE INSTRUMENTS SE SUIVENT. L'équerre traînait tout
+                         en bas de l'onglet, après le stylo, le croquis et le document
+                         de fond : on lisait le compas, le rapporteur, la règle, puis
+                         trois choses qui n'ont rien à voir, et l'équerre enfin, toute
+                         seule. La trousse se lit d'un tenant. -->
+                    <div class="help-tool-row">
+                        <div class="help-tool-visual"><canvas id="helpCanvasSetSquare" width="240"
+                                height="160"></canvas></div>
+                        <div class="help-tool-text">
+                            <h4>L'Équerre</h4>
+                            <ul>
+                                <li><strong>✋ Déplacer :</strong> Glisser le corps (partie vide).</li>
+                                <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
+                                <li><strong>🧲 Sur la règle :</strong> Coin posé sur les graduations de la règle,
+                                    l'équerre se colle en tournant, parallèle ou perpendiculaire.</li>
+                                <li><strong>↕️ Bouton glisser :</strong> Permet de glisser l'équerre le long de ses
+                                    graduations.</li>
+                            </ul>
+                        </div>
+                    </div>
                     <div class="help-tool-row">
                         <div class="help-tool-text" style="flex:1;">
                             <h4>Le stylo — annoter sans rien créer</h4>
@@ -8593,21 +8625,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     doigt en pinçant, à la souris avec la molette. Le cadre, lui, ne bouge pas.</li>
                                 <li><strong>🔒 Verrouiller :</strong> Dernière étape : le document se fige et l'on
                                     dessine par-dessus sans le déranger.</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="help-tool-row">
-                        <div class="help-tool-visual"><canvas id="helpCanvasSetSquare" width="240"
-                                height="160"></canvas></div>
-                        <div class="help-tool-text">
-                            <h4>L'Équerre</h4>
-                            <ul>
-                                <li><strong>✋ Déplacer :</strong> Glisser le corps (partie vide).</li>
-                                <li><strong>🔄 Tourner :</strong> Aller sur les <b>graduations</b>.</li>
-                                <li><strong>🧲 Sur la règle :</strong> Coin posé sur les graduations de la règle,
-                                    l'équerre se colle en tournant, parallèle ou perpendiculaire.</li>
-                                <li><strong>↕️ Bouton glisser :</strong> Permet de glisser l'équerre le long de ses
-                                    graduations.</li>
                             </ul>
                         </div>
                     </div>
@@ -39906,11 +39923,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (Math.abs(f.k - 1) < 1e-6 && Math.abs(Math.abs(f.deg) - 180) < 0.5)
                             return `Place le symétrique ${N(f.p)} de ${N(f.source)} par rapport `
                                  + `au point ${N(f.centre)}.`;
-                        if (Math.abs(f.k - 1) < 1e-6 && Math.abs(Math.abs(f.deg) - 90) < 0.5)
-                            return `Trace la perpendiculaire à (${N(f.centre)}${N(f.source)}) `
-                                 + `passant par ${N(f.centre)}, puis place ${N(f.p)} sur cette `
-                                 + `perpendiculaire tel que ${N(f.centre)}${N(f.p)} = `
+                        if (Math.abs(f.k - 1) < 1e-6 && Math.abs(Math.abs(f.deg) - 90) < 0.5) {
+                            /* ON NE PARLE DE (AB) QUE SI (AB) EXISTE. « En fait tu
+                               as tracé d'abord [AB], puis la perpendiculaire à (AB)
+                               passant par A » : c'est l'ordre du carré, et c'est le
+                               bon. Dire « trace la perpendiculaire à (AB) » quand
+                               seuls les deux POINTS sont posés, c'est nommer une
+                               droite que l'élève n'a pas sous les yeux. On regarde
+                               donc la figure : le trait est-il là ? */
+                            const joint = this.entities.some(e =>
+                                (e instanceof Segment || e instanceof Line || e instanceof Ray)
+                                && ((e.p1 === f.centre && e.p2 === f.source)
+                                 || (e.p1 === f.source && e.p2 === f.centre)));
+                            const debut = joint
+                                ? `Trace la perpendiculaire à `
+                                : `Trace [${N(f.centre)}${N(f.source)}], puis la perpendiculaire à `;
+                            return `${debut}(${N(f.centre)}${N(f.source)}) passant par `
+                                 + `${N(f.centre)} ; place ${N(f.p)} sur cette perpendiculaire `
+                                 + `tel que ${N(f.centre)}${N(f.p)} = `
                                  + `${N(f.centre)}${N(f.source)} (un quart de tour ${sens}).`;
+                        }
                         const tour = `la rotation de centre ${N(f.centre)} et d'angle `
                                    + `${Math.abs(f.deg)}° ${sens}`;
                         return (Math.abs(f.k - 1) < 1e-6)
@@ -40361,6 +40393,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    rien tant qu'on est en pause : on repart exactement là où l'on
                    s'était arrêté, au milieu d'un geste s'il le faut. */
                 const tempo = (ms) => new Promise((ok, rate) => {
+                    /* LES SONDES N'ONT PAS D'YEUX. La visite dure trois minutes,
+                       et c'est voulu : chaque geste doit se voir. Une sonde qui la
+                       joue en entier dépasse la minute que le lanceur accorde à
+                       chacune. On lui laisse donc raccourcir les temps de PAUSE —
+                       ceux qui n'existent que pour laisser regarder —, jamais les
+                       gestes eux-mêmes : en dessous de trois dixièmes de seconde,
+                       c'est de la mécanique (un appui, un pas de tracé), et l'on
+                       n'y touche pas. Ce qui est mesuré reste donc ce qui se
+                       passe ; seule l'attente se comprime. */
+                    const f = this._demoTempoFacteur;
+                    if (f && f > 0 && f < 1 && ms > 300) ms = Math.max(300, ms * f);
                     let reste = ms, dernier = Date.now();
                     const tic = () => {
                         if (app._demo !== d || d.jeton !== jeton) return rate('demo-arret');
@@ -41021,16 +41064,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                       dit: 'On trace, et le logiciel relit la figure pour en écrire le programme de '
                          + 'construction — regardez le panneau de droite.',
                       faire: async (a, g) => {
+                          /* LE PANNEAU S'OUVRE AVANT, PAS APRÈS. Il ne s'ouvrait
+                             qu'une fois la figure finie, et la visite se terminait
+                             deux secondes plus tard en rendant la feuille : on ne
+                             voyait jamais l'énoncé. Ouvert d'abord, il se remplit
+                             SOUS LES YEUX pendant que le carré se construit —
+                             c'est justement ce qu'on veut montrer. */
+                          const ouvrir = (onglet) => {
+                              const boite = document.getElementById('instructionBox');
+                              if (boite && (boite.style.display === 'none'
+                                         || boite.style.display === '')) a.toggleInstructions();
+                              if (a.ongletEnonce) a.ongletEnonce(onglet);
+                              if (a.majProgramme) a.majProgramme();
+                          };
+                          ouvrir('figure');
+                          await g.tempo(900);
                           await g.phrase('Trace un carré ABCD de 4 cm de côté', true, false);
-                          g.cadrer(110);
+                          g.cadrer(140);
                           await g.rejeu();
-                      },
-                      apres: (a) => {
-                          const boite = document.getElementById('instructionBox');
-                          if (boite && (boite.style.display === 'none' || boite.style.display === '')) {
-                              a.toggleInstructions();
-                          }
-                          if (a.ongletEnonce) a.ongletEnonce('figure');
+                          ouvrir('figure');
+                          g.dire('L\'énoncé de la figure, écrit tout seul : c\'est ce que le '
+                               + 'logiciel a compris de ce qu\'on vient de tracer.');
+                          await g.tempo(5000);
+                          g.dire('Et le même, aux instruments : la marche à suivre, geste par '
+                               + 'geste, avec la règle, l\'équerre et le compas.');
+                          ouvrir('outils');
+                          await g.tempo(6000);
                       } },
                 ];
             }
@@ -42934,7 +42993,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 12h';
+        window.GM_VERSION = '2026-09-08 · 13h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

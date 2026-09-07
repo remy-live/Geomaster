@@ -607,18 +607,19 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      demi-tour, lui, EST une symétrie centrale : autant l'appeler par son nom. */
   const tours = await page.evaluate(() => {
     const app = window.app;
-    const un = (deg) => {
+    const un = (deg, trait) => {
       app.entities = []; app.historyPast = [];
       if (app.cslOublier) app.cslOublier();
       const A = new Point(500, 600, 'A'), B = new Point(800, 600, 'B');
       app.addEntity(A); app.addEntity(B);
+      if (trait) app.addEntity(new Segment(A, B, { color: '#000', width: 2 }));
       const D = new Point(0, 0, 'D', [B, A], null, 'rotation');
       /* transParam est en RADIANS — mesuré : lui passer 90 donnait « d'angle
          5157° », c'est-à-dire 90 radians. */
       D.transParam = deg * Math.PI / 180; D.update(); app.addEntity(D);
       return (app.programmeDeConstruction(false) || []).join(' | ');
     };
-    return { quart: un(90), demi: un(180), tiers: un(120) };
+    return { quart: un(90), quartTrace: un(90, true), demi: un(180), tiers: un(120) };
   });
   ck('un quart de tour se dit « perpendiculaire », pas « rotation de 90° »',
      /perpendiculaire à \(AB\)/.test(tours.quart) && !/rotation/.test(tours.quart)
@@ -626,6 +627,17 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      tours.quart);
   ck('  et le sens reste dit : deux points conviennent sur cette perpendiculaire',
      /quart de tour/.test(tours.quart) && /aiguilles/.test(tours.quart));
+  /* « En fait tu as tracé d'abord [AB], puis la perpendiculaire à (AB) passant
+     par A. » C'est l'ordre du carré, et c'est le bon : on ne nomme (AB) qu'une
+     fois le trait sur la feuille. Deux points posés ne font pas une droite. */
+  ck('  le trait est demandé d\'abord quand (AB) n\'existe pas encore',
+     /^Trace \[AB\], puis la perpendiculaire à \(AB\) passant par A ; place D/.test(
+         tours.quart.split(' | ').pop()),
+     tours.quart.split(' | ').pop());
+  ck('  mais pas quand [AB] est déjà tracé',
+     !/Trace \[AB\], puis/.test(tours.quartTrace)
+     && /Trace la perpendiculaire à \(AB\)/.test(tours.quartTrace),
+     tours.quartTrace.split(' | ').pop());
   ck('  un demi-tour se dit « symétrique par rapport au point »',
      /symétrique D de B par rapport au point A/.test(tours.demi), tours.demi);
   ck('  mais un angle quelconque reste une rotation',

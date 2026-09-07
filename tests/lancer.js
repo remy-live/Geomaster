@@ -11,6 +11,15 @@ const os = require('os');
 const DOSSIER = __dirname;
 const PARALLELE = Math.max(2, Math.min(6, os.cpus().length - 1));
 const DELAI = 240000;
+/* UNE SONDE QUI JOUE UNE VISITE GUIDÉE DURE CE QUE DURE LA VISITE. Celle de la
+   démonstration déroule douze étapes, chacune avec ses vrais gestes et ses vrais
+   rejeux ; elle raccourcit déjà les temps de pause — ceux qui n'existent que pour
+   laisser regarder — mais pas les gestes, et il lui faut deux minutes et demie.
+   Sous la charge des six sondes qui tournent en même temps, quatre minutes ne
+   suffisent pas toujours. On lui en accorde six, à elle seule : abaisser le délai
+   commun aurait masqué de vraies pannes ailleurs, l'élever pour tout le monde
+   aurait fait attendre six minutes chaque sonde réellement bloquée. */
+const DELAIS = { 'probe-demo.js': 360000 };
 
 const choisies = process.argv.slice(2);
 const sondes = (choisies.length ? choisies : fs.readdirSync(DOSSIER)
@@ -24,7 +33,7 @@ const lancer = (nom) => new Promise((resolve) => {
   let sortie = '';
   p.stdout.on('data', d => { sortie += d; });
   p.stderr.on('data', d => { sortie += d; });
-  const minuteur = setTimeout(() => { p.kill('SIGKILL'); }, DELAI);
+  const minuteur = setTimeout(() => { p.kill('SIGKILL'); }, DELAIS[nom] || DELAI);
   p.on('close', (code) => {
     clearTimeout(minuteur);
     resolve({ nom, code, sortie, ms: Date.now() - t0 });

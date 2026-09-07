@@ -1003,12 +1003,30 @@ Ce que la mesure a corrigé, à chaque tour :
   zone « déplacer » du rapporteur tombait pile dans la colonne de ses trois
   verrous, et le tirer ne le déplaçait pas ;
 - **la règle ne s'allongeait pas** : mesuré, elle passe de 400 à 506 px, et les
-  graduations suivent.
+  graduations suivent ;
+- **le disque de la main sautait à l'appui.** Il était centré par des marges
+  négatives valant la moitié de sa taille — mais la marge ne s'anime pas : à
+  l'instant de l'appui elle basculait d'un coup pendant que la taille se
+  réduisait doucement. Mesuré image par image : **11,3 px** d'écart. Centré par
+  `transform`, il ne bouge plus d'un pixel, quelle que soit sa taille ;
+- **on ne voyait pas l'énoncé relu à la fin.** Le panneau ne s'ouvrait qu'une
+  fois la figure finie, et la visite se terminait deux secondes plus tard en
+  rendant la feuille. Il s'ouvre maintenant **avant** : on le regarde se remplir
+  pendant que le carré se construit, puis la visite montre le même énoncé « aux
+  instruments » — cinq lignes, la marche à suivre geste par geste.
 
 Et un défaut trouvé au passage, qui ne concerne pas que la visite : un arc de
 compas dont le centre avait disparu — ce que laisse un rejeu arrêté en pleine
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
+
+### La trousse se lit d'un tenant
+
+*« Pour l'aide sur les instruments, il faut mettre les 4 instruments les uns à la
+suite des autres : l'équerre est toute seule en bas. »* Elle l'était : on lisait
+le compas, le rapporteur, la règle — puis le stylo, le croquis et le document de
+fond — et l'équerre enfin, après trois blocs qui n'ont rien à voir avec la
+trousse. Les quatre se suivent maintenant, chacun avec son dessin.
 
 ### Un quart de tour se dit « perpendiculaire »
 
@@ -1026,7 +1044,11 @@ même longueur reportée dessus — deux gestes que l'élève connaît :
 > aiguilles d'une montre)*.
 
 Le sens reste dit, entre parenthèses, parce qu'il y a bien deux points sur cette
-perpendiculaire et qu'il faut choisir. Un demi-tour, lui, **est** une symétrie
+perpendiculaire et qu'il faut choisir. Et — *« en fait tu as tracé d'abord [AB],
+puis la perpendiculaire à (AB) passant par A »* — **on ne nomme (AB) que si (AB)
+existe** : la phrase regarde la figure, et commence par *« Trace [AB], puis… »*
+tant que le trait n'y est pas. Deux points posés ne font pas une droite ; c'est
+l'ordre qu'observe déjà l'énoncé du carré. Un demi-tour, lui, **est** une symétrie
 centrale : autant l'appeler par son nom — *« Place le symétrique D de B par
 rapport au point A. »* Un angle quelconque reste une rotation, il n'y a rien de
 plus simple à en dire.

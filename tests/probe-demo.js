@@ -80,6 +80,13 @@ const ck = (nom, ok, detail) => {
            demi-seconde qui suit l'ouverture ; on désamorce la question au lieu
            de compter les millisecondes. */
         window.app.checkAutoSave = () => {};
+        /* La visite dure trois minutes, et c'est voulu : chaque geste doit se
+           voir. Le lanceur, lui, tue toute sonde au bout de quatre minutes. On
+           raccourcit donc les temps de PAUSE — ceux qui n'existent que pour
+           laisser regarder — et rien d'autre : les gestes, les événements
+           envoyés, les constructions et les rejeux se déroulent à leur vitesse
+           normale. C'est bien la visite qu'on mesure, pas une maquette. */
+        window.app._demoTempoFacteur = 0.28;
     });
 
     console.log('\n=== l\'onglet, et son sommaire écrit à partir des étapes ===');
@@ -121,6 +128,53 @@ const ck = (nom, ok, detail) => {
     ck('  et on l\'y manipule : on le déplace, on le tourne, on s\'en sert',
        manip.bouge >= 4 && manip.tourne >= 3 && manip.zone >= 3,
        JSON.stringify(manip));
+
+    console.log('\n=== la trousse se lit d\'un tenant ===');
+    /* « Pour l'aide sur les instruments, il faut mettre les 4 instruments les uns
+       à la suite des autres : l'équerre est toute seule en bas. » Elle l'était :
+       on lisait le compas, le rapporteur, la règle, puis le stylo, le croquis et
+       le document de fond — et l'équerre enfin, après trois blocs qui n'ont rien
+       à voir. La sonde tient l'ordre ET la continuité : entre le premier et le
+       dernier instrument, aucun autre bloc ne s'intercale. */
+    const trousse = await page.evaluate(() => {
+        const app = window.app;
+        const b = [...document.querySelectorAll('.help-tab-btn')]
+            .find(x => /instrument/i.test(x.textContent));
+        app.switchHelpTab('tools', b || document.querySelector('.help-tab-btn'));
+        const panneau = document.getElementById('tab-tools');
+        const blocs = [...panneau.querySelectorAll('.help-tool-row')];
+        const titre = (bl) => { const h = bl.querySelector('h4'); return h ? h.textContent.trim() : '?'; };
+        const rangs = blocs.map((bl, i) => ({ i, titre: titre(bl),
+            instrument: !!bl.querySelector('canvas[id^="helpCanvas"]') }));
+        const dedans = rangs.filter(r => r.instrument).map(r => r.i);
+        return { ordre: rangs.filter(r => r.instrument).map(r => r.titre),
+                 premier: dedans[0], dernier: dedans[dedans.length - 1],
+                 combien: dedans.length,
+                 entre: rangs.filter(r => r.i > dedans[0] && r.i < dedans[dedans.length - 1]
+                                       && !r.instrument).map(r => r.titre) };
+    });
+    ck('les quatre instruments sont là', trousse.combien === 4,
+       trousse.ordre.join(' · '));
+    ck('  et ils se suivent sans rien entre eux',
+       trousse.entre.length === 0 && trousse.dernier - trousse.premier === 3,
+       trousse.entre.length ? 'intercalé(s) : ' + trousse.entre.join(', ')
+                            : 'blocs ' + trousse.premier + ' à ' + trousse.dernier);
+    /* Et chacun montre son dessin : un bloc rangé au bon endroit mais vide ne
+       vaut pas mieux qu'un bloc égaré. */
+    await page.waitForTimeout(700);
+    const dessins = await page.evaluate(() => {
+        window.app.renderHelpTools();
+        return ['Compass', 'Protractor', 'Ruler', 'SetSquare'].map(n => {
+            const c = document.getElementById('helpCanvas' + n);
+            if (!c) return { n, px: -1 };
+            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            let px = 0;
+            for (let i = 3; i < d.length; i += 4) if (d[i]) px++;
+            return { n, px };
+        });
+    });
+    ck('  et chacun est dessiné', dessins.every(d => d.px > 500),
+       dessins.map(d => d.n + ' ' + d.px + ' px').join(', '));
 
     console.log('\n=== la main désigne des icônes qui EXISTENT ===');
     /* Les sélecteurs que la visite montre sont écrits en dur dans les étapes.
@@ -204,9 +258,13 @@ const ck = (nom, ok, detail) => {
         /* On attend que l'étape ait FINI ses gestes — elle pose alors son
            minuteur d'enchaînement — plutôt qu'un temps deviné : une étape qui
            trace un chat au compas ne dure pas ce que dure un clic. */
+        /* On guette de PRÈS. À 500 ms d'intervalle, une étape raccourcie pouvait
+           se terminer ET enchaîner sur la suivante entre deux coups d'œil : on
+           mesurait alors une étape à peine commencée, et l'on croyait qu'elle
+           n'avait rien construit. */
         let attente = 0;
         while (attente < 75000) {
-            await page.waitForTimeout(500); attente += 500;
+            await page.waitForTimeout(160); attente += 160;
             const e = await page.evaluate(() => {
                 const d = window.app._demo;
                 return { i: d ? d.i : -1, pret: !!(d && d.fini) };
@@ -307,6 +365,22 @@ const ck = (nom, ok, detail) => {
     ck('  chaque étape repart avec le crayon de l\'utilisateur',
        vus.filter((v, i) => i > 1 && v.style !== vus[0].style).length === 0,
        vus.map(v => JSON.parse(v.style).color).filter((c, i, t) => t.indexOf(c) === i).join(' '));
+    /* « On ne voit pas l'énoncé magique à la fin de la démo. » Le panneau ne
+       s'ouvrait qu'une fois la figure finie, et la visite se terminait deux
+       secondes plus tard en rendant la feuille : il passait sans qu'on ait le
+       temps de le lire. Il s'ouvre maintenant AVANT, et se remplit sous les yeux. */
+    const dernier = await page.evaluate(() => {
+        const b = document.getElementById('instructionBox');
+        const t = document.getElementById('enonceGenereTexte');
+        const r = b ? b.getBoundingClientRect() : null;
+        return { ouvert: !!(r && r.width > 40 && r.left < innerWidth && r.right > 0),
+                 onglet: window.app._ongletEnonce,
+                 lignes: t ? t.querySelectorAll('li').length : 0,
+                 texte: t ? t.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '' };
+    });
+    ck('  et la dernière étape MONTRE l\'énoncé relu, ouvert et rempli',
+       dernier.ouvert && dernier.lignes >= 3,
+       dernier.lignes + ' lignes, onglet « ' + dernier.onglet + ' » : ' + dernier.texte);
     ck('  chaque instrument sorti est VRAIMENT manipulé',
        sortis.length >= 4 && inertes.length === 0,
        sortis.map(o => o.n + ' ' + o.d + 'px/' + o.a + 'rad').join(', ')
@@ -388,10 +462,10 @@ const ck = (nom, ok, detail) => {
        montait et descendait sous le texte, et l'œil suivait la barre au lieu de
        la figure. */
     const hauteurs = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
         hauteurs.push(await page.evaluate(() =>
             Math.round(document.getElementById('demoBar').getBoundingClientRect().height)));
-        await page.waitForTimeout(900);
+        await page.waitForTimeout(600);
     }
     ck('elle garde la même hauteur d\'un bout à l\'autre',
        new Set(hauteurs).size === 1, [...new Set(hauteurs)].join(' / ') + ' px');
