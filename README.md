@@ -896,6 +896,29 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### Une aide qui se montre au lieu de se lire
+
+*« Dans l'aide on pourrait avoir un mode démo où ça balaye les fonctions avec
+une démo. »* Les quatre onglets de l'aide **décrivent** le logiciel ; un
+cinquième le **fait**. Huit étapes jouées l'une après l'autre, sur la feuille :
+une phrase qui suffit, la même phrase aux instruments, la médiatrice au compas,
+l'hexagone dont le rayon se reporte six fois, un symétrique qui se construit,
+l'étoile à cinq branches, un chat en huit cercles, et l'énoncé qui se rédige
+tout seul dans le panneau de droite.
+
+Rien n'y est simulé : **chaque étape est une vraie consigne**, exécutée pour de
+bon et rejouée geste par geste. C'est ce qui fait qu'une visite guidée ne peut
+pas mentir — le jour où une consigne cesse de marcher, la visite s'en aperçoit
+la première (et la sonde aussi). Et le sommaire affiché dans l'aide est écrit
+**à partir** des étapes, pas recopié à côté : une ligne ajoutée au programme
+s'ajoute toute seule à l'aide.
+
+La figure en cours est mise de côté au départ — on prévient — et **remise en
+place à l'objet près** à la sortie, quelle que soit la façon d'en sortir : une
+visite ne coûte pas son travail à qui la demande. La barre de commande (⏮ ⏸ ⏭ ✕)
+vit au-dessus de l'interface que le rejeu verrouille, sans quoi une aide
+deviendrait une prison.
+
 ### Une droite se déplace, et elle garde sa pente
 
 *« Pourrait-on bouger une droite (on garde sa pente) ? »* On ne le pouvait pas :
@@ -1809,7 +1832,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 102 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 103 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
