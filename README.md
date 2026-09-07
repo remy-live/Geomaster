@@ -896,6 +896,35 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### L'angle droit n'est pas un objet de plus
+
+*« J'ai deux angles droits !!!! »* — deux petits carrés superposés au même
+croisement, décalés de quelques pixels. Puis le diagnostic, qui valait mieux que
+le mien : *« C'est quand tu traces une perpendiculaire d'un schéma et que l'on
+met un angle. Il ne faut pas qu'il y ait les deux : l'angle droit est un dessin
+particulier de l'angle. »*
+
+Exactement cela. La perpendiculaire code déjà son coin ; on repose un angle au
+même endroit ; et comme il vaut 90°, il se dessine lui aussi en petit carré. Deux
+objets pour une seule chose à dire.
+
+Une première garde comparait les sommets au **demi-pixel** — seul un recouvrement
+exact était vu. Or personne ne clique au pixel près : mesuré, **un pixel** d'écart
+suffisait à faire réapparaître les deux carrés. La garde prend maintenant la
+distance d'accrochage de l'application, celle à laquelle un point s'attrape à la
+souris : ce qui est « le même point » pour la main est le même point pour la
+figure. Les côtés doivent s'accorder à 6° près — ce qu'un sommet posé à la main
+décale déjà, et très loin des 90° qui séparent les quatre angles d'un croisement.
+
+Et le geste n'est pas perdu pour autant : ce que le nouvel angle dit de **plus** —
+sa couleur, sa valeur affichée, son remplissage — passe sur celui qui est déjà
+là. Un seul angle, mais c'est bien le sien.
+
+`tests/probe-angle-unique.js` tient les deux bouts : un coin déjà codé n'accepte
+pas de second angle jusqu'à 10 px d'écart, tandis que les angles complémentaires,
+adjacents, supplémentaires, opposés par le sommet — et les quatre angles d'un
+croisement — vivent tous, parce que leurs côtés sont différents.
+
 ### L'arc s'affiche là où le compas l'a tracé
 
 *« Pour le dessin du triangle et ses médiatrices, l'endroit où le compas trace
@@ -1744,7 +1773,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 100 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 101 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

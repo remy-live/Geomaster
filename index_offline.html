@@ -23063,18 +23063,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    tous les deux. */
                 if (entity instanceof Angle && entity.p1 && entity.p2 && entity.p3) {
                     const dir = (p, s) => Math.atan2(p.y - s.y, p.x - s.x);
+                    /* Six degrés : c'est ce qu'un sommet posé à la main, à
+                       quelques pixels du croisement, décale déjà les côtés — et
+                       c'est loin des 90° qui séparent les quatre angles d'un
+                       croisement, ou des vingt et quelques d'angles adjacents. */
                     const proche = (u, v) =>
-                        Math.abs(((u - v) * 180 / Math.PI + 540) % 360 - 180) < 1;
+                        Math.abs(((u - v) * 180 / Math.PI + 540) % 360 - 180) < 6;
                     const s0 = entity.p2;
                     const a0 = dir(entity.p1, s0), b0 = dir(entity.p3, s0);
-                    const deja = this.entities.some((e) => {
+                    /* MÊME COIN, MÊMES CÔTÉS : MÊME ANGLE. On comparait les
+                       sommets au DEMI-PIXEL — donc seul un recouvrement exact
+                       était vu. Or l'élève qui repose un angle sur une
+                       perpendiculaire déjà codée ne clique pas au pixel près :
+                       mesuré, un pixel d'écart suffisait à avoir les deux petits
+                       carrés l'un sur l'autre. On prend la distance d'accrochage
+                       de l'application — celle à laquelle un point s'attrape à la
+                       souris : ce qui est « le même point » pour la main est le
+                       même point pour la figure.
+
+                       Les quatre angles d'un croisement, les deux angles
+                       adjacents ou complémentaires d'un même sommet ont des côtés
+                       DIFFÉRENTS : ils ne se ressemblent pas et vivent tous. */
+                    const deja = this.entities.find((e) => {
                         if (!(e instanceof Angle) || !e.p1 || !e.p2 || !e.p3) return false;
-                        if (Math.hypot(e.p2.x - s0.x, e.p2.y - s0.y) > 0.5) return false;
+                        if (Math.hypot(e.p2.x - s0.x, e.p2.y - s0.y) > 12) return false;
                         const a1 = dir(e.p1, e.p2), b1 = dir(e.p3, e.p2);
                         return (proche(a0, a1) && proche(b0, b1))
                             || (proche(a0, b1) && proche(b0, a1));
                     });
-                    if (deja) return;
+                    if (deja) {
+                        /* LE GESTE N'EST PAS PERDU POUR AUTANT. Un angle droit
+                           n'est pas un objet de plus : c'est la façon de dessiner
+                           un angle de 90°. Poser un angle sur un coin déjà codé
+                           n'en crée donc pas un second — mais ce que le nouveau
+                           dit de PLUS (sa couleur, sa valeur affichée, son
+                           remplissage, son codage) passe sur celui qui est là. */
+                        if (entity.color) deja.color = entity.color;
+                        if (entity.coding) deja.coding = entity.coding;
+                        if (entity.showValue === true) deja.showValue = true;
+                        if (entity.isFilled) deja.isFilled = true;
+                        if (entity.arcCount > 1) deja.arcCount = entity.arcCount;
+                        return;
+                    }
                 }
                 /* RANGER DEUX FOIS LE MÊME INSTRUMENT NE LE RANGE PAS DEUX FOIS.
                    Un bâtisseur qui range sa règle après chaque côté, et une fois
@@ -41418,7 +41448,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 5h';
+        window.GM_VERSION = '2026-09-08 · 6h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais
