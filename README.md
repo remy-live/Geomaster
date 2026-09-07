@@ -899,25 +899,61 @@ appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 ### Une aide qui se montre au lieu de se lire
 
 *« Dans l'aide on pourrait avoir un mode démo où ça balaye les fonctions avec
-une démo. »* Les quatre onglets de l'aide **décrivent** le logiciel ; un
-cinquième le **fait**. Huit étapes jouées l'une après l'autre, sur la feuille :
-une phrase qui suffit, la même phrase aux instruments, la médiatrice au compas,
-l'hexagone dont le rayon se reporte six fois, un symétrique qui se construit,
-l'étoile à cinq branches, un chat en huit cercles, et l'énoncé qui se rédige
-tout seul dans le panneau de droite.
+une démo. »* Puis, la première version vue tourner : *« Il faut montrer où on
+appuie sur l'icône, ce qui apparaît […] il faut montrer la plupart des outils,
+le crayon magique, les constructions magiques […] il faut faire rêver. »*
 
-Rien n'y est simulé : **chaque étape est une vraie consigne**, exécutée pour de
-bon et rejouée geste par geste. C'est ce qui fait qu'une visite guidée ne peut
-pas mentir — le jour où une consigne cesse de marcher, la visite s'en aperçoit
-la première (et la sonde aussi). Et le sommaire affiché dans l'aide est écrit
-**à partir** des étapes, pas recopié à côté : une ligne ajoutée au programme
-s'ajoute toute seule à l'aide.
+Les quatre onglets de l'aide **décrivent** le logiciel ; un cinquième le
+**fait**. Treize étapes jouées l'une après l'autre, environ trois minutes et
+demie : les outils un par un, la phrase écrite dans la barre du haut, la même
+phrase aux instruments, les quatre instruments posés sur la feuille, le crayon
+magique, le tiroir des constructions magiques, le cercle circonscrit, les
+transformations, l'hexagone au compas, l'étoile à cinq branches, la rosace, un
+chat en huit cercles, et l'énoncé qui se rédige tout seul.
 
-La figure en cours est mise de côté au départ — on prévient — et **remise en
-place à l'objet près** à la sortie, quelle que soit la façon d'en sortir : une
-visite ne coûte pas son travail à qui la demande. La barre de commande (⏮ ⏸ ⏭ ✕)
-vit au-dessus de l'interface que le rejeu verrouille, sans quoi une aide
-deviendrait une prison.
+Deux principes, et tout le reste en découle.
+
+**Rien n'est simulé.** Aucune capture, aucun film, aucun faux bouton : une main
+— le halo jaune des démonstrations enregistrées — va jusqu'à la vraie icône,
+l'allume, appuie ; la phrase s'écrit lettre à lettre dans la vraie barre ; le
+carré tremblé du crayon magique est tracé point par point sur la vraie feuille,
+et c'est le vrai reconnaisseur qui le redresse. C'est ce qui fait qu'une visite
+guidée ne peut pas mentir — le jour où une consigne cesse de marcher, la visite
+s'en aperçoit la première (et la sonde aussi, qui vérifie en plus que **chaque
+icône désignée existe** : une visite qui montre un bouton absent est pire qu'une
+visite absente).
+
+**On voit où on appuie.** Dire « on prend le compas » ne montre rien. La main va
+jusqu'à l'icône du compas, cette icône s'allume, la main appuie — et le compas
+paraît. Un geste, un endroit, un résultat.
+
+Le sommaire affiché dans l'aide est écrit **à partir** des étapes, pas recopié à
+côté : une ligne ajoutée au programme s'ajoute toute seule à l'aide. La figure
+en cours est mise de côté au départ — on prévient — et **remise en place à
+l'objet près** à la sortie, avec le cadrage, la vitesse de rejeu et les réglages
+du tiroir magique. La barre de commande (⏮ ⏸ ⏭ ✕) vit au-dessus de l'interface
+que le rejeu verrouille, sans quoi une aide deviendrait une prison.
+
+Trois choses mesurées en la regardant tourner, et corrigées :
+
+- **la médiatrice sortait du cadre.** C'est la figure la plus large de la visite
+  — le segment, quatre arcs qui débordent de part et d'autre, et la droite qui
+  traverse tout : 1298 px de large pour 1292 px visibles. Chaque étape cadre
+  maintenant sur sa figure ;
+- **une construction magique laisse le rejeu en boucle**, et c'est fait exprès :
+  on la regarde se refaire autant de fois qu'on veut. Mais la boucle débordait
+  sur l'étape suivante — à partir de la médiatrice, le rejeu ne s'arrêtait plus
+  jamais, et la visite passait de trois minutes et demie à treize ;
+- **le trait à main levée n'est pas un objet, c'est de l'encre.** Quitter
+  l'étape du crayon magique pendant qu'il dessine laissait le trait bleu à moitié
+  tracé sur la feuille : on le retrouvait en travers de la rosace, six étapes
+  plus loin.
+
+Et un défaut trouvé au passage, qui ne concerne pas que la visite : un arc de
+compas dont le centre avait disparu — ce que laisse un rejeu arrêté en pleine
+construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
+automatique, silencieusement, au moment précis où l'on en aurait eu besoin. Un
+arc incomplet se laisse tomber comme un segment sans extrémités.
 
 ### Une droite se déplace, et elle garde sa pente
 
