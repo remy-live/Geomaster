@@ -896,6 +896,42 @@ relisait « ACDFG ». Les noms des sommets sont donc **réservés d'abord** ; le
 points d'appui prennent ce qui reste, et l'énoncé ne les décrit pas — ils
 appartiennent à la construction, qui se voit à l'écran, pas à la figure.
 
+### Une droite se déplace, et elle garde sa pente
+
+*« Pourrait-on bouger une droite (on garde sa pente) ? »* On ne le pouvait pas :
+on ne prenait que ses extrémités — ce qui la fait **pivoter**, pas glisser — et
+pour la translater il fallait déplacer A puis B du même vecteur, à la main, sans
+se tromper. Mesuré : tirée par son milieu, la droite ne bougeait pas d'un pixel.
+
+On la prend maintenant par son **trait**, et ses deux points partent ensemble :
+la pente est conservée *par construction*, puisque le vecteur est le même pour
+les deux. Deux garde-fous : seuls les traits dont les deux extrémités sont
+**libres** se prennent ainsi — une droite bâtie sur un milieu ou sur un
+croisement appartient à ce qui la porte — et le cadre de sélection survit, il
+naît toujours d'un appui dans le vide.
+
+Au passage, une zone morte disparaît : **au milieu exact d'un segment**, l'aimant
+du milieu offrait un point que le curseur ne sait pas déplacer, et le clic ne
+faisait donc rien du tout. C'est justement là que la main va chercher le trait.
+
+### Les icônes des transformations parlent la même langue
+
+Les cinq pictogrammes ne partageaient aucune grammaire : les uns en aplats pâles
+à 30 % d'opacité, les autres au trait ; certains montraient la figure et son
+image, d'autres seulement l'appareil de la transformation. Et à 20 px, des
+pointillés « 2 2 » deviennent de la bouillie — la symétrie centrale n'était plus
+qu'une tache.
+
+Une règle pour les cinq : **la figure au trait plein, son image en pointillés**, et
+l'appareil de la transformation — un axe, un centre, une flèche, un arc, un
+rayon.
+
+La rotation fait exception, et c'est mesuré : un triangle en pointillés traversé
+par l'arc devient un gribouillis à la taille réelle. **Trois marques tiennent
+dans 20 px, pas quatre** — elle montre donc la figure, le centre et l'arc, qui dit
+déjà le mouvement. L'homothétie a perdu l'un de ses deux rayons pour la même
+raison.
+
 ### L'angle droit n'est pas un objet de plus
 
 *« J'ai deux angles droits !!!! »* — deux petits carrés superposés au même
@@ -1773,7 +1809,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 101 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 102 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

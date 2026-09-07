@@ -9131,49 +9131,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <div class="magic-divider"></div>
                         <div class="magic-grid">
                             <div class="magic-grid-item" onclick="app.setTool('magic_sym_axiale')" data-libelle="Sym. axiale" data-tooltip="Symétrie Axiale">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <line x1="12" y1="2" x2="12" y2="22" />
-                                    <polygon points="4,6 8,12 4,18" fill="currentColor" stroke="none" opacity="0.3" />
-                                    <polygon points="20,6 16,12 20,18" fill="currentColor" stroke="none" opacity="0.3" />
-                                    <line x1="8" y1="12" x2="16" y2="12" stroke-dasharray="2 2" />
+                                <!-- LES CINQ TRANSFORMATIONS PARLENT LA MÊME LANGUE :
+                                     la figure au TRAIT PLEIN, son image en POINTILLÉS,
+                                     et l'appareil de la transformation — un axe, un
+                                     centre, une flèche, un arc, un rayon. Elles ne
+                                     l'avaient pas : les unes en aplats pâles à 30 %,
+                                     les autres au trait ; certaines montraient la
+                                     figure et son image, d'autres seulement
+                                     l'appareil. Et à 20 px, des pointillés « 2 2 »
+                                     deviennent de la bouillie — la symétrie centrale
+                                     n'était plus qu'une tache. -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+                                    <line x1="12" y1="2.5" x2="12" y2="21.5" />
+                                    <polygon points="3.5,6.5 10,12 3.5,17.5" />
+                                    <polygon points="20.5,6.5 14,12 20.5,17.5" stroke-dasharray="3 2" />
                                 </svg>
                             </div>
                             <div class="magic-grid-item" onclick="app.setTool('magic_sym_centrale')" data-libelle="Sym. centrale" data-tooltip="Symétrie Centrale">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M 5 5 L 9 5 L 5 9 Z" fill="currentColor" stroke="none" opacity="0.3"/>
-                                    <path d="M 19 19 L 15 19 L 19 15 Z" fill="currentColor" stroke="none" opacity="0.3"/>
-                                    <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-                                    <line x1="7" y1="7" x2="17" y2="17" stroke-dasharray="2 2" />
+                                <!-- Le demi-tour se voit : l'image est la figure
+                                     retournée de l'autre côté du centre. -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+                                    <polygon points="3,5 10,5 3,12" />
+                                    <polygon points="21,19 14,19 21,12" stroke-dasharray="3 2" />
+                                    <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
                                 </svg>
                             </div>
                             <!-- Une flèche, et la même forme deux fois : c'est ce que
                                  fait une translation, glisser sans tourner. -->
                             <div class="magic-grid-item" onclick="app.setTool('magic_translation')" data-libelle="Translation" data-tooltip="Translation : la figure, puis le segment qui donne le vecteur">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <polygon points="3,16 8,16 5.5,10" />
-                                    <polygon points="15,16 20,16 17.5,10" stroke-dasharray="2 2" />
-                                    <path d="M9.5 20h6" />
-                                    <path d="M13.5 18.2 15.8 20l-2.3 1.8" />
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+                                    <polygon points="2.5,13.5 8.5,13.5 5.5,7.5" />
+                                    <polygon points="14,13.5 20,13.5 17,7.5" stroke-dasharray="3 2" />
+                                    <path d="M4 19.5H19" />
+                                    <path d="M16.4 17.2 19.6 19.5 16.4 21.8" />
                                 </svg>
                             </div>
-                            <!-- Un arc fléché autour d'un centre marqué. -->
+                            <!-- Un arc fléché autour d'un centre marqué, et la figure
+                                 qu'on fait tourner. Celle-ci est la SEULE des cinq à
+                                 ne pas montrer son image : mesuré à la taille réelle,
+                                 un triangle en pointillés traversé par l'arc devient
+                                 un gribouillis. Trois marques tiennent dans 20 px,
+                                 pas quatre — et l'arc dit déjà le mouvement. -->
                             <div class="magic-grid-item" onclick="app.setTool('magic_rotation')" data-libelle="Rotation" data-tooltip="Rotation : la figure, puis le centre">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none" />
-                                    <path d="M12 13 L19 13" />
-                                    <path d="M12 13 L6.5 8.5" stroke-dasharray="2 2" />
-                                    <path d="M18 8.6 A 8 8 0 0 0 6.5 8.5" />
-                                    <path d="M4.6 6.6 6.4 8.7 8.7 7.2" />
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+                                    <polygon points="13,21 21,21 17,14" />
+                                    <path d="M14.5 10.2 A 9.5 9.5 0 0 0 3.2 14.5" />
+                                    <path d="M12.4 8.2 15 10.1 13.3 12.7" />
+                                    <circle cx="11" cy="18.5" r="1.8" fill="currentColor" stroke="none" />
                                 </svg>
                             </div>
                             <!-- Deux triangles emboîtés depuis un même centre : la
                                  figure et son agrandissement. -->
                             <div class="magic-grid-item" onclick="app.setTool('magic_homothetie')" data-libelle="Homothétie" data-tooltip="Homothétie : la figure, puis le centre">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M3 21 L15 3.5 M3 21 L22 12.5" stroke-width="0.9" opacity="0.5" />
-                                    <polygon points="6.6,17.6 12.5,17.6 9.5,13.3" />
-                                    <polygon points="11,12.5 22,12.5 15,3.5" stroke-dasharray="2.5 2" />
-                                    <circle cx="3" cy="21" r="1.5" fill="currentColor" stroke="none" />
+                                <!-- UN seul rayon : deux brouillaient le dessin. -->
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+                                    <path d="M3.5 20.5 17.5 7.5" opacity="0.5" stroke-width="1" />
+                                    <polygon points="7.5,18.5 11.5,18.5 9.5,15" />
+                                    <polygon points="11.5,15.5 20,15.5 15.8,8.2" stroke-dasharray="3 2" />
+                                    <circle cx="3.5" cy="20.5" r="1.7" fill="currentColor" stroke="none" />
                                 </svg>
                             </div>
                         </div>
@@ -24538,6 +24553,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (toolName !== 'move') {
                     this.cadreSelection = null;
                     this.deplaceSelection = null;
+                    this.deplaceTrait = null;
                     this.viderSelection();
                 }
                 this.currentTool = toolName;
@@ -28572,8 +28588,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             return;
                         }
                     }
-                    /* Rien sous le doigt : c'est un cadre qui commence. Maj
-                       ajoute à la sélection au lieu de la remplacer. */
+                    /* UNE DROITE SE DÉPLACE, ET ELLE GARDE SA PENTE. On ne
+                       pouvait la bouger qu'en tirant A ou B — ce qui la fait
+                       PIVOTER. Pour la translater il fallait déplacer les deux
+                       extrémités du même vecteur, à la main, sans se tromper.
+                       Mesuré : tirée par son milieu, la droite ne bougeait pas
+                       d'un pixel.
+
+                       On la prend maintenant par son trait, et ses deux points
+                       partent ensemble : la pente est conservée par construction,
+                       puisque le vecteur est le même pour les deux. Seuls les
+                       traits dont les DEUX extrémités sont libres se prennent
+                       ainsi — une droite bâtie sur un milieu ou sur un croisement
+                       appartient à ce qui la porte, et se déplace en déplaçant ce
+                       qui la porte. */
+                    /* Le point le plus proche n'est pas toujours SAISISSABLE :
+                       l'aimant du milieu en offre un au beau milieu de chaque
+                       segment, et celui-là a deux parents — le curseur ne sait pas
+                       le déplacer, et le clic ne faisait donc RIEN. Une zone morte,
+                       exactement là où la main va chercher le trait. On prend le
+                       trait dans ce cas aussi. */
+                    const saisissable = closestPoint && closestPoint.parents.length !== 2;
+                    if (!saisissable && !clickedText && !targetWidget) {
+                        const trait = this.entities.find(o =>
+                            (o instanceof Segment || o instanceof Ray || o instanceof Line)
+                            && o.p1 && o.p2 && o.visible !== false
+                            && !(o.hidden === true && !this.showHidden)
+                            && !this.estTraceDeConstruction(o)
+                            && o.isNear(x, y));
+                        if (trait && !(trait.p1.parents || []).length
+                                  && !(trait.p2.parents || []).length) {
+                            this.saveState();
+                            /* La position BRUTE, pas celle de l'aimant : voir le
+                               déplacement en bloc, juste au-dessus. Un trait qui
+                               frôle un point ne doit pas sauter dessus. */
+                            this.deplaceTrait = { objet: trait, x: mousePos.x, y: mousePos.y,
+                                                  bouge: false };
+                            this.canvas.style.cursor = 'move';
+                            e.preventDefault();
+                            this.render();
+                            return;
+                        }
+                    }
                     if (!closestPoint && !clickedText && !targetWidget) {
                         this.cadreSelection = { x0: x, y0: y, x1: x, y1: y,
                                                 ajout: !!e.shiftKey };
@@ -29530,6 +29586,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.render();
                     return;
                 }
+                if (this.deplaceTrait) {
+                    const t = this.deplaceTrait;
+                    const dx = rawMouse.x - t.x, dy = rawMouse.y - t.y;
+                    if (dx || dy) {
+                        [t.objet.p1, t.objet.p2].forEach((p) => { p.x += dx; p.y += dy; });
+                        this.emporterRayons(t.objet.p1, dx, dy);
+                        this.emporterRayons(t.objet.p2, dx, dy);
+                        this.updateDependents();
+                        t.x = rawMouse.x; t.y = rawMouse.y; t.bouge = true;
+                        this.render();
+                    }
+                    return;
+                }
                 if (this.deplaceSelection) {
                     /* LA FIGURE TREMBLAIT. Le déplacement suivait la position
                        AIMANTÉE du curseur : dès qu'on passait à moins de 12 px
@@ -29670,9 +29739,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.render();
                     return;
                 }
+                if (this.deplaceTrait) {
+                    const bouge = this.deplaceTrait.bouge;
+                    this.deplaceTrait = null;
+                    if (bouge) { this.saveState(); this.render(); }
+                    return;
+                }
                 if (this.deplaceSelection) {
                     const bouge = this.deplaceSelection.bouge;
                     this.deplaceSelection = null;
+                    this.deplaceTrait = null;
                     if (bouge) { this.saveState(); this.render(); }
                     return;
                 }
@@ -41448,7 +41524,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 6h';
+        window.GM_VERSION = '2026-09-08 · 7h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais
