@@ -1632,6 +1632,12 @@
             color: #f1f5f9;
             font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
         }
+        /* La barre passe en haut quand ce qu'on désigne est en bas — sur
+           téléphone, la bande des outils vit exactement là où elle se pose. */
+        #demoBar.en-haut {
+            bottom: auto;
+            top: 8px;
+        }
         #demoBar .demo-rang {
             flex: 0 0 auto;
             font-size: 12px;
@@ -1717,10 +1723,37 @@
         }
         #demoBar .demo-boutons button:hover { background: rgba(255, 255, 255, 0.24); }
         #demoBar .demo-boutons #demoStop:hover { background: #dc2626; }
+        /* SUR TÉLÉPHONE, LA BARRE PREND TOUTE LA LARGEUR ET GARDE SON TEXTE.
+           Elle était rangée sur une ligne, comme sur un écran d'ordinateur : le
+           rang, le texte et quatre boutons dans 390 px. La phrase avait donc été
+           SUPPRIMÉE — or c'est elle qui explique ce qu'on regarde, et une visite
+           guidée sans commentaire n'est plus qu'un film muet. On empile : le rang
+           et le titre en haut, la phrase en dessous, les boutons sur leur propre
+           rangée, larges et espacés pour le doigt. */
         @media (max-width: 620px) {
-            #demoBar { bottom: 12px; gap: 8px; padding: 8px 10px; }
-            #demoBar #demoDit { display: none; }
-            #demoBar .demo-boutons button { width: 30px; height: 30px; font-size: 14px; }
+            #demoBar {
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+                transform: none;
+                max-width: none;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 9px 11px 8px;
+            }
+            #demoBar .demo-rang { order: 1; }
+            #demoBar .demo-texte { order: 2; flex: 1 1 auto; }
+            #demoBar .demo-boutons { order: 3; flex: 1 0 100%; justify-content: space-between; }
+            #demoBar .demo-boutons button { flex: 1 1 auto; height: 38px; font-size: 15px; }
+            #demoBar #demoTitre { white-space: normal; height: auto; }
+            #demoBar #demoDit {
+                display: -webkit-box;
+                height: auto;
+                max-height: 51px;
+                -webkit-line-clamp: 3;
+            }
+            #demoBar #demoCurseur { height: 10px; margin: 10px 0 2px; }
+            #demoBar #demoCurseur::-webkit-slider-thumb { width: 18px; height: 18px; }
         }
 
         /* LA MAIN DE LA VISITE. Dire « on appuie sur l'icône du compas » ne
@@ -2332,6 +2365,22 @@
             background: #e8eaed
         }
 
+        /* LES CINQ ONGLETS TIENNENT DANS L'ÉCRAN. Sur un téléphone ils
+           demandaient 413 px pour 354 disponibles : « Démonstration » — celui de
+           la visite guidée, justement — était coupé au bord, et rien ne disait
+           qu'il fallait faire glisser pour l'atteindre. Ils passent à la ligne,
+           trois puis deux, plutôt que de déborder. */
+        @media (max-width: 620px) {
+            .help-tabs { flex-wrap: wrap; }
+            .help-tab-btn {
+                flex: 1 1 33%;
+                min-width: 33%;
+                padding: 9px 4px;
+                font-size: 13px;
+                line-height: 1.25;
+            }
+        }
+
         .help-tab-btn.active {
             color: #2980b9;
             border-bottom: 3px solid #2980b9;
@@ -2388,6 +2437,18 @@
 
         .help-tool-row:last-child {
             border-bottom: none
+        }
+
+        /* SUR TÉLÉPHONE, LE DESSIN AU-DESSUS DU TEXTE. Le canevas de 240 px et la
+           colonne de texte côte à côte réclament plus que les 390 px d'un
+           téléphone : la liste des gestes du compas débordait de 22 px à droite,
+           et l'on perdait la fin de chaque ligne. On empile, et le dessin se met à
+           la largeur qu'on lui laisse. */
+        @media (max-width: 620px) {
+            .help-tool-row { flex-direction: column; gap: 10px; }
+            .help-tool-visual { flex: 0 0 auto; width: 100%; padding: 6px 0; }
+            .help-tool-visual canvas { max-width: 100%; height: auto; }
+            .help-tool-text { width: 100%; }
         }
 
         .help-tool-visual {
@@ -8111,14 +8172,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             <strong>Rien n'est simulé</strong> : aucune image, aucun film. Une
                             main va jusqu'à la vraie icône, l'allume, appuie — et vous voyez
                             ce que ça fait.</p>
+                        <!-- LE BOUTON D'ABORD, LE PROGRAMME ENSUITE. Il était sous les
+                             douze lignes du sommaire : sur un téléphone, on ouvrait
+                             l'onglet de la visite guidée et l'on ne voyait pas de quoi
+                             la lancer — il fallait deviner qu'il fallait faire défiler.
+                             Ce qu'on vient chercher ici, c'est le bouton. -->
+                        <button class="modal-btn modal-confirm" style="margin:4px 0 16px;"
+                            onclick="app.demoDemarrer()">▶ Lancer la démonstration</button>
                         <ol id="demoSommaire" style="margin:8px 0 14px 18px; line-height:1.7;"></ol>
                         <p style="color:#64748b; font-size:13px;">⏮ ⏸ ⏭ et le curseur de la
                             barre pour aller à votre rythme et où vous voulez, ✕ pour sortir.
                             La pause suspend : on repart où l'on s'était arrêté. Votre figure
                             est mise de côté pendant la visite, et remise en place à la fin —
                             avec votre cadrage et vos réglages.</p>
-                        <button class="modal-btn modal-confirm" onclick="app.demoDemarrer()">
-                            ▶ Lancer la démonstration</button>
                     </div>
                 </div>
                 <div id="tab-general">
@@ -40370,6 +40436,59 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                poser DERRIÈRE la barre de la visite, qui en cache la moitié. On le
                referme à chaque étape, et l'on rend à la sortie celui que
                l'utilisateur avait. */
+            /* LA VISITE EST COMPOSÉE POUR UNE FEUILLE DE 1292 × 899 — celle d'un
+               écran d'ordinateur. Ses gestes visent des points écrits en clair :
+               le B de la première étape est à x = 890. Sur un téléphone, qui en
+               montre 390, la moitié de la visite tombait donc HORS CHAMP : on
+               regardait une feuille vide pendant que la main travaillait à côté.
+
+               On pose la vue UNE FOIS, au début de chaque étape, de façon que ce
+               rectangle-là tienne tout entier dans ce qu'on voit. Sur un écran
+               d'ordinateur, le zoom vaut 1 et rien ne change ; sur un téléphone,
+               la même visite se joue en plus petit, mais elle se joue en entier.
+               Et c'est bien UNE fois : la vue est posée avant que le premier trait
+               ne paraisse, pas au milieu de l'étape. */
+            demoCadrerScene() {
+                /* LA SCÈNE, C'EST CE QUE LA VISITE OCCUPE VRAIMENT — pas la feuille
+                   entière. Mesurée sur les douze étapes, la plus large étant la
+                   médiatrice et ses arcs : x de 150 à 1130, y de 60 à 840. Cadrer
+                   sur les 1292 × 899 du sous-main revenait à réserver des marges
+                   vides, et sur un téléphone c'est un tiers de la taille des
+                   figures qu'on y perdait. */
+                const X0 = 150, Y0 = 60, SCENE_L = 980, SCENE_H = 780;
+                const b = (this.canvas.parentElement || this.canvas).getBoundingClientRect();
+                if (!b.width || !b.height) { this.view.x = 0; this.view.y = 0; this.view.zoom = 1; return; }
+                /* LA BARRE MANGE LE BAS DE LA FEUILLE. Sur téléphone elle fait
+                   123 px de haut sur 844 : la scène posée dans TOUT le conteneur y
+                   plongeait par le bas, et les derniers gestes se faisaient
+                   derrière elle. On lui retire sa place, et l'on centre dans ce qui
+                   reste vraiment visible. */
+                const barre = document.getElementById('demoBar');
+                let mange = 0;
+                if (barre && barre.style.display === 'flex') {
+                    const r = barre.getBoundingClientRect();
+                    if (r.height) mange = Math.min(r.height + 16, b.height * 0.35);
+                }
+                const dispoH = Math.max(120, b.height - mange);
+                const z = Math.min(b.width / SCENE_L, dispoH / SCENE_H, 1);
+                this.view.zoom = z;
+                this.view.x = (b.width - SCENE_L * z) / 2 - X0 * z;
+                this.view.y = (dispoH - SCENE_H * z) / 2 - Y0 * z;
+            }
+            /* LA BARRE S'ÉCARTE DE CE QU'ON MONTRE. Sur téléphone, les outils de
+               tracé sont dans une bande EN BAS de l'écran — exactement là où vit la
+               barre de la visite. On désignait donc des icônes cachées derrière
+               elle, et le principe « on voit où on appuie » tombait. Elle passe en
+               haut quand ce qu'on désigne est en bas, et revient en bas sinon. */
+            demoBarreLoinDe(rect) {
+                const barre = document.getElementById('demoBar');
+                if (!barre || barre.style.display !== 'flex' || !rect) return;
+                const b = barre.getBoundingClientRect();
+                const chevauche = !(rect.right < b.left || rect.left > b.right
+                                 || rect.bottom < b.top || rect.top > b.bottom);
+                if (chevauche || rect.top > window.innerHeight * 0.5) barre.classList.add('en-haut');
+                else barre.classList.remove('en-haut');
+            }
             demoFermerTiroirRejeu() {
                 const tiroir = document.getElementById('timelineDrawer');
                 if (tiroir) tiroir.classList.remove('open');
@@ -40510,6 +40629,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const el = trouve(cible);
                         if (!el) return null;
                         const b = el.getBoundingClientRect();
+                        app.demoBarreLoinDe(b);
                         el.classList.add('gm-demo-vise');
                         app.demoMainVers(b.left + b.width / 2, b.top + b.height / 2, mot);
                         await tempo(1050);
@@ -41194,7 +41314,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.stepInstructions = {};
                 if (this.cslOublier) this.cslOublier();
                 this.viderSelection && this.viderSelection();
-                this.view.x = 0; this.view.y = 0; this.view.zoom = 1;
+                const barreVisite = document.getElementById('demoBar');
+                if (barreVisite) barreVisite.classList.remove('en-haut');
+                this.demoCadrerScene();
                 this.demoMainCacher();
                 this.fermerConsigneEclair && this.fermerConsigneEclair();
                 this.demoFermerTiroirRejeu();
@@ -42993,7 +43115,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 13h';
+        window.GM_VERSION = '2026-09-08 · 14h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

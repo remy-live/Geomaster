@@ -239,16 +239,15 @@ const ck = (nom, ok, detail) => {
         };
         const jouer = app.demoJouer.bind(app);
         app.demoJouer = function (i) { app._vues = []; return jouer(i); };
-        /* Le relevé ne commence qu'une fois la vue remise d'aplomb : demoJouer
-           arrête d'abord le rejeu de l'étape PRÉCÉDENTE, ce qui redessine avec
-           SON cadrage à elle — un relevé qui n'appartient pas à l'étape qu'on
-           mesure. Vérifié à la trace : l'étape aux instruments n'a qu'un seul
-           cadrage, (0,0,1) puis (0,39,1), et pas de zoom du tout. */
-        app._vuesUtiles = () => {
-            const v = app._vues || [];
-            const d = v.indexOf('0/0/1.000');
-            return d < 0 ? v : v.slice(d);
-        };
+        /* Le relevé ne commence qu'une fois l'étape a POSÉ SA VUE : demoJouer
+           arrête d'abord le rejeu de l'étape PRÉCÉDENTE, ce qui redessine avec SON
+           cadrage à elle — un relevé qui n'appartient pas à l'étape qu'on mesure.
+           On se raccroche donc au geste qui pose la scène, et non à une valeur
+           écrite en dur : elle a changé le jour où la visite s'est mise à tenir
+           dans un téléphone, et la sonde comptait alors un cadrage de trop. */
+        const scene = app.demoCadrerScene.bind(app);
+        app.demoCadrerScene = function () { const r = scene(); app._vues = []; return r; };
+        app._vuesUtiles = () => app._vues || [];
     });
 
     console.log('\n=== les étapes construisent vraiment ===');
@@ -559,6 +558,134 @@ const ck = (nom, ok, detail) => {
        JSON.stringify(avant.objets) + ' → ' + JSON.stringify(apres.objets));
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
+
+    /* ================================================================
+       ET SUR UN TÉLÉPHONE.
+
+       « La présentation de l'aide et la démo aide est vraiment pas adapté au
+       téléphone. » Trois défauts, dont un grave : la visite est COMPOSÉE pour une
+       feuille de 1292 px de large, et un téléphone en montre 390 — la moitié des
+       gestes tombaient hors champ, on regardait une feuille vide pendant que la
+       main travaillait à côté. Les deux autres : les cinq onglets réclamaient
+       413 px pour 354, et « Démonstration » — l'onglet de la visite, justement —
+       était coupé au bord ; et l'aide des instruments débordait de 22 px.
+       ================================================================ */
+    console.log('\n=== et sur un téléphone ===');
+    const tel = await nav.newPage({ viewport: { width: 390, height: 844 },
+                                    isMobile: true, hasTouch: true });
+    const errTel = [];
+    tel.on('pageerror', e => errTel.push(e.message));
+    await tel.goto(PAGE);
+    await tel.waitForFunction(() => window.app);
+    await tel.evaluate(() => {
+        try { localStorage.removeItem('geoMaster_backup'); } catch (e) {}
+        const m = document.getElementById('customModal');
+        if (m) m.style.display = 'none';
+        window.app.checkAutoSave = () => {};
+        window.app._demoTempoFacteur = 0.28;
+    });
+
+    const onglets = await tel.evaluate(() => {
+        window.app.toggleHelp();
+        const btns = [...document.querySelectorAll('.help-tab-btn')];
+        const bande = btns[0].parentElement;
+        return { deborde: bande.scrollWidth > bande.clientWidth + 2,
+                 coupes: btns.filter(b => b.getBoundingClientRect().right > innerWidth + 1)
+                             .map(b => b.textContent.trim()),
+                 rangs: new Set(btns.map(b => Math.round(b.getBoundingClientRect().top))).size };
+    });
+    ck('les cinq onglets tiennent dans l\'écran',
+       !onglets.deborde && onglets.coupes.length === 0,
+       onglets.coupes.length ? 'coupé(s) : ' + onglets.coupes.join(', ')
+                             : onglets.rangs + ' rangées');
+
+    /* Ce qu'on vient chercher dans l'onglet de la visite, c'est le bouton. */
+    const bouton = await tel.evaluate(() => {
+        const b = [...document.querySelectorAll('.help-tab-btn')].find(x => /D[ée]mo/i.test(x.textContent));
+        window.app.switchHelpTab('demo', b);
+        const p = document.getElementById('tab-demo');
+        const bt = p.querySelector('button');
+        const r = bt.getBoundingClientRect(), pr = p.getBoundingClientRect();
+        return { texte: bt.textContent.trim().slice(0, 24),
+                 dansLaVue: r.top >= pr.top - 1 && r.bottom <= pr.top + p.clientHeight + 1,
+                 haut: Math.round(r.top - pr.top) };
+    });
+    ck('  et le bouton « Lancer » se voit sans faire défiler',
+       bouton.dansLaVue, bouton.texte + ' à ' + bouton.haut + ' px du haut du panneau');
+
+    /* Rien ne doit déborder à droite, dans aucun onglet. */
+    const debords = await tel.evaluate(() => {
+        const res = [];
+        ['general', 'header', 'leftbar', 'tools', 'demo'].forEach(id => {
+            const b = [...document.querySelectorAll('.help-tab-btn')]
+                .find(x => (x.getAttribute('onclick') || '').includes("'" + id + "'"));
+            window.app.switchHelpTab(id, b);
+            const p = document.getElementById('tab-' + id);
+            const large = document.querySelector('#helpModal .modal-box').clientWidth;
+            let n = 0;
+            p.querySelectorAll('*').forEach(el => {
+                const r = el.getBoundingClientRect();
+                if (r.width > 0 && r.right > large + 2) n++;
+            });
+            if (n) res.push(id + ' (' + n + ')');
+        });
+        window.app.toggleHelp();
+        return res;
+    });
+    ck('  et aucun onglet ne déborde de la boîte', debords.length === 0,
+       debords.length ? debords.join(', ') : 'cinq onglets propres');
+
+    /* LA VISITE SE JOUE DANS CE QU'ON VOIT. C'est le point qui comptait. */
+    await tel.evaluate(() => window.app.demoDemarrer());
+    await tel.waitForTimeout(700);
+    const dedansTel = [];
+    for (const k of [0, 4, 7, 9]) {
+        await tel.evaluate((k) => window.app.demoVersEtape(String(k * 100)), k);
+        let t = 0;
+        while (t < 60000) {
+            await tel.waitForTimeout(200); t += 200;
+            const e = await tel.evaluate(() => { const d = window.app._demo;
+                return { i: d ? d.i : -1, fini: !!(d && d.fini) }; });
+            if (e.i !== k || e.fini) break;
+        }
+        dedansTel.push(await tel.evaluate(() => {
+            const a = window.app;
+            const c = (a.canvas.parentElement || a.canvas).getBoundingClientRect();
+            const barre = document.getElementById('demoBar');
+            const rb = barre.getBoundingClientRect();
+            const enHaut = barre.classList.contains('en-haut');
+            const b = a.getSceneBounds(false), z = a.view.zoom || 1;
+            const x0 = b.minX * z + a.view.x, y0 = b.minY * z + a.view.y;
+            const x1 = b.maxX * z + a.view.x, y1 = b.maxY * z + a.view.y;
+            const hautLibre = enHaut ? rb.bottom - c.top : 0;
+            const basLibre = enHaut ? c.height : rb.top - c.top;
+            return { titre: document.getElementById('demoTitre').textContent,
+                     zoom: +z.toFixed(2),
+                     ok: x0 > -3 && x1 < c.width + 3 && y0 > hautLibre - 3 && y1 < basLibre + 3,
+                     cadre: [Math.round(x0), Math.round(y0), Math.round(x1), Math.round(y1)] };
+        }));
+    }
+    const perdues = dedansTel.filter(x => !x.ok);
+    ck('la visite se joue ENTIÈREMENT dans les 390 px du téléphone',
+       perdues.length === 0,
+       perdues.length ? perdues.map(x => x.titre + ' ' + JSON.stringify(x.cadre)).join(' | ')
+                      : 'zoom ' + dedansTel[0].zoom + ', quatre étapes vérifiées');
+    /* La barre vit en bas, là où le téléphone range ses outils : elle doit
+       s'écarter quand la visite désigne l'un d'eux. */
+    const ecart = await tel.evaluate(async () => {
+        const a = window.app;
+        a.demoVersEtape('0');
+        await new Promise(k => setTimeout(k, 1800));
+        const barre = document.getElementById('demoBar');
+        const el = document.querySelector('.tool-btn[onclick="app.setTool(\'point\')"]');
+        const r = el.getBoundingClientRect(), rb = barre.getBoundingClientRect();
+        return { chevauche: !(r.bottom < rb.top || r.top > rb.bottom),
+                 enHaut: barre.classList.contains('en-haut') };
+    });
+    ck('  et la barre s\'écarte des icônes qu\'elle désigne',
+       !ecart.chevauche, JSON.stringify(ecart));
+    await tel.evaluate(() => window.app.demoArreter());
+    ck('  aucune erreur JS sur téléphone', errTel.length === 0, errTel.slice(0, 2).join(' | '));
 
     await nav.close();
     console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

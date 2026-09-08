@@ -1020,6 +1020,37 @@ compas dont le centre avait disparu — ce que laisse un rejeu arrêté en plein
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
 
+### La visite tient dans un téléphone
+
+*« La présentation de l'aide et la démo aide est vraiment pas adapté au
+téléphone. »* Trois défauts, dont un grave.
+
+**La visite se jouait hors de l'écran.** Elle est composée pour une feuille de
+1292 px de large, et ses gestes visent des points écrits en clair — le B de la
+première étape est à x = 890. Un téléphone en montre 390 : la moitié de la visite
+tombait donc hors champ, et l'on regardait une feuille vide pendant que la main
+travaillait à côté. La vue est maintenant posée **une fois, au début de chaque
+étape**, de façon que la scène — mesurée sur les douze étapes, la plus large étant
+la médiatrice et ses arcs — tienne tout entière dans ce qui reste visible, barre
+de la visite déduite. Sur un écran d'ordinateur le zoom vaut 1 et rien ne change ;
+sur un téléphone la même visite se joue à 0,40, mais elle se joue **en entier**.
+
+**La barre cachait ce qu'elle désignait.** Sur téléphone les outils de tracé sont
+dans une bande *en bas* de l'écran — exactement là où elle se pose. On montrait
+donc des icônes invisibles, et le principe « on voit où on appuie » tombait. Elle
+passe en haut quand ce qu'on désigne est en bas. Elle prend aussi toute la largeur
+et **garde sa phrase** : elle était rangée sur une ligne comme sur un ordinateur,
+et le commentaire avait été purement supprimé — une visite guidée sans commentaire
+n'est plus qu'un film muet.
+
+**Les cinq onglets débordaient** : 413 px demandés pour 354 disponibles, et
+« Démonstration » — l'onglet de la visite, justement — était coupé au bord, sans
+rien pour dire qu'il fallait faire glisser. Ils passent à la ligne, trois puis
+deux. Le bouton « ▶ Lancer la démonstration » est remonté **avant** le sommaire :
+il était sous douze lignes, donc invisible sans faire défiler, alors que c'est
+précisément ce qu'on vient chercher. Et l'aide des instruments, dont le dessin de
+240 px et le texte côte à côte débordaient de 22 px, empile les deux.
+
 ### La trousse se lit d'un tenant
 
 *« Pour l'aide sur les instruments, il faut mettre les 4 instruments les uns à la
