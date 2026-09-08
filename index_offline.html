@@ -8998,7 +8998,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </button>
                 <button class="top-btn" id="btnPan" onclick="app.togglePanMode()"
                     aria-label="Déplacer la feuille (Main)"
-                    data-tooltip="Main — déplacer la feuille · appui long : tourner la figure">
+                    data-tooltip="Main (M) — déplacer la feuille · appui long : tourner la figure">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
                         <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
@@ -9698,7 +9698,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="toolbar">
             <div class="group-label">Action</div>
             <button class="tool-btn active" onclick="app.setTool('move')" aria-label="Déplacer / Sélectionner"
-                data-tooltip="Déplacer / Sélectionner — glissez depuis le vide pour encadrer plusieurs objets, puis glissez dedans pour les déplacer ensemble">
+                data-tooltip="Déplacer / Sélectionner (S) — glissez depuis le vide pour encadrer plusieurs objets, puis glissez dedans pour les déplacer ensemble">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                     <path d="M7 2l12 11.2-5.8.5 3.3 7.3-2.2.9-3.2-7.3L7 18z" />
                 </svg>
@@ -22015,6 +22015,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         e.preventDefault();
                         this.redo();
                     }
+                    /* LES DEUX OUTILS QU'ON REPREND SANS CESSE N'AVAIENT PAS DE
+                       RACCOURCI. La flèche — celle qui sélectionne et déplace — et
+                       la main — celle qui fait glisser la feuille : on y revient
+                       après chaque tracé, et il fallait chaque fois retraverser
+                       l'écran jusqu'à leur icône. S comme Sélectionner, M comme
+                       Main : les initiales, en français, pour n'avoir rien à
+                       retenir. Ils sont écrits dans l'infobulle des deux boutons,
+                       car un raccourci que personne ne découvre n'existe pas.
+
+                       Pas d'espace pour la main, quoi qu'en dise l'habitude des
+                       logiciels de dessin : ici, la barre d'espace avance la
+                       construction d'une étape — c'est ce que renvoie une
+                       télécommande de présentation, et cela sert au tableau. */
+                    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                        const t = e.key.toLowerCase();
+                        if (t === 's') {
+                            e.preventDefault();
+                            /* La main a un bouton qui s'allume à part : on passe
+                               par togglePanMode pour qu'il s'éteigne aussi. */
+                            if (this.currentTool === 'pan') this.togglePanMode();
+                            else this.setTool('move');
+                            return;
+                        }
+                        if (t === 'm') {
+                            e.preventDefault();
+                            if (this.currentTool !== 'pan') this.togglePanMode();
+                            return;
+                        }
+                    }
                     /* Une télécommande de présentation n'envoie pas autre chose que
                        Page suivante / Page précédente : les brancher met la
                        construction sous le pouce, depuis le fond de la salle. Espace
@@ -23114,6 +23143,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             clearAll() {
                 this.showModal("Voulez-vous vraiment tout effacer ?", () => {
+                    /* ON ARRÊTE LE REJEU AVANT DE VIDER LA FEUILLE. « Quand on met
+                       tout effacer, si l'animation est en route, ça bloque. »
+                       clearAll changeait l'historique sous les pieds du rejeu sans
+                       le prévenir : mesuré, juste après l'effacement, isPlaying et
+                       isLocked restaient VRAIS sur une feuille vide — l'interface
+                       était donc gelée, le curseur en « interdit », le temps que le
+                       moteur s'aperçoive qu'il n'a plus rien à jouer. C'est
+                       exactement ce que fait Ctrl+Z, qui a sa fonction pour cela
+                       depuis longtemps ; « tout effacer » ne l'appelait pas. */
+                    if (this.arreterRejeuPourHistorique) this.arreterRejeuPourHistorique();
+                    if (this.stopAnimation) this.stopAnimation();
+                    this.lockInterface(false);
+                    /* ET LES INSTRUMENTS SE RANGENT. Une feuille vide avec la règle,
+                       l'équerre et le compas encore posés dessus n'est pas une
+                       feuille vide : « tout effacer » veut dire la table nette. */
+                    ['ruler', 'setsquare', 'protractor', 'compass'].forEach(w => {
+                        if (this.activeWidgets && this.activeWidgets[w]) this.toggleWidget(w);
+                    });
                     this.entities = [];
                     this.historyPast = [];
                     this.historyFuture = [];
@@ -43125,7 +43172,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 15h';
+        window.GM_VERSION = '2026-09-08 · 16h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

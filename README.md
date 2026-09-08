@@ -1020,6 +1020,43 @@ compas dont le centre avait disparu — ce que laisse un rejeu arrêté en plein
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
 
+### « Tout effacer » efface vraiment, et n'emporte rien avec soi
+
+*« Quand on met tout effacer, si l'animation est en route, ça bloque la prochaine
+session. De plus quand on met tout effacer les outils se rangent. »*
+
+Deux choses, et la première est un **gel**. « Tout effacer » vidait la feuille
+sans prévenir le rejeu qui tournait dessus. Mesuré, juste après l'effacement :
+`isPlaying` et `isLocked` restaient **vrais sur une feuille vide**, le curseur
+affichait « interdit », et l'interface était gelée le temps que le moteur
+s'aperçoive qu'il n'a plus rien à jouer. Ctrl+Z, lui, appelle depuis longtemps la
+fonction qui arrête proprement le rejeu **avant** de toucher à l'historique ;
+« tout effacer » ne l'appelait pas — c'est pourtant le même besoin. Il l'appelle
+maintenant : aussitôt après l'effacement, plus rien ne joue, plus rien n'est
+verrouillé, et la construction suivante se rejoue jusqu'au bout.
+
+Et la table est nette : les quatre instruments **se rangent** avec la figure. Une
+feuille vide sur laquelle traînent la règle, l'équerre, le rapporteur et le
+compas n'est pas une feuille vide.
+
+### La flèche et la main, au clavier
+
+*« Y a-t-il des raccourcis pour la souris ou la main ? Si oui mets en tooltip
+aussi, si non fais-en. »* Il n'y en avait pas — pour les deux outils sur lesquels
+on revient après **chaque** tracé, et qu'il fallait chaque fois retraverser
+l'écran pour reprendre.
+
+- **S** comme **S**électionner : la flèche.
+- **M** comme **M**ain : faire glisser la feuille.
+
+Les initiales, en français, pour n'avoir rien à retenir — et écrites dans
+l'infobulle des deux boutons, car un raccourci que personne ne découvre n'existe
+pas. Pas d'espace pour la main, quoi qu'en dise l'habitude des logiciels de
+dessin : ici la barre d'espace avance la construction d'une étape, c'est ce que
+renvoie une télécommande de présentation et cela sert au tableau. Et comme toute
+touche d'une seule lettre, elles ne font rien tant qu'un champ a le foyer — taper
+« ms » dans une consigne écrit « ms ».
+
 ### Un seul outil allumé à la fois
 
 *« L'icône segment reste toujours allumée. »* Elle l'était. La ligne qui éteint
@@ -2014,7 +2051,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 103 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 104 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
