@@ -1020,6 +1020,87 @@ compas dont le centre avait disparu — ce que laisse un rejeu arrêté en plein
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
 
+### Les usages, comptés sur place
+
+*« Le site est sur GitHub, puis-je faire des stats de l'utilisation, de qui se
+sert de quoi ? — Clairement GéoMaster est un outil de prof, c'est pour moi, pour
+voir les usages. »*
+
+GitHub Pages n'en donne aucune : c'est de l'hébergement statique, sans journal
+d'accès. Et le logiciel promet quelque chose de plus fort qu'une statistique —
+une sonde coupe **toute** requête réseau et vérifie que la chaîne entière marche
+quand même, parce que le vrai cas d'usage est un fichier ouvert d'un double-clic
+depuis une clé USB, dans une salle sans internet.
+
+On compte donc **sur place**, dans le navigateur, et rien ne part. Ce qui est
+compté répond à une seule question — qu'est-ce qui sert ?
+
+| | |
+|---|---|
+| **Outils** | chaque outil pris, une fois par prise |
+| **Constructions magiques** | comptées à part des outils de tracé |
+| **Instruments** | les **sorties** de règle, équerre, rapporteur, compas — pas les rangements |
+| **Consignes** | faites / refusées |
+| **Phrases non comprises** | **avec leur texte** — la liste de ce qu'il reste à apprendre, écrite par ceux qui s'en servent |
+| **Exports** | par format |
+| **Visite guidée** | combien de fois lancée |
+| **Écrans** | téléphone / tablette / ordinateur, par ouverture |
+
+Le relevé se lit derrière la porte dérobée qui existait déjà — le code Konami, ou
+sept clics sur le numéro de version : **rien de plus dans l'interface**, et
+personne ne tombe dessus par hasard. Un lien le copie, un autre remet tout à zéro.
+
+Deux garde-fous. La liste des phrases refusées est **bornée à cent** : un compteur
+qui garde tout n'est plus un compteur, c'est une archive. Et l'**interface élève
+ne compte rien** — ce n'est pas d'elle qu'on parle, et l'élève n'a rien demandé.
+
+Aucune figure, aucune date plus fine que le jour. Mesuré : une séance complète —
+outils, instruments, consignes, constructions magiques — sans qu'une seule
+requête quitte la machine.
+
+### Et comment on récupère l'information
+
+*« Comment je récupère l'info ? Pour savoir le nombre d'utilisateurs, j'aimerais
+avoir des stats, les outils, tout tout tout. »*
+
+Les compteurs locaux ne disent rien tant que rien ne remonte, et GitHub Pages ne
+remontera jamais rien. Il faut donc **un point de chute à soi** — un serveur qui
+tient en une page, se déploie gratuitement, et dont le code est dans le dépôt :
+[`serveur/`](serveur/). Une commande pour le poser, une ligne à remplir dans
+`index.html` :
+
+```js
+window.GM_USAGES_URL = 'https://geomaster-usages.VOTRE-COMPTE.workers.dev';
+```
+
+Laissée vide — l'état du dépôt — **il ne se passe rien du tout**.
+
+Le relevé part alors une fois par jour au plus, avec un **identifiant
+d'installation tiré au hasard** : c'est lui, et lui seul, qui permet de compter
+des *utilisateurs* et pas seulement des visites. Et la lecture donne, en clair :
+
+```
+37 utilisateur(s), dont 21 actif(s) ces 30 derniers jours
+1 284 ouverture(s)
+consignes : 903 faites, 217 refusées
+…
+PHRASES NON COMPRISES
+  14× Trace la bissectrice extérieure
+  9× Trace un patron de tronc de cône
+```
+
+Trois règles ne se négocient pas, et la sonde les tient toutes les trois :
+
+1. **Rien ne part depuis un fichier local.** C'est le cas d'usage qui a fait ce
+   logiciel, et la sonde hors-connexion continue de tout couper.
+2. **Rien ne part de l'interface élève**, ni d'un aperçu dans un cadre.
+3. **Rien de la figure ni du document** — jamais.
+
+Le serveur, lui, n'accumule pas : les compteurs étant cumulatifs, le dernier
+relevé d'une installation *est* toute son histoire. Une clé par installation,
+écrasée à chaque envoi — la base grossit avec le nombre d'utilisateurs, jamais
+avec le temps, et **le nombre de clés est le nombre d'utilisateurs**.
+
 ### Un milieu déjà là ne se double pas
 
 *« J'ai tracé une médiatrice, j'ai donc obtenu le milieu du segment, le point
@@ -2088,7 +2169,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 104 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 105 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

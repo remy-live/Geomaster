@@ -1495,6 +1495,31 @@
         }
         .secret-mot { font-size: 15px; line-height: 1.6; margin: 0 0 10px; }
         .secret-mot span { color: #94a3b8; font-size: 13px; }
+        .secret-lien {
+            color: #fbbf24;
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(251, 191, 36, .5);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        /* Le relevé se lit d'un bloc, et il peut être long : on lui donne une
+           hauteur et il défile, plutôt que de pousser les boutons hors de la
+           boîte. */
+        .secret-releve {
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: #cbd5e1;
+            background: rgba(2, 6, 23, .82);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 10px 0 14px;
+            max-height: 46vh;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .secret-liste { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; }
         .secret-liste li {
             background: rgba(255, 255, 255, .06);
@@ -16213,6 +16238,191 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                  gm_don_etat    — '' | 'fait' (jamais plus) | 'refuse' (jamais plus) ;
                  gm_don_prochain— l'ouverture à partir de laquelle on peut redemander.
                ============================================================ */
+            /* ================================================================
+               LES USAGES
+
+               « Le site est sur GitHub, puis-je faire des stats de l'utilisation,
+               de qui se sert de quoi ? — Clairement GéoMaster est un outil de
+               prof, c'est pour moi, pour voir les usages. »
+
+               GitHub Pages n'en donne aucune : c'est de l'hébergement statique,
+               sans journal d'accès. Et le logiciel promet quelque chose de plus
+               fort qu'une statistique — une sonde coupe TOUTE requête réseau et
+               vérifie que la chaîne entière marche quand même, parce que le vrai
+               cas d'usage est un fichier ouvert d'un double-clic depuis une clé
+               USB, dans une salle sans internet.
+
+               On compte donc SUR PLACE, dans le navigateur, et rien ne part tout
+               seul. Ce qui est compté répond à une seule question : qu'est-ce qui
+               sert ? Les outils pris, les consignes exécutées — et surtout CELLES
+               QUI ÉCHOUENT, avec leur texte, car ce que les gens demandent et que
+               le logiciel ne comprend pas est le plus instructif de tout —, les
+               constructions magiques, les instruments, les exports, la visite.
+
+               Rien qui identifie personne : aucun nom, aucune figure, aucun
+               horodatage plus fin que le jour. La liste des phrases incomprises
+               est bornée, pour que le compteur ne devienne pas une archive.
+               ================================================================ */
+            usageLire() {
+                try {
+                    const brut = localStorage.getItem('gm_usage');
+                    const u = brut ? JSON.parse(brut) : {};
+                    return {
+                        depuis: u.depuis || null, dernier: u.dernier || null,
+                        outils: u.outils || {}, magies: u.magies || {},
+                        instruments: u.instruments || {}, exports: u.exports || {},
+                        consignes: u.consignes || { ok: 0, rate: 0 },
+                        incomprises: u.incomprises || {},
+                        visite: u.visite || 0,
+                        ecrans: u.ecrans || {},
+                    };
+                } catch (e) { void e; return { outils: {}, magies: {}, instruments: {},
+                    exports: {}, consignes: { ok: 0, rate: 0 }, incomprises: {},
+                    visite: 0, ecrans: {} }; }
+            }
+            /* Un usage de plus. Le rayon « incomprises » garde le TEXTE des
+               phrases refusées, en clair — c'est la matière première pour
+               améliorer le lecteur de consignes. Il est borné à cent entrées :
+               au-delà, on ne mesure plus, on archive. */
+            compterUsage(rayon, cle, combien = 1) {
+                if (this.donHorsJeu && this.donHorsJeu()) return;
+                try {
+                    const u = this.usageLire();
+                    const jour = new Date().toISOString().slice(0, 10);
+                    if (!u.depuis) u.depuis = jour;
+                    u.dernier = jour;
+                    if (rayon === 'consignes') {
+                        u.consignes[cle] = (u.consignes[cle] || 0) + combien;
+                    } else if (rayon === 'visite') {
+                        u.visite = (u.visite || 0) + combien;
+                    } else if (u[rayon]) {
+                        const k = String(cle).slice(0, 120);
+                        if (rayon === 'incomprises' && !u.incomprises[k]
+                            && Object.keys(u.incomprises).length >= 100) return;
+                        u[rayon][k] = (u[rayon][k] || 0) + combien;
+                    }
+                    /* La taille de l'écran dit sur quoi le logiciel sert
+                       vraiment : un tableau, un portable, un téléphone. */
+                    const l = window.innerWidth;
+                    const genre = l < 620 ? 'téléphone' : (l < 1100 ? 'tablette' : 'ordinateur');
+                    u.ecrans[genre] = (u.ecrans[genre] || 0) + (rayon === 'ouverture' ? 1 : 0);
+                    localStorage.setItem('gm_usage', JSON.stringify(u));
+                } catch (e) { void e; }
+            }
+            /* Le relevé, en clair, prêt à être lu ou recopié. */
+            usageTexte() {
+                const u = this.usageLire();
+                const d = this.donLire ? this.donLire() : { ouvertures: 0 };
+                const rangs = (o, n = 40) => Object.entries(o)
+                    .sort((a, b) => b[1] - a[1]).slice(0, n);
+                const bloc = (titre, o, n) => {
+                    const r = rangs(o, n);
+                    if (!r.length) return '';
+                    return `\n${titre}\n` + r.map(([k, v]) => `  ${v}× ${k}`).join('\n') + '\n';
+                };
+                let t = `GÉOMASTER — usages\n`;
+                t += `version ${window.GM_VERSION || '?'}\n`;
+                t += `du ${u.depuis || '?'} au ${u.dernier || '?'}\n`;
+                t += `${d.ouvertures} ouverture(s)\n`;
+                t += `consignes : ${u.consignes.ok || 0} faites, ${u.consignes.rate || 0} refusées\n`;
+                t += `visite guidée : ${u.visite || 0} fois\n`;
+                t += bloc('ÉCRANS', u.ecrans);
+                t += bloc('OUTILS', u.outils);
+                t += bloc('CONSTRUCTIONS MAGIQUES', u.magies);
+                t += bloc('INSTRUMENTS', u.instruments);
+                t += bloc('EXPORTS', u.exports);
+                t += bloc('PHRASES NON COMPRISES', u.incomprises, 60);
+                return t;
+            }
+            /* L'IDENTIFIANT D'INSTALLATION. Tiré au hasard une fois, gardé dans le
+               navigateur : c'est lui, et lui seul, qui permet de compter des
+               UTILISATEURS plutôt que des visites. Il ne dit rien de personne — ni
+               nom, ni adresse, ni machine ; deux navigateurs sur le même poste en
+               ont deux différents, et l'effacer suffit à repartir de zéro. */
+            usageInstallation() {
+                try {
+                    let id = localStorage.getItem('gm_install');
+                    if (!id) {
+                        id = (crypto.randomUUID ? crypto.randomUUID()
+                            : String(Date.now()) + Math.random().toString(36).slice(2));
+                        localStorage.setItem('gm_install', id);
+                    }
+                    return id;
+                } catch (e) { void e; return 'anonyme'; }
+            }
+            /* CE QUI PART, ET QUAND. Une fois par jour au plus, et seulement depuis
+               le site publié : ouvert en local, le logiciel ne parle à personne.
+               Les compteurs sont CUMULATIFS, donc le dernier envoi d'une
+               installation contient toute son histoire — il n'y a rien à
+               accumuler côté serveur, et rien à recouper. */
+            usageEnvoyer() {
+                const url = window.GM_USAGES_URL;
+                if (!url) return 'éteint';
+                /* Règle 1 : jamais depuis un fichier local. */
+                if (!/^https?:$/.test(location.protocol)) return 'local';
+                /* Règle 2 : ni l'élève, ni un aperçu dans un cadre. */
+                if (this.donHorsJeu && this.donHorsJeu()) return 'hors-jeu';
+                const jour = new Date().toISOString().slice(0, 10);
+                try {
+                    if (localStorage.getItem('gm_usage_envoi') === jour) return 'déjà';
+                } catch (e) { void e; }
+                const u = this.usageLire();
+                const d = this.donLire ? this.donLire() : { ouvertures: 0 };
+                const paquet = {
+                    installation: this.usageInstallation(),
+                    version: window.GM_VERSION || '?',
+                    jour, depuis: u.depuis, dernier: u.dernier,
+                    ouvertures: d.ouvertures,
+                    ecrans: u.ecrans, outils: u.outils, magies: u.magies,
+                    instruments: u.instruments, exports: u.exports,
+                    consignes: u.consignes, incomprises: u.incomprises,
+                    visite: u.visite,
+                    langue: (navigator.language || '').slice(0, 5),
+                };
+                const corps = JSON.stringify(paquet);
+                try {
+                    let parti = false;
+                    if (navigator.sendBeacon) {
+                        /* sendBeacon survit à la fermeture de l'onglet — un
+                           professeur ferme son portable, il ne regarde pas si la
+                           requête a eu le temps de partir. */
+                        parti = navigator.sendBeacon(url,
+                            new Blob([corps], { type: 'application/json' }));
+                    }
+                    if (!parti) {
+                        fetch(url, { method: 'POST', keepalive: true, mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' }, body: corps })
+                            .catch(() => {});
+                    }
+                    localStorage.setItem('gm_usage_envoi', jour);
+                    return 'envoyé';
+                } catch (e) { void e; return 'raté'; }
+            }
+            usageCopier(lien) {
+                const t = this.usageTexte();
+                const dire = (m) => { if (lien) lien.textContent = m; };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(t)
+                        .then(() => dire('Copié'))
+                        .catch(() => dire('Copie refusée par le navigateur'));
+                } else {
+                    /* Sans presse-papiers — un fichier ouvert en local sur un vieux
+                       navigateur —, on sélectionne le relevé : il ne reste qu'à
+                       faire Ctrl+C. */
+                    const pre = document.querySelector('.secret-releve');
+                    if (pre) {
+                        const r = document.createRange(); r.selectNodeContents(pre);
+                        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+                        dire('Sélectionné — Ctrl+C');
+                    }
+                }
+            }
+            usageOublier(lien) {
+                try { localStorage.removeItem('gm_usage'); } catch (e) { void e; }
+                if (lien) lien.textContent = 'Remis à zéro';
+                const pre = document.querySelector('.secret-releve');
+                if (pre) pre.textContent = this.usageTexte();
+            }
             donLire() {
                 const n = (k) => { try { return parseInt(localStorage.getItem(k) || '0', 10) || 0; }
                     catch (e) { void e; return 0; } };
@@ -16231,6 +16441,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (this.donHorsJeu()) return;
                 const e = this.donLire();
                 this.donEcrire('gm_ouvertures', e.ouvertures + 1);
+                if (this.compterUsage) this.compterUsage('ouverture', null);
+                /* La remontée part quelques secondes après l'ouverture, pas à la
+                   fermeture : un onglet fermé d'un coup n'a pas toujours le temps,
+                   et les compteurs étant cumulatifs, envoyer ceux de la veille est
+                   sans perte — la séance du jour partira demain. */
+                setTimeout(() => { try { this.usageEnvoyer(); } catch (err) { void err; } }, 8000);
             }
             /* Les écrans où la question ne se pose pas : l'élève, et l'aperçu que
                le professeur regarde dans un cadre à l'intérieur du logiciel. */
@@ -19414,6 +19630,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
             }
             executeExport(format, includeTools, numbersMode, police) {
+                if (this.compterUsage) this.compterUsage('exports', format);
                 if (format === 'tikz') this.exportTikZ();
                 else if (format === 'svg') this.exportSVG(includeTools, numbersMode, police);
                 else if (format === 'pdf') this.exportPDF(includeTools, numbersMode);
@@ -21927,6 +22144,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + '<p class="secret-mot">Il continue. Il continuera toujours.<br>'
                         + '<span>Vous venez de taper un code vieux de quarante ans '
                         + 'dans un logiciel de géométrie.</span></p>';
+                } else if (quoi === 'usages') {
+                    /* LE RELEVÉ. Derrière la même porte dérobée : rien de plus dans
+                       l'interface, et personne ne tombe dessus par hasard. Ce qui
+                       est là a été compté ICI, sur cette machine, et n'est jamais
+                       parti nulle part — c'est à celui qui le lit de décider s'il
+                       l'envoie. */
+                    const t = this.usageTexte();
+                    b.innerHTML = '<h3>Usages</h3>'
+                        + '<p class="secret-mot"><span>Compté sur cette machine seule. '
+                        + 'Rien n\'est jamais parti sur le réseau.</span></p>'
+                        + '<pre class="secret-releve">' + t.replace(/[&<>]/g,
+                            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</pre>'
+                        + '<p class="secret-mot">'
+                        + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
+                        + 'event.stopPropagation(); app.usageCopier(this);">Copier le relevé</a>'
+                        + ' &nbsp;·&nbsp; '
+                        + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
+                        + 'event.stopPropagation(); app.usageOublier(this);">Tout remettre à zéro</a>'
+                        + '</p>';
                 } else {
                     /* LE CABINET DE CURIOSITÉS. Les deux figures qui ne sont dans
                        aucune liste — c'est ici, et nulle part ailleurs, qu'on
@@ -21943,7 +22179,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + '« avec 20 triangles ».</i></li>'
                         + '</ul>'
                         + '<p class="secret-mot"><span>Et il y a autre chose. '
-                        + 'Un code que tout le monde connaît, au clavier.</span></p>';
+                        + 'Un code que tout le monde connaît, au clavier.</span></p>'
+                        + '<p class="secret-mot"><a href="#" class="secret-lien" '
+                        + 'onclick="event.preventDefault(); event.stopPropagation(); '
+                        + 'app.ouvrirSecret(\'usages\');">Voir les usages de cette machine</a></p>';
                 }
                 v.classList.add('ouvert');
                 const fermer = () => {
@@ -24967,6 +25206,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             toggleWidget(type) {
                 const wasActive = this.activeWidgets[type];
+                // On compte les SORTIES d'instrument, pas les rangements.
+                if (!wasActive && this.compterUsage) this.compterUsage('instruments', type);
                 this.activeWidgets[type] = !wasActive;
                 const btn = document.getElementById(`btn-${type}`);
                 if (this.activeWidgets[type]) {
@@ -25018,6 +25259,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.render();
             }
             setTool(toolName) {
+                /* Un outil pris, c'est un usage : c'est la mesure la plus directe
+                   de « qu'est-ce qui sert ? ». On compte le nom demandé, jamais ce
+                   qu'on en fait. */
+                if (this.compterUsage && toolName !== this.currentTool) {
+                    this.compterUsage(String(toolName).startsWith('magic_') ? 'magies' : 'outils',
+                        String(toolName).replace(/^magic_/, ''));
+                }
                 if (this.isPaintMode && toolName !== 'move' && toolName !== 'pan') {
                     this.isPaintMode = false;
                     const btnPaint = document.getElementById('btnPaint');
@@ -39135,6 +39383,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return false;
                 }
                 const r = this.executerConsigneAvec(texte, !!c.instruments);
+                /* CE QU'ON DEMANDE ET QUE LE LOGICIEL NE COMPREND PAS est le plus
+                   instructif de tout : c'est la liste de ce qu'il lui reste à
+                   apprendre, écrite par ceux qui s'en servent. */
+                if (this.compterUsage) {
+                    this.compterUsage('consignes', r.ok ? 'ok' : 'rate');
+                    if (!r.ok) this.compterUsage('incomprises', texte);
+                }
                 c.etat = r.ok ? 'ok' : 'rate';
                 c.message = r.message;
                 c.astuce = r.astuce || '';
@@ -41387,6 +41642,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        par-dessus la visite. */
                     const aide = document.getElementById('helpModal');
                     if (aide && aide.style.display === 'flex') this.toggleHelp();
+                    if (this.compterUsage) this.compterUsage('visite', null);
                     this._demo = { etapes, i: 0, pause: false, jeton: 0, attentes: [], fini: false };
                     const barre = document.getElementById('demoBar');
                     if (barre) barre.style.display = 'flex';
@@ -43257,7 +43513,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 17h';
+        window.GM_VERSION = '2026-09-08 · 18h';
+
+        /* ================================================================
+           OÙ REMONTENT LES USAGES
+
+           « Comment je récupère l'info ? Pour savoir le nombre d'utilisateurs,
+           j'aimerais avoir des stats, les outils, tout tout tout. »
+
+           GitHub Pages ne peut rien vous dire : c'est de l'hébergement statique,
+           sans journal d'accès. Il faut donc un point de chute À VOUS. Mettez son
+           adresse ci-dessous et la remontée s'allume ; laissez la ligne vide et
+           il ne se passe rien du tout — c'est l'état par défaut.
+
+           Le serveur qui va avec tient en quarante lignes et se déploie
+           gratuitement : voir serveur/usages-worker.js et serveur/README.md.
+
+           TROIS RÈGLES, ET ELLES NE SE NÉGOCIENT PAS.
+
+           1. Rien ne part quand le fichier est ouvert EN LOCAL (file://). C'est
+              le cas d'usage qui a fait ce logiciel — une clé USB, une salle sans
+              internet — et la sonde hors-connexion continue de couper tout et de
+              vérifier que la chaîne entière marche. La remontée ne vit que sur le
+              site publié.
+           2. Rien ne part de l'interface ÉLÈVE, ni d'un aperçu dans un cadre.
+              Ce n'est pas d'eux qu'on parle, et ils n'ont rien demandé.
+           3. Une fois par jour au plus, et jamais de contenu de figure. Ce qui
+              part : un identifiant d'installation tiré au hasard — c'est lui qui
+              permet de compter des UTILISATEURS et pas seulement des visites —,
+              la version, le genre d'écran, et les compteurs. Plus les phrases que
+              le logiciel n'a pas comprises, qui sont la seule matière première
+              pour qu'il en comprenne davantage.
+           ================================================================ */
+        window.GM_USAGES_URL = '';
+
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

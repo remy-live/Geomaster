@@ -1,0 +1,14 @@
+name = "geomaster-usages"
+main = "usages-worker.js"
+compatibility_date = "2024-11-01"
+
+# L'espace clé-valeur où atterrissent les relevés. Créez-le avec :
+#     wrangler kv namespace create USAGES
+# puis recopiez l'identifiant renvoyé ci-dessous.
+[[kv_namespaces]]
+binding = "USAGES"
+id = "À_REMPLACER"
+
+# La clé de lecture ne se met PAS ici — un fichier versionné n'est pas un
+# coffre. Elle se pose avec :
+#     wrangler secret put CLE_LECTURE
