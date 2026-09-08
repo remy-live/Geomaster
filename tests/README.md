@@ -30,7 +30,7 @@ puis vérifie le résultat. Par exemple :
 | `probe-enonce.js` | un énoncé de devoir entier, collé tel quel, donne la figure — et elle est juste |
 | `probe-voyage.js` | la figure voyage ENTIÈRE par les quatre chemins — fichier .json, code compact, lien élève, bibliothèque : nom des droites, codage des milieux, remplissages, ET l'énoncé |
 | `probe-enonce-long.js` | le vocabulaire d'un énoncé de manuel : droites nommées, pluriels qui ne débordent pas, possessifs, trapèzes, angles, phrases qui ne tracent rien — chaque figure **mesurée** |
-| `probe-codage-milieu.js` | un milieu porte ses deux traits ; le codage n'affirme que ce que la construction dit ; un trait ne porte QU'UN codage |
+| `probe-codage-milieu.js` | un milieu porte ses deux traits ; le codage n'affirme que ce que la construction dit ; un trait ne porte QU'UN codage ; **un milieu déjà là ne se double pas** — l'outil Milieu créait un second point par-dessus celui qu'une médiatrice venait de donner, avec le même codage deux fois : il garde maintenant celui qui est là, le MONTRE s'il dormait en point de construction, et fait d'un point simplement posé au milieu un vrai milieu qui suit le segment ; et le **menu contextuel propose le codage du milieu** à tout point qui EST le milieu d'un segment, pas seulement à ceux qui ont été construits comme tels |
 | `probe-consigne-tel.js` | au téléphone, les consignes prennent la moitié basse de l'écran et la feuille l'autre |
 | `probe-fiche.js` | la fiche se compose — étapes choisies, rangées, réécrites — et l'aperçu est le vrai PDF |
 | `probe-commandes.js` | les 246 commandes de l'interface s'exécutent sans rien casser |

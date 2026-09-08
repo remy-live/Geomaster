@@ -1020,6 +1020,43 @@ compas dont le centre avait disparu — ce que laisse un rejeu arrêté en plein
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
 
+### Un milieu déjà là ne se double pas
+
+*« J'ai tracé une médiatrice, j'ai donc obtenu le milieu du segment, le point
+s'est appelé O. Lorsque j'ai cliqué sur l'icône milieu puis sur O, le logiciel a
+créé un point D puis a codé. Je ne veux pas de création de point si un point est
+déjà le milieu, par contre je veux bien le codage. »*
+
+C'est exactement ce qui se passait : **deux points superposés** au même endroit,
+deux fois le même codage, et une figure qui dit deux fois la même chose. Le clic
+tombait d'ailleurs sur le *segment* — O est dessus —, si bien qu'on ne pouvait
+même pas s'en sortir en visant mieux.
+
+L'outil Milieu regarde maintenant si quelqu'un occupe déjà la place, de deux
+façons : **par construction**, quand le point a déjà les deux extrémités pour
+parents, ou **par position**, quand il tombe au milieu à la distance d'accrochage
+près. Dans les deux cas il garde ce point-là et se contente de poser le codage
+qu'on venait chercher. Trois conséquences :
+
+- le milieu **nommé** (le vôtre) reste, et reçoit sa marque ;
+- le milieu **caché** — une médiatrice laisse le sien en point de construction —
+  se **montre** et prend un nom, au lieu de disparaître sous un second point ;
+- un point simplement **posé là** devient un vrai milieu : il dépend désormais du
+  segment et le suit quand on tire sur une extrémité.
+
+### Et le menu contextuel le propose
+
+*« Quand on a un point et que celui-ci est le milieu d'un segment, on pourrait
+proposer le codage du milieu dans le menu contextuel. »* Il ne le proposait qu'aux
+points **construits** comme milieux. Un point posé à la main au milieu d'un trait
+n'avait rien : on voyait bien que c'était le milieu, on ne pouvait pas le dire.
+
+Il l'a. Et le coder fait de lui un vrai milieu — c'est nécessaire autant que
+juste : le codage se dessine à partir des deux parents, sans eux il ne
+s'afficherait pas du tout, et un point posé là par hasard ne resterait pas au
+milieu dès qu'on tire sur une extrémité. Un point qui dit « je suis le milieu »
+doit l'être.
+
 ### « Tout effacer » efface vraiment, et n'emporte rien avec soi
 
 *« Quand on met tout effacer, si l'animation est en route, ça bloque la prochaine

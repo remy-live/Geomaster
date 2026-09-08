@@ -22218,6 +22218,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return e instanceof Point
                     && (e.parents || []).filter(q => q && typeof q.x === 'number').length === 2;
             }
+            /* LE SEGMENT DONT CE POINT EST LE MILIEU, s'il y en a un. « Quand on a
+               un point et que celui-ci est le milieu d'un segment, on pourrait
+               proposer le codage du milieu dans le menu contextuel. » Le menu ne le
+               proposait qu'aux points CONSTRUITS comme milieux — ceux qui ont déjà
+               deux points pour parents. Un point posé à la main au milieu d'un
+               trait, lui, n'avait rien : on voyait bien que c'était le milieu, on ne
+               pouvait pas le dire.
+
+               Douze pixels de tolérance : celle à laquelle un point s'attrape à la
+               souris. Ce qui est « au milieu » pour la main l'est pour la figure. */
+            segmentDontMilieu(p) {
+                if (!(p instanceof Point)) return null;
+                return this.entities.find(e => e instanceof Segment && e.p1 && e.p2
+                    && e.p1 !== p && e.p2 !== p
+                    && MathUtils.dist(p.x, p.y, (e.p1.x + e.p2.x) / 2, (e.p1.y + e.p2.y) / 2) <= 12)
+                    || null;
+            }
             /* LE MILIEU CODÉ PORTÉ PAR CE TRAIT, s'il existe. C'est lui qui
                interdit au segment d'avoir sa propre marque : les deux moitiés
                marquées SONT le codage de ce trait, et une marque de plus au
@@ -22247,12 +22264,65 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                point nu : deux clics donnaient un point sans marques, là où la
                phrase « Place le milieu I de [AB] » donnait les deux traits. Le
                codage n'appartient pas au chemin qu'on a pris pour le demander. */
+            /* LE MILIEU EXISTE PEUT-ÊTRE DÉJÀ. « J'ai tracé une médiatrice, j'ai
+               donc obtenu le milieu du segment, le point s'est appelé O. Lorsque
+               j'ai cliqué sur l'icône milieu puis sur O, le logiciel a créé un
+               point D puis a codé. Je ne veux pas de création de point si un point
+               est déjà le milieu, par contre je veux bien le codage. »
+
+               Et c'est exactement ce qui se passait : deux points superposés au
+               même endroit, deux fois le même codage, et une figure qui dit deux
+               fois la même chose. Le clic tombait d'ailleurs sur le SEGMENT — O est
+               dessus —, si bien qu'on ne pouvait même pas s'en sortir en visant
+               mieux.
+
+               On regarde donc d'abord si quelqu'un occupe déjà la place. Deux
+               façons de l'être : par construction, quand le point a déjà [a, b]
+               pour parents — c'est le milieu de la médiatrice —, ou par position,
+               quand il tombe sur le milieu à la distance d'accrochage près. Dans
+               les deux cas on garde CE point, et l'on se contente de poser le
+               codage qu'on venait chercher. */
+            milieuDejaLa(a, b) {
+                const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                /* Douze pixels : la tolérance d'accrochage de l'application —
+                   celle à laquelle un point s'attrape à la souris. Ce qui est « le
+                   même point » pour la main l'est pour la figure. */
+                const tol = 12;
+                /* On ne demande PAS qu'il soit visible. Une médiatrice laisse son
+                   milieu en point de construction, caché : empiler dessus un
+                   second point, visible celui-là, ne fait pas disparaître le
+                   premier — cela fait deux points au même endroit, deux codages,
+                   et une figure qui dit deux fois la même chose. Le bon geste est
+                   de MONTRER celui qui est déjà là. */
+                return this.entities.find(e => e instanceof Point && e !== a && e !== b
+                    && (((e.parents || []).length === 2
+                         && ((e.parents[0] === a && e.parents[1] === b)
+                          || (e.parents[0] === b && e.parents[1] === a)))
+                        || MathUtils.dist(e.x, e.y, mx, my) <= tol)) || null;
+            }
             poserMilieu(a, b, nom) {
+                const code = this.traitEntre(a, b)
+                    ? this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque : null;
+                const deja = this.milieuDejaLa(a, b);
+                if (deja) {
+                    /* On ne double pas le point : on lui donne ce qui lui manque.
+                       S'il n'était là que par hasard, il devient un VRAI milieu —
+                       il dépendra désormais de [ab] et le suivra ; s'il dormait en
+                       point de construction, il se montre et prend un nom, puisque
+                       c'est bien un milieu qu'on est venu chercher. */
+                    if (!(deja.parents || []).length) { deja.parents = [a, b]; deja.update(); }
+                    if (deja.visible === false) deja.visible = true;
+                    if (deja.estConstruction) deja.estConstruction = false;
+                    if (!deja.label) deja.label = (nom !== undefined ? nom : this.getNextLabel());
+                    if (code) deja.codageMilieu = code;
+                    this.libererTrait(deja);
+                    this.saveState();
+                    this.render();
+                    return deja;
+                }
                 const m = new Point(0, 0, nom !== undefined ? nom : this.getNextLabel(), [a, b]);
                 m.update();
-                if (this.traitEntre(a, b)) {
-                    m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
-                }
+                if (code) m.codageMilieu = code;
                 this.addEntity(m);
                 // le milieu prend la parole sur ce trait : la marque de longueur s'efface
                 this.libererTrait(m);
@@ -24064,7 +24134,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.selectedObject.coding = action;
                     } else if (this.selectedObject instanceof Angle) {
                         this.selectedObject.coding = action;
-                    } else if (this.estMilieu(this.selectedObject)) {
+                    } else if (this.estMilieu(this.selectedObject)
+                            || this.segmentDontMilieu(this.selectedObject)) {
+                        /* UN POINT QUI DIT « JE SUIS LE MILIEU » DOIT L'ÊTRE. Le
+                           codage se dessine à partir des deux parents — sans eux il
+                           ne s'affiche pas du tout —, et surtout un point posé là
+                           par hasard ne resterait pas au milieu dès qu'on tire sur
+                           une extrémité. Le déclarer, c'est le construire : il prend
+                           le segment pour parents et le suivra. */
+                        if (!this.estMilieu(this.selectedObject) && action !== 'mark-none') {
+                            const seg = this.segmentDontMilieu(this.selectedObject);
+                            if (seg) {
+                                this.selectedObject.parents = [seg.p1, seg.p2];
+                                this.selectedObject.update();
+                            }
+                        }
                         this.selectedObject.codageMilieu = (action === 'mark-none') ? null : action;
                         // le milieu prend la parole : le trait rend la sienne
                         this.libererTrait(this.selectedObject);
@@ -24206,7 +24290,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const isAngle = this.selectedObject instanceof Angle;
 
                 // --- CODAGE DES LONGUEURS (Segments et milieux : les angles ont déjà leur propre codage via le nombre d'arcs) ---
-                const estMil = this.estMilieu(this.selectedObject);
+                const estMil = this.estMilieu(this.selectedObject)
+                    || !!this.segmentDontMilieu(this.selectedObject);
                 if (isSegment || estMil) {
                     const rC = document.getElementById('rowCoding');
                     if (rC) {
@@ -43172,7 +43257,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 16h';
+        window.GM_VERSION = '2026-09-08 · 17h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

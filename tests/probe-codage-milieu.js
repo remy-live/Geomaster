@@ -359,6 +359,96 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      JSON.stringify(duo.traits));
   void surAB;
 
+  console.log('\n=== un milieu déjà là ne se double pas ===');
+  /* « J'ai tracé une médiatrice, j'ai donc obtenu le milieu du segment, le point
+     s'est appelé O. Lorsque j'ai cliqué sur l'icône milieu puis sur O, le logiciel
+     a créé un point D puis a codé. Je ne veux pas de création de point si un point
+     est déjà le milieu, par contre je veux bien le codage. »
+
+     Et c'est ce qui se passait : deux points superposés au même endroit, deux fois
+     le même codage. Le clic tombait d'ailleurs sur le SEGMENT — O est dessus —, si
+     bien qu'on ne pouvait même pas s'en sortir en visant mieux. */
+  const doublons = await page.evaluate(() => {
+    const a = window.app;
+    const monter = (quoi) => {
+      a.entities = []; a.historyPast = [];
+      const A = new Point(450, 500, 'A'), B = new Point(850, 500, 'B');
+      a.addEntity(A); a.addEntity(B);
+      a.addEntity(new Segment(A, B, { color: '#000', width: 2 }));
+      if (quoi === 'nomme') { const O = new Point(0, 0, 'O', [A, B]); O.update(); a.addEntity(O); }
+      if (quoi === 'cache') { const O = new Point(0, 0, '', [A, B]); O.update(); O.visible = false; a.addEntity(O); }
+      if (quoi === 'libre') a.addEntity(new Point(653, 502, 'Z'));
+      const s = a.entities.find(e => e instanceof Segment);
+      a.poserMilieu(s.p1, s.p2);
+      const auMilieu = a.entities.filter(e => e instanceof Point
+        && Math.abs(e.x - 650) < 13 && Math.abs(e.y - 500) < 13);
+      return { combien: auMilieu.length,
+               nom: auMilieu.map(p => p.label || '?').join(','),
+               visible: auMilieu.every(p => p.visible !== false),
+               code: auMilieu.every(p => !!p.codageMilieu),
+               parents: auMilieu.map(p => (p.parents || []).map(q => q.label).join('')).join(',') };
+    };
+    return { nomme: monter('nomme'), cache: monter('cache'),
+             libre: monter('libre'), vide: monter('vide') };
+  });
+  ck('sur un milieu déjà nommé, aucun point de plus — et le codage est posé',
+     doublons.nomme.combien === 1 && doublons.nomme.nom === 'O' && doublons.nomme.code,
+     JSON.stringify(doublons.nomme));
+  /* Une médiatrice laisse son milieu en point de CONSTRUCTION, caché : empiler
+     dessus un point visible ne fait pas disparaître le premier. */
+  ck('  sur un milieu caché, on le montre au lieu d\'en empiler un second',
+     doublons.cache.combien === 1 && doublons.cache.visible && doublons.cache.code,
+     JSON.stringify(doublons.cache));
+  ck('  un point libre posé là devient le vrai milieu, sans doublon',
+     doublons.libre.combien === 1 && doublons.libre.parents === 'AB',
+     JSON.stringify(doublons.libre));
+  ck('  et sans milieu, il s\'en crée bien un',
+     doublons.vide.combien === 1 && doublons.vide.code,
+     JSON.stringify(doublons.vide));
+
+  console.log('\n=== et le menu contextuel propose le codage ===');
+  /* « Quand on a un point et que celui-ci est le milieu d'un segment, on pourrait
+     proposer le codage du milieu dans le menu contextuel. » Il ne le proposait
+     qu'aux points CONSTRUITS comme milieux. */
+  const menu = await page.evaluate(() => {
+    const a = window.app;
+    const poser = (quoi) => {
+      a.entities = []; a.historyPast = [];
+      const A = new Point(450, 500, 'A'), B = new Point(850, 500, 'B');
+      a.addEntity(A); a.addEntity(B);
+      a.addEntity(new Segment(A, B, { color: '#000', width: 2 }));
+      let P;
+      if (quoi === 'construit') { P = new Point(0, 0, 'O', [A, B]); P.update(); }
+      if (quoi === 'libre') P = new Point(652, 501, 'Z');
+      if (quoi === 'ailleurs') P = new Point(760, 500, 'Z');
+      a.addEntity(P);
+      a.selectedObject = P;
+      a.updateContextMenuUI();
+      const rC = document.getElementById('rowCoding');
+      return rC ? (rC.style.display || getComputedStyle(rC).display) : 'absente';
+    };
+    const res = { construit: poser('construit'), libre: poser('libre'),
+                  ailleurs: poser('ailleurs') };
+    /* Et poser la marque fait du point un VRAI milieu : sans parents, le codage
+       ne se dessinerait même pas — et le point ne suivrait pas le segment. */
+    poser('libre');
+    a.styleObject('mark-1');
+    const Z = a.entities.find(e => e instanceof Point && e.label === 'Z');
+    res.applique = { code: Z.codageMilieu, parents: (Z.parents || []).map(q => q.label).join('') };
+    a.entities[0].x -= 120; a.updateDependents();
+    res.suit = { z: Math.round(Z.x), attendu: Math.round((a.entities[0].x + 850) / 2) };
+    return res;
+  });
+  ck('un milieu construit se voit proposer le codage',
+     menu.construit === 'grid', menu.construit);
+  ck('  un point simplement POSÉ au milieu aussi',
+     menu.libre === 'grid', menu.libre);
+  ck('  mais pas un point qui n\'est pas au milieu',
+     menu.ailleurs === 'none', menu.ailleurs);
+  ck('  et le coder fait de lui un vrai milieu, qui suit le segment',
+     menu.applique.parents === 'AB' && menu.suit.z === menu.suit.attendu,
+     JSON.stringify(menu.applique) + ' ' + JSON.stringify(menu.suit));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
