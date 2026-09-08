@@ -24911,7 +24911,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (toolName === 'pan') btnPan.classList.add('active');
                     else btnPan.classList.remove('active');
                 }
-                document.querySelectorAll('.tool-btn:not([id^="btn-"])').forEach(btn => btn.classList.remove('active'));
+                /* L'ICÔNE DU SEGMENT RESTAIT ALLUMÉE. Cette ligne éteint l'outil
+                   précédent, et elle épargnait tous les boutons dont l'identifiant
+                   commence par « btn- » — pour ne pas éteindre les quatre
+                   instruments quand on change d'outil de tracé. Mais les
+                   instruments ne portent PAS cette classe-là : ils ont la leur,
+                   « widget-active », que rien ici ne touche. L'exception ne
+                   protégeait donc personne, et elle attrapait le seul outil de
+                   tracé qui ait un identifiant, le segment : passé du segment au
+                   cercle, on voyait DEUX icônes allumées, et celle du segment ne
+                   s'éteignait plus jamais. */
+                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
                 if (toolName !== 'pan' && !toolName.startsWith('magic_')) {
                     const btn = document.querySelector(`.tool-btn[onclick="app.setTool('${toolName}')"]`);
                     if (btn) btn.classList.add('active');
@@ -43115,7 +43125,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 14h';
+        window.GM_VERSION = '2026-09-08 · 15h';
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu
            et disait « Crayon (ON) » — les deux écrits en dur dans le HTML — mais

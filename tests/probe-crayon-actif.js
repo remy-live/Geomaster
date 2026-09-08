@@ -85,6 +85,55 @@ const ck = (nom, ok, detail) => {
            dock.eteint === false && dock.allume === true, JSON.stringify(dock));
     }
 
+    console.log('\n=== un seul outil allumé à la fois ===');
+    /* « L'icône segment reste toujours allumée. » Elle l'était : la ligne qui
+       éteint l'outil précédent épargnait tous les boutons dont l'identifiant
+       commence par « btn- », pour ne pas éteindre les quatre instruments quand on
+       change d'outil de tracé. Or les instruments ne portent pas cette classe-là,
+       ils ont la leur — l'exception ne protégeait donc personne, et elle attrapait
+       le seul outil de tracé qui ait un identifiant : le segment. Passé du segment
+       au cercle, on voyait DEUX icônes allumées, et celle du segment ne
+       s'éteignait plus jamais. */
+    const suite = await page.evaluate(() => {
+        const app = window.app;
+        const lire = () => [...document.querySelectorAll('.tool-btn.active')]
+            .map(b => (b.getAttribute('onclick') || b.id || '?')
+                .replace("app.setTool('", '').replace("')", ''));
+        const vus = [];
+        ['point', 'segment', 'circle', 'angle', 'move', 'segment', 'point'].forEach(o => {
+            app.setTool(o);
+            vus.push({ o, actifs: lire() });
+        });
+        /* Et par un vrai clic sur l'icône, comme le fait une main. */
+        document.querySelector('.tool-btn[onclick="app.setTool(\'segment\')"]').click();
+        const apresClic = lire();
+        document.querySelector('.tool-btn[onclick="app.setTool(\'move\')"]').click();
+        return { vus, apresClic, apresMove: lire() };
+    });
+    const fautives = suite.vus.filter(v => v.actifs.length !== 1 || v.actifs[0] !== v.o);
+    ck('changer d\'outil n\'en laisse qu\'un allumé',
+       fautives.length === 0,
+       fautives.length ? fautives.map(v => v.o + ' → ' + v.actifs.join('+')).join(', ')
+                       : suite.vus.map(v => v.o).join(' → '));
+    ck('  et le segment s\'éteint comme les autres',
+       suite.apresClic.join() === 'segment' && suite.apresMove.join() === 'move',
+       JSON.stringify(suite.apresClic) + ' puis ' + JSON.stringify(suite.apresMove));
+    /* L'exception voulait protéger les instruments : ils doivent effectivement
+       rester allumés quand on change d'outil de tracé — avec LEUR classe. */
+    const trousse = await page.evaluate(() => {
+        const app = window.app;
+        ['ruler', 'setsquare', 'protractor', 'compass'].forEach(w => {
+            if (!app.activeWidgets[w]) app.toggleWidget(w);
+        });
+        app.setTool('point');
+        return ['ruler', 'setsquare', 'protractor', 'compass'].map(w => {
+            const b = document.getElementById('btn-' + w);
+            return w + ':' + (b && b.classList.contains('widget-active') ? 'allumé' : 'ÉTEINT');
+        });
+    });
+    ck('  tandis que les instruments sortis restent allumés',
+       trousse.every(t => /allumé$/.test(t)), trousse.join(' '));
+
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 
     await nav.close();

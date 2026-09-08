@@ -1020,6 +1020,17 @@ compas dont le centre avait disparu — ce que laisse un rejeu arrêté en plein
 construction — **cassait `serialize()`**, donc `saveState()`, donc la sauvegarde
 automatique, silencieusement, au moment précis où l'on en aurait eu besoin.
 
+### Un seul outil allumé à la fois
+
+*« L'icône segment reste toujours allumée. »* Elle l'était. La ligne qui éteint
+l'outil précédent épargnait tous les boutons dont l'identifiant commence par
+`btn-`, pour ne pas éteindre les quatre instruments quand on change d'outil de
+tracé. Mais les instruments ne portent pas cette classe-là — ils ont la leur,
+que rien ici ne touche. **L'exception ne protégeait donc personne**, et elle
+attrapait le seul outil de tracé qui ait un identifiant : le segment. Passé du
+segment au cercle, on voyait deux icônes allumées, et celle du segment ne
+s'éteignait plus jamais — ni en changeant d'outil, ni en cliquant ailleurs.
+
 ### La visite tient dans un téléphone
 
 *« La présentation de l'aide et la démo aide est vraiment pas adapté au
