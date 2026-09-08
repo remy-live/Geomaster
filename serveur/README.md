@@ -39,8 +39,40 @@ jamais de date plus fine que le jour.
 
 ## Poser le point de chute
 
-Le serveur tient en une page et se déploie gratuitement (Cloudflare Worker, 100
-000 requêtes par jour dans l'offre gratuite).
+Le serveur tient en une page et se déploie gratuitement chez **Cloudflare**
+— `dash.cloudflare.com`. Le compte gratuit ne demande **pas de carte
+bancaire**, et il n'y a ni domaine à acheter, ni machine à surveiller : l'offre
+gratuite couvre 100 000 requêtes par jour et 1 000 écritures, soit jusqu'à mille
+utilisateurs actifs quotidiens, puisque chacun n'écrit qu'une fois par jour.
+
+Deux voies. Prenez la première si vous ne voulez rien installer.
+
+### A. Tout dans le navigateur
+
+Les noms exacts des menus bougent d'une refonte à l'autre chez Cloudflare ; ce
+qui compte, ce sont les quatre objets à créer, et ils ne changent pas : un
+**Worker**, un **espace KV**, une **liaison** nommée `USAGES`, un **secret**
+nommé `CLE_LECTURE`.
+
+1. **Créer le compte** sur `dash.cloudflare.com` (gratuit, sans carte).
+2. Menu de gauche → **Workers & Pages** → **Create** → **Create Worker**.
+   Nommez-le `geomaster-usages`, puis **Deploy** — il se déploie avec un code
+   d'exemple, c'est normal.
+3. **Edit code** : effacez tout, collez le contenu de `usages-worker.js`,
+   **Deploy**.
+4. **Créer l'espace de rangement** : menu de gauche → **Storage & Databases**
+   → **KV** → **Create a namespace**, nommé `USAGES`.
+5. **Le relier au Worker** : revenez au Worker → **Settings** → **Bindings**
+   (ou *Variables*) → ajoutez une liaison **KV namespace**, avec pour nom de
+   variable `USAGES`, pointant sur l'espace créé à l'étape 4. Le nom de la
+   variable doit être exactement `USAGES` : c'est celui que le code appelle.
+6. **Poser la clé de lecture** : même écran → ajoutez une variable
+   `CLE_LECTURE`, de type **Secret**, avec le mot de passe de votre choix.
+   C'est lui qui protège la lecture des statistiques.
+7. Votre adresse est affichée en haut du Worker :
+   `https://geomaster-usages.VOTRE-SOUS-DOMAINE.workers.dev`
+
+### B. En ligne de commande
 
 ```bash
 npm install -g wrangler          # une fois
