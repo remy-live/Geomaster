@@ -1066,14 +1066,24 @@ avoir des stats, les outils, tout tout tout. »*
 Les compteurs locaux ne disent rien tant que rien ne remonte, et GitHub Pages ne
 remontera jamais rien. Il faut donc **un point de chute à soi** — un serveur qui
 tient en une page, se déploie gratuitement, et dont le code est dans le dépôt :
-[`serveur/`](serveur/). Une commande pour le poser, une ligne à remplir dans
-`index.html` :
+[`serveur/`](serveur/). Il est posé depuis le 9 septembre 2026, et son adresse
+tient sur une ligne d'`index.html` :
 
 ```js
-window.GM_USAGES_URL = 'https://geomaster-usages.VOTRE-COMPTE.workers.dev';
+window.GM_USAGES_URL = 'https://withered-waterfall-04f1.devoddere-remy.workers.dev';
 ```
 
-Laissée vide — l'état du dépôt — **il ne se passe rien du tout**.
+Videz cette chaîne et **il ne se passe plus rien du tout** : les compteurs
+continuent de vivre sur place, et rien ne sort. C'est l'interrupteur, et il n'y
+en a qu'un.
+
+**Cette adresse est publique, et ce n'est pas un défaut** : le logiciel doit
+l'appeler depuis le navigateur de chacun, donc elle est lisible par tous — et
+elle ne sait qu'**écrire**. La **clé de lecture**, elle, ne se trouve nulle part
+dans le dépôt : elle vit dans les secrets du serveur, parce qu'un fichier publié
+n'est pas un coffre. C'est la seule fuite qu'aurait ce montage, et elle tiendrait
+à une étourderie de copier-coller ; la sonde relit donc la ligne livrée et refuse
+qu'elle porte le moindre `?k=`.
 
 Le relevé part alors une fois par jour au plus, avec un **identifiant
 d'installation tiré au hasard** : c'est lui, et lui seul, qui permet de compter

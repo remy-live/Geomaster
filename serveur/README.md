@@ -34,8 +34,9 @@ jamais de date plus fine que le jour.
    que la chaîne entière marche.
 2. **Rien de l'interface élève**, ni d'un aperçu affiché dans un cadre. Ce n'est
    pas d'eux qu'on parle, et ils n'ont rien demandé.
-3. **Rien du tout tant que `window.GM_USAGES_URL` est vide** — l'état par défaut
-   du dépôt.
+3. **Rien du tout si `window.GM_USAGES_URL` est vide.** La ligne est remplie
+   depuis le 9 septembre 2026 ; la vider éteint la remontée sans rien changer
+   d'autre, et les compteurs continuent de vivre sur chaque machine.
 
 ## Poser le point de chute
 
@@ -50,27 +51,48 @@ Deux voies. Prenez la première si vous ne voulez rien installer.
 ### A. Tout dans le navigateur
 
 Les noms exacts des menus bougent d'une refonte à l'autre chez Cloudflare ; ce
-qui compte, ce sont les quatre objets à créer, et ils ne changent pas : un
-**Worker**, un **espace KV**, une **liaison** nommée `USAGES`, un **secret**
-nommé `CLE_LECTURE`.
+qui compte, ce sont les **trois pièces** à poser, et elles ne changent pas :
+
+| # | La pièce | À quoi elle sert |
+|---|---|---|
+| 1 | un **Worker** | reçoit les relevés, et vous récite l'agrégat |
+| 2 | un **espace KV**, relié sous le nom `USAGES` | le Worker n'a aucune mémoire à lui ; le KV garde les relevés |
+| 3 | un **secret** nommé `CLE_LECTURE` | sans lui, n'importe qui lirait le relevé |
 
 1. **Créer le compte** sur `dash.cloudflare.com` (gratuit, sans carte).
 2. Menu de gauche → **Workers & Pages** → **Create** → **Create Worker**.
-   Nommez-le `geomaster-usages`, puis **Deploy** — il se déploie avec un code
-   d'exemple, c'est normal.
+   Acceptez le nom tiré au hasard qu'il propose, puis **Deploy** — il se déploie
+   avec un code d'exemple qui répond « Hello World! », c'est normal.
 3. **Edit code** : effacez tout, collez le contenu de `usages-worker.js`,
-   **Deploy**.
-4. **Créer l'espace de rangement** : menu de gauche → **Storage & Databases**
-   → **KV** → **Create a namespace**, nommé `USAGES`.
-5. **Le relier au Worker** : revenez au Worker → **Settings** → **Bindings**
-   (ou *Variables*) → ajoutez une liaison **KV namespace**, avec pour nom de
-   variable `USAGES`, pointant sur l'espace créé à l'étape 4. Le nom de la
-   variable doit être exactement `USAGES` : c'est celui que le code appelle.
-6. **Poser la clé de lecture** : même écran → ajoutez une variable
-   `CLE_LECTURE`, de type **Secret**, avec le mot de passe de votre choix.
-   C'est lui qui protège la lecture des statistiques.
-7. Votre adresse est affichée en haut du Worker :
-   `https://geomaster-usages.VOTRE-SOUS-DOMAINE.workers.dev`
+   **Deploy**. L'aperçu doit alors répondre **`non`** : c'est la bonne réponse,
+   et c'est même la preuve que le code est en ligne — la route de lecture refuse
+   de parler à qui ne présente pas de clé.
+4. **Créer et relier le rangement** : sur la page du Worker, onglet **Bindings**
+   → **Add binding** → **KV namespace** → **Add Binding**. Deux champs :
+   *Variable name* = `USAGES` — **exactement ceci**, c'est le mot que le code
+   prononce (`env.USAGES`) —, et *KV namespace* : la liste est vide au premier
+   passage, un lien **Create** y crée l'espace.
+5. **Poser la clé de lecture** : onglet **Settings** → section **Variables and
+   Secrets** → **Add** → type **Secret** (pas *Text*, qui s'afficherait en
+   clair), nom `CLE_LECTURE`, valeur au choix. Notez-la : Cloudflare ne la
+   remontrera jamais.
+6. Votre adresse est sur l'onglet **Overview**, ou derrière le bouton **Visit** :
+   `https://NOM-DU-WORKER.VOTRE-SOUS-DOMAINE.workers.dev`
+
+**Trois pièges, tous rencontrés pour de vrai :**
+
+- Le bouton **Edit code** ouvre un éditeur qui a sa **propre** fenêtre
+  *Settings* — celle de l'éditeur de texte, qui règle les couleurs et les
+  raccourcis clavier. Chercher `bindings` dedans ne trouve que des
+  *keybindings*. Le bon *Settings* est dans la rangée d'onglets du Worker.
+- La liste des bindings propose **Secrets Store**. Ce n'est pas ça : c'est un
+  coffre séparé, à créer et gérer à part. Le secret simple est sous *Settings →
+  Variables and Secrets*.
+- Le chemin **« créer une application depuis un dépôt GitHub »** échoue :
+  il lance `npx wrangler deploy` à la racine du dépôt, où il n'y a pas de
+  `wrangler.toml` — *« Required Worker name missing »* — et même en corrigeant le
+  dossier il buterait sur l'`id` du KV, qui n'existe qu'une fois l'espace créé.
+  Ce chemin ne sert à rien ici.
 
 ### B. En ligne de commande
 
@@ -90,14 +112,29 @@ wrangler deploy
 Puis, dans `index.html`, une seule ligne à remplir :
 
 ```js
-window.GM_USAGES_URL = 'https://geomaster-usages.VOTRE-COMPTE.workers.dev';
+window.GM_USAGES_URL = 'https://withered-waterfall-04f1.devoddere-remy.workers.dev';
 ```
+
+Cette adresse est **publique par nature** — le logiciel l'appelle depuis le
+navigateur de chacun — et elle ne sait qu'écrire. La clé de lecture, elle, n'est
+**jamais** dans le dépôt : elle vit dans les secrets du Worker. La sonde
+`probe-usages.js` relit la ligne livrée et refuse qu'elle porte le moindre `?k=`.
 
 ## Lire
 
 ```
-https://geomaster-usages.VOTRE-COMPTE.workers.dev/?k=VOTRE_CLE
+https://VOTRE-WORKER.workers.dev/?k=VOTRE_CLE
 ```
+
+La première fois, le relevé est **à zéro** — et ce zéro est la réussite : il dit
+que la clé est bonne, que le rangement est branché, et qu'il est encore vide.
+
+| Ce que vous lisez | Ce que ça veut dire |
+|---|---|
+| le relevé, même à zéro | tout est en place |
+| `non` | la clé ne correspond pas, ou la variable ne s'appelle pas exactement `CLE_LECTURE` |
+| une erreur `1101` | le rangement n'est pas branché : la variable ne s'appelle pas exactement `USAGES` |
+| `Hello World!` | le code n'a pas été redéployé |
 
 Un texte, en clair :
 

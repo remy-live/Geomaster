@@ -43513,7 +43513,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-08 · 18h';
+        window.GM_VERSION = '2026-09-09 · 9h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
@@ -43522,9 +43522,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            j'aimerais avoir des stats, les outils, tout tout tout. »
 
            GitHub Pages ne peut rien vous dire : c'est de l'hébergement statique,
-           sans journal d'accès. Il faut donc un point de chute À VOUS. Mettez son
-           adresse ci-dessous et la remontée s'allume ; laissez la ligne vide et
-           il ne se passe rien du tout — c'est l'état par défaut.
+           sans journal d'accès. Il faut donc un point de chute À VOUS. L'adresse
+           ci-dessous est celle du Worker posé le 9 septembre 2026 ; videz la
+           chaîne et il ne se passe plus rien du tout, sans autre changement.
+
+           LA CLÉ DE LECTURE N'EST PAS ICI, et n'y sera jamais : un fichier
+           publié n'est pas un coffre. Elle vit dans les secrets du Worker, et
+           elle ne sert qu'à VOUS, pour lire le relevé — jamais au logiciel, qui
+           n'a besoin de rien pour écrire.
 
            Le serveur qui va avec tient en quarante lignes et se déploie
            gratuitement : voir serveur/usages-worker.js et serveur/README.md.
@@ -43545,7 +43550,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
               le logiciel n'a pas comprises, qui sont la seule matière première
               pour qu'il en comprenne davantage.
            ================================================================ */
-        window.GM_USAGES_URL = '';
+        window.GM_USAGES_URL = 'https://withered-waterfall-04f1.devoddere-remy.workers.dev';
 
         const app = new GeometrieApp("geoCanvas");
         /* LE CRAYON EST ALLUMÉ : QU'IL SE VOIE ALLUMÉ. Son bouton naissait bleu

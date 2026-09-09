@@ -165,8 +165,26 @@ const ck = (nom, ok, detail) => {
         window.GM_USAGES_URL = '';
         return window.app.usageEnvoyer();
     });
-    ck('sans adresse configurée, rien ne part — c\'est l\'état du dépôt',
+    ck('sans adresse configurée, rien ne part du tout',
        eteinte === 'éteint', eteinte);
+
+    /* CE QUE LE DÉPÔT EMBARQUE, ET SURTOUT CE QU'IL N'EMBARQUE PAS. L'adresse du
+       point de chute est publique par nature — le logiciel doit l'appeler depuis
+       le navigateur de chacun, elle est donc lisible par tous, et ce n'est pas
+       un défaut : cette adresse ne sait qu'ÉCRIRE. La clé de lecture, elle, ne
+       doit JAMAIS s'y trouver : un fichier publié n'est pas un coffre, et
+       quiconque afficherait la source lirait alors le relevé de tout le monde.
+       C'est la seule fuite possible de tout ce montage, et elle tiendrait à une
+       étourderie de copier-coller. On la mesure donc. */
+    const source = require('fs').readFileSync(
+        path.resolve(__dirname, '..', 'index.html'), 'utf8');
+    const trouve = source.match(/window\.GM_USAGES_URL\s*=\s*'([^']*)'/);
+    const livree = trouve ? trouve[1] : '(ligne introuvable)';
+    ck('le fichier livré porte une adresse de point de chute',
+       /^https:\/\/[^\s?#]+$/.test(livree), livree || '(vide)');
+    ck('  et pas la moindre trace de la clé de lecture',
+       !/[?&]k=/.test(livree) && !/\?/.test(livree),
+       livree.includes('?') ? 'IL Y A UNE REQUÊTE DANS L\'ADRESSE' : 'aucune');
 
     const enLocal = await page.evaluate(() => {
         window.GM_USAGES_URL = 'https://exemple.invalid/usages';
