@@ -1111,6 +1111,40 @@ relevé d'une installation *est* toute son histoire. Une clé par installation,
 écrasée à chaque envoi — la base grossit avec le nombre d'utilisateurs, jamais
 avec le temps, et **le nombre de clés est le nombre d'utilisateurs**.
 
+### Une statistique qui n'arrive pas ressemble à une absence d'utilisateurs
+
+Le point de chute posé, le relevé est resté **à zéro** — et le logiciel
+répondait pourtant `déjà`, c'est-à-dire *« j'ai envoyé aujourd'hui »*. Deux
+défauts se cachaient derrière ce désaccord, et le second rendait le premier
+définitif.
+
+**Le jour se marquait avant l'arrivée.** `sendBeacon` rend *vrai* dès que la
+requête est **mise en file**, pas quand elle arrive. Le verrou « une fois par
+jour » se posait donc sur un envoi non confirmé : perdu en route, il n'était
+retenté que le lendemain — et indéfiniment jamais, si la cause durait. Le jour
+ne se marque désormais que sur **accusé de réception** ; un refus ou un silence
+laisse la journée intacte, et la prochaine ouverture réessaie.
+
+**Et l'envoi partait en `application/json`.** Une requête inter-origines qui
+annonce ce type n'est pas « simple » : le navigateur exige d'abord un **vol de
+reconnaissance** (`OPTIONS`), et s'il échoue — extension, pare-feu
+d'établissement, proxy scolaire, tous fréquents là où ce logiciel sert — la
+requête est abandonnée **sans un mot**. En `text/plain`, il n'y a plus de vol du
+tout : le paquet part droit. Le serveur lit le corps en JSON quoi qu'annonce
+l'en-tête.
+
+La sonde ne voyait rien de tout cela, car elle montait **un seul** serveur et
+postait sur lui-même : même origine, aucune règle inter-origines exercée. Or le
+vrai montage l'est par nature — la page vient de `github.io`, le point de chute
+est un `workers.dev`. Elle monte maintenant **deux** serveurs sur deux origines,
+vérifie qu'**aucun** `OPTIONS` n'est reçu, et joue la panne du point de chute
+pour tenir que la journée n'est pas brûlée.
+
+Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi —
+`envoyé`, `refusé 503`, `injoignable`, `pas encore tentée`. Sans elle, un tuyau
+bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
+mauvaise conclusion en toute confiance.
+
 ### Un milieu déjà là ne se double pas
 
 *« J'ai tracé une médiatrice, j'ai donc obtenu le milieu du segment, le point

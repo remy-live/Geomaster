@@ -16326,6 +16326,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 t += `${d.ouvertures} ouverture(s)\n`;
                 t += `consignes : ${u.consignes.ok || 0} faites, ${u.consignes.rate || 0} refusées\n`;
                 t += `visite guidée : ${u.visite || 0} fois\n`;
+                /* L'ÉTAT DE LA REMONTÉE, ÉCRIT NOIR SUR BLANC. Une statistique
+                   qui n'arrive pas ressemble trait pour trait à une absence
+                   d'utilisateurs : on croit que personne ne s'en sert, alors que
+                   c'est le tuyau qui est bouché. Cette ligne fait la différence,
+                   et se lit sans ouvrir de console. */
+                if (window.GM_USAGES_URL) {
+                    let etat = '';
+                    try { etat = localStorage.getItem('gm_usage_etat') || ''; }
+                    catch (e) { void e; }
+                    t += `remontée : ${etat || 'pas encore tentée'}\n`;
+                } else {
+                    t += `remontée : éteinte (aucune adresse configurée)\n`;
+                }
                 t += bloc('ÉCRANS', u.ecrans);
                 t += bloc('OUTILS', u.outils);
                 t += bloc('CONSTRUCTIONS MAGIQUES', u.magies);
@@ -16355,7 +16368,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                Les compteurs sont CUMULATIFS, donc le dernier envoi d'une
                installation contient toute son histoire — il n'y a rien à
                accumuler côté serveur, et rien à recouper. */
-            usageEnvoyer() {
+            async usageEnvoyer() {
                 const url = window.GM_USAGES_URL;
                 if (!url) return 'éteint';
                 /* Règle 1 : jamais depuis un fichier local. */
@@ -16380,23 +16393,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     langue: (navigator.language || '').slice(0, 5),
                 };
                 const corps = JSON.stringify(paquet);
+                /* CE QUE L'ON RETIENT DE CHAQUE TENTATIVE. Sans cela, une
+                   remontée qui échoue échoue en silence, et l'on croit n'avoir
+                   aucun utilisateur alors qu'on a seulement un tuyau bouché. Le
+                   dernier état s'écrit dans le relevé, derrière la porte
+                   dérobée : on le lit sans console. */
+                const noter = (etat) => {
+                    try { localStorage.setItem('gm_usage_etat', jour + ' ' + etat); }
+                    catch (e) { void e; }
+                    return etat;
+                };
+                /* POURQUOI text/plain ET NON application/json. Une requête
+                   inter-origines portant application/json n'est pas « simple » :
+                   le navigateur exige d'abord un vol de reconnaissance (OPTIONS),
+                   et si celui-ci échoue — c'est le cas courant : une extension,
+                   un pare-feu d'établissement, un proxy scolaire — la requête est
+                   abandonnée SANS erreur visible. Avec text/plain, il n'y a plus
+                   de vol de reconnaissance du tout : le paquet part droit. Le
+                   serveur, lui, lit le corps en JSON quoi qu'annonce l'en-tête. */
+                const TYPE = 'text/plain;charset=UTF-8';
                 try {
-                    let parti = false;
-                    if (navigator.sendBeacon) {
-                        /* sendBeacon survit à la fermeture de l'onglet — un
-                           professeur ferme son portable, il ne regarde pas si la
-                           requête a eu le temps de partir. */
-                        parti = navigator.sendBeacon(url,
-                            new Blob([corps], { type: 'application/json' }));
-                    }
-                    if (!parti) {
-                        fetch(url, { method: 'POST', keepalive: true, mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' }, body: corps })
-                            .catch(() => {});
-                    }
-                    localStorage.setItem('gm_usage_envoi', jour);
-                    return 'envoyé';
-                } catch (e) { void e; return 'raté'; }
+                    /* keepalive tient la requête même si l'onglet se ferme — un
+                       professeur rabat son portable, il ne regarde pas si la
+                       requête a eu le temps de partir. */
+                    const rep = await fetch(url, { method: 'POST', keepalive: true,
+                        headers: { 'Content-Type': TYPE }, body: corps });
+                    if (!rep.ok) return noter('refusé ' + rep.status);
+                    /* LE JOUR NE SE MARQUE QU'ICI, SUR ACCUSÉ DE RÉCEPTION.
+                       Auparavant il se marquait juste après l'appel : sendBeacon
+                       rend « vrai » dès que la requête est MISE EN FILE, pas
+                       quand elle arrive. Un envoi perdu brûlait donc la journée,
+                       et le suivant n'était tenté que le lendemain — indéfiniment
+                       si la cause durait. */
+                    try { localStorage.setItem('gm_usage_envoi', jour); }
+                    catch (e) { void e; }
+                    return noter('envoyé');
+                } catch (e) {
+                    void e;
+                    /* Injoignable. On tente le dernier recours, qui survit à tout
+                       mais n'accuse rien — et l'on NE MARQUE PAS le jour : la
+                       prochaine ouverture réessaiera. */
+                    try {
+                        if (navigator.sendBeacon) {
+                            navigator.sendBeacon(url, new Blob([corps], { type: TYPE }));
+                        }
+                    } catch (e2) { void e2; }
+                    return noter('injoignable');
+                }
             }
             usageCopier(lien) {
                 const t = this.usageTexte();
@@ -43513,7 +43556,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-09 · 9h';
+        window.GM_VERSION = '2026-09-09 · 10h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

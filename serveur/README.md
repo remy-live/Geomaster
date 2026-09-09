@@ -131,10 +131,32 @@ que la clé est bonne, que le rangement est branché, et qu'il est encore vide.
 
 | Ce que vous lisez | Ce que ça veut dire |
 |---|---|
-| le relevé, même à zéro | tout est en place |
+| le relevé, même à zéro | tout est en place côté serveur |
 | `non` | la clé ne correspond pas, ou la variable ne s'appelle pas exactement `CLE_LECTURE` |
 | une erreur `1101` | le rangement n'est pas branché : la variable ne s'appelle pas exactement `USAGES` |
 | `Hello World!` | le code n'a pas été redéployé |
+
+### Et si le relevé reste à zéro alors qu'on s'en sert
+
+Le serveur peut être irréprochable et ne rien recevoir. Ouvrez le relevé local
+derrière la porte dérobée : sa ligne **`remontée :`** dit l'état du dernier
+envoi tenté.
+
+| Cette ligne dit | Où ça coince |
+|---|---|
+| `envoyé` | le paquet est parti et a été accusé. S'il n'apparaît pas côté serveur, attendez une minute : le KV met un instant à se mettre d'accord avec lui-même |
+| `refusé 4xx` / `refusé 5xx` | le point de chute répond mais rejette. L'onglet *Observability* du Worker dit pourquoi |
+| `injoignable` | la requête ne sort pas : extension, pare-feu d'établissement, proxy scolaire, réseau coupé |
+| `pas encore tentée` | l'envoi se déclenche 8 secondes après l'ouverture ; laissez la page ouverte |
+| `éteinte` | la page chargée ne porte pas d'adresse — c'est une version en cache |
+
+Un envoi refusé **ne consomme pas** la journée : la prochaine ouverture
+réessaie. Pour forcer un envoi tout de suite, dans la console de la page
+publiée :
+
+```js
+localStorage.removeItem('gm_usage_envoi'); await app.usageEnvoyer()
+```
 
 Un texte, en clair :
 

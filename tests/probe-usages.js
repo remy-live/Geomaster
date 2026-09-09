@@ -196,38 +196,93 @@ const ck = (nom, ok, detail) => {
        dehors.slice(0, 2).join(' | ') || 'aucune');
 
     /* Sur le site publié, en revanche, elle part. On sert donc la page en http
-       pour de bon — c'est la seule façon de le vérifier. */
+       pour de bon — c'est la seule façon de le vérifier.
+     *
+     * ET SUR DEUX SERVEURS, PAS UN. La sonde n'en montait qu'un seul et postait
+     * sur lui-même : même origine, donc aucune règle inter-origines exercée.
+     * Or le vrai montage est inter-origines par nature — la page vient de
+     * github.io, le point de chute est un workers.dev. Tout un pan du chemin
+     * n'était donc pas mesuré, celui-là même qui peut faire disparaître un envoi
+     * sans un mot : une requête inter-origines annonçant application/json exige
+     * du navigateur un vol de reconnaissance préalable, et s'il échoue la
+     * requête est abandonnée EN SILENCE. D'où le passage à text/plain, qui rend
+     * la requête « simple » et supprime ce vol. Deux ports, donc deux origines,
+     * et le chemin réel est enfin sous mesure. */
     const http = require('http');
     const fs = require('fs');
     const fichier = path.resolve(__dirname, '..', 'index.html');
-    const recu = [];
-    const serveur = http.createServer((req, res) => {
-        if (req.method === 'POST') {
-            let corps = '';
-            req.on('data', d => { corps += d; });
-            req.on('end', () => { recu.push(corps); res.writeHead(204, {
-                'Access-Control-Allow-Origin': '*' }); res.end(); });
-            return;
-        }
+
+    const site = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(fs.readFileSync(fichier));
     });
-    await new Promise(k => serveur.listen(0, '127.0.0.1', k));
-    const port = serveur.address().port;
+    await new Promise(k => site.listen(0, '127.0.0.1', k));
+    const portSite = site.address().port;
+
+    const recu = [];
+    const vols = [];          /* les OPTIONS reçus : il ne doit pas y en avoir */
+    let refuse = false;       /* pour jouer la panne du point de chute */
+    const collecte = http.createServer((req, res) => {
+        const cors = { 'Access-Control-Allow-Origin': '*',
+                       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                       'Access-Control-Allow-Headers': 'Content-Type' };
+        if (req.method === 'OPTIONS') { vols.push(req.url); res.writeHead(200, cors); res.end(); return; }
+        if (req.method === 'POST') {
+            let corps = '';
+            req.on('data', d => { corps += d; });
+            req.on('end', () => {
+                if (refuse) { res.writeHead(503, cors); res.end(); return; }
+                recu.push(corps);
+                res.writeHead(204, cors); res.end();
+            });
+            return;
+        }
+        res.writeHead(405, cors); res.end();
+    });
+    await new Promise(k => collecte.listen(0, '127.0.0.1', k));
+    /* Une AUTRE origine : localhost et 127.0.0.1 désignent la même machine mais
+       sont deux origines distinctes pour le navigateur — et le port diffère
+       aussi. C'est exactement la situation de github.io vers workers.dev. */
+    const chute = 'http://localhost:' + collecte.address().port + '/usages';
 
     const web = await nav.newPage({ viewport: { width: 1400, height: 950 } });
-    await web.goto('http://127.0.0.1:' + port + '/');
+    await web.goto('http://127.0.0.1:' + portSite + '/');
     await web.waitForFunction(() => window.app);
-    const envoi = await web.evaluate((p) => {
-        window.GM_USAGES_URL = 'http://127.0.0.1:' + p + '/usages';
+
+    /* D'ABORD LA PANNE, car c'est elle qui a coûté cher. Un envoi refusé ne doit
+       PAS brûler la journée : sendBeacon rendait « vrai » dès la mise en file,
+       le jour se marquait aussitôt, et l'envoi suivant n'était tenté que le
+       lendemain — indéfiniment si la cause durait. On croyait alors n'avoir
+       aucun utilisateur, quand on avait seulement un tuyau bouché. */
+    refuse = true;
+    const enPanne = await web.evaluate((u) => {
+        window.GM_USAGES_URL = u;
         window.app.checkAutoSave = () => {};
+        return window.app.usageEnvoyer();
+    }, chute);
+    const jourBrule = await web.evaluate(() => {
+        try { return localStorage.getItem('gm_usage_envoi'); } catch (e) { return 'illisible'; }
+    });
+    ck('un point de chute en panne se voit', /^refusé 503/.test(enPanne), enPanne);
+    ck('  et il NE BRÛLE PAS la journée : on réessaiera',
+       !jourBrule, jourBrule ? 'JOURNÉE PERDUE (' + jourBrule + ')' : 'le jour n\'est pas marqué');
+
+    refuse = false;
+    const envoi = await web.evaluate(() => {
         window.app.setTool('circle');
         window.app.compterUsage('incomprises', 'Trace une chose impossible');
         return window.app.usageEnvoyer();
-    }, port);
+    });
     for (let t = 0; t < 40 && !recu.length; t++) await web.waitForTimeout(100);
-    ck('depuis le site publié, le relevé part', envoi === 'envoyé' && recu.length === 1,
+    ck('depuis le site publié, le relevé part — vers une AUTRE origine',
+       envoi === 'envoyé' && recu.length === 1,
        envoi + ', ' + recu.length + ' relevé(s) reçu(s)');
+    ck('  sans vol de reconnaissance : la requête est « simple »',
+       vols.length === 0, vols.length + ' OPTIONS reçu(s)');
+    const dit = await web.evaluate(() => window.app.usageTexte());
+    ck('  et le relevé DIT que la remontée a marché',
+       /remontée : .*envoyé/.test(dit),
+       (dit.split('\n').find(l => l.startsWith('remontée')) || '(ligne absente)'));
     let paquet = {};
     try { paquet = JSON.parse(recu[0] || '{}'); } catch (e) {}
     ck('  il porte un identifiant d\'installation, pour compter des UTILISATEURS',
@@ -260,7 +315,8 @@ const ck = (nom, ok, detail) => {
        cote);
 
     await web.close();
-    await new Promise(k => serveur.close(k));
+    await new Promise(k => site.close(k));
+    await new Promise(k => collecte.close(k));
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 
