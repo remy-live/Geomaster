@@ -1145,6 +1145,94 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Une droite a un nom, et son nom va au bord
+
+*« Donne un nom aux droites — écris le nom le plus proche possible d'un bord,
+soit droite, soit gauche, au plus logique. Comme cela dans l'énoncé, on peut
+avoir "trace une droite (d)". »*
+
+Le nom se posait au second point. Sur un segment c'est son extrémité, donc sa
+place ; sur une **droite**, le second point n'est qu'un point de passage
+arbitraire — le plus souvent au milieu de la figure, là où il y a le plus de
+monde. Au tableau, on écrit (d) au bout du trait, contre le bord de l'ardoise,
+parce que c'est le seul endroit sûrement vide.
+
+C'est donc là qu'il va : le logiciel cherche par où la droite **sort du cadre**
+et pose son nom juste avant la sortie. Laquelle des deux ? La droite — on lit de
+gauche à droite et le nom se trouve au bout du regard. Sauf quand la droite est
+plutôt verticale : « à droite » n'y veut plus rien dire, et c'est en haut qu'on
+l'écrit. Mesuré : le nom sort à 1 253 px d'un cadre de 1 292, et à 34 px du haut
+pour une droite presque verticale. Ce n'est que le défaut — dès qu'on a fait
+glisser le nom soi-même, la place choisie l'emporte, et elle voyage avec la
+figure.
+
+Le cadre se déduit du **contexte de dessin**, pas de la vue courante : c'est ce
+qui le rend juste à l'export aussi, où l'image a son propre cadrage et ignore
+tout du zoom de l'écran. Avec un piège mesuré au passage : à l'écran, le canevas
+fait 3 000 × 2 000 et déborde volontairement — c'est le conteneur qui le rogne.
+S'y fier aurait posé le nom mille pixels hors de l'écran.
+
+**Et le nom ne remplace pas les deux points.** C'est le piège de cette
+demande-là : écrire « Trace la droite (d) » après avoir placé A et B rend
+l'énoncé **inconstructible** — rien ne dit plus par où passe (d), et l'élève
+trace la première droite venue. L'énoncé dit donc les deux :
+
+```
+Place les points A et B tels que AB = 6,5 cm.
+Trace la droite (AB), que l'on note (d).
+```
+
+Quand l'outil « droite sans points » a effacé les extrémités, il n'y a rien à
+citer — et « Trace une droite (d). » est alors exactement juste : n'importe
+laquelle convient, c'est ce que l'énoncé doit dire.
+
+### Trois médiatrices, pas deux
+
+*« Pour la médiatrice dans la bibliothèque ou la construction magique, trace les
+3, pas deux seulement. »*
+
+Le cercle circonscrit n'en traçait que deux, et pour une raison qui se défend :
+dès qu'elles se coupent, le centre est trouvé. Mais ce n'est pas le compte qu'on
+enseigne ici. Le théorème dit que les trois médiatrices d'un triangle sont
+**concourantes**, et la troisième est la seule à le montrer — tracée, elle passe
+par le point déjà obtenu et l'élève la voit arriver ; absente, il n'y a rien à
+démontrer, seulement deux traits qui se croisent comme deux traits quelconques.
+
+Elle ne sert pas à placer O : ce sont toujours les deux premières qui le
+définissent. Vérifié qu'il reste juste — OA = OB = OC à 218 px, et encore
+191/191/191 après avoir tiré A de 80 px. L'exemple de la bibliothèque a été
+**régénéré par le bâtisseur corrigé**, en repartant des positions exactes des
+trois sommets de l'ancien : ces figures-là ne s'écrivent pas à la main, elles
+sont la sortie de leur constructeur.
+
+### La barre de l'énoncé ne se sabote plus elle-même
+
+*« Si on clique hors de la zone de "écris l'énoncé", la barre disparaît. »*
+
+Elle se refermait comme toutes les fenêtres du logiciel — sauf que les autres ne
+contiennent rien qu'on ait **écrit**. On tape une phrase de quinze mots, la main
+glisse, le clic tombe à deux centimètres de la boîte, et tout disparaît. Une
+fenêtre qui ne demande qu'un choix peut se fermer d'un clic à côté : on n'y perd
+rien. Une fenêtre qui porte du travail en cours ne le peut pas.
+
+Il reste deux sorties, toutes deux délibérées : la croix et Échap. Avec une
+seconde porte qu'il a fallu rouvrir : tant qu'un clic à côté refermait la barre,
+le foyer ne pouvait pas quitter le champ sans qu'elle disparaisse, et un Échap
+branché sur le seul champ suffisait. Maintenant qu'elle reste, le foyer peut
+être ailleurs — Échap écoute donc depuis la page. En fermant une porte, on en
+avait condamné une deuxième.
+
+### Le bouton du rangement auto disait le contraire de la vérité
+
+*« Active le rangement auto on/off en on. »*
+
+Il l'était déjà : c'est lui qui écarte le nom d'un point du trait qui passe
+dessous, et il naissait actif. Mais **son bouton naissait éteint** — le logiciel
+affichait l'inverse de ce qu'il faisait, et le premier appui, qu'on croyait
+allumer, éteignait. L'état ne s'écrit plus qu'à un seul endroit, appelé au
+démarrage comme à chaque bascule. Au passage, prendre un nom à la main éteint
+désormais le mode **pour de bon**, et pas seulement en apparence.
+
 ### Un milieu déjà là ne se double pas
 
 *« J'ai tracé une médiatrice, j'ai donc obtenu le milieu du segment, le point
@@ -2213,7 +2301,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 105 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 106 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
