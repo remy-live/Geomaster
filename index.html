@@ -1520,6 +1520,80 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+        /* ---- LE BANC D'ESSAI DES PHRASES ----------------------------------
+           On y écrit des phrases par paquets et l'on voit d'un coup d'œil
+           lesquelles passent. Il vit derrière la même porte dérobée : rien de
+           plus dans l'interface de tous les jours. */
+        #bancTexte {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 118px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #e2e8f0;
+            background: rgba(2, 6, 23, .82);
+            border: 1px solid rgba(148, 163, 184, .35);
+            border-radius: 8px;
+            padding: 10px 12px;
+            outline: none;
+        }
+        #bancTexte:focus { border-color: #7dd3fc; }
+        .banc-barre {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 10px 0 4px;
+            flex-wrap: wrap;
+        }
+        .banc-barre label {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 13.5px; color: #cbd5e1; cursor: pointer;
+        }
+        .banc-barre input[type=checkbox] { width: 16px; height: 16px; accent-color: #7dd3fc; }
+        #bancGo {
+            border: none; border-radius: 8px; cursor: pointer;
+            background: #0ea5e9; color: #082f49;
+            font: 600 14px 'Segoe UI', sans-serif;
+            padding: 9px 18px; min-height: 36px;
+        }
+        #bancGo:hover { background: #38bdf8; }
+        .banc-resultats { text-align: left; margin: 12px 0 4px; }
+        .banc-ligne {
+            display: grid;
+            grid-template-columns: 20px 1fr;
+            gap: 2px 8px;
+            padding: 9px 11px;
+            margin-bottom: 7px;
+            border-radius: 0 8px 8px 0;
+            background: rgba(255, 255, 255, .05);
+            border-left: 3px solid #64748b;
+        }
+        .banc-ligne.ok { border-left-color: #4ade80; }
+        .banc-ligne.ko { border-left-color: #f87171; }
+        .banc-marque { font-size: 15px; line-height: 1.4; }
+        .banc-ligne.ok .banc-marque { color: #4ade80; }
+        .banc-ligne.ko .banc-marque { color: #f87171; }
+        .banc-phrase {
+            font-family: 'Courier New', monospace;
+            font-size: 13px; color: #f1f5f9; word-break: break-word;
+        }
+        .banc-detail {
+            grid-column: 2;
+            font-size: 12.5px; color: #94a3b8; line-height: 1.5;
+        }
+        .banc-detail b { color: #cbd5e1; font-weight: 600; }
+        .banc-chiffres { grid-column: 2; font-size: 12px; color: #64748b; }
+        .banc-bilan { font-size: 14px; color: #cbd5e1; margin: 4px 0 12px; }
+        .banc-bilan b { color: #7dd3fc; }
+        @media (pointer: coarse) {
+            #bancGo { min-height: 44px; }
+            #bancTexte { font-size: 16px; }   /* sous 16px, iOS zoome à la saisie */
+            .banc-barre label { min-height: 32px; }
+        }
+
         .secret-liste { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; }
         .secret-liste li {
             background: rgba(255, 255, 255, .06);
@@ -22319,6 +22393,46 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
                         + 'event.stopPropagation(); app.usageOublier(this);">Tout remettre à zéro</a>'
                         + '</p>';
+                } else if (quoi === 'phrases') {
+                    /* LE BANC D'ESSAI. Une phrase à la fois, c'est une phrase par
+                       minute : on ouvre la barre, on écrit, on regarde, on efface,
+                       on recommence. Vingt formulations d'une même consigne
+                       prennent la demi-heure, et l'on ne compare rien puisqu'on ne
+                       les voit jamais ensemble. Ici, elles tiennent sur un écran. */
+                    const exemple = this._bancTexte || [
+                        'Trace une droite (d)',
+                        'Place un point A qui n\'est pas sur (d)',
+                        'Trace la parallèle à (d) passant par A',
+                    ].join('\n');
+                    b.innerHTML = '<h3>Banc d\'essai des phrases</h3>'
+                        + '<p class="secret-mot"><span>Une phrase par ligne. Chacune est '
+                        + 'vraiment exécutée, sur une feuille de côté : votre figure n\'est '
+                        + 'pas touchée, et rien ne part nulle part.</span></p>'
+                        + '<textarea id="bancTexte" spellcheck="false" '
+                        + 'aria-label="Phrases à essayer, une par ligne">'
+                        + exemple.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+                        + '</textarea>'
+                        + '<div class="banc-barre">'
+                        + '<label><input type="checkbox" id="bancOutils">'
+                        + '<span>Avec les instruments de géométrie</span></label>'
+                        + '<button type="button" id="bancGo" '
+                        + 'onclick="app.bancEssayer();">Essayer</button>'
+                        + '</div>'
+                        + '<div class="banc-resultats" id="bancResultats"></div>'
+                        + '<p class="secret-mot">'
+                        + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
+                        + 'event.stopPropagation(); app.bancCopier(this);">Copier le relevé</a>'
+                        + ' &nbsp;·&nbsp; <span>Échap pour fermer</span></p>';
+                    /* Ce qu'on a écrit se retrouve à la réouverture : on ferme
+                       souvent pour aller regarder la figure, et retaper vingt
+                       phrases serait la meilleure façon de ne plus s'en servir. */
+                    setTimeout(() => {
+                        const t = document.getElementById('bancTexte');
+                        if (t) t.addEventListener('input', () => { this._bancTexte = t.value; });
+                        const c = document.getElementById('bancOutils');
+                        if (c && this._bancAvecOutils) c.checked = true;
+                        if (c) c.addEventListener('change', () => { this._bancAvecOutils = c.checked; });
+                    }, 0);
                 } else {
                     /* LE CABINET DE CURIOSITÉS. Les deux figures qui ne sont dans
                        aucune liste — c'est ici, et nulle part ailleurs, qu'on
@@ -22338,16 +22452,186 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + 'Un code que tout le monde connaît, au clavier.</span></p>'
                         + '<p class="secret-mot"><a href="#" class="secret-lien" '
                         + 'onclick="event.preventDefault(); event.stopPropagation(); '
-                        + 'app.ouvrirSecret(\'usages\');">Voir les usages de cette machine</a></p>';
+                        + 'app.ouvrirSecret(\'usages\');">Voir les usages de cette machine</a></p>'
+                        + '<p class="secret-mot"><a href="#" class="secret-lien" '
+                        + 'onclick="event.preventDefault(); event.stopPropagation(); '
+                        + 'app.ouvrirSecret(\'phrases\');">Banc d\'essai des phrases</a></p>';
                 }
                 v.classList.add('ouvert');
+                /* UN PANNEAU OÙ L'ON ÉCRIT NE PEUT PAS SE FERMER À LA FRAPPE.
+                   Les autres secrets se referment sur n'importe quelle touche et
+                   sur n'importe quel clic : ils ne contiennent que du texte à
+                   lire, on n'y perd rien. Le banc d'essai, lui, contient des
+                   phrases qu'on tape — la première lettre l'aurait refermé, et
+                   le premier clic dans la zone de saisie aussi. Il ne se ferme
+                   donc que sur Échap ou sur le fond. */
+                const banc = (quoi === 'phrases');
                 const fermer = () => {
                     v.classList.remove('ouvert');
                     window.removeEventListener('keydown', surTouche, true);
                 };
-                const surTouche = (e) => { e.stopPropagation(); fermer(); };
+                const surTouche = (e) => {
+                    if (banc && e.key !== 'Escape') return;
+                    e.stopPropagation();
+                    fermer();
+                };
                 v.onclick = fermer;
+                b.onclick = banc ? ((e) => e.stopPropagation()) : null;
                 window.addEventListener('keydown', surTouche, true);
+                if (banc) {
+                    const t = document.getElementById('bancTexte');
+                    if (t) setTimeout(() => t.focus(), 60);
+                }
+            }
+            /* ============================================================
+               LE BANC D'ESSAI DES PHRASES
+               ------------------------------------------------------------
+               « Tu peux me faire un bouton caché de debug pour que je puisse
+               tester des phrases ? »
+
+               Une phrase à la fois, c'est une phrase par minute : on ouvre la
+               barre, on écrit, on regarde, on efface la figure, on recommence.
+               Vingt formulations d'une même consigne prennent la demi-heure, et
+               l'on ne compare rien puisqu'on ne les voit jamais ensemble.
+
+               Ici on en écrit autant qu'on veut, une par ligne, et l'on voit
+               d'un seul coup d'œil lesquelles passent. Chaque phrase est
+               RÉELLEMENT exécutée — pas analysée, pas devinée : c'est la réponse
+               du logiciel qui s'affiche, avec ce qu'elle a construit et les
+               instruments qu'elle a sortis.
+
+               DEUX RÈGLES, HÉRITÉES DE LA PORTE DÉROBÉE ELLE-MÊME.
+
+               1. LA FIGURE OUVERTE N'EST PAS TOUCHÉE. On tombe sur ce panneau en
+                  pleine préparation de cours ; il n'a pas le droit d'ajouter un
+                  objet, ni d'en retirer, ni de laisser une trace dans
+                  l'historique. Chaque essai se joue donc sur une feuille de
+                  côté : on met la vraie de côté, on travaille, on la remet.
+                  Aucune sérialisation là-dedans — ce sont les mêmes objets qui
+                  reviennent, pas des copies.
+               2. Rien ne part nulle part. Ce qui est écrit ici reste ici.
+               ============================================================ */
+            bancPhrases() { this.ouvrirSecret('phrases'); }
+            /* Jouer quelque chose sur une feuille de côté, et rendre la vraie
+               intacte quoi qu'il arrive. */
+            bancIsoler(fn) {
+                const garde = {
+                    entities: this.entities,
+                    passe: this.historyPast,
+                    futur: this.historyFuture,
+                    consignes: this._consignes,
+                    memoire: this._cslMemoire,
+                    astuces: this._cslAstuces,
+                    etapes: this.stepInstructions,
+                    choisi: this.selectedObject,
+                    rejeu: this.replayIndex,
+                };
+                this.entities = [];
+                this.historyPast = [];
+                this.historyFuture = [];
+                this._consignes = null;
+                this._cslMemoire = null;
+                this._cslAstuces = null;
+                this.stepInstructions = {};
+                this.selectedObject = null;
+                try { return fn(); }
+                finally {
+                    this.entities = garde.entities;
+                    this.historyPast = garde.passe;
+                    this.historyFuture = garde.futur;
+                    this._consignes = garde.consignes;
+                    this._cslMemoire = garde.memoire;
+                    this._cslAstuces = garde.astuces;
+                    this.stepInstructions = garde.etapes;
+                    this.selectedObject = garde.choisi;
+                    this.replayIndex = garde.rejeu;
+                    this.render();
+                }
+            }
+            /* Le banc rend un tableau : une entrée par phrase, dans l'ordre. Les
+               phrases d'un même paquet se suivent sur LA MÊME feuille de côté —
+               « Trace le segment [AB] » puis « Place le milieu de [AB] » n'aurait
+               aucun sens autrement. */
+            bancJouer(phrases, avecOutils) {
+                return this.bancIsoler(() => {
+                    const res = [];
+                    phrases.forEach((p) => {
+                        const avant = this.entities.length;
+                        this._cslAstuces = [];
+                        let r, erreur = null;
+                        try { r = this.executerConsigneAvec(p, !!avecOutils); }
+                        catch (e) { erreur = (e && e.message) || String(e); }
+                        const nes = this.entities.slice(avant);
+                        res.push({
+                            phrase: p,
+                            ok: !erreur && !!(r && r.ok),
+                            message: erreur ? 'ERREUR JS : ' + erreur : ((r && r.message) || ''),
+                            astuce: (r && r.astuce) || (this._cslAstuces || []).join(' · '),
+                            objets: nes.filter(e => !(e instanceof ToolAnimation)).length,
+                            points: nes.filter(e => e instanceof Point && e.visible !== false).length,
+                            outils: nes.filter(e => e instanceof ToolAnimation).length,
+                            total: this.entities.filter(e => !(e instanceof ToolAnimation)).length,
+                        });
+                    });
+                    return res;
+                });
+            }
+            bancEssayer() {
+                const champ = document.getElementById('bancTexte');
+                const hote = document.getElementById('bancResultats');
+                if (!champ || !hote) return;
+                const cases = document.getElementById('bancOutils');
+                const phrases = (champ.value || '').split('\n')
+                    .map(s => s.trim()).filter(Boolean);
+                if (!phrases.length) { champ.focus(); return; }
+                const res = this.bancJouer(phrases, cases && cases.checked);
+                this._bancDernier = { avec: !!(cases && cases.checked), res };
+                const ech = (s) => String(s).replace(/[&<>]/g,
+                    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+                const passees = res.filter(r => r.ok).length;
+                let h = `<p class="banc-bilan"><b>${passees}</b> phrase(s) comprise(s) `
+                    + `sur ${res.length}${passees < res.length
+                        ? ` — <b>${res.length - passees}</b> refusée(s)` : ''}.</p>`;
+                res.forEach((r) => {
+                    h += `<div class="banc-ligne ${r.ok ? 'ok' : 'ko'}">`
+                        + `<div class="banc-marque">${r.ok ? '✓' : '✗'}</div>`
+                        + `<div class="banc-phrase">${ech(r.phrase)}</div>`;
+                    if (r.message) h += `<div class="banc-detail"><b>${ech(r.message)}</b></div>`;
+                    if (r.astuce) h += `<div class="banc-detail">${ech(r.astuce)}</div>`;
+                    h += `<div class="banc-chiffres">${r.objets} objet(s) créé(s)`
+                        + (r.points ? `, dont ${r.points} point(s) nommable(s)` : '')
+                        + ` · ${r.outils} geste(s) d'instrument · ${r.total} sur la feuille d'essai</div>`
+                        + `</div>`;
+                });
+                hote.innerHTML = h;
+            }
+            /* Le relevé se recopie : c'est sous cette forme qu'on l'envoie à qui
+               peut en faire quelque chose. */
+            bancCopier(lien) {
+                const d = this._bancDernier;
+                const dire = (m) => { if (lien) lien.textContent = m; };
+                if (!d || !d.res || !d.res.length) { dire('Rien à copier'); return; }
+                let t = `GÉOMASTER — banc d'essai\nversion ${window.GM_VERSION || '?'}\n`
+                    + `instruments : ${d.avec ? 'oui' : 'non'}\n\n`;
+                d.res.forEach((r) => {
+                    t += `${r.ok ? '✓' : '✗'} ${r.phrase}\n`;
+                    if (r.message) t += `    ${r.message}\n`;
+                    if (r.astuce) t += `    ${r.astuce}\n`;
+                    t += `    ${r.objets} objet(s), ${r.outils} geste(s) d'instrument\n`;
+                });
+                const fini = () => { dire('Copié ✓'); setTimeout(() => dire('Copier le relevé'), 1800); };
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(t).then(fini, () => dire('Copie refusée'));
+                        return;
+                    }
+                } catch (e) { void e; }
+                try {
+                    const z = document.createElement('textarea');
+                    z.value = t; document.body.appendChild(z); z.select();
+                    document.execCommand('copy'); document.body.removeChild(z);
+                    fini();
+                } catch (e) { void e; dire('Copie refusée'); }
             }
             initShortcuts() {
                 window.addEventListener('keydown', (e) => {
@@ -43876,7 +44160,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-14 · 19h';
+        window.GM_VERSION = '2026-09-14 · 22h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
@@ -44098,6 +44382,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             if (v) v.textContent = 'version ' + window.GM_VERSION;
         })();
         app.armerSecrets();
+        /* LE BANC D'ESSAI S'OUVRE AUSSI PAR L'ADRESSE. La porte dérobée demande
+           sept clics sur la date de version : c'est bien pour un secret, c'est
+           pénible pour un outil dont on se sert dix fois par jour — et
+           impraticable sur un téléphone, où l'on n'a pas de console pour appeler
+           app.bancPhrases(). Un « #phrases » au bout de l'adresse suffit, et se
+           met en favori. Jamais dans l'interface élève : ce n'est pas d'elle
+           qu'on parle. */
+        (function () {
+            const voir = () => {
+                if (document.body.classList.contains('mode-lecture')) return;
+                if ((location.hash || '').toLowerCase() !== '#phrases') return;
+                app.bancPhrases();
+            };
+            window.addEventListener('hashchange', voir);
+            setTimeout(voir, 0);
+        })();
         /* Une ouverture de plus. Ici et pas plus haut : « mode=lecture » vient
            d'être posé sur le corps du document, et l'interface élève ne compte
            pas — la question du don ne s'y pose jamais. */

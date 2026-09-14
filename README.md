@@ -1145,6 +1145,44 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Le banc d'essai des phrases
+
+*« Tu peux me faire un bouton caché de debug pour que je puisse tester des
+phrases ? »*
+
+Une phrase à la fois, c'est une phrase par minute : on ouvre la barre, on écrit,
+on regarde, on efface la figure, on recommence. Vingt formulations d'une même
+consigne prennent la demi-heure — et l'on ne compare rien, puisqu'on ne les voit
+jamais ensemble. Or c'est exactement la question qu'on se pose en préparant un
+énoncé : **laquelle** de ces tournures passe ?
+
+On y écrit autant de phrases qu'on veut, une par ligne, et l'on voit d'un seul
+coup d'œil lesquelles sont comprises, ce qu'elles ont construit, et combien de
+gestes d'instrument elles ont produits. Chaque phrase est **réellement
+exécutée** — pas analysée, pas devinée : c'est la réponse du logiciel qui
+s'affiche, refus et explication compris. Un banc qui prédirait au lieu
+d'exécuter mentirait précisément le jour où l'on en aurait besoin.
+
+Trois façons d'y entrer : sept clics sur la date de version (la porte dérobée
+qui existait déjà), l'adresse **`#phrases`** — qui se met en favori, et qui est
+la seule praticable sur un téléphone, où l'on n'a pas de console —, ou
+`app.bancPhrases()`. Jamais dans l'interface élève.
+
+**La figure ouverte n'est pas touchée**, et c'est la condition pour qu'on s'en
+serve : on tombe sur ce panneau en pleine préparation de cours, et un outil de
+mise au point qui abîme le travail en cours ne sera plus jamais ouvert. Chaque
+essai se joue sur une feuille de côté — la vraie est mise de côté puis remise,
+sans sérialisation : ce sont les mêmes objets qui reviennent, pas des copies.
+Vérifié au caractère près, code compact **et** énoncé, plus l'historique qui ne
+bouge pas : rien à annuler après coup.
+
+Et **une lettre ne le ferme pas.** Les autres secrets cèdent à n'importe quelle
+touche et n'importe quel clic : ils ne contiennent que du texte à lire. Celui-ci
+contient des phrases qu'on tape — la première lettre l'aurait refermé, et le
+premier clic dans la zone de saisie aussi. Même règle que pour la barre de
+l'énoncé, pour la même raison. Le texte et la case sont retenus d'une ouverture
+à l'autre, et un lien recopie le relevé.
+
 ### Ce qui devient faux quand la droite porte un nom
 
 *« J'ai mis "trace une droite (d)" et "un point A qui n'est pas sur (d)" et
@@ -2392,7 +2430,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 108 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 109 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
