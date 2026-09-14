@@ -1145,6 +1145,54 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### L'équerre n'était pas trop opaque : elle était peinte trois fois
+
+*« Rends l'équerre de manière globale un peu moins opaque. »*
+
+On cherchait un réglage de couleur ; c'était une **addition**. Mesuré : la
+méthode `draw()` de chaque instrument était appelée **trois fois par image** —
+deux passes anciennes, plus la passe ordonnée par z-index, celle qui décide
+lequel est au-dessus et qui sert aussi à l'export.
+
+Or trois couches translucides ne font pas une couche translucide : à 0,5 chacune
+il reste **0,88** d'opacité. Baisser le réglage n'y pouvait rien — trois fois
+moins opaque restait presque opaque. Le thème demandait 0,85, le pixel valait
+0,88, et personne ne pouvait comprendre pourquoi en lisant la table des thèmes.
+
+Chaque instrument ne se peint plus qu'une fois, et un plafond commun à tous les
+thèmes — y compris ceux qui n'existent pas encore — tient l'équerre à 0,5.
+Ce n'est pas un goût de décorateur : **l'équerre est l'instrument qu'on regarde
+à travers**. La règle se pose à côté du trait ; l'équerre se pose dessus, elle
+couvre l'angle qu'on vérifie et le point qu'on vise. Un gabarit doit se regarder
+à travers. Mesuré sur un trait noir vu au travers : **8 % du contraste avant,
+45 % après**. Et trois fois moins de travail à chaque image.
+
+### La parallèle n'était pas tracée : elle paraissait
+
+*« Pour la parallèle, tu oublies de tracer la parallèle… »*
+
+Le crayon court le long de la règle pour un segment ou une droite — jamais pour
+une parallèle ni une perpendiculaire. Le test qui déclenche le tracé progressif
+exigeait un `LinearObject`, un `Segment`, une `Line` ou une `Ray`, et une
+`ParallelLine` n'est **aucun des quatre** : elle descend de `GeometryObject`,
+parce qu'elle n'a pas deux extrémités mais un point et une direction.
+
+Et c'est précisément ce qui la faisait rater deux fois : même admise dans la
+liste, son `p2` est nul, et le crayon n'avait nulle part où aller. Il fallait
+lui demander son second point, puis étendre de part et d'autre — une droite est
+infinie, le trait doit naître d'un bout et courir jusqu'à l'autre.
+
+L'équerre glissait donc jusqu'à C, puis le trait apparaissait d'un coup. Tout le
+geste était montré **sauf celui qui fait la figure**. Mesuré maintenant : 700 px
+à mi-course, 1 400 px à la fin, pour la parallèle comme pour la perpendiculaire.
+
+La sonde **fige l'état** au lieu de courir après l'animation — on pose l'index de
+rejeu, le drapeau d'animation et l'avancement à la main, on demande un rendu, et
+l'on regarde les traits réellement dessinés. Guetter une image au vol pendant un
+rejeu donne des mesures qui dépendent de la vitesse de la machine : on l'a payé
+en cherchant ce défaut-ci, et deux mesures successives ont conclu l'inverse l'une
+de l'autre avant qu'on s'en aperçoive.
+
 ### Le banc d'essai des phrases
 
 *« Tu peux me faire un bouton caché de debug pour que je puisse tester des
@@ -2430,7 +2478,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 109 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 110 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

@@ -15893,7 +15893,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle); const style = ToolStyle.setSquare;
                 const getContrastColor = (hex) => { if (!hex) return 'white'; hex = hex.replace('#', ''); const r = parseInt(hex.substr(0, 2), 16); const g = parseInt(hex.substr(2, 2), 16); const b = parseInt(hex.substr(4, 2), 16); const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000; return (yiq >= 128) ? '#333333' : 'white'; };
                 ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(this.width, 0); ctx.lineTo(0, this.height); ctx.closePath();
-                ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`; ctx.fill();
+                /* L'ÉQUERRE EST L'INSTRUMENT QU'ON REGARDE À TRAVERS. La règle
+                   se pose à côté du trait ; l'équerre se pose DESSUS — elle
+                   couvre l'angle qu'on vérifie, le point qu'on vise, la portion
+                   de figure qu'on est en train de construire. Les thèmes lui
+                   donnaient de 0,5 à 0,85 d'opacité, et à 0,85 elle est un
+                   carton : on glisse à l'aveugle, sans voir arriver le point.
+                   Un plafond, ici et pour tous les thèmes — y compris ceux qui
+                   n'existent pas encore. C'est une propriété de l'objet, pas un
+                   goût de décorateur : un gabarit se regarde à travers. */
+                const OPACITE_MAX = 0.5;
+                const opa = Math.min(style.background.opacity, OPACITE_MAX);
+                ctx.fillStyle = `rgba(${style.background.color}, ${opa})`; ctx.fill();
                 ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.stroke();
                 const mm = 5; const cm = 50; const padding = 10;
                 ctx.fillStyle = style.graduations.color; ctx.strokeStyle = style.graduations.color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font; ctx.lineWidth = style.graduations.width;
@@ -27676,10 +27687,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.ctx.setLineDash([]);
                     }
                 }
-                if (this.activeWidgets.protractor && this.protractorWidget) this.protractorWidget.draw(this.ctx);
-                if (this.activeWidgets.setsquare && this.setSquareWidget) this.setSquareWidget.draw(this.ctx);
+                /* CHAQUE INSTRUMENT NE SE PEINT QU'UNE FOIS.
+                 *
+                 * « Rends l'équerre un peu moins opaque. » On croyait à un
+                 * réglage de couleur ; c'était une addition. Mesuré : la méthode
+                 * draw() de l'équerre était appelée TROIS FOIS par image — deux
+                 * passes anciennes ici, plus la passe ordonnée par z-index un peu
+                 * plus bas, celle qui décide lequel est au-dessus et qui sert
+                 * aussi à l'export. Trois couches translucides ne font pas une
+                 * couche translucide : à 0,5 chacune, il reste 0,88 d'opacité,
+                 * et le pixel mesuré sous l'équerre valait 0,88 alors que le
+                 * thème demandait 0,85. Baisser le réglage n'y pouvait rien —
+                 * trois fois moins opaque restait presque opaque.
+                 *
+                 * Ne restent ici que les REPÈRES : la petite croix rouge au zéro
+                 * de la règle, le cercle rouge au sommet de l'équerre et du
+                 * rapporteur, qui ne paraissent que quand on vise avec un outil
+                 * de tracé. Le corps des instruments est peint par la passe
+                 * ordonnée, et par elle seule. Trois fois moins de travail aussi,
+                 * à chaque image. */
                 if (this.activeWidgets.ruler && this.rulerWidget) {
-                    this.rulerWidget.draw(this.ctx);
                     const l = this.rulerWidget.toLocal(this.mousePos.x, this.mousePos.y);
                     const startX = -20;
                     if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool) && Math.abs(l.x) < 10 && Math.abs(l.y) < 10) {
@@ -27700,7 +27727,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 if (this.activeWidgets.setsquare && this.setSquareWidget) {
-                    this.setSquareWidget.draw(this.ctx);
                     if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool)) {
                         const l = this.setSquareWidget.toLocal(this.mousePos.x, this.mousePos.y);
                         if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
@@ -27716,7 +27742,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 if (this.activeWidgets.protractor && this.protractorWidget) {
-                    this.protractorWidget.draw(this.ctx);
                     if (['segment', 'line', 'ray', 'line_clean'].includes(this.currentTool)) {
                         const l = this.protractorWidget.toLocal(this.mousePos.x, this.mousePos.y);
                         if (Math.abs(l.x) < 5 && Math.abs(l.y) < 5) {
@@ -28038,7 +28063,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const isTracing = nextEnt instanceof CompassArc
                             || (traceAuCompas
                                 && (nextEnt instanceof Arc || nextEnt instanceof Circle));
-                        const isLinearTracing = (nextEnt instanceof LinearObject || nextEnt instanceof Segment || nextEnt instanceof Line || nextEnt instanceof Ray) && (anim instanceof ToolAnimation && anim.originalType === 'trace' && (anim.widgetType === 'ruler' || anim.widgetType === 'setsquare'));
+                        /* LA PARALLÈLE ET LA PERPENDICULAIRE SE TRACENT AUSSI.
+                           « Pour la parallèle, tu oublies de tracer la
+                           parallèle. » Le crayon courait le long de la règle
+                           pour un segment ou une droite, jamais pour elles :
+                           cette liste-ci exigeait un LinearObject, un Segment,
+                           une Line ou une Ray, et une ParallelLine n'est aucun
+                           des quatre — elle descend de GeometryObject, parce
+                           qu'elle n'a pas deux extrémités mais un point et une
+                           direction. L'équerre glissait donc jusqu'à C, puis le
+                           trait paraissait d'un coup, sans être tracé. Tout le
+                           geste était montré SAUF celui qui fait la figure. */
+                        const isLinearTracing = (nextEnt instanceof LinearObject || nextEnt instanceof Segment || nextEnt instanceof Line || nextEnt instanceof Ray || nextEnt instanceof ParallelLine || nextEnt instanceof PerpendicularLine) && (anim instanceof ToolAnimation && anim.originalType === 'trace' && (anim.widgetType === 'ruler' || anim.widgetType === 'setsquare'));
                         if (anim instanceof ToolAnimation && anim.widgetType === 'compass' && isTracing && this.compassWidget) {
                             const w = this.compassWidget;
                             const sAngle = anim.startState.angle;
@@ -28060,8 +28096,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.ArcTracing = true;
                         }
                         else if (isLinearTracing) {
-                            const p1 = nextEnt.p1;
-                            const p2 = nextEnt.p2;
+                            /* Une parallèle n'a pas de second point : elle le
+                               CALCULE. Sans cela, p2 restait nul et le crayon
+                               n'avait nulle part où aller. Et comme une droite
+                               est infinie, on part d'un bout et l'on va jusqu'à
+                               l'autre en passant par le point : le trait naît
+                               d'un côté et court jusqu'au bout, comme sous une
+                               vraie règle. */
+                            let p1 = nextEnt.p1;
+                            let p2 = nextEnt.p2;
+                            if (p1 && !p2 && nextEnt.getDynamicP2) {
+                                const q = nextEnt.getDynamicP2();
+                                if (q) {
+                                    const dx = q.x - p1.x, dy = q.y - p1.y;
+                                    const L = Math.hypot(dx, dy) || 1;
+                                    const k = 700 / L;
+                                    p2 = { x: p1.x + dx * k, y: p1.y + dy * k };
+                                    p1 = { x: p1.x - dx * k, y: p1.y - dy * k };
+                                }
+                            }
                             if (p1 && p2 && this.currentAnimProgress !== undefined) {
                                 const rawProg = this.currentAnimProgress;
                                 let prog = 0;
@@ -44160,7 +44213,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-14 · 22h';
+        window.GM_VERSION = '2026-09-15 · 9h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
