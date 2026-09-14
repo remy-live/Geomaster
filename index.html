@@ -3343,6 +3343,34 @@
             color: #b0bec5;
         }
 
+        /* La case des instruments prend les clics — elle seule, et son texte :
+           tout le reste du bloc les laisse passer, pour ne pas manger le premier
+           geste de qui veut dessiner à la main. */
+        #premiereLigne label#plOutils {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font: 12.5px 'Segoe UI', sans-serif;
+            color: #78909c;
+            letter-spacing: 0;
+        }
+
+        #plInstruments {
+            width: 15px;
+            height: 15px;
+            accent-color: #2980b9;
+            cursor: pointer;
+        }
+
+        @media (pointer: coarse) {
+            /* Au doigt, une case de 15 px ne se vise pas : c'est l'étiquette
+               entière qui sert de cible, et elle doit faire 32 px de haut. */
+            #premiereLigne label#plOutils { min-height: 32px; font-size: 13.5px; }
+            #plInstruments { width: 20px; height: 20px; }
+        }
+
         @media (pointer: coarse) {
             #premiereLigneGo { min-height: 44px; }
             #premiereLigneChamp { font-size: 16px; }   /* sous 16px, iOS zoome à la saisie */
@@ -9981,6 +10009,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <button type="button" id="premiereLigneGo" onclick="app.lancerPremiereLigne()"
                         aria-label="Tracer">Tracer</button>
                 </div>
+                <!-- LA MÊME CASE QUE DANS LA BARRE ÉCLAIR, ET POUR LA MÊME
+                     RAISON. C'est ici qu'on écrit sa toute première phrase —
+                     donc ici qu'on découvre le logiciel. Or ce qu'il a de
+                     particulier, ce n'est pas de tracer un triangle : c'est de
+                     le tracer À LA RÈGLE ET AU COMPAS, en montrant le geste. Ne
+                     pas proposer la case au premier écran, c'était réserver
+                     l'essentiel à ceux qui fouillent. Elle partage la mémoire de
+                     la barre éclair : cochée une fois, cochée partout. -->
+                <label id="plOutils">
+                    <input type="checkbox" id="plInstruments"
+                        onchange="app.reglerInstrumentsEclair(this.checked)">
+                    <span>Avec les instruments de géométrie</span>
+                </label>
                 <span class="pl-note">…ou prenez un outil à gauche.</span>
             </div>
 
@@ -23585,6 +23626,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (this.arreterRejeuPourHistorique) this.arreterRejeuPourHistorique();
                     if (this.stopAnimation) this.stopAnimation();
                     this.lockInterface(false);
+                    /* Feuille neuve, invitation neuve : l'avoir écartée une fois
+                       ne doit pas la supprimer pour la séance entière. */
+                    this._invitationEcartee = false;
                     /* ET LES INSTRUMENTS SE RANGENT. Une feuille vide avec la règle,
                        l'équerre et le compas encore posés dessus n'est pas une
                        feuille vide : « tout effacer » veut dire la table nette. */
@@ -27530,9 +27574,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 document.body.classList.toggle('gm-rien-a-rejouer', vide);
                 const ligne = document.getElementById('premiereLigne');
                 if (ligne) {
-                    const montrer = vide && !lecture && !aLaMain;
+                    const montrer = vide && !lecture && !aLaMain && !this._invitationEcartee;
                     if (montrer !== (ligne.style.display !== 'none')) {
                         ligne.style.display = montrer ? 'flex' : 'none';
+                        /* La case reprend le réglage partagé avec la barre
+                           éclair : cochée une fois, cochée partout. */
+                        const cases = document.getElementById('plInstruments');
+                        if (montrer && cases) cases.checked = this.instrumentsEclair();
                     }
                 }
             }
@@ -28966,6 +29014,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             handlePointerDown(e) {
                 if (this.isLocked) return;
+                /* L'INVITATION S'EFFACE DÈS QU'ON TOUCHE LA FEUILLE. Elle ne
+                   prenait déjà pas les clics — ils la traversaient — mais elle
+                   RESTAIT, posée au milieu du dessin qu'on commençait dessous.
+                   Elle ne disparaissait qu'une fois un objet créé, ou un outil
+                   pris : entre les deux, on dessinait sous un texte.
+                   Ce n'est pas la barre de l'énoncé, qui elle ne se ferme plus
+                   d'un clic à côté : celle-là contient du texte qu'on a écrit,
+                   celle-ci est une proposition. On écarte une proposition d'un
+                   geste ; on ne jette pas un travail d'un geste. */
+                if (!this._invitationEcartee) {
+                    const inv = document.getElementById('premiereLigne');
+                    if (inv && inv.style.display !== 'none') {
+                        this._invitationEcartee = true;
+                        inv.style.display = 'none';
+                    }
+                }
                 this.lastUsedWidgetForCreation = null;
                 // === CORRECTION : Fermer l'éditeur et "consommer" le clic ===
                 const activeGhost = document.getElementById('ghostTextInput');
@@ -32142,7 +32206,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const ou = this._cslOu;
                 if (ou) { dx += ou.dx; dy += ou.dy; }
                 const pts = this.entities.filter(e => e instanceof Point && e.visible !== false);
-                const pris = (x, y) => pts.some(p => Math.hypot(p.x - x, p.y - y) < 55);
+                /* ET PAS SUR UN TRAIT NON PLUS. On n'évitait que les autres
+                   POINTS. Or « Trace une droite (d) » passe par le centre de la
+                   vue, et c'est exactement là que le point libre suivant était
+                   posé : mesuré, « Place un point A » le déposait à 0,0 px de
+                   (d). Le point avait alors l'air d'être sur la droite sans
+                   l'être — et « trace la parallèle à (d) passant par A » rendait
+                   une parallèle confondue avec (d). Un point libre n'est
+                   contraint par rien : il ne doit donc avoir l'air de rien. */
+                const traits = this.entities.filter(e => e.visible !== false
+                    && (e instanceof LinearObject || e instanceof ParallelLine
+                        || e instanceof PerpendicularLine));
+                const surUnTrait = (x, y) => traits.some(e => {
+                    let p, u;
+                    if (e.p1 && e.p2) { p = e.p1; u = { x: e.p2.x - e.p1.x, y: e.p2.y - e.p1.y }; }
+                    else {
+                        const po = this.cslPorteeLineaire ? this.cslPorteeLineaire(e) : null;
+                        if (!po) return false;
+                        p = po.p; u = po.u;
+                    }
+                    const L = Math.hypot(u.x, u.y);
+                    if (!L) return false;
+                    if (e instanceof Segment) {
+                        const k = Math.max(0, Math.min(1, ((x - p.x) * u.x + (y - p.y) * u.y) / (L * L)));
+                        return Math.hypot(x - (p.x + u.x * k), y - (p.y + u.y * k)) < 42;
+                    }
+                    return Math.abs((x - p.x) * u.y - (y - p.y) * u.x) / L < 42;
+                });
+                const pris = (x, y) => pts.some(p => Math.hypot(p.x - x, p.y - y) < 55)
+                    || surUnTrait(x, y);
                 let x = c.x + dx, y = c.y + dy;
                 for (let r = 1; r <= 14 && pris(x, y); r++) {
                     const a = r * 1.3, d = 80 + r * 24;
@@ -32960,7 +33052,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (/intersection|se\s+coupent|point\s+commun/.test(t)) {
                         return this.cslIntersection(brut, t, fait, rate);
                     }
-                    if ((/\bsur\s+(la\s+droite|le\s+segment|le\s+cercle|ce\s+segment|ce\s+cercle|cette\s+droite|cette\s+demi-droite|\[|\()/.test(t)
+                    /* « QUI N'EST PAS SUR (d) » DIT LE CONTRAIRE DE « SUR (d) »,
+                       et le logiciel lisait les deux pareil. Mesuré : « Place un
+                       point A qui n'est pas sur (d) » répondait « A sur (d) » et
+                       posait le point DESSUS. Le mot « sur » suffisait à
+                       décider ; la négation qui le précède n'était jamais
+                       regardée. Rien n'est plus grave dans un logiciel qui
+                       exécute des phrases : faire l'inverse de ce qui est écrit,
+                       en annonçant qu'on l'a fait. La phrase niée retombe donc
+                       sur le placement libre, qui évite désormais les traits —
+                       et un point « pas sur (d) » n'est pas sur (d). */
+                    const nie = /\bn['’]\s*(?:est|appartient|appartiennent|sont)\b[^.!?]*\bpas\b/.test(t)
+                        || /\bhors\s+d/.test(t) || /\ben\s+dehors\b/.test(t)
+                        || /\bnon\s+situ[ée]/.test(t) || /\bpas\s+situ[ée]/.test(t);
+                    if (!nie
+                        && (/\bsur\s+(la\s+droite|le\s+segment|le\s+cercle|ce\s+segment|ce\s+cercle|cette\s+droite|cette\s+demi-droite|\[|\()/.test(t)
                          /* « Place un point M sur d » : le support est une droite
                             nommée, le mot « droite » n'est pas répété. */
                          || (/\bsur\b/.test(t) && this.cslDroiteCitee(brut.replace(/^.*\bsur\b/, ''))))
@@ -36144,13 +36250,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             }
                             const q1 = { x: porte.p.x, y: porte.p.y };
                             const q2 = { x: porte.p.x + porte.u.x, y: porte.p.y + porte.u.y };
-                            const dN = this.cslPoserStyle(perp ? new PerpendicularLine(cN, { p1: q1, p2: q2 })
-                                                              : new ParallelLine(cN, { p1: q1, p2: q2 }));
+                            /* ET LES INSTRUMENTS SORTENT ICI AUSSI. Cette
+                               branche-là — celle où la droite de référence porte
+                               un NOM, « la parallèle à (d) » — posait le trait
+                               directement, sans jamais regarder la case « avec
+                               les instruments ». Mesuré : six animations pour
+                               « la parallèle à (AB) passant par C », zéro pour
+                               « la parallèle à (d) passant par A », alors que la
+                               case était cochée dans les deux cas. Même chose
+                               pour la perpendiculaire. Ce n'était pas un réglage
+                               qui ne prenait pas : c'était un chemin de code qui
+                               ne connaissait pas le réglage. */
+                            let dN;
+                            if (this.cslDetaille()) {
+                                this.cslBatir(null, () => {
+                                    dN = perp ? this.cslGestePerpendiculaire(cN, q1, q2)
+                                              : this.cslGesteParallele(cN, q1, q2);
+                                });
+                            }
+                            if (!dN) {
+                                dN = this.cslPoserStyle(perp ? new PerpendicularLine(cN, { p1: q1, p2: q2 })
+                                                            : new ParallelLine(cN, { p1: q1, p2: q2 }));
+                                this.addEntity(dN);
+                            }
                             // la nouvelle droite peut elle aussi porter un nom
                             const sien = this.cslNomsDeDroite(brut).find(n => n !== ref.nomDroite
                                 && !this.cslDroiteNommee(n));
                             if (sien) { dN.nomDroite = sien; this.cslMemoire().droites[sien] = dN; }
-                            this.addEntity(dN);
                             const nomRef = ref.nomDroite ? '(' + ref.nomDroite + ')'
                                 : (ref.p1 && ref.p1.label && ref.p2 && ref.p2.label)
                                     ? `(${ref.p1.label}${ref.p2.label})` : 'la droite';
@@ -42378,10 +42504,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!champ) return;
                 const phrase = (champ.value || '').trim();
                 if (!phrase) { champ.focus(); return; }
+                const cases = document.getElementById('plInstruments');
                 const liste = this.consignesListe();
                 let i = liste.findIndex(c => !(c.texte || '').trim());
                 if (i < 0) { liste.push(this.consigneNeuve()); i = liste.length - 1; }
                 liste[i].texte = phrase;
+                liste[i].instruments = !!(cases && cases.checked);
                 liste[i].faite = false;
                 liste[i].etat = null;
                 const boite = document.getElementById('instructionBox');
@@ -43748,7 +43876,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-14 · 16h';
+        window.GM_VERSION = '2026-09-14 · 19h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

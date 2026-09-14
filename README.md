@@ -1145,6 +1145,63 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Ce qui devient faux quand la droite porte un nom
+
+*« J'ai mis "trace une droite (d)" et "un point A qui n'est pas sur (d)" et
+"trace la parallèle à (d) passant par A". J'ai l'impression que ça ne
+fonctionnait plus avec les outils. »*
+
+Trois défauts se cachaient dans ces trois phrases, et chacun aurait suffi à
+gâcher la figure.
+
+**Un chemin de code qui ignorait le réglage.** « La parallèle à (AB) » sortait
+l'équerre et la règle ; « la parallèle à (d) » ne sortait rien. Mesuré : six
+animations d'un côté, **zéro** de l'autre, la case « avec les instruments »
+cochée dans les deux cas. Ce n'était pas un réglage qui ne prenait pas, c'était
+la branche « la droite de référence porte un nom » qui posait le trait
+directement, sans jamais regarder le réglage — et la perpendiculaire avait le
+même trou.
+
+**Une négation lue à l'envers.** « Place un point A qui n'est pas sur (d) »
+répondait *« A sur (d) »* et posait le point **dessus**, à 0,0 px de la droite.
+Le mot « sur » suffisait à décider ; la négation qui le précède n'était jamais
+regardée. Rien n'est plus grave dans un logiciel qui exécute des phrases : faire
+l'inverse de ce qui est écrit, en annonçant qu'on l'a fait. Et la conséquence
+était en cascade — A sur (d), la parallèle à (d) passant par A *est* (d).
+
+**Et un point libre qui tombait sur le trait.** Celui-là n'avait été signalé par
+personne, et c'est le plus sournois. « Trace une droite (d) » passe par le
+centre de la vue, et le placement libre posait le point suivant exactement là :
+« Place un point A » le déposait à 0,0 px de (d). Le point avait l'air contraint
+sans l'être, et la figure mentait sans qu'une seule phrase soit fausse. Un point
+libre n'est tenu par rien : il ne doit avoir l'air de rien. Il évite désormais
+les droites comme les segments, à 42 px près.
+
+### La ligne d'accueil propose les instruments, et s'efface quand on dessine
+
+*« Dans l'énoncé qui apparaît au démarrage, on a ou pas la possibilité de mettre
+les outils pour voir l'animation ? Il faudrait que si on clique ailleurs sur le
+canvas, la ligne qui s'ouvre au début disparaisse. »*
+
+On ne l'avait pas — la case n'existait que dans la barre éclair. C'est pourtant
+là qu'on écrit sa toute première phrase, donc là qu'on découvre le logiciel ; et
+ce qu'il a de particulier n'est pas de tracer un triangle, c'est de le tracer
+**à la règle et au compas, en montrant le geste**. Ne pas proposer la case au
+premier écran, c'était réserver l'essentiel à ceux qui fouillent. Elle est là,
+32 px de cible au doigt, et partage la mémoire de la barre éclair : cochée une
+fois, cochée partout.
+
+Quant à l'invitation, elle ne prenait déjà pas les clics — ils la traversaient —
+mais elle **restait**, posée au milieu du dessin qu'on commençait dessous. Elle
+ne disparaissait qu'une fois un objet créé ou un outil pris. Elle s'efface
+maintenant au premier contact avec la feuille, et « tout effacer » la redonne :
+feuille neuve, invitation neuve.
+
+Ce n'est pas contradictoire avec la barre de l'énoncé, qui elle ne se ferme plus
+d'un clic à côté. Celle-là contient du texte qu'on a **écrit** ; celle-ci est une
+proposition. On écarte une proposition d'un geste ; on ne jette pas un travail
+d'un geste.
+
 ### La parallèle : l'équerre ne doit pas viser le point
 
 *« L'équerre écrase la règle, en gros les outils se superposent. Quand on trace
@@ -2335,7 +2392,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 107 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 108 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
