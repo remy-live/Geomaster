@@ -1145,6 +1145,57 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Une parallèle doit savoir à quoi elle est parallèle — et s'en souvenir
+
+*« Cannot read properties of null (reading 'x') — en traçant la parallèle puis
+après en voulant une construction magique. »*
+
+Le fichier de secours envoyé avec le message portait la réponse, à une ligne
+près :
+
+```json
+{"type":"ParallelLine","id":"33vhtb38p","color":"#000000","p1Id":"r516ybkx6"}
+```
+
+**Pas de `refLineId`.** La parallèle savait par où elle passe ; elle ne savait
+plus à *quoi* elle est parallèle.
+
+On lui passait `{p1: a, p2: b}` — un objet fabriqué pour l'occasion, qui
+n'appartient pas à la figure et n'a donc pas d'identité. Or un enregistrement ne
+sait écrire que des **renvois** : « ma référence est l'objet n° 7 ». Il n'avait
+rien à écrire, le champ valait `undefined`, et il disparaissait du fichier.
+
+Trois conséquences, de la plus discrète à la plus brutale :
+
+- la parallèle **copiait** deux points au lieu de s'accrocher à la droite ;
+- rouverte, elle n'avait plus de référence du tout — mesuré : une parallèle
+  avant l'enregistrement, **zéro** après ;
+- et l'enregistrement **suivant** plantait. Sur le fichier envoyé, la version
+  d'avant lève `Cannot read properties of undefined (reading 'id')` dès qu'on
+  redemande le code compact — c'est-à-dire **à la sauvegarde automatique**, donc
+  sans rien faire de particulier. C'est très probablement ce qui s'est passé.
+
+La référence est maintenant une **vraie entité** dès qu'il en existe une : la
+droite (d) nommée, ou la droite (AB) si elle est tracée. Quand il n'y en a pas —
+« la parallèle à (AB) » ne demande pas de tracer (AB) — les deux formats
+d'enregistrement écrivent à défaut les **deux points** de la référence, qui ont
+une identité, eux. Ceinture et bretelles : les constructions d'aujourd'hui
+donnent une vraie droite, mais les fichiers d'hier n'en ont pas, et un fichier
+ne se relit qu'une fois — mal.
+
+Une précision qui a coûté un aller-retour : on ne prend que la **droite**, pas le
+segment qui joindrait les deux mêmes points. La phrase a écrit « (AB) », donc la
+droite, et l'énoncé rédigé ensuite doit redire ce qu'on a demandé —
+« perpendiculaire à la droite (AB) », pas « au segment [AB] ». La sonde des
+énoncés l'a signalé aussitôt.
+
+Enfin, un trait orphelin ne doit plus emporter la figure : une référence perdue
+rend deux points nuls au lieu de lever, l'appelant sait déjà les reconnaître, et
+le reste vit. Le fichier de secours se relit, et tout ce qu'on peut lui demander
+ensuite marche.
+
+La sonde qui garde tout cela **échoue douze fois** sur la version d'avant.
+
 ### L'équerre n'était pas trop opaque : elle était peinte trois fois
 
 *« Rends l'équerre de manière globale un peu moins opaque. »*
@@ -2478,7 +2529,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 110 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 111 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

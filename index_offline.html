@@ -11915,6 +11915,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
             },
             getLineCoords(obj) {
+                /* UNE RÉFÉRENCE PERDUE N'EST PAS UNE EXCEPTION, C'EST UN CAS.
+                   Une parallèle enregistrée par une version qui ne savait pas
+                   écrire sa référence revient sans elle. Sans ce garde, la
+                   première ligne lève « Cannot read properties of null » et
+                   emporte tout le rendu — donc la figure entière, pour un seul
+                   trait orphelin. On rend deux points nuls : l'appelant sait
+                   déjà les reconnaître, il ne dessine rien, et le reste vit. */
+                if (!obj) return { p1: null, p2: null };
                 if (obj.getDynamicP2) return {
                     p1: obj.p1,
                     p2: obj.getDynamicP2()
@@ -20821,7 +20829,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (e instanceof ParallelLine || e instanceof PerpendicularLine) {
                         const width = e.lineWidth || 2;
                         const dash = (e.dash && e.dash.length > 0) ? 1 : 0;
-                        arr.push(idMap.get(e.p1.id), idMap.get(e.refLine.id), this.couleurCompacte(e.color), width, dash, e.nomDroite || 0);
+                        /* Même filet que pour le .json, dans le format du lien :
+                           une référence sans identité s'écrit par ses deux points.
+                           Les deux champs ajoutés sont EN FIN de ligne, après ceux
+                           que les anciens codes portaient déjà — un code d'hier se
+                           relit donc sans rien changer, il n'a simplement pas ces
+                           deux cases-là. */
+                        const refId = e.refLine && e.refLine.id !== undefined
+                            ? idMap.get(e.refLine.id) : undefined;
+                        const r1 = (refId === undefined && e.refLine && e.refLine.p1)
+                            ? idMap.get(e.refLine.p1.id) : undefined;
+                        const r2 = (refId === undefined && e.refLine && e.refLine.p2)
+                            ? idMap.get(e.refLine.p2.id) : undefined;
+                        arr.push(idMap.get(e.p1.id), refId === undefined ? -1 : refId,
+                                 this.couleurCompacte(e.color), width, dash, e.nomDroite || 0,
+                                 r1 === undefined ? -1 : r1, r2 === undefined ? -1 : r2);
                     }
                     else if (e instanceof Arc) {
                         const width = e.lineWidth || 2;
@@ -21134,7 +21156,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (typeId === 6 && obj._tempCenterIdx !== -1) { const c = tempObjects[obj._tempCenterIdx]; if (!c) brokenObjects.add(obj); else obj.center = c; delete obj._tempCenterIdx; }
                         else if (typeId === 7) { const p1 = tempObjects[parseInt(d[1])], p2 = tempObjects[parseInt(d[2])], p3 = tempObjects[parseInt(d[3])]; if (!p1 || !p2 || !p3) brokenObjects.add(obj); else { obj.p1 = p1; obj.p2 = p2; obj.p3 = p3; } }
                         else if (typeId === 8) { if (obj._tempPtsStr) { obj.points = obj._tempPtsStr.split(',').map(i => tempObjects[parseInt(i)]).filter(x => x); if (obj.points.length < 3) brokenObjects.add(obj); } delete obj._tempPtsStr; }
-                        else if (typeId === 10 || typeId === 11) { const p1 = tempObjects[parseInt(d[1])], ref = tempObjects[parseInt(d[2])]; if (!p1 || !ref) brokenObjects.add(obj); else { obj.p1 = p1; obj.refLine = ref; } }
+                        else if (typeId === 10 || typeId === 11) { const p1 = tempObjects[parseInt(d[1])]; let ref = tempObjects[parseInt(d[2])]; if (!ref && d[6] !== undefined && d[7] !== undefined) { const r1 = tempObjects[parseInt(d[6])], r2 = tempObjects[parseInt(d[7])]; if (r1 && r2) ref = { p1: r1, p2: r2 }; } if (!p1 || !ref) brokenObjects.add(obj); else { obj.p1 = p1; obj.refLine = ref; } }
                         else if (typeId === 12) { const c = tempObjects[obj._tempCenter]; if (!c) brokenObjects.add(obj); else obj.center = c; delete obj._tempCenter; }
                         else if (typeId === 13 && obj.targetId !== -1 && tempObjects[obj.targetId]) { obj.targetId = tempObjects[obj.targetId].id; }
                         else if (typeId === 14) {
@@ -25307,6 +25329,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (e instanceof ParallelLine || e instanceof PerpendicularLine) {
                         data.p1Id = e.p1?.id;
                         data.refLineId = e.refLine?.id;
+                        /* LE FILET. Une référence qui n'est pas une entité n'a pas
+                           d'identifiant, donc rien à écrire, donc une parallèle
+                           perdue à la relecture. On écrit alors ses DEUX POINTS,
+                           qui en sont, eux. C'est la ceinture en plus des
+                           bretelles : les constructions d'aujourd'hui donnent une
+                           vraie droite, mais les fichiers d'hier n'en ont pas, et
+                           un fichier ne se relit qu'une fois — mal. */
+                        if (!data.refLineId && e.refLine) {
+                            if (e.refLine.p1?.id) data.refP1Id = e.refLine.p1.id;
+                            if (e.refLine.p2?.id) data.refP2Id = e.refLine.p2.id;
+                        }
                     } else if (e instanceof Arc) {
                         data.centerId = e.center?.id;
                         data.radius = e.radius;
@@ -25478,6 +25511,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     } else if (data.type === 'ParallelLine' || data.type === 'PerpendicularLine') {
                         obj.p1 = idMap.get(data.p1Id);
                         obj.refLine = idMap.get(data.refLineId);
+                        if (!obj.refLine) {
+                            const r1 = idMap.get(data.refP1Id), r2 = idMap.get(data.refP2Id);
+                            if (r1 && r2) obj.refLine = { p1: r1, p2: r2 };
+                        }
                     } else if (data.type !== 'ToolAnimation') {
                         obj.p1 = idMap.get(data.p1Id);
                         obj.p2 = idMap.get(data.p2Id);
@@ -36380,7 +36417,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
              *    son corps de l'autre côté du rail. Elles se touchent le long
              *    d'une arête, comme sur une vraie table, et ne se recouvrent
              *    plus nulle part. */
-            cslGesteParallele(C, a, b) {
+            /* LA DROITE DE RÉFÉRENCE DOIT ÊTRE UNE VRAIE ENTITÉ.
+             * On passait `{p1: a, p2: b}` — un objet fabriqué pour l'occasion,
+             * sans identité. La parallèle pointait donc vers un objet qui
+             * n'appartient pas à la figure, et l'enregistrement, qui ne sait
+             * écrire que des RENVOIS (« ma référence est l'objet n° 7 »), n'avait
+             * rien à écrire : `refLineId` valait `undefined` et disparaissait du
+             * fichier. À la relecture la parallèle n'avait plus de référence, et
+             * elle était jetée comme cassée — mesuré : une parallèle avant
+             * l'enregistrement, ZÉRO après. Le fichier de secours envoyé le
+             * montre noir sur blanc : `{"type":"ParallelLine","p1Id":"…"}`, sans
+             * `refLineId`. Quand on peut donner la vraie droite, on la donne. */
+            cslGesteParallele(C, a, b, refObjet) {
                 const u0 = { x: b.x - a.x, y: b.y - a.y };
                 const len2 = u0.x * u0.x + u0.y * u0.y || 1;
                 const k = ((C.x - a.x) * u0.x + (C.y - a.y) * u0.y) / len2;
@@ -36432,7 +36480,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     "On trace au bord de l'équerre : la parallèle passe par C.";
                 const a4 = new ToolAnimation('trace', poseArrivee, poseArrivee);
                 a4.widgetType = 'setsquare'; this.addEntity(a4);
-                const d = this.cslPoserStyle(new ParallelLine(C, { p1: a, p2: b }));
+                const d = this.cslPoserStyle(new ParallelLine(C, refObjet || { p1: a, p2: b }));
                 this.addEntity(d);
                 this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
@@ -36442,7 +36490,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                descend du point jusqu'à la droite, puis LA RÈGLE SE COUCHE SUR LE
                TRAIT DÉJÀ FAIT et le prolonge. On ne fait pas basculer l'équerre :
                rien ne garantirait qu'elle retombe sur la même droite. */
-            cslGestePerpendiculaire(C, a, b) {
+            cslGestePerpendiculaire(C, a, b, refObjet) {
                 const u = { x: b.x - a.x, y: b.y - a.y };
                 const len2 = u.x * u.x + u.y * u.y || 1;
                 const k = ((C.x - a.x) * u.x + (C.y - a.y) * u.y) / len2;
@@ -36470,7 +36518,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 a2.widgetType = 'ruler'; this.addEntity(a2);
                 const a3 = new ToolAnimation('trace', pose, pose);
                 a3.widgetType = 'ruler'; this.addEntity(a3);
-                const d = this.cslPoserStyle(new PerpendicularLine(C, { p1: a, p2: b }));
+                const d = this.cslPoserStyle(new PerpendicularLine(C, refObjet || { p1: a, p2: b }));
                 this.addEntity(d);
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 /* L'angle droit est ce que la phrase demande : la figure le dit. */
@@ -36598,16 +36646,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                pour la perpendiculaire. Ce n'était pas un réglage
                                qui ne prenait pas : c'était un chemin de code qui
                                ne connaissait pas le réglage. */
+                            /* Ici la référence EST une entité de la figure :
+                               on la donne telle quelle, et la parallèle reste
+                               accrochée à elle — elle la suivra si on la bouge,
+                               et elle survivra à l'enregistrement. */
+                            const refVrai = this.entities.includes(ref) ? ref : { p1: q1, p2: q2 };
                             let dN;
                             if (this.cslDetaille()) {
                                 this.cslBatir(null, () => {
-                                    dN = perp ? this.cslGestePerpendiculaire(cN, q1, q2)
-                                              : this.cslGesteParallele(cN, q1, q2);
+                                    dN = perp ? this.cslGestePerpendiculaire(cN, q1, q2, refVrai)
+                                              : this.cslGesteParallele(cN, q1, q2, refVrai);
                                 });
                             }
                             if (!dN) {
-                                dN = this.cslPoserStyle(perp ? new PerpendicularLine(cN, { p1: q1, p2: q2 })
-                                                            : new ParallelLine(cN, { p1: q1, p2: q2 }));
+                                dN = this.cslPoserStyle(perp ? new PerpendicularLine(cN, refVrai)
+                                                            : new ParallelLine(cN, refVrai));
                                 this.addEntity(dN);
                             }
                             // la nouvelle droite peut elle aussi porter un nom
@@ -36657,12 +36710,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     || brut.match(/\ben\s+([A-Z]'{0,2})\b/);
                 if (!par) return rate("Par quel point ? Écrivez « … passant par C ».");
                 const c = this.cslPoint(par[1]);
+                /* Si la DROITE (AB) est déjà tracée, c'est elle la référence —
+                   pas une paire de points recopiée. On ne la crée pas quand elle
+                   n'y est pas : « la parallèle à (AB) » ne demande pas de tracer
+                   (AB).
+                   Et l'on ne prend QUE la droite, pas le segment qui joindrait
+                   les deux mêmes points : la phrase a écrit « (AB) », donc la
+                   droite, et l'énoncé rédigé ensuite doit redire ce qu'on a
+                   demandé — « perpendiculaire à la droite (AB) », pas « au
+                   segment [AB] ». Le segment n'y perd rien : ses deux points
+                   sont les mêmes, la perpendiculaire les suit pareillement, et
+                   l'enregistrement les retient par le filet. */
+                const dejaLa = this.entities.find(e => (e instanceof Line)
+                    && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
+                const refVrai = dejaLa || { p1: a, p2: b };
                 if (this.cslDetaille()) {
-                    this.cslBatir(null, () => (perp ? this.cslGestePerpendiculaire(c, a, b)
-                                                    : this.cslGesteParallele(c, a, b)));
+                    this.cslBatir(null, () => (perp ? this.cslGestePerpendiculaire(c, a, b, refVrai)
+                                                    : this.cslGesteParallele(c, a, b, refVrai)));
                 } else {
-                    const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, { p1: a, p2: b })
-                                                     : new ParallelLine(c, { p1: a, p2: b }));
+                    const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, refVrai)
+                                                     : new ParallelLine(c, refVrai));
                     this.addEntity(d);
                 }
                 return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
@@ -44213,7 +44280,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-15 · 9h';
+        window.GM_VERSION = '2026-09-15 · 14h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
