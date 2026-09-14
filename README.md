@@ -1145,6 +1145,40 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### La parallèle : l'équerre ne doit pas viser le point
+
+*« L'équerre écrase la règle, en gros les outils se superposent. Quand on trace
+la parallèle à (AB) passant par C, on n'est pas obligé qu'un côté de l'angle
+droit passe par C quand on place l'équerre le long de (AB) ; il faudra juste que
+quand on glisse l'équerre, ça touche le point C. »*
+
+Deux défauts, et le même point les causait tous les deux : les deux instruments
+étaient posés en **F**, le pied de la perpendiculaire menée de C.
+
+**L'équerre était donc déjà alignée sur C avant de glisser** — et c'est un
+contresens complet. Poser son angle droit exactement au pied de la
+perpendiculaire suppose qu'on sache déjà tracer cette perpendiculaire, donc
+qu'on sache faire ce que la leçon cherche à apprendre. En classe on pose
+l'équerre **n'importe où** le long de la droite ; c'est le glissement qui amène
+le bord sur C, et c'est tout l'enseignement du geste. Elle part maintenant
+130 px en arrière du pied : elle ne vise rien, et le bord arrive sur C parce
+qu'il ne peut pas faire autrement. Mesuré dans cinq configurations : 130 px du
+pied au départ, **0,000 px** du bord à l'arrivée.
+
+**Et la règle était sous l'équerre.** L'orientation de celle-ci n'était pas
+choisie : son grand côté partait dans le sens de A vers B, quel qu'il soit, donc
+son corps tombait tantôt du côté de C, tantôt de l'autre. Le sens est maintenant
+déterminé par C — le second côté de l'angle droit pointe vers lui, puisque c'est
+de ce côté qu'il faut glisser — et la règle se pose contre ce côté, son corps de
+l'autre côté du rail. La sonde calcule le recouvrement réel des deux corps (un
+triangle rectangle de 400 × 250, un rectangle de 400 × 60, aux poses exactes) et
+exige **zéro**, C au-dessus comme en dessous, A et B échangés, droite oblique.
+Elles se touchent le long d'une arête, comme sur une vraie table.
+
+La perpendiculaire, elle, n'avait pas le défaut : elle **range l'équerre avant**
+de sortir la règle, les deux ne sont jamais dehors ensemble. C'est vérifié
+aussi, pour que personne ne répare un jour ce qui n'est pas cassé.
+
 ### Une droite a un nom, et son nom va au bord
 
 *« Donne un nom aux droites — écris le nom le plus proche possible d'un bord,
@@ -2301,7 +2335,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 106 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 107 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

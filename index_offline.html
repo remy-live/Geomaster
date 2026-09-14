@@ -35910,26 +35910,69 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return { x: vx, y: vy };
             }
+            /* CE QUE LA MAIN FAIT VRAIMENT, ET CE QUE LE LOGICIEL FAISAIT.
+             *
+             * Il posait l'équerre EN F, le pied de la perpendiculaire menée de C.
+             * Deux défauts en un seul geste, et le même point les cause tous les
+             * deux.
+             *
+             * 1. L'ÉQUERRE ÉTAIT DÉJÀ ALIGNÉE SUR C AVANT DE GLISSER. Poser son
+             *    angle droit exactement au pied de la perpendiculaire, c'est
+             *    avoir déjà fait le travail : il faudrait connaître F, donc
+             *    savoir tracer la perpendiculaire, donc savoir faire ce qu'on
+             *    cherche à apprendre. En classe, on pose l'équerre N'IMPORTE OÙ
+             *    le long de la droite — c'est le GLISSEMENT qui amène le bord
+             *    sur C, et c'est tout l'enseignement du geste. L'équerre part
+             *    donc maintenant 130 px en arrière du pied : elle ne vise rien,
+             *    et le bord arrive sur C parce qu'il ne peut pas faire autrement.
+             *
+             * 2. LA RÈGLE ÉTAIT SOUS L'ÉQUERRE. Les deux instruments étaient
+             *    posés au MÊME point, leurs corps se recouvraient, et l'on ne
+             *    voyait plus lequel servait de rail. Or l'orientation de
+             *    l'équerre n'était pas choisie : son grand côté partait dans le
+             *    sens de A vers B, quel qu'il soit, donc son corps tombait
+             *    tantôt du côté de C, tantôt de l'autre. On choisit maintenant
+             *    le sens : le second côté de l'angle droit pointe VERS C — c'est
+             *    de ce côté qu'il faut glisser — et la règle se pose contre lui,
+             *    son corps de l'autre côté du rail. Elles se touchent le long
+             *    d'une arête, comme sur une vraie table, et ne se recouvrent
+             *    plus nulle part. */
             cslGesteParallele(C, a, b) {
-                const u = { x: b.x - a.x, y: b.y - a.y };
-                const len2 = u.x * u.x + u.y * u.y || 1;
-                const k = ((C.x - a.x) * u.x + (C.y - a.y) * u.y) / len2;
-                const F = { x: a.x + k * u.x, y: a.y + k * u.y };
-                const rail = this.cslRailParallele(F, C, u);
+                const u0 = { x: b.x - a.x, y: b.y - a.y };
+                const len2 = u0.x * u0.x + u0.y * u0.y || 1;
+                const k = ((C.x - a.x) * u0.x + (C.y - a.y) * u0.y) / len2;
+                const F = { x: a.x + k * u0.x, y: a.y + k * u0.y };
+                /* n : la normale à la droite, dirigée VERS C — c'est le sens du
+                   glissement. Si C est déjà sur la droite, on s'en fabrique une. */
+                const rail = this.cslRailParallele(F, C, u0);
+                const nL = Math.hypot(rail.x, rail.y) || 1;
+                const n = { x: rail.x / nL, y: rail.y / nL };
+                const saut = Math.hypot(C.x - F.x, C.y - F.y) || nL;
+                /* L'équerre dessine son angle droit entre son côté +x et son
+                   côté +y, ce dernier étant le premier tourné d'un quart de tour.
+                   Pour que le second côté pointe vers C, il faut donc que le
+                   premier soit n tourné d'un quart de tour EN ARRIÈRE. */
+                const u = { x: n.y, y: -n.x };
                 const aU = Math.atan2(u.y, u.x);
-                const aRail = Math.atan2(rail.y, rail.x);
-                const poseSur = { x: F.x, y: F.y, angle: aU };
-                const poseArrivee = { x: C.x, y: C.y, angle: aU };
+                const aRail = Math.atan2(n.y, n.x);
+                /* N'IMPORTE OÙ LE LONG DE LA DROITE — mais pas au hasard : assez
+                   en arrière pour qu'on voie bien qu'on ne vise pas C, assez peu
+                   pour que le bord de l'équerre, long de 400, le dépasse
+                   largement quand il arrivera. */
+                const RECUL = 130;
+                const P = { x: F.x - u.x * RECUL, y: F.y - u.y * RECUL };
+                const poseSur = { x: P.x, y: P.y, angle: aU };
+                const poseArrivee = { x: P.x + n.x * saut, y: P.y + n.y * saut, angle: aU };
 
                 this.stepInstructions[this.entities.length] =
-                    "On pose l'équerre le long de la droite : son bord gradué est dessus.";
+                    "On pose l'équerre le long de la droite, n'importe où : un côté de l'angle droit dessus.";
                 const a1 = new ToolAnimation('move', poseSur, poseSur);
                 a1.widgetType = 'setsquare'; this.addEntity(a1);
 
                 this.stepInstructions[this.entities.length] =
-                    "La règle sert de rail : on la pose contre l'équerre, perpendiculairement.";
-                const a2 = new ToolAnimation('move', { x: F.x, y: F.y, angle: aRail },
-                                                     { x: F.x, y: F.y, angle: aRail });
+                    "La règle sert de rail : on la pose contre l'autre côté de l'angle droit.";
+                const a2 = new ToolAnimation('move', { x: P.x, y: P.y, angle: aRail },
+                                                     { x: P.x, y: P.y, angle: aRail });
                 a2.widgetType = 'ruler'; this.addEntity(a2);
                 /* L'ÉCART SE VOIT. C'est lui qui est constant, et c'est pour cela
                    que les deux droites sont parallèles : un trait léger le dit. */
@@ -35938,12 +35981,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ecart.dash = [5, 5]; ecart.estConstruction = true; this.addEntity(ecart);
 
                 this.stepInstructions[this.entities.length] =
-                    "L'équerre GLISSE le long de la règle sans tourner : l'écart reste le même.";
+                    "L'équerre GLISSE le long de la règle sans tourner, jusqu'à ce que son bord touche C.";
                 const a3 = new ToolAnimation('move', poseSur, poseArrivee);
                 a3.widgetType = 'setsquare'; this.addEntity(a3);
 
                 this.stepInstructions[this.entities.length] =
-                    "On trace au bord de l'équerre arrivée : la parallèle.";
+                    "On trace au bord de l'équerre : la parallèle passe par C.";
                 const a4 = new ToolAnimation('trace', poseArrivee, poseArrivee);
                 a4.widgetType = 'setsquare'; this.addEntity(a4);
                 const d = this.cslPoserStyle(new ParallelLine(C, { p1: a, p2: b }));
@@ -43705,7 +43748,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-14 · 10h';
+        window.GM_VERSION = '2026-09-14 · 16h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
