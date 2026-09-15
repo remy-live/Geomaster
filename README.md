@@ -1145,6 +1145,49 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Une phrase qui nomme une droite peut l'inventer
+
+*« Quand on dit : trace une parallèle à (d) passant par A — et que les objets
+n'existent pas, tu les crées. »*
+
+Deux phrases qui demandent la même chose, deux réponses opposées. Sur une feuille
+vide, « Trace la parallèle à **(AB)** passant par C » posait A, B, C *et* la
+droite (AB), et le disait. « Trace la parallèle à **(d)** passant par A »
+répondait *« À quelle droite ? »*.
+
+Or c'est la seconde qu'on écrit en préparant un exercice : une droite qu'on nomme
+(d) n'a précisément pas à passer par des points qu'on nommerait. Et le refus
+n'apprenait rien — il conseillait « … à (AB) passant par C », c'est-à-dire de
+renoncer à la notation qu'on venait de choisir.
+
+**La cause était dans le lecteur de phrases, et elle était invisible.** Les noms
+de droite sont filtrés par une liste de mots courts — « de », « du », « et »,
+« la »… — pour que « la droite du milieu » ne donne pas une droite nommée « du ».
+La lettre **d** figure dans cette liste, à cause du « d' » élidé. Le filtre
+s'appliquait *partout*, y compris entre parenthèses : « (d) » ne produisait donc
+aucun nom, et il n'y avait rien à chercher ni à créer. Entre parenthèses il n'y a
+pourtant aucune ambiguïté — on n'écrit pas « (de) ».
+
+La droite se pose maintenant là où l'on regarde, et **c'est dit** :
+
+```
+La droite (d) n'existait pas : elle a été tracée.
+Le point A n'existait pas : il a été placé.
+```
+
+Poser sans le dire serait pire que refuser : on croirait avoir tracé la parallèle
+à une droite qu'on avait en tête, alors qu'elle vient d'être inventée. Et quand
+tout existait déjà, on ne dit rien — une remarque qui paraît à tort est une
+remarque qu'on cesse de lire.
+
+Le point A tombe à 104 px de (d), jamais dessus : une parallèle à (d) passant par
+un point de (d) serait (d) elle-même. La parallèle est **accrochée** à la droite
+qu'on vient de créer, pas à une copie de ses coordonnées. Et l'énoncé rédigé
+ensuite redonne la figure en trois lignes qui se suffisent.
+
+La modification du lecteur est prouvée **étroite** : comparée à la version d'avant
+sur cinq phrases, la seule réponse qui change est celle de « (d) ».
+
 ### Une parallèle doit savoir à quoi elle est parallèle — et s'en souvenir
 
 *« Cannot read properties of null (reading 'x') — en traçant la parallèle puis
@@ -2529,7 +2572,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 111 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 112 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

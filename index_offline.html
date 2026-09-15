@@ -36615,8 +36615,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        points, c'est la droite d — ou celle qu'on vient de tracer,
                        quand la phrase dit « cette droite ». */
                     if (!med) {
-                        const ref = this.cslObjetDe(tete);
-                        const porte = ref ? this.cslPorteeLineaire(ref) : null;
+                        let ref = this.cslObjetDe(tete);
+                        let porte = ref ? this.cslPorteeLineaire(ref) : null;
+                        /* LA DROITE CITÉE N'EXISTE PAS ENCORE : ON LA TRACE.
+                         *
+                         * « Trace la parallèle à (AB) passant par C » sur une
+                         * feuille vide posait A, B, C ET la droite (AB), et le
+                         * disait. « Trace la parallèle à (d) passant par A »
+                         * répondait « À quelle droite ? ». Deux phrases qui
+                         * demandent la même chose, deux réponses opposées — et
+                         * c'est la seconde qu'on écrit en préparant un exercice,
+                         * parce qu'une droite qu'on nomme (d) n'a pas à passer
+                         * par des points qu'on nommerait.
+                         *
+                         * Le refus était d'autant plus fâcheux qu'il n'apprenait
+                         * rien : il conseillait « … à (AB) passant par C »,
+                         * c'est-à-dire de renoncer à la notation qu'on venait
+                         * justement de choisir.
+                         *
+                         * On pose donc (d) là où l'on regarde, et on le DIT.
+                         * Poser sans le dire serait pire que refuser : on
+                         * croirait avoir tracé la parallèle à une droite qu'on
+                         * avait en tête, alors qu'elle vient d'être inventée. */
+                        if (!porte) {
+                            const nomRef = this.cslNomsDeDroite(tete)[0];
+                            if (nomRef && !this.cslDroiteNommee(nomRef)) {
+                                ref = this.cslPoserDroiteNommee(nomRef);
+                                porte = this.cslPorteeLineaire(ref);
+                                this.cslDire(`La droite (${nomRef}) n'existait pas :`
+                                    + ` elle a été tracée.`);
+                            }
+                        }
                         if (porte) {
                             const parN = brut.match(/(?:passant|qui\s+passe)\s+par\s+([A-Z]'{0,2})/)
                                 || brut.match(/\ben\s+([A-Z]'{0,2})\b/);
@@ -36625,7 +36654,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                parallèle décalée. On la pose à côté, sur un point
                                qui ne porte pas de nom. */
                             let cN;
-                            if (parN) cN = this.cslPoint(parN[1]);
+                            if (parN) {
+                                /* Le point non plus n'a pas à exister d'avance —
+                                   mais qu'on l'ait posé doit se lire, sinon on
+                                   cherche d'où il sort. */
+                                const neuf = !this.cslPointNomme(parN[1]);
+                                cN = this.cslPoint(parN[1]);
+                                if (neuf) this.cslDire(`Le point ${parN[1]} n'existait pas :`
+                                    + ` il a été placé.`);
+                            }
                             else {
                                 const L = Math.hypot(porte.u.x, porte.u.y) || 1;
                                 cN = new Point(porte.p.x - porte.u.y / L * 90,
@@ -37905,12 +37942,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                d » ne trouvait plus rien. */
             cslNomsDeDroite(txt) {
                 const out = [];
-                const re = /(?:\bdroites?\s+|\(\s*)([a-z]\d?'{0,2})(?=[\s,;.)]|$)/g;
+                const re = /(?:\b(droites?)\s+|(\()\s*)([a-z]\d?'{0,2})(?=[\s,;.)]|$)/g;
                 let m;
                 while ((m = re.exec(String(txt))) !== null) {
-                    const n = m[1];
-                    // « droite de », « droite du milieu » : des mots, pas des noms
-                    if (/^(?:de|du|des|d|en|et|le|la|les|un|une|qui|qu|qi)$/.test(n)) continue;
+                    const n = m[3];
+                    /* « droite de », « droite du milieu » : des mots, pas des
+                       noms. Mais ENTRE PARENTHÈSES, il n'y a pas d'ambiguïté : on
+                       n'écrit pas « (de) », on écrit « (d) », et c'est un nom.
+                       Le filtre s'appliquait partout, si bien que « la parallèle
+                       à (d) » ne trouvait AUCUN nom de droite — la lettre d était
+                       écartée comme si c'était le « d' » élidé. */
+                    const entreParentheses = !!m[2];
+                    if (!entreParentheses
+                        && /^(?:de|du|des|d|en|et|le|la|les|un|une|qui|qu|qi)$/.test(n)) continue;
                     if (!out.includes(n)) out.push(n);
                 }
                 // « les droites d et d' » : le « et » n'est pas suivi du mot droite
@@ -39734,16 +39778,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     const faites = [];
                     for (let k = 0; k < combien; k++) {
-                        const o = this.cslPlaceLibre(0, k * 90 - (combien - 1) * 45);
-                        const pa = new Point(o.x - 120, o.y + 34 - k * 24, '');
-                        pa.visible = false; this.addEntity(pa);
-                        const pb = new Point(o.x + 120, o.y - 34 + k * 24, '');
-                        pb.visible = false; this.addEntity(pb);
-                        const dr = new Line(pa, pb, this.cslStyle());
                         const n = noms[k] || this.cslNomDroiteLibre();
-                        dr.nomDroite = n;
-                        this.addEntity(dr);
-                        this.cslMemoire().droites[n] = dr;
+                        this.cslPoserDroiteNommee(n, k * 90 - (combien - 1) * 45, k * 24);
                         faites.push('(' + n + ')');
                     }
                     return fait(faites.length > 1
@@ -39770,6 +39806,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 this.addEntity(obj);
                 return fait(genre === 'droite' ? `Droite (${nom})` : `Demi-droite [${nom})`);
+            }
+            /* POSER UNE DROITE QUI PORTE UN NOM, là où l'on regarde. Deux points
+               de passage invisibles — une droite n'a pas d'extrémités, les
+               montrer ferait croire le contraire — et le nom, qui est le seul
+               moyen de la désigner ensuite.
+               Un seul endroit : « Trace deux droites d et d' » s'en sert, et la
+               parallèle qui doit inventer sa référence aussi. Deux recettes pour
+               le même objet auraient divergé au premier ajustement. */
+            cslPoserDroiteNommee(nom, dy = 0, pente = 0) {
+                const o = this.cslPlaceLibre(0, dy);
+                const pa = new Point(o.x - 120, o.y + 34 - pente, '');
+                pa.visible = false; this.addEntity(pa);
+                const pb = new Point(o.x + 120, o.y - 34 + pente, '');
+                pb.visible = false; this.addEntity(pb);
+                const dr = new Line(pa, pb, this.cslStyle());
+                dr.nomDroite = nom;
+                this.addEntity(dr);
+                this.cslMemoire().droites[nom] = dr;
+                return dr;
             }
             /* Un nom de droite encore libre : d, d', d1, d2… */
             cslNomDroiteLibre() {
@@ -44280,7 +44335,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-15 · 14h';
+        window.GM_VERSION = '2026-09-15 · 18h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
