@@ -18464,18 +18464,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.playStepLoop(startIndex, this.entities.length);
             }
 
-            buildParallelogram(pA, pB, pC) {
+            /* aTrouver : les sommets que la règle doit RÉVÉLER au bout de son
+               trait, au lieu d'être déjà posés sur la feuille. Vide quand les
+               trois points viennent du doigt de l'élève (constructions magiques)
+               — ceux-là existent pour de bon avant qu'on trace. Voir
+               cslPremierCote : le point d'arrivée se range APRÈS le segment,
+               jamais entre l'animation et lui. */
+            buildParallelogram(pA, pB, pC, aTrouver) {
                 let startIndex = this.entities.length;
                 let color = this.globalStyle.color || "#000000";
                 let width = this.globalStyle.width || 2;
-                
+                const trouve = (p) => { if (aTrouver && aTrouver.includes(p)) this.addEntity(p); };
+
                 let segAB = new Segment(pB, pA, {color: color, width: width});
                 let animAB = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: Math.atan2(pA.y-pB.y, pA.x-pB.x)}, {x: pB.x, y: pB.y, angle: Math.atan2(pA.y-pB.y, pA.x-pB.x)}); animAB.widgetType = 'ruler';
-                this.addEntity(animAB); this.addEntity(segAB); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-                
+                this.addEntity(animAB); this.addEntity(segAB); trouve(pA); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
                 let segBC = new Segment(pB, pC, {color: color, width: width});
                 let animBC = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: Math.atan2(pC.y-pB.y, pC.x-pB.x)}, {x: pB.x, y: pB.y, angle: Math.atan2(pC.y-pB.y, pC.x-pB.x)}); animBC.widgetType = 'ruler';
-                this.addEntity(animBC); this.addEntity(segBC); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                this.addEntity(animBC); this.addEntity(segBC); trouve(pC); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
 
                 let distBA = Math.hypot(pA.x - pB.x, pA.y - pB.y);
                 let distBC = Math.hypot(pC.x - pB.x, pC.y - pB.y);
@@ -18541,7 +18548,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.playStepLoop(startIndex, this.entities.length);
             }
 
-            buildRectangle(pA, pB, pC) {
+            /* aTrouver : voir buildParallelogram — les sommets que le trait
+               révèle, plutôt que de les poser d'avance. */
+            buildRectangle(pA, pB, pC, aTrouver) {
                 let a1 = Math.atan2(pA.y - pB.y, pA.x - pB.x);
                 let a2 = Math.atan2(pC.y - pB.y, pC.x - pB.x);
                 let diff = Math.abs(a1 - a2);
@@ -18554,14 +18563,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let startIndex = this.entities.length;
                 let color = this.globalStyle.color || "#000000";
                 let width = this.globalStyle.width || 2;
-                
+                const trouve = (p) => { if (aTrouver && aTrouver.includes(p)) this.addEntity(p); };
+
                 let segAB = new Segment(pB, pA, {color: color, width: width});
                 let animAB = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: Math.atan2(pA.y-pB.y, pA.x-pB.x)}, {x: pB.x, y: pB.y, angle: Math.atan2(pA.y-pB.y, pA.x-pB.x)}); animAB.widgetType = 'ruler';
-                this.addEntity(animAB); this.addEntity(segAB); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
-                
+                this.addEntity(animAB); this.addEntity(segAB); trouve(pA); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+
                 let segBC = new Segment(pB, pC, {color: color, width: width});
                 let animBC = new ToolAnimation('trace', {x: pB.x, y: pB.y, angle: Math.atan2(pC.y-pB.y, pC.x-pB.x)}, {x: pB.x, y: pB.y, angle: Math.atan2(pC.y-pB.y, pC.x-pB.x)}); animBC.widgetType = 'ruler';
-                this.addEntity(animBC); this.addEntity(segBC); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                this.addEntity(animBC); this.addEntity(segBC); trouve(pC); this.addEntity(new ToolAnimation('rulerHide', {}, {}));
 
                 let distBA = Math.hypot(pA.x - pB.x, pA.y - pB.y);
                 let distBC = Math.hypot(pC.x - pB.x, pC.y - pB.y);
@@ -38937,16 +38947,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const o3 = this.cslPlaceLibre(0, 0);
                     const l1 = deux ? this.cslLongueurPx(deux[1]) : L;
                     const l2 = deux ? this.cslLongueurPx(deux[2]) : L * 0.62;
+                    /* ON NE POSE QUE LE SOMMET D'OÙ PARTENT LES DEUX CÔTÉS. Les
+                       trois sommets paraissaient d'un coup, puis la règle venait
+                       les relier : la réponse était donnée avant la construction.
+                       Les deux autres se TROUVENT au bout du trait — le bâtisseur
+                       les range après leur segment (aTrouver). p2 est le pivot :
+                       c'est de lui que partent [BA] et [BC]. */
+                    const neufs = [];
                     const mk = (i, x, y) => {
                         const d0 = this.cslPointNomme(noms[i]);
                         if (d0) return d0;
-                        const p = new Point(x, y, noms[i]); this.addEntity(p); return p;
+                        const p = new Point(x, y, noms[i]); neufs.push(p); return p;
                     };
                     const p1 = mk(0, o3.x - l1 / 2, o3.y + l2 / 2);
                     const p2 = mk(1, p1.x + l1, p1.y);
                     const p3 = mk(2, p2.x + (quoi === 'rectangle' ? 0 : l2 * 0.4), p2.y - l2);
+                    if (neufs.includes(p2)) this.addEntity(p2);
+                    const aTrouver = neufs.filter(p => p !== p2);
                     this.cslBatir(noms.slice(3), () => (quoi === 'rectangle'
-                        ? this.buildRectangle(p1, p2, p3) : this.buildParallelogram(p1, p2, p3)));
+                        ? this.buildRectangle(p1, p2, p3, aTrouver)
+                        : this.buildParallelogram(p1, p2, p3, aTrouver)));
                     this._cslSujet = noms.slice();
                     return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
                 }
@@ -39482,16 +39502,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslPremierCote(p, q) {
                 const ang = Math.atan2(q.y - p.y, q.x - p.x);
                 const pose = { x: p.x, y: p.y, angle: ang };
-                /* LE SECOND POINT EST POSÉ AVANT LE GESTE, et non entre lui et
-                   le trait : le rejeu dessine le trait en cours en regardant
-                   l'objet qui SUIT l'animation, et il trouvait ce point-là. La
-                   règle se couchait donc sur une feuille blanche, et le segment
-                   paraissait d'un coup à la fin. */
-                this.addEntity(q);
+                /* LE SECOND POINT SE TROUVE, IL NE SE POSE PAS.
+                 *
+                 * « Il faut dessiner le point final qu'à la fin du tracé ; là tu
+                 *   mets les deux points et tu traces. »
+                 *
+                 * Sur une feuille, on pose A, on couche la règle, on trace — et B
+                 * est ce qu'on TROUVE à la graduation, au bout du geste. Le poser
+                 * d'avance, c'est donner la réponse avant la construction : le
+                 * rejeu montrait deux points déjà là et un trait qui venait les
+                 * relier, ce qui n'est le geste de personne. Le troisième sommet
+                 * d'un triangle suivait déjà cette règle ; le second ne la suivait
+                 * pas.
+                 *
+                 * MAIS PAS N'IMPORTE OÙ DANS L'ORDRE. Le rejeu dessine le trait en
+                 * cours en regardant l'objet qui SUIT immédiatement l'animation :
+                 * glisser le point ENTRE les deux, et c'est lui qu'il trouve — la
+                 * règle se couche alors sur une feuille blanche et le segment
+                 * paraît d'un coup à la fin. C'est ce qui avait fait poser le point
+                 * AVANT le geste. Il va donc APRÈS le segment : l'animation garde
+                 * son trait juste derrière elle, et le point vient en dernier. */
                 const an = new ToolAnimation('trace', pose, pose);
                 an.widgetType = 'ruler';
                 this.addEntity(an);
                 this.cslSegment(p, q);
+                this.addEntity(q);
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
             }
             /* QUEL INSTRUMENT POUR QUELLE DONNÉE ? C'est toute la leçon :
@@ -44531,7 +44566,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-17 · 16h';
+        window.GM_VERSION = '2026-09-17 · 17h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

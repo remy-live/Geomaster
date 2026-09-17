@@ -1193,6 +1193,39 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le point d'arrivée se trouve, il ne se pose pas
+
+*« Quand on trace un long segment avec la règle qui s'allonge, il faut dessiner
+le point final qu'à la fin du tracé ; là tu mets les deux points et tu traces. »*
+
+Sur une feuille, on pose A, on couche la règle, on trace — et B est ce qu'on
+**trouve** à la graduation, au bout du geste. Le poser d'avance, c'est donner la
+réponse avant la construction : le rejeu montrait deux points déjà là et un trait
+qui venait les relier, ce qui n'est le geste de personne. Le troisième sommet
+d'un triangle suivait déjà cette règle — il naît du croisement de deux arcs de
+compas — ; le second, non. Et le rectangle et le parallélogramme posaient leurs
+**trois** premiers sommets d'un coup avant de sortir le moindre instrument.
+
+**Tout le piège est dans l'ordre.** Le rejeu dessine le trait en cours en
+regardant l'objet qui *suit* immédiatement l'animation. Glisser le point
+d'arrivée **entre** l'animation et son segment, et c'est lui que le rejeu
+trouve : la règle se couche sur une feuille blanche, le crayon court pour rien,
+et le segment paraît d'un coup à la fin. C'est très exactement ce qui avait fait
+poser le point *avant* le geste — une correction qui en défait une autre sans
+rien casser au comptage. Le point va donc **après** le segment : l'animation
+garde son trait juste derrière elle, et le point vient en dernier.
+
+Le même bâtisseur sert au doigt : quand l'élève a cliqué trois points, ils
+existent pour de bon avant qu'on trace, et les ranger une seconde fois les
+dédoublerait. Seul l'appel venu d'une phrase dit au bâtisseur quels sommets
+restent à trouver ; les constructions magiques ne changent pas.
+
+La sonde tient les trois choses sur neuf figures : un seul point visible quand
+l'instrument sort, aucune animation de tracé suivie d'un point, et — gelée image
+par image — le point d'arrivée absent à mi-course comme à 98 %, présent une fois
+le trait fini. Les deux premières peuvent être vertes et la troisième fausse :
+c'est la troisième qu'on voit à l'écran.
+
 ### Une droite se note (d), pas d
 
 *« Pour le nom des droites sur le canvas, tu oublies les parenthèses autour. »*
@@ -2657,7 +2690,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 114 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 115 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
