@@ -1145,6 +1145,43 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Une droite se note (d), pas d
+
+*« Pour le nom des droites sur le canvas, tu oublies les parenthèses autour. »*
+
+Les parenthèses ne sont pas une décoration : elles **disent** qu'on parle d'une
+droite. A est un point, (d) est une droite, [AB] un segment — c'est le premier
+accord de notation qu'on demande à un élève, et le logiciel ne le tenait qu'à
+moitié. Sur la feuille il n'y avait que la lettre ; l'énoncé rédigé trois
+centimètres plus bas, lui, écrivait bien « la parallèle à (d) ». Deux notations
+pour le même objet, sur le même écran.
+
+Deux niveaux, et tout tient à ne pas les confondre. Le nom **rangé** reste
+« d » : c'est ce qu'on tape pour renommer, ce que les phrases citent, ce que les
+fichiers portent. Ce qui s'**écrit** est « (d) ». Les ajouter au nom stocké
+aurait donné « ((d)) » au premier aller-retour, et « la parallèle à (d) » ne
+trouverait plus rien.
+
+Trois conséquences, dont aucune n'allait de soi :
+
+- **La zone de préhension suit le texte.** Le nom se prend au doigt pour le faire
+  glisser le long de la droite, et la zone était un disque de 16 px. Avec les
+  parenthèses le texte fait 20 px de large : les deux tiers seraient restés hors
+  de prise.
+- **La méthode devait être recopiée sur la parallèle et la perpendiculaire.**
+  Elles ne descendent pas de `LinearObject` : leurs méthodes de nom leur sont
+  recopiées une à une. En oublier une ne se voit pas — elle lève au rendu, et
+  comme les bâtisseurs dessinent en construisant, « Trace deux droites
+  parallèles » répondait *« Je n'ai pas su faire ça »*. Un défaut d'affichage se
+  déguisait en défaut de langue, et c'est la suite de sondes qui l'a démasqué.
+- **Le SVG n'emportait pas le nom du tout.** Mesuré : un SVG exporté d'une figure
+  portant (d) et A ne contenait qu'un seul texte, « A ». La droite arrivait
+  anonyme dans le document où l'on colle la figure à côté de l'énoncé qui la
+  nomme. Ce n'était pas une régression — il n'y avait jamais été.
+
+Et une politesse : on voit « (d) » sur la feuille, donc on le retape avec ses
+parenthèses. Le champ de renommage les retire.
+
 ### Une phrase qui nomme une droite peut l'inventer
 
 *« Quand on dit : trace une parallèle à (d) passant par A — et que les objets
@@ -2572,7 +2609,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 112 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 113 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

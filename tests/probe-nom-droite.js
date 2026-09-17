@@ -216,8 +216,16 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     CanvasRenderingContext2D.prototype.fillText = vrai;
     return { nom: d.nomDroite, vus };
   });
-  ck('  la minuscule est acceptée et ÉCRITE sur la figure',
-     ecrit.nom === "d'" && ecrit.vus.includes("d'"), ecrit.nom + ' — ' + ecrit.vus.join(' '));
+  /* DEUX NIVEAUX, ET IL NE FAUT PAS LES CONFONDRE. Le nom RANGÉ est « d' » :
+     c'est ce qu'on tape pour renommer, et ce que les phrases citent. Ce qui
+     s'ÉCRIT sur la feuille est « (d') », avec ses parenthèses, parce qu'une
+     droite se note ainsi — et que l'énoncé rédigé juste à côté l'écrit déjà
+     comme cela. Les ajouter au nom stocké aurait donné « ((d')) » au premier
+     aller-retour. */
+  ck('  la minuscule est acceptée, et RANGÉE sans parenthèses',
+     ecrit.nom === "d'", ecrit.nom);
+  ck('  mais ÉCRITE avec, comme une droite se note',
+     ecrit.vus.includes("(d')"), ecrit.vus.join(' '));
   /* Deux droites du même nom, et « la perpendiculaire à d » ne désigne plus rien. */
   const refus = await page.evaluate(() => {
     const app = window.app;

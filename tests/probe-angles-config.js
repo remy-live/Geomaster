@@ -219,8 +219,10 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     CanvasRenderingContext2D.prototype.fillText = vrai;
     return { nom: dp && dp.nomDroite, ecrits: vus };
   });
+  /* Le nom RANGÉ est « d' » ; ce qui s'ÉCRIT est « (d') » — une droite se note
+     avec ses parenthèses, comme l'énoncé l'écrit déjà. */
   ck('(d\') est bien une parallèle, et son nom est ÉCRIT sur la figure',
-     nom.nom === "d'" && nom.ecrits.includes("d'"),
+     nom.nom === "d'" && nom.ecrits.includes("(d')"),
      nom.nom + ' — textes tracés : ' + nom.ecrits.join(' '));
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));

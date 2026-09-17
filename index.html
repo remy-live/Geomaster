@@ -14376,15 +14376,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.setLineDash([]);
-                ctx.fillText(this.nomDroite, a.x, a.y);
+                /* AVEC SES PARENTHÈSES. Une droite se note (d), un point se note
+                   A : les parenthèses ne sont pas une décoration, elles DISENT
+                   qu'on parle d'une droite. Sur la feuille il n'y avait que la
+                   lettre — si bien qu'un d posé à côté d'un trait ressemblait au
+                   nom d'un point, et que l'énoncé rédigé juste en dessous, lui,
+                   écrivait bien « la parallèle à (d) ». Le logiciel écrivait deux
+                   notations pour un même objet, à trois centimètres d'écart.
+                   Le nom RANGÉ reste « d » : c'est ce qu'on tape pour renommer,
+                   et ce que les phrases citent. Les parenthèses ne sont
+                   qu'affichage — les ajouter au nom stocké aurait donné « ((d)) »
+                   au premier aller-retour. */
+                ctx.fillText(this.nomDroiteAffiche(), a.x, a.y);
                 ctx.restore();
             }
-            /* Le nom est-il sous le doigt ? C'est ce qui permet de l'attraper. */
+            /* Ce qui s'écrit sur la feuille. Si quelqu'un a tapé les parenthèses
+               lui-même dans le champ de renommage, on ne les double pas. */
+            nomDroiteAffiche() {
+                const n = String(this.nomDroite || '');
+                return /^\(.*\)$/.test(n) ? n : '(' + n + ')';
+            }
+            /* Le nom est-il sous le doigt ? C'est ce qui permet de l'attraper.
+               La zone suit la LARGEUR RÉELLE du texte : avec les parenthèses le
+               nom est deux fois plus large qu'une lettre seule, et un rayon fixe
+               de 16 px laissait les deux tiers hors de prise. */
             nomDroiteTouche(mx, my, bout) {
                 if (!this.nomDroite) return false;
                 const a = this.ancreNomDroite(bout || this.p2);
                 if (!a) return false;
-                return Math.hypot(mx - a.x, my - a.y) < 16;
+                let demi = 16;
+                try {
+                    const c = window.app && window.app.ctx;
+                    if (c) {
+                        c.save();
+                        c.font = "italic 15px " + (window.GM_POLICE_PILE || "'Segoe UI', sans-serif");
+                        demi = Math.max(16, c.measureText(this.nomDroiteAffiche()).width / 2 + 6);
+                        c.restore();
+                    }
+                } catch (e) { void e; }
+                return Math.abs(mx - a.x) < demi && Math.abs(my - a.y) < 14;
             }
         }
         /* ==================================================================
@@ -15086,7 +15116,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            elles n'ont pas de second point, elles le calculent. Mais une droite
            nommée porte son nom, qu'on puisse le lire et le déplacer, quelle que
            soit la façon dont elle a été construite. */
-        ['ancreNomDroite', 'ancreAuBord', 'dessinerNomDroite', 'nomDroiteTouche'].forEach((m) => {
+        ['ancreNomDroite', 'ancreAuBord', 'dessinerNomDroite', 'nomDroiteAffiche',
+         'nomDroiteTouche'].forEach((m) => {
             ParallelLine.prototype[m] = LinearObject.prototype[m];
             PerpendicularLine.prototype[m] = LinearObject.prototype[m];
         });
@@ -20320,7 +20351,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 const valider = () => {
                     input.onblur = null;
-                    const nom = input.value.trim();
+                    /* On voit « (d) » sur la feuille : on le retape donc avec ses
+                       parenthèses, et l'on obtiendrait « ((d)) ». Elles sont
+                       d'affichage, pas du nom — on les retire ici, une fois pour
+                       toutes, plutôt que de les tolérer partout ailleurs. */
+                    const nom = input.value.trim().replace(/^\(\s*(.*?)\s*\)$/, '$1').trim();
                     if (nom !== (obj.nomDroite || '')) {
                         this.saveState();
                         /* Deux droites du même nom, et « la perpendiculaire à d »
@@ -28635,6 +28670,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 x2 += dx * 100; y2 += dy * 100;
                             }
                             svgContent += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeW}" ${dash} stroke-linecap="round" />`;
+                            /* LE NOM DE LA DROITE PART AVEC ELLE. Il ne partait
+                               pas du tout : mesuré, un SVG exporté d'une figure
+                               portant (d) et A ne contenait qu'un seul texte,
+                               « A ». La droite arrivait anonyme, et l'énoncé
+                               collé à côté parlait d'une droite que l'image ne
+                               nommait nulle part.
+                               Même ancre qu'au canevas — c'est la méthode de
+                               l'objet qui la calcule, elle ne se recopie pas —
+                               et même notation, parenthèses comprises. */
+                            if (e.nomDroite && e.ancreNomDroite) {
+                                const an = e.ancreNomDroite(c.p2);
+                                if (an) {
+                                    const txt = e.nomDroiteAffiche ? e.nomDroiteAffiche()
+                                                                   : '(' + e.nomDroite + ')';
+                                    svgContent += `<text x="${an.x}" y="${an.y + 5}"`
+                                        + ` font-family="${policePDF('Segoe UI')}" font-size="15"`
+                                        + ` font-style="italic" fill="${color}"`
+                                        + ` text-anchor="middle">${String(txt).replace(/&/g, '&amp;')
+                                            .replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>`;
+                                }
+                            }
                             if (e instanceof Segment) {
                                 const mx = (c.p1.x + c.p2.x) / 2;
                                 const my = (c.p1.y + c.p2.y) / 2;
@@ -44335,7 +44391,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-15 · 18h';
+        window.GM_VERSION = '2026-09-17 · 10h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
