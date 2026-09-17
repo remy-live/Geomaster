@@ -17249,7 +17249,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.playStepLoop(startIndex, this.entities.length);
             }
 
-            buildMediatrice(segment, clickX, clickY, point1, point2) {
+            /* marqueVoulue : la marque de codage que l'appelant a déjà choisie pour
+               ce côté-ci. Trois médiatrices posées coup sur coup doivent porter
+               trois marques différentes — sauf si deux côtés sont vraiment de même
+               longueur. Seul l'appelant voit les trois ; laissée vide, la marque
+               se choisit ici comme avant. */
+            buildMediatrice(segment, clickX, clickY, point1, point2, marqueVoulue) {
                 this.isMagicConstructing = true;
                 let startIndex = this.entities.length;
                 let pA, pB, segAB;
@@ -17359,7 +17364,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    sur la feuille. Les deux traits sont maintenant portés par le
                    milieu, et ne disent que ce qu'ils doivent dire : AI = IB. */
                 let ptMid = new Point(midX, midY, "", [pA, pB]); ptMid.visible = false;
-                ptMid.codageMilieu = this.marqueCodage(MathUtils.dist(pA.x, pA.y, pB.x, pB.y) / 2).marque;
+                ptMid.codageMilieu = marqueVoulue
+                    || this.marqueCodage(MathUtils.dist(pA.x, pA.y, pB.x, pB.y) / 2).marque;
                 this.addEntity(ptMid);
                 let angMark = new Angle(pB, ptMid, pC); this.addEntity(angMark);
                 
@@ -33986,13 +33992,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Les trois droites dont un centre est le point commun. Tracées
                    d'abord, elles font naître le point de leur croisement — au lieu
                    de le calculer et de le poser tout fait. */
+                /* UNE MÉDIATRICE SE CONSTRUIT AU COMPAS, PAS À L'ÉQUERRE. On posait
+                   ici une simple perpendiculaire au milieu — calculé, invisible —,
+                   si bien qu'aux instruments RIEN ne se passait : trois droites
+                   paraissaient d'un coup, et le programme rédigé annonçait
+                   pourtant « pose l'équerre… son angle droit sur ? » — un geste
+                   qui n'avait pas lieu, vers un point qui n'a pas de nom. Le
+                   logiciel savait déjà faire : c'est cslPoserMediatrice, celle de
+                   « Trace la médiatrice de [AB] », avec ses quatre arcs. */
                 const troisMediatrices = () => {
                     const pris = [];
-                    [[A, B], [B, C], [C, A]].forEach(([p, q]) => {
-                        const mq = this.marqueCodage(MathUtils.dist(p.x, p.y, q.x, q.y) / 2, pris);
-                        pris.push(mq.marque);
-                        droite(milieu(p, q, mq.marque), p, q);
-                    });
+                    [[A, B], [B, C], [C, A]].forEach(([p, q]) => this.cslPoserMediatrice(p, q, pris));
                 };
                 const troisHauteurs = () => trio.forEach(([s, p, q]) => droite(s, p, q));
                 const troisBissectrices = () => trio.forEach(([s, p, q]) => bissectrice(p, s, q));
@@ -34153,9 +34163,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const pris = [];
                     cotes.forEach(([p, q]) => {
                         if (!p || !q) return;
-                        const mq = this.marqueCodage(MathUtils.dist(p.x, p.y, q.x, q.y) / 2, pris);
-                        pris.push(mq.marque);
-                        droite(milieu(p, q, mq.marque), p, q);
+                        this.cslPoserMediatrice(p, q, pris);
                     });
                     return fait(cotes.length > 1 ? `Les 3 médiatrices de ${nom3}` : `Médiatrice d'un côté de ${nom3}`);
                 }
@@ -35285,17 +35293,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                DIT deux choses : elle coupe [AB] en son milieu, et elle lui est
                perpendiculaire. Sans les deux marques et l'angle droit, la figure
                ne montre qu'une droite qui passe par là — rien ne dit pourquoi. */
-            cslPoserMediatrice(a, b) {
+            cslPoserMediatrice(a, b, pris) {
+                /* La marque se choisit ICI, avant de bâtir : c'est l'appelant qui
+                   sait si deux autres côtés attendent la leur, et lui seul. */
+                const mq = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2, pris || []);
+                if (pris) pris.push(mq.marque);
                 if (this.cslDetaille()) {
                     const s = this.entities.find(e => e instanceof Segment
                         && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a)))
                         || this.cslSegment(a, b);
-                    this.cslBatir(null, () => this.buildMediatrice(s, (a.x + b.x) / 2, (a.y + b.y) / 2, a, b));
+                    this.cslBatir(null, () => this.buildMediatrice(s, (a.x + b.x) / 2, (a.y + b.y) / 2,
+                        a, b, mq.marque));
                     return;
                 }
                 const m = new Point((a.x + b.x) / 2, (a.y + b.y) / 2, '', [a, b]);
                 m.visible = false;
-                m.codageMilieu = this.marqueCodage(MathUtils.dist(a.x, a.y, b.x, b.y) / 2).marque;
+                m.codageMilieu = mq.marque;
                 this.addEntity(m);
                 const d = this.cslPoserStyle(new PerpendicularLine(m, { p1: a, p2: b }));
                 this.addEntity(d);
@@ -40504,8 +40517,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                écrirait un programme de construction faux à partir d'une
                ressemblance. */
             pgMediatriceDe(o) {
-                if (!(o instanceof Line) || !o.p1 || !o.p2) return null;
-                const dx = o.p2.x - o.p1.x, dy = o.p2.y - o.p1.y;
+                /* UNE PERPENDICULAIRE AU MILIEU EST UNE MÉDIATRICE, elle aussi.
+                   On n'acceptait ici qu'une Line — celle que le compas fabrique —,
+                   si bien que la médiatrice posée sans les instruments, qui est une
+                   PerpendicularLine passant par un milieu invisible et sans nom,
+                   n'était pas reconnue : le programme la rendait « la
+                   perpendiculaire à la droite (AB) passant par ? ». Le point
+                   d'interrogation était le milieu, qu'aucune lettre ne désigne —
+                   et qu'aucune n'a besoin de désigner, puisque le mot
+                   « médiatrice » le dit déjà. */
+                const bouts = (o instanceof Line) ? o
+                    : ((o instanceof PerpendicularLine) ? MathUtils.getLineCoords(o) : null);
+                if (!bouts || !bouts.p1 || !bouts.p2) return null;
+                const dx = bouts.p2.x - bouts.p1.x, dy = bouts.p2.y - bouts.p1.y;
                 const L = Math.hypot(dx, dy);
                 if (L < 1) return null;
                 const nommes = this.entities.filter(e => this.pgNomme(e));
@@ -40519,7 +40543,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (Math.abs((dx * ux + dy * uy) / (L * M)) > 0.009) continue;
                         // et passant par le milieu ?
                         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-                        if (Math.abs((mx - o.p1.x) * dy - (my - o.p1.y) * dx) / L > 0.5) continue;
+                        if (Math.abs((mx - bouts.p1.x) * dy - (my - bouts.p1.y) * dx) / L > 0.5) continue;
                         return `la médiatrice de [${a.label}${b.label}]`;
                     }
                 }
@@ -40989,7 +41013,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         faits.push({ t: 'cercle', centre: e.p1, bord: e.p2,
                                      cm: this.pgLongueur(e.p1, e.p2) });
                     } else if (e instanceof PerpendicularLine) {
-                        faits.push({ t: 'perpendiculaire', par: e.p1, ref: e.refLine });
+                        /* UNE PERPENDICULAIRE AU MILIEU EST UNE MÉDIATRICE. Sans
+                           les instruments, la médiatrice est posée ainsi, à
+                           travers un milieu invisible et sans lettre : l'énoncé
+                           écrivait « la perpendiculaire à (AB) passant par ? ».
+                           Le point d'interrogation était ce milieu — et le mot
+                           « médiatrice » le dit sans avoir à le nommer.
+
+                           MAIS SEULEMENT SI CE POINT N'A PAS DE NOM. Mesuré :
+                           « Trace la perpendiculaire à (AB) passant par C », avec
+                           un C que la mise en place posait au milieu de [AB],
+                           devenait « Trace la médiatrice de [AB] ». Vrai, et
+                           pourtant faux comme énoncé : C disparaissait de la
+                           consigne qui le nommait. Quand la lettre existe, c'est
+                           elle qu'il faut écrire. */
+                        const med = this.pgNomme(e.p1) ? null : this.pgMediatriceDe(e);
+                        if (med) faits.push({ t: 'droite', a: e.p1, b: e.p1, role: med });
+                        else faits.push({ t: 'perpendiculaire', par: e.p1, ref: e.refLine });
                     } else if (e instanceof ParallelLine) {
                         faits.push({ t: 'parallele', par: e.p1, ref: e.refLine });
                     } else if (e instanceof Segment) {
@@ -44566,7 +44606,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-17 · 17h';
+        window.GM_VERSION = '2026-09-17 · 18h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

@@ -1193,6 +1193,49 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Une médiatrice se construit au compas
+
+*« J'ai mis : Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm et
+ses médiatrices. J'ai eu cela, ce qui clairement n'est pas ce qu'il fait aux
+instruments : "Pose l'équerre : son bord contre la droite (AB), son angle droit
+sur ?. Trace le long de l'autre bord." »*
+
+Deux mensonges dans la même ligne, et le second est le pire.
+
+**Le point d'interrogation**, d'abord : c'est le milieu de [AB], calculé,
+invisible, sans lettre. Le programme allait chercher la tournure générale de la
+perpendiculaire — « passant par … » — et n'avait rien à mettre dans le trou. Un
+énoncé qui demande de poser l'équerre sur un point qu'il ne sait pas nommer ne se
+refait pas.
+
+**Et surtout, ce geste n'avait pas lieu.** Mesuré sur la phrase, instruments
+sortis : les trois médiatrices tenaient en trois objets — trois
+`PerpendicularLine`, zéro animation, zéro arc. Rien ne bougeait à l'écran, les
+droites paraissaient d'un coup, pendant que le texte décrivait une équerre posée
+et une règle couchée. Le logiciel annonçait un geste qu'il ne faisait pas — et il
+savait pourtant le faire, puisque « Trace la médiatrice de [AB] » sort le compas
+depuis toujours.
+
+La correction est de n'en avoir qu'une. Le triangle passe maintenant par la même
+`cslPoserMediatrice` que la phrase seule : quatre arcs — deux depuis chaque
+extrémité, du même écartement —, les deux croisements, et la règle qui joint.
+Mesuré après : **douze arcs de plus que le triangle seul**, quatre par
+médiatrice, et trois coups de règle pour joindre les croisements. Le programme,
+lui, n'a plus besoin de décrire l'équerre : il reconnaît la figure et écrit
+« Trace la médiatrice de [AB] », ce qui est à la fois plus court et plus vrai.
+
+Le « ? » disparaît aussi **sans** les instruments, où la médiatrice reste une
+perpendiculaire posée au milieu : il n'y a pas de geste à décrire, mais il y a
+toujours un milieu sans nom, et le mot « médiatrice » le dit sans avoir à le
+nommer.
+
+**Le garde-fou.** Reconnue trop largement, la règle se retourne : « Trace la
+perpendiculaire à (AB) passant par C » devenait « Trace la médiatrice de [AB] »
+dès que C tombait au milieu de [AB]. Vrai, et pourtant faux comme énoncé — C
+disparaissait de la consigne qui le nomme. La reconnaissance ne vaut donc que
+pour un point **sans lettre** : quand la lettre existe, c'est elle qu'il faut
+écrire.
+
 ### Le point d'arrivée se trouve, il ne se pose pas
 
 *« Quand on trace un long segment avec la règle qui s'allonge, il faut dessiner
@@ -2690,7 +2733,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 115 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 116 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

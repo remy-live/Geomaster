@@ -134,7 +134,13 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     app.entities.forEach(e => { if (e.constructor.name === 'Point' && e.label) noms[e.label] = 1; });
     return { avant, ok: !!(r && r.ok), msg: (r && r.message) || '',
              apres: app.entities.length, noms: Object.keys(noms).sort().join(''),
-             mediatrices: app.entities.filter(e => e.constructor.name === 'PerpendicularLine').length,
+             /* ON COMPTE DES MÉDIATRICES, PAS UNE CLASSE. Aux instruments, une
+                médiatrice se bâtit au compas : c'est une Line tracée entre les
+                deux croisements d'arcs, et non plus une PerpendicularLine posée
+                au milieu calculé. Compter la classe, c'était compter la façon de
+                la faire — et la sonde tombait au premier changement de geste,
+                alors que les trois médiatrices étaient bien là. */
+             mediatrices: app.entities.filter(e => app.pgMediatriceDe(e)).length,
              carreParti: !Object.keys(noms).includes('A'),
              historique: app.historyPast.length };
   });
@@ -148,8 +154,13 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      ne demande pas confirmation — on vient de l'écrire, c'est déjà la réponse —
      donc l'annulation doit marcher, et le message ne doit pas promettre plus
      qu'elle ne tient : dans une phrase enchaînée, la reconstruction s'annule
-     d'abord, l'effacement ensuite. Deux pressions, mesuré — d'où « annulable »
-     et non « Ctrl+Z la ramène ». */
+     d'abord, l'effacement ensuite. Plusieurs pressions, mesuré — d'où
+     « annulable » et non « Ctrl+Z la ramène ». Et le compte a monté le jour où
+     les médiatrices se sont mises à se construire au compas : chaque
+     construction détaillée est un pas qu'on peut défaire à part, comme
+     « Trace la médiatrice de [AB] » toute seule l'a toujours été. C'est le
+     retour du carré qui est l'invariant, pas le nombre de pressions — mais on
+     relève le nombre, pour qu'il ne dérive pas sans qu'on le sache. */
   ck('  la figure d\'avant est dans l\'historique', chaine.historique > 0, String(chaine.historique));
   ck('  le message ne promet pas une seule pression',
      /annulable/.test(chaine.msg) && !/Ctrl\+Z la ram/.test(chaine.msg), chaine.msg);
@@ -160,11 +171,13 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       return [...s].sort().join('');
     };
     const pas = [];
-    for (let i = 0; i < 4 && !/A/.test(noms()); i++) { window.app.undo(); pas.push(noms() || '(vide)'); }
+    for (let i = 0; i < 12 && !/A/.test(noms()); i++) { window.app.undo(); pas.push(noms() || '(vide)'); }
     return { fin: noms(), pas };
   });
   ck('  et le carré revient en annulant', /A/.test(retour.fin) && /D/.test(retour.fin),
      JSON.stringify(retour));
+  ck('  en cinq pressions : les trois médiatrices, le triangle, puis l\'effacement',
+     retour.pas.length === 5, retour.pas.length + ' pression(s) : ' + retour.pas.join(' → '));
   /* Effacer UN objet reste hors sujet pour une consigne — mais on le dit
      autrement qu'en répondant « C existe déjà ». */
   const unSeul = await faire('efface le point C');
