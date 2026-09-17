@@ -23905,6 +23905,112 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     radius: widget.radius || 0
                 };
             }
+            /* ============================================================
+               LE CRAYON NE QUITTE JAMAIS LA RÈGLE
+               ------------------------------------------------------------
+               « Parfois quand tu traces une droite, la règle est trop courte,
+                 le crayon est dans le vide. »
+
+               Mesuré : la règle fait 400 px, soit 8 cm. Un côté de carré de
+               12 cm en fait 600 — le crayon sortait de 200 px. Et la parallèle
+               courait sur 1 400 px le long d'une équerre de 400, trois fois et
+               demie trop loin : celle-là, c'est moi qui l'avais introduite en
+               faisant enfin tracer la parallèle. J'avais réparé un geste absent
+               en en fabriquant un impossible.
+
+               DEUX RÈGLES, TIRÉES DE CE QU'ON FAIT VRAIMENT SUR UNE FEUILLE.
+
+               1. UNE DROITE NE SE TRACE JAMAIS EN ENTIER. On fait un trait de la
+                  longueur de la règle, on la lève, et la convention fait le
+                  reste. Le crayon parcourt donc la portée de l'instrument, pas
+                  plus — et la droite paraît entière ensuite. Même chose pour la
+                  demi-droite : elle part d'une origine qu'on voit, et file.
+
+               2. UN SEGMENT TROP LONG SE TRACE EN PLUSIEURS FOIS. On trace ce que
+                  la règle couvre, on la fait GLISSER, on continue. Et pas à
+                  fleur : la règle se repose EN CHEVAUCHANT ce qu'on vient de
+                  tracer — trois centimètres, un quart de sa longueur — sinon
+                  rien ne garantit que la suite soit dans le prolongement. C'est
+                  la raison même du chevauchement, et elle est géométrique avant
+                  d'être esthétique.
+
+               COMBIEN DE FOIS ? Avec 8 cm de règle et 3 cm de chevauchement,
+               chaque nouvelle pose avance de 5 cm : rien jusqu'à 8 cm, une fois
+               jusqu'à 13, deux jusqu'à 18, trois jusqu'à 23. Une feuille A4 fait
+               21 cm de large — on ne dépasse donc jamais trois glissements, et
+               l'immense majorité des traits n'en demande aucun.
+               ============================================================ */
+            planRegle(anim, cible) {
+                if (!anim || anim.originalType !== 'trace') return null;
+                if (anim.widgetType !== 'ruler' && anim.widgetType !== 'setsquare') return null;
+                if (!cible || !cible.p1 || !anim.startState) return null;
+                const w = (anim.widgetType === 'ruler') ? this.rulerWidget : this.setSquareWidget;
+                const portee = (w && w.width) ? w.width : 400;
+                const O = { x: anim.startState.x, y: anim.startState.y };
+                /* L'AXE EST CELUI DE L'INSTRUMENT, PAS CELUI DE L'OBJET. Une
+                   règle porte son bord gradué de son origine vers son angle : le
+                   crayon ne peut courir que dans CE sens-là, sur CETTE portée-là.
+                   Mesuré en prenant l'axe de l'objet : la perpendiculaire pose sa
+                   règle en C tournée de 180°, et le crayon se retrouvait à −400 px
+                   de l'origine — derrière la règle, donc dans le vide de l'autre
+                   côté. Le compte des passes était juste, la pose était fausse, et
+                   seul un relevé image par image pouvait le dire. */
+                if (typeof anim.startState.angle !== 'number') return null;
+                const ux = Math.cos(anim.startState.angle);
+                const uy = Math.sin(anim.startState.angle);
+                let bout = cible.p2;
+                if (!bout && cible.getDynamicP2) bout = cible.getDynamicP2();
+                if (!bout) return null;
+                /* Tout se compte en abscisse le long du trait, depuis la pose. */
+                const absc = (p) => (p.x - O.x) * ux + (p.y - O.y) * uy;
+                const infinie = !(cible instanceof Segment);
+                let sA, sB;
+                if (infinie) {
+                    /* Un coup de règle, et c'est tout : exactement sa portée. */
+                    sA = 0; sB = portee;
+                } else {
+                    sA = absc(cible.p1); sB = absc(cible.p2);
+                    if (sB < sA) { const k = sA; sA = sB; sB = k; }
+                }
+                const L = sB - sA;
+                const CHEVAUCHEMENT = 150;   /* 3 cm : un quart de la règle */
+                const avance = Math.max(40, portee - CHEVAUCHEMENT);
+                const passes = (L <= portee + 0.5) ? 1
+                    : 1 + Math.ceil((L - portee) / avance);
+                return { O, ux, uy, sA, sB, L, portee, passes, infinie,
+                         point: (s) => ({ x: O.x + ux * s, y: O.y + uy * s }) };
+            }
+            /* Où en est-on à l'instant t : quelle pose pour l'instrument, et
+               jusqu'où le crayon est-il arrivé. Chaque passe prend une part égale
+               du temps ; son premier quart fait glisser la règle, les trois
+               autres tracent. La première ne glisse pas : l'instrument vient
+               d'être posé. */
+            etapeRegle(plan, t) {
+                const { sA, sB, portee, passes } = plan;
+                const part = 1 / passes;
+                let k = Math.min(passes - 1, Math.floor(t / part));
+                const u = (t - k * part) / part;          /* 0→1 dans la passe */
+                /* Où la règle se pose pour la passe k : on avance, et la dernière
+                   pose se cale sur la fin du trait — c'est ce qu'on fait, on ne
+                   laisse pas dépasser la règle dans le vide. */
+                const poseDe = (i) => {
+                    if (i === 0) return sA;
+                    const brut = sA + i * Math.max(40, portee - 150);
+                    return Math.min(brut, Math.max(sA, sB - portee));
+                };
+                const avant = poseDe(Math.max(0, k - 1));
+                const ici = poseDe(k);
+                const glisse = (k === 0) ? 1 : Math.min(1, u / 0.25);
+                const pose = avant + (ici - avant) * glisse;
+                /* Le crayon ne repart pas en arrière : il reprend là où il s'est
+                   arrêté, et va jusqu'au bout de ce que la règle couvre. */
+                const dejaFait = (k === 0) ? sA : Math.min(sB, poseDe(k - 1) + portee);
+                const atteint = Math.min(sB, ici + portee);
+                const trace = (k === 0)
+                    ? sA + (atteint - sA) * Math.min(1, u)
+                    : dejaFait + (atteint - dejaFait) * Math.max(0, (u - 0.25) / 0.75);
+                return { pose, crayon: Math.min(sB, Math.max(sA, trace)) };
+            }
             applyInterpolation(anim, t) {
                 const ease = t;
                 const s = anim.startState;
@@ -23951,6 +24057,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     w = this.protractorWidget;
                 }
                 if (w) {
+                    /* LE TRACÉ EN PLUSIEURS FOIS. Quand le trait dépasse la
+                       portée de l'instrument, la pose n'est plus une
+                       interpolation du début à la fin : c'est une suite de
+                       placements, chacun chevauchant le précédent. */
+                    const cible = this.entities[this.replayIndex + 1];
+                    const plan = this.planRegle(anim, cible);
+                    if (plan && plan.passes > 1) {
+                        const et = this.etapeRegle(plan, ease);
+                        const q = plan.point(et.pose);
+                        w.x = q.x; w.y = q.y;
+                        w.angle = lerpAngle(s.angle, e.angle, ease);
+                        return;
+                    }
                     w.x = lerp(s.x, e.x, ease);
                     w.y = lerp(s.y, e.y, ease);
                     if (anim.widgetType === 'compass' && this.ArcTracing) {
@@ -24684,7 +24803,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (delta > 0.01) duration = delta * (this.playbackSpeed * 0.5);
                     }
                     if (anim && anim.originalType === 'trace') {
-                        duration = this.playbackSpeed * 5.0; 
+                        duration = this.playbackSpeed * 5.0;
+                        /* Un trait tracé en trois fois prend trois fois plus de
+                           temps qu'un trait tracé d'un coup : sinon le crayon
+                           file trois fois plus vite pour tenir dans le même
+                           temps, et l'on ne voit plus la règle glisser. */
+                        const plan = this.planRegle(anim, this.entities[this.replayIndex + 1]);
+                        if (plan && plan.passes > 1) duration *= plan.passes;
                     }
                     if (duration < 150) duration = 150;
                     let t = elapsed / duration;
@@ -28175,9 +28300,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                l'autre en passant par le point : le trait naît
                                d'un côté et court jusqu'au bout, comme sous une
                                vraie règle. */
+                            /* LE CRAYON NE DÉPASSE PAS L'INSTRUMENT. Le plan
+                               dit où la règle est posée et jusqu'où le crayon
+                               est arrivé ; les deux bouts du trait s'en
+                               déduisent. Une droite y gagne surtout : elle
+                               courait sur 1 400 px le long d'une équerre de 400,
+                               elle tient maintenant dans sa portée — on trace un
+                               trait, on lève l'instrument, et la droite paraît
+                               entière, comme sur une feuille. */
+                            const plan = this.planRegle(anim, nextEnt);
                             let p1 = nextEnt.p1;
                             let p2 = nextEnt.p2;
-                            if (p1 && !p2 && nextEnt.getDynamicP2) {
+                            let dejaFait = null;
+                            if (plan && this.currentAnimProgress !== undefined) {
+                                const et = this.etapeRegle(plan, this.currentAnimProgress);
+                                p1 = plan.point(plan.sA);
+                                p2 = plan.point(plan.sB);
+                                dejaFait = plan.point(et.crayon);
+                            } else if (p1 && !p2 && nextEnt.getDynamicP2) {
                                 const q = nextEnt.getDynamicP2();
                                 if (q) {
                                     const dx = q.x - p1.x, dy = q.y - p1.y;
@@ -28196,8 +28336,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                                 const dx = p2.x - p1.x;
                                 const dy = p2.y - p1.y;
-                                const currX = p1.x + dx * prog;
-                                const currY = p1.y + dy * prog;
+                                const currX = dejaFait ? dejaFait.x : (p1.x + dx * prog);
+                                const currY = dejaFait ? dejaFait.y : (p1.y + dy * prog);
                                 
                                 this.ctx.beginPath();
                                 this.ctx.moveTo(p1.x, p1.y);
@@ -44391,7 +44531,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-17 · 10h';
+        window.GM_VERSION = '2026-09-17 · 16h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

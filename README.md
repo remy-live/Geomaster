@@ -1145,6 +1145,54 @@ Enfin le relevé porte une ligne `remontée :` qui dit l'état du dernier envoi 
 bouché est indiscernable d'un logiciel que personne n'utilise, et l'on tire la
 mauvaise conclusion en toute confiance.
 
+### Le crayon ne quitte jamais la règle
+
+*« Parfois quand tu traces une droite, la règle est trop courte, le crayon est
+dans le vide. »*
+
+Mesuré : la règle fait 400 px, soit **8 cm**. Un côté de carré de 12 cm en fait
+600 — le crayon sortait de 200 px. Et la parallèle courait sur **1 400 px** le
+long d'une équerre de 400, trois fois et demie trop loin. Celle-là, c'est la
+correction précédente qui l'avait introduite : en faisant enfin *tracer* la
+parallèle, on avait étendu le trait de ±700 px pour qu'il naisse d'un bout et
+coure jusqu'à l'autre. Un geste absent réparé par un geste impossible.
+
+Deux règles, tirées de ce qu'on fait vraiment sur une feuille.
+
+**Une droite ne se trace jamais en entier.** On fait un trait de la longueur de
+la règle, on la lève, et la convention fait le reste. Le crayon parcourt donc la
+portée de l'instrument, pas plus — et la droite paraît entière ensuite. C'est le
+cas où l'on ne glisse pas, et c'est ce qui évite que l'animation s'éternise.
+
+**Un segment trop long se trace en plusieurs fois.** On trace ce que la règle
+couvre, on la fait glisser, on continue. Et **pas à fleur** : elle se repose en
+chevauchant ce qu'on vient de tracer — trois centimètres, un quart de sa
+longueur. La raison est géométrique avant d'être esthétique : à fleur, rien ne
+garantit que la suite du trait soit dans le prolongement.
+
+Combien de fois ? Avec 8 cm de règle et 3 cm de chevauchement, chaque nouvelle
+pose avance de 5 cm :
+
+| Longueur du trait | Glissements |
+|---|---|
+| jusqu'à 8 cm | aucun |
+| 12 cm | un |
+| 18 cm | deux |
+
+Une feuille A4 fait 21 cm de large : l'immense majorité des traits n'en demande
+aucun. Et la dernière pose se **cale sur la fin du trait**, pour que la règle ne
+dépasse pas dans le vide au dernier coup — ce qui, au passage, ne peut
+qu'augmenter le chevauchement.
+
+**Ce qu'il fallait mesurer n'est pas le nombre de glissements.** C'est que le
+crayon reste sur l'instrument. La sonde parcourt donc l'animation image par
+image et calcule, à chacune, l'abscisse du crayon *depuis l'origine de la règle
+telle qu'elle est posée à cet instant*. C'est ce relevé — et lui seul — qui a
+démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tournée de
+180°**, et le plan, qui prenait l'axe de l'objet et non celui de l'instrument,
+envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
+de l'autre côté. Le compte des passes était juste, la pose était fausse.
+
 ### Une droite se note (d), pas d
 
 *« Pour le nom des droites sur le canvas, tu oublies les parenthèses autour. »*
@@ -2609,7 +2657,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 113 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 114 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
