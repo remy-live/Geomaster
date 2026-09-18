@@ -24573,6 +24573,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                (d₂) que personne n'a demandés. */
             baptiserDroite(d) {
                 if (!d || d.nomDroite) return d;
+                /* UNE DROITE QUI A DÉJÀ DEUX POINTS N'A PAS BESOIN DE (d).
+                   « Une droite qui a deux points G et H par exemple n'a pas
+                   besoin de s'appeler (d). » C'est juste, et c'est la notation du
+                   cours : cette droite-là s'appelle (GH), et l'écrire (d) à côté
+                   de G et de H, c'est donner deux noms au même objet sur la même
+                   feuille. Le nom (d) reste indispensable à la droite SANS points
+                   — celle de l'outil « droite sans points », ou celle dont les
+                   extrémités sont des croisements anonymes : sans lui, l'énoncé
+                   dirait « Trace une droite » et rien ne pourrait s'y rapporter. */
+                if (this.pgNomme(d.p1) && this.pgNomme(d.p2)) return d;
                 try {
                     d.nomDroite = this.cslNomDroiteLibre();
                     if (this.cslMemoire) this.cslMemoire().droites[d.nomDroite] = d;
@@ -26047,6 +26057,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.demarrerTransformation(toolName);
                         if (GM_TRANSFOS[toolName].reglage) this.demanderReglageTransformation(toolName);
                     }
+                } else if (toolName === 'text') {
+                    /* LE CURSEUR DIT CE QU'ON VA FAIRE. « J'aimerais avoir le
+                       curseur de tape plutôt qu'une croix, pour voir où le texte
+                       ira. » Une croix vise un point ; ici on ne vise pas un
+                       point, on ouvre une ligne d'écriture — et le I du curseur
+                       de texte la montre, debout, à l'endroit exact où la
+                       première lettre se posera. */
+                    this.canvas.style.cursor = 'text';
                 } else if (toolName !== 'pan' && toolName !== 'move') {
                     this.canvas.style.cursor = 'crosshair';
                 } else if (toolName === 'move') {
@@ -27561,10 +27579,70 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                blur du champ, par le bouton « Valider » de sa barre d'outils, et
                avant l'ouverture d'une nouvelle saisie. Idempotente : sans texte ni
                coordonnées en attente, elle ne fait que refermer. */
+            /* LA LIGNE DE BASE DU CHAMP DE SAISIE, mesurée et non devinée : une
+               boîte de hauteur nulle alignée sur la ligne de base a son bas SUR
+               cette ligne. On la rend en unités de feuille — le champ est mis à
+               l'échelle du zoom, origine en haut à gauche. */
+            baseFantome(ghost) {
+                try {
+                    if (!ghost || ghost.style.display !== 'block') return null;
+                    const s = document.createElement('span');
+                    s.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+                    /* AU DÉBUT, ET DANS LA PREMIÈRE LIGNE. Posé à la fin, le témoin
+                       tombait dans la DERNIÈRE ligne : sur un texte de deux lignes
+                       il mesurait la seconde, et le texte validé descendait de
+                       67 px. C'est la première ligne qui s'ancre au clic. Le
+                       navigateur enferme parfois les lignes dans des <div> ; il
+                       faut alors entrer dans le premier, sinon le témoin
+                       s'inventerait une ligne à lui. */
+                    let hote = ghost;
+                    const tete = ghost.firstChild;
+                    if (tete && tete.nodeType === 1 && /^(DIV|P)$/.test(tete.tagName)) hote = tete;
+                    hote.insertBefore(s, hote.firstChild);
+                    const bas = s.getBoundingClientRect().bottom;
+                    const haut = ghost.getBoundingClientRect().top;
+                    s.remove();
+                    const z = this.view.zoom || 1;
+                    const d = (bas - haut) / z;
+                    return (isFinite(d) && d > 0) ? d : null;
+                } catch (e) { void e; return null; }
+            }
+            /* ET CELLE DU CANEVAS, pour la même police. Le canevas écrit avec
+               textBaseline « top » : la distance de cette ancre à la ligne de base
+               est la différence des deux ascendantes d'encre, l'une mesurée depuis
+               la ligne de base, l'autre depuis l'ancre. Aucune constante, donc rien
+               à refaire le jour où la police change. */
+            baseCanevasTexte(taille, famille) {
+                try {
+                    const c = this.ctx;
+                    if (!c || !c.measureText) return null;
+                    c.save();
+                    c.setTransform(1, 0, 0, 1, 0, 0);
+                    c.font = taille + 'px ' + famille;
+                    c.textBaseline = 'alphabetic';
+                    const a = c.measureText('Hxp').actualBoundingBoxAscent;
+                    c.textBaseline = 'top';
+                    const b = c.measureText('Hxp').actualBoundingBoxAscent;
+                    c.restore();
+                    if (typeof a !== 'number' || typeof b !== 'number') return null;
+                    const d = a - b;
+                    return (isFinite(d) && d > 0) ? d : null;
+                } catch (e) { void e; return null; }
+            }
             validerTexteFantome() {
                 const ghost = document.getElementById('ghostTextInput');
                 const toolbar = document.getElementById('textFormatToolbar');
                 if (!ghost) return;
+                /* OÙ LE TEXTE S'ÉCRIT VRAIMENT. « Quand on le valide il est
+                   légèrement décalé. » Mesuré au pixel, même encre et même
+                   largeur : le texte validé remontait de 2 px à 16, de 6 px à 40.
+                   Le champ de saisie et le canevas n'ancrent pas une ligne au même
+                   endroit. Plutôt que de corriger d'une constante — fausse pour
+                   la police suivante —, on ALIGNE LES DEUX LIGNES DE BASE, chacune
+                   mesurée là où elle est. Il faut le faire MAINTENANT : trois
+                   lignes plus bas le champ est caché, et une boîte cachée n'a plus
+                   de ligne de base. */
+                const baseSaisie = this.baseFantome(ghost);
                 // On clôt la session AVANT tout : le ghost.blur() ci-dessous
                 // déclencherait sinon un second passage ici.
                 this.jetonTexte = (this.jetonTexte || 0) + 1;
@@ -27590,6 +27668,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     label.color = tColor.value;
                     label.fontSize = parseInt(tSize.value, 10);
                     label.fontFamily = tFont.value;
+                    /* On glisse le texte de ce qu'il faut pour que sa ligne de base
+                       retombe où l'œil l'a vue pendant la frappe. Si l'une des deux
+                       mesures manque, on ne bouge rien : mieux vaut l'ancien écart
+                       connu qu'un saut au hasard. */
+                    const baseFeuille = this.baseCanevasTexte(label.fontSize, label.famillePolice());
+                    if (baseSaisie && baseFeuille) label.y += baseSaisie - baseFeuille;
                     const st = this.styleTexte || {};
                     label.cadre = !!st.cadre;
                     label.fond = st.fond || '#fff9c4';
@@ -40938,7 +41022,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     faits.push({ t: 'points', noms: libresEnAttente.slice() });
                     libresEnAttente = [];
                 };
+                /* LE POINT D'ARRIVÉE SE TROUVE APRÈS LE TRAIT, MAIS IL SE DIT
+                   AVANT. Depuis que B est rangé après le segment qui le révèle —
+                   c'est le geste, et le rejeu en dépend —, l'énoncé le lisait dans
+                   cet ordre-là et donnait, mesuré :
+
+                       1. Place le point A.
+                       2. Trace la droite (AB).
+                       3. Place le point B tel que AB = 8,4 cm.
+
+                   Une figure doit être CONSTRUCTIBLE : on ne trace pas (AB) avant
+                   d'avoir B. Le dessin garde son ordre, qui est celui de la main ;
+                   la lecture remet chaque extrémité devant l'objet qui la nomme.
+                   C'est le seul endroit où les deux ordres diffèrent, et c'est
+                   normal : l'un montre un geste, l'autre le fait refaire. */
+                const lecture = [];
+                const placee = new Set();
                 this.entities.forEach((e, i) => {
+                    if (placee.has(i)) return;
+                    if (e instanceof LinearObject || e instanceof Segment || e instanceof Line
+                        || e instanceof Ray || e instanceof Circle) {
+                        const bouts = [];
+                        [e.p1, e.p2].forEach((q) => {
+                            if (!(q instanceof Point)) return;
+                            const k = this.entities.indexOf(q);
+                            if (k > i && !placee.has(k)) bouts.push(k);
+                        });
+                        bouts.sort((a, b) => a - b).forEach((k) => { placee.add(k); lecture.push(k); });
+                    }
+                    placee.add(i); lecture.push(i);
+                });
+                lecture.forEach((i) => {
+                    const e = this.entities[i];
                     if (parDessin.has(i)) {
                         viderLibres();
                         parDessin.get(i).forEach((d) => {
@@ -44636,7 +44751,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-18 · 9h';
+        window.GM_VERSION = '2026-09-18 · 11h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

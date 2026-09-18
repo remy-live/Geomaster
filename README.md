@@ -1193,6 +1193,62 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le texte se pose où on l'a vu
+
+*« Pour le texte, j'aimerais avoir le curseur de tape plutôt qu'une croix pour
+voir où le texte ira, et quand on le valide il est légèrement décalé. »*
+
+**Le curseur, d'abord.** Une croix *vise* un point. L'outil texte n'en vise pas
+un : il ouvre une ligne d'écriture, et le I du curseur de frappe la montre,
+debout, à l'endroit exact où la première lettre se posera. Tous les autres outils
+gardent leur croix.
+
+**Le décalage ne se voit pas dans les nombres.** Le champ de saisie et le texte
+validé tombent sur les mêmes coordonnées — écart de boîte nul, mesuré à quatre
+zooms. C'est pourquoi toutes les vérifications de coordonnées passaient depuis
+toujours. Il fallait regarder l'**image** : deux captures, l'une pendant la
+frappe, l'autre après validation, redonnées à la page qui sait les décoder, et
+comparées pixel à pixel. Même largeur, même hauteur, même nombre de pixels
+encrés — et le texte validé **remontait de 2 px à 16, de 6 px à 40**.
+
+**Et c'est pourquoi on ne corrige pas d'une constante.** Deux pixels à 16 et six
+à 40, cela ressemble à « 0,15 fois la taille » — et cette règle serait fausse à
+la première police au dessin différent. On **aligne les deux lignes de base**,
+chacune mesurée là où elle est : côté champ par une boîte de hauteur nulle
+alignée sur la ligne de base, côté feuille par la différence des deux ascendantes
+d'encre. Rien à refaire le jour où la police change.
+
+Un piège, rattrapé par la mesure et pas par le raisonnement : le témoin posé à la
+**fin** du champ mesure la **dernière** ligne. Sur un texte de deux lignes, la
+correction faisait descendre le tout de 67 px. C'est la première ligne qui
+s'ancre au clic, et c'est elle qu'il faut mesurer.
+
+### Une droite qui a deux points n'a pas besoin de (d)
+
+*« Une droite qui a deux points G et H par exemple n'a pas besoin de s'appeler
+(d). »*
+
+C'est la notation du cours : cette droite-là s'appelle (GH), et lui coller (d) à
+côté de G et de H donne **deux noms au même objet sur la même feuille**. Le nom
+(d) reste indispensable à la droite *sans* points — celle de l'outil « droite
+sans points », ou celle dont les extrémités sont des croisements anonymes : sans
+lui, l'énoncé dirait « Trace une droite » et rien ne pourrait s'y rapporter.
+
+En le corrigeant, une autre ligne est apparue — et elle venait de la correction
+précédente. Depuis que le point d'arrivée se range *après* le trait qui le
+révèle, l'énoncé le lisait dans cet ordre :
+
+```
+1. Place le point A.
+2. Trace la droite (AB).
+3. Place le point B tel que AB = 8,4 cm.
+```
+
+Une figure doit être **constructible** : on ne trace pas (AB) avant d'avoir B. Le
+dessin garde l'ordre de la main ; la lecture remet chaque extrémité devant l'objet
+qui la nomme. C'est le seul endroit où les deux ordres diffèrent, et c'est normal
+— l'un montre un geste, l'autre le fait refaire.
+
 ### À la main aussi, le point d'arrivée se trouve au bout du trait
 
 *« Quand je dessine un segment avec la règle (outil segment), je dessine un point
@@ -2775,7 +2831,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 117 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 118 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

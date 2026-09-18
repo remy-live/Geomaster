@@ -133,39 +133,51 @@ const ck = (nom, ok, detail) => {
                  prog: a.programmeDeConstruction(false) || [] };
     }, [x1, y1, x2, y2, l1, l2]);
 
+    /* UNE DROITE QUI A DÉJÀ DEUX POINTS N'A PAS BESOIN DE (d). « Une droite qui
+       a deux points G et H par exemple n'a pas besoin de s'appeler (d). » C'est
+       la notation du cours : cette droite-là s'appelle (AB), et lui coller (d)
+       à côté de A et de B donnerait DEUX noms au même objet sur la même feuille.
+       Cette sonde tenait l'inverse, et c'est elle qui avait raison tant que
+       l'énoncé ne savait pas citer une droite autrement que par un nom ; il sait
+       maintenant dire « la droite (AB) », et le (d) est devenu du bruit. */
     const oblique = await poser(300, 300, 600, 420, 'A', 'B');
-    ck('elle s\'appelle (d)', oblique.nom === 'd', String(oblique.nom));
+    ck('avec A et B, elle ne reçoit AUCUN nom', !oblique.nom, String(oblique.nom));
+
+    /* Le nom, lui, reste indispensable à la droite SANS points : sans lui,
+       l'énoncé dirait « Trace une droite » et rien ne pourrait s'y rapporter.
+       C'est donc sur celle-là qu'on mesure où le nom se pose. */
+    const anonyme = await poser(300, 300, 600, 420, '', '');
+    ck('sans points, elle s\'appelle (d)', anonyme.nom === 'd', String(anonyme.nom));
     ck('  et son nom sort dans le dernier quart du cadre, à droite',
-       oblique.x > oblique.L * 0.75 && oblique.x < oblique.L,
-       `x = ${Math.round(oblique.x)} sur ${Math.round(oblique.L)}`);
+       anonyme.x > anonyme.L * 0.75 && anonyme.x < anonyme.L,
+       `x = ${Math.round(anonyme.x)} sur ${Math.round(anonyme.L)}`);
 
     /* La même, tracée dans l'autre sens : le nom ne doit pas sauter à l'autre
        bout. Une droite n'a pas de sens ; son nom ne doit pas en avoir un. */
-    const envers = await poser(600, 420, 300, 300, 'B', 'A');
+    const envers = await poser(600, 420, 300, 300, '', '');
     ck('  tracée à l\'envers, le nom reste du même côté',
        envers.x > envers.L * 0.75,
-       `x = ${Math.round(envers.x)} (à l'endroit : ${Math.round(oblique.x)})`);
+       `x = ${Math.round(envers.x)} (à l'endroit : ${Math.round(anonyme.x)})`);
 
-    const verticale = await poser(400, 200, 410, 700, 'A', 'B');
+    const verticale = await poser(400, 200, 410, 700, '', '');
     ck('  presque verticale, il passe en HAUT — « à droite » n\'y veut rien dire',
        verticale.y < verticale.H * 0.25,
        `y = ${Math.round(verticale.y)} sur ${Math.round(verticale.H)}`);
 
-    const horizontale = await poser(200, 400, 900, 400, 'A', 'B');
+    const horizontale = await poser(200, 400, 900, 400, '', '');
     ck('  horizontale, il retourne à droite',
        horizontale.x > horizontale.L * 0.75, `x = ${Math.round(horizontale.x)}`);
 
-    console.log('\n=== et l\'énoncé nomme la droite SANS perdre ses deux points ===');
+    console.log('\n=== et l\'énoncé cite la droite par ses deux points ===');
     const ligne = oblique.prog.find(l => /droite/.test(l)) || '';
-    ck('« Trace la droite (AB), que l\'on note (d). »',
-       /\(AB\)/.test(ligne) && /\(d\)/.test(ligne), ligne || '(aucune ligne « droite »)');
+    ck('« Trace la droite (AB). »',
+       /\(AB\)/.test(ligne) && !/\(d\)/.test(ligne), ligne || '(aucune ligne « droite »)');
     ck('  les deux points sont placés avant',
        /Place les points A et B/.test(oblique.prog[0] || ''), oblique.prog[0] || '(rien)');
 
     /* Quand l'outil « droite sans points » a effacé les extrémités, il n'y a
        rien à citer — et « une droite (d) » est alors exactement juste. */
-    const sansPoints = await poser(300, 300, 600, 420, '', '');
-    const ligneSP = sansPoints.prog.find(l => /droite/.test(l)) || '';
+    const ligneSP = anonyme.prog.find(l => /droite/.test(l)) || '';
     ck('sans points visibles, l\'énoncé dit « Trace une droite (d). »',
        /une droite \(d\)/.test(ligneSP), ligneSP || '(aucune)');
 

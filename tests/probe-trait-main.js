@@ -190,6 +190,38 @@ const ck = (nom, ok, detail) => {
         ck(outil, vus.endsWith(attendu), vus);
     }
 
+    /* UNE DROITE QUI A DÉJÀ DEUX POINTS N'A PAS BESOIN DE (d). « Une droite qui a
+       deux points G et H par exemple n'a pas besoin de s'appeler (d). » C'est la
+       notation du cours : celle-là s'appelle (AB). Le nom reste indispensable à
+       la droite SANS points, sans quoi l'énoncé dirait « Trace une droite » et
+       rien ne pourrait s'y rapporter. On le vérifie au bout du geste, pas sur
+       baptiserDroite : c'est le trait tiré à la main qui pose la question. */
+    console.log('\n=== une droite nommée par ses points ne prend pas de (d) ===');
+    for (const [outil, attendu] of [['line', false], ['line_clean', true]]) {
+        const g = await preparer(page, outil, true);
+        await tracerSouris(page, g.debut, g.fin);
+        const d = await page.evaluate(() => {
+            const a = window.app;
+            const l = a.entities.find(e => e instanceof Line);
+            const c = a.ctx, vrai = c.fillText.bind(c), vus = [];
+            c.fillText = function (t, x, y) { vus.push(String(t)); return vrai(t, x, y); };
+            a.render(); c.fillText = vrai;
+            return { nom: (l && l.nomDroite) || null, ecrits: vus,
+                     prog: (a.programmeDeConstruction(false) || []).join(' | ') };
+        });
+        ck(outil + (attendu ? ' : elle s\'appelle (d)' : ' : aucun nom de droite'),
+           !!d.nom === attendu, String(d.nom));
+        ck('  et la feuille écrit ' + (attendu ? '« (d) »' : 'A et B, rien d\'autre'),
+           attendu ? d.ecrits.includes('(d)') : !d.ecrits.some(t => /^\(/.test(t)),
+           JSON.stringify(d.ecrits));
+        /* Et l'énoncé doit rester CONSTRUCTIBLE : le point d'arrivée se range
+           après le trait, mais il se dit avant — on ne trace pas (AB) avant B. */
+        if (!attendu) {
+            ck('  l\'énoncé place A et B AVANT de tracer (AB)',
+               /Place les points A et B[^|]*\| Trace la droite \(AB\)/.test(d.prog), d.prog);
+        }
+    }
+
     console.log('\n=== et au doigt, qui est un autre chemin de code ===');
     {
         const ctx = await nav.newContext({ viewport: { width: 900, height: 900 },
