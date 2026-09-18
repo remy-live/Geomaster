@@ -31451,7 +31451,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             } else {
                                 const dist = Math.sqrt((endX - this.creationStartPoint.x) ** 2 + (endY - this.creationStartPoint.y) ** 2);
                                 if (dist > 10) {
+                                    const countBefore = this.entities.length;
                                     const endPoint = this.createPointAt(endX, endY);
+                                    /* Le point d'arrivée se trouve au bout du trait
+                                       — voir le chemin souris, plus bas : au doigt
+                                       comme à la souris. */
+                                    const arrivee = (this.entities.length > countBefore
+                                        && this.entities[this.entities.length - 1] === endPoint)
+                                        ? this.entities.pop() : null;
                                     if (this.currentTool === 'line_clean') {
                                         endPoint.visible = false; endPoint.showLabel = false; endPoint.label = "";
                                     }
@@ -31485,7 +31492,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                         }
                                     }
 
-                                    this.addEntity(newObj); this.updateDependents();
+                                    this.addEntity(newObj);
+                                    if (arrivee) this.addEntity(arrivee);
+                                    this.updateDependents();
                                     if (this.isAutoLabelMode) this.autoPlaceLabels([this.creationStartPoint, endPoint]);
                                     this.saveState();
                                 }
@@ -31608,7 +31617,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (dist > 10) {
                         const countBefore = this.entities.length;
                         const endPoint = this.createPointAt(this.mousePos.x, this.mousePos.y);
-                        if (this.currentTool === 'line_clean' && this.entities.length > countBefore) {
+                        /* LE POINT D'ARRIVÉE SE TROUVE AU BOUT DU TRAIT, LÀ AUSSI.
+                           « J'ai le point A, je trace, je fais glisser la règle
+                           jusqu'au bout du segment, PUIS je place le point — ce
+                           n'est pas le cas. » Mesuré à la main, règle sortie :
+                           Point A · Point B · animation · Segment. B était rangé
+                           avant même que la règle se couche, si bien que le rejeu
+                           montrait deux points déjà là et un trait qui venait les
+                           relier. On le met de côté, et on le repose APRÈS l'objet
+                           tracé — jamais entre l'animation et lui, sans quoi le
+                           rejeu, qui regarde l'entité suivante, ferait courir le
+                           crayon à vide. Un point ACCROCHÉ à un point existant
+                           n'est pas neuf : on n'y touche pas. */
+                        const arrivee = (this.entities.length > countBefore
+                            && this.entities[this.entities.length - 1] === endPoint)
+                            ? this.entities.pop() : null;
+                        if (this.currentTool === 'line_clean' && arrivee) {
                             endPoint.visible = false; endPoint.showLabel = false; endPoint.label = "";
                         }
                         let newObj;
@@ -31636,9 +31660,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                             }
                             
-                            this.addEntity(newObj); this.updateDependents();
+                            this.addEntity(newObj);
+                            if (arrivee) this.addEntity(arrivee);
+                            this.updateDependents();
                             if (this.isAutoLabelMode) this.autoPlaceLabels([this.creationStartPoint, endPoint]);
                             this.saveState();
+                        } else if (arrivee) {
+                            /* Aucun objet n'a été construit : le point rendu à la
+                               feuille, sinon le geste ne laisserait rien. */
+                            this.addEntity(arrivee);
                         }
                     }
                     this.creationStartPoint = null; this.isDraggingCreation = false;
@@ -44606,7 +44636,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-17 · 18h';
+        window.GM_VERSION = '2026-09-18 · 9h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

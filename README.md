@@ -1193,6 +1193,48 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### À la main aussi, le point d'arrivée se trouve au bout du trait
+
+*« Quand je dessine un segment avec la règle (outil segment), je dessine un point
+A puis je trace le trait et j'obtiens le point B. Normalement à l'outil, j'ai le
+point A, je trace et je fais glisser la règle jusqu'au bout du segment puis je
+place le point, ce n'est pas le cas. »*
+
+Les consignes écrites venaient d'être corrigées sur ce point ; l'outil à la main,
+non. Mesuré — règle sortie, un trait tiré le long de son bord :
+
+```
+0 Point A · 1 Point B · 2 ToolAnimation[ruler] · 3 Segment
+```
+
+B était rangé **avant même que la règle se couche**. Au rejeu, les deux points
+étaient donc là dès la première image et le trait venait les relier : le geste
+montré n'était celui de personne.
+
+**La règle, elle, glissait déjà.** C'est la moitié de la phrase, et il fallait la
+vérifier avant de corriger quoi que ce soit : le trait mesuré fait 690 px pour
+une règle de 400, et le plan de tracé compte bien **trois poses**. Ce n'était donc
+pas le glissement qui manquait — c'était le point posé d'avance, qui donnait la
+réponse avant la construction et rendait le glissement inutile à regarder.
+
+Le point va donc après l'objet tracé, et jamais entre l'animation et lui : le
+rejeu dessine le trait en cours en regardant l'entité qui suit immédiatement
+l'animation, et s'il y trouve un point, le crayon court à vide.
+
+Deux pièges que le comptage ne montre pas. **Un point accroché n'est pas un point
+neuf** : quand le trait arrive sur un point déjà posé, rien n'est créé, et le
+déplacer le sortirait de l'ordre où l'élève l'a mis. Et **le doigt est un autre
+chemin de code** — la branche tactile sort par un `return` avant la branche
+souris, c'est déjà elle qui avait autrefois privé la tablette du crayon au rejeu.
+Une correction faite d'un seul côté passerait toutes les vérifications à la
+souris ; la sonde ouvre donc un second navigateur, tactile, et refait le même
+trait au doigt.
+
+Reste une chose, mesurée et laissée telle quelle : pendant le tracé **vivant**,
+le crayon peut sortir de la règle — 690 px le long d'un instrument de 400 — parce
+que c'est le doigt de l'élève qui mène, et que faire glisser l'instrument sous sa
+main serait une autre décision. C'est au rejeu que le geste se remet d'aplomb.
+
 ### Une médiatrice se construit au compas
 
 *« J'ai mis : Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm et
@@ -2733,7 +2775,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 116 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 117 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
