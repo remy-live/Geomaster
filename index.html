@@ -26079,11 +26079,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        de texte la montre, debout, à l'endroit exact où la
                        première lettre se posera. */
                     this.canvas.style.cursor = 'text';
-                } else if (toolName !== 'pan' && toolName !== 'move') {
+                } else if (toolName === 'pan') {
+                    this.canvas.style.cursor = 'grab';
+                } else if (toolName !== 'move') {
                     this.canvas.style.cursor = 'crosshair';
-                } else if (toolName === 'move') {
+                } else {
                     this.canvas.style.cursor = 'default';
                 }
+                /* CE CURSEUR-LÀ DOIT SURVIVRE AU PREMIER MOUVEMENT DE SOURIS.
+                   « Pour le texte, quand on va sur le canvas, on a toujours le
+                   pointeur de la souris. » Le survol recalcule le curseur à
+                   CHAQUE déplacement, et il repartait d'un « default » en dur :
+                   tout ce qui n'était pas dans sa courte liste d'outils de tracé
+                   perdait le sien dès le premier pixel parcouru. Mesuré, ils
+                   étaient onze dans ce cas — le texte, le stylo, le croquis, la
+                   gomme et tous les outils magiques : la croix annoncée au clic
+                   sur le bouton s'effaçait avant qu'on ait eu le temps de la
+                   voir. On mémorise donc ce que l'outil a demandé, et le survol
+                   repart de là plutôt que du néant : un outil ajouté demain
+                   gardera son curseur sans qu'on ait à l'inscrire nulle part. */
+                this.curseurOutil = this.canvas.style.cursor || 'default';
 
                 this.render();
             }
@@ -31328,7 +31343,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // « point libre » : c'est précisément la situation où un doublon
                 // passait inaperçu.
                 this.ghostSnapPoint = closestPoint || null;
-                let cursor = 'default';
+                /* Le curseur que l'outil courant a demandé (voir setTool), et non
+                   plus « default » en dur : sans cela, tout outil absent des
+                   branches ci-dessous perdait le sien au premier mouvement. */
+                let cursor = this.curseurOutil || 'default';
                 let hoveredWidget = null;
                 if (this.activeWidgets.compass && this.compassWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.compassWidget;
                 else if (this.activeWidgets.ruler && this.rulerWidget.getHitZone(rawMouse.x, rawMouse.y)) hoveredWidget = this.rulerWidget;
@@ -31343,6 +31361,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 else if (this.currentTool === 'pan') { cursor = this.isPanning ? 'grabbing' : 'grab'; }
                 else if (drawingTools.includes(this.currentTool)) { cursor = 'crosshair'; }
+                /* L'OUTIL TEXTE GARDE SON CURSEUR SUR LA FEUILLE. « Quand on va
+                   sur le canvas, on a toujours le pointeur de la souris. » C'est
+                   ICI que le curseur se décide, et il se recalcule à CHAQUE
+                   mouvement : celui posé au moment où l'on choisit l'outil ne
+                   survivait pas au premier déplacement, et la flèche revenait.
+                   L'outil texte ne figurait dans aucune des branches, il tombait
+                   donc sur « default ». Deux endroits décident, il fallait les
+                   deux — et c'est de ne l'avoir mesuré qu'après setTool, jamais
+                   après un déplacement, que le défaut était passé.
+
+                   Sur un texte DÉJÀ POSÉ, en revanche, le clic ne l'écrit pas :
+                   il le prend pour le déplacer. La main le dit mieux que le I. */
+                else if (this.currentTool === 'text') {
+                    const surTexte = this.entities.some(ent => ent instanceof TextLabel
+                        && ent.isNear(rawMouse.x, rawMouse.y));
+                    cursor = surTexte ? 'grab' : 'text';
+                }
                 /* Le nom d'un point se DÉPLACE : la main le dit. La flèche ne disait
                    rien, et le pointeur — le même que pour n'importe quel objet — ne
                    distinguait pas « je peux le prendre » de « je peux le choisir ». */
@@ -44765,7 +44800,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-21 · 9h';
+        window.GM_VERSION = '2026-09-21 · 11h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

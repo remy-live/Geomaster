@@ -1193,6 +1193,32 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Un curseur qui survit au premier mouvement de souris
+
+*« Pour le texte, quand on va sur le canvas, on a toujours le pointeur de la
+souris. »*
+
+Le I avait bien été posé — mais au mauvais endroit. Le curseur se **recalcule à
+chaque mouvement** de souris, dans le gestionnaire de survol, et celui-ci
+repartait d'un `default` écrit en dur. Tout ce qui ne figurait pas dans sa courte
+liste d'outils de tracé perdait le sien dès le premier pixel parcouru.
+
+Ils étaient **onze** dans ce cas, mesuré après un déplacement réel : le texte, le
+stylo, le croquis, la gomme et tous les outils magiques. La croix annoncée au
+clic sur le bouton s'effaçait avant qu'on ait le temps de la voir.
+
+**Et la sonde disait vert.** Elle lisait le curseur juste après le choix de
+l'outil, où il est toujours juste. Mesurer le bon fait au mauvais instant est la
+façon la plus sûre de passer à côté ; elle mesure maintenant après un vrai
+déplacement, pour les quatorze outils, et refuse qu'aucun retombe sur la flèche
+par oubli.
+
+Plutôt qu'allonger la liste — et en oublier un le mois prochain —, le survol
+**repart du curseur que l'outil a demandé**. Un outil ajouté demain gardera le
+sien sans qu'on ait à l'inscrire nulle part. Les priorités connues sont intactes :
+le corps d'un instrument l'emporte toujours, et sur un texte déjà posé c'est la
+main qui s'affiche — car le clic ne l'écrit pas, il le prend pour le déplacer.
+
 ### L'icône du texte appartient enfin à sa famille
 
 *« Je trouve que l'icône du texte n'est pas très parlante, fais-m'en une

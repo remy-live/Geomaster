@@ -72,27 +72,86 @@ const encre = (page, b64) => page.evaluate((b64) => new Promise((res) => {
     const nav = await chromium.launch({ executablePath: process.env.GM_CHROME });
     const erreurs = [];
 
-    console.log('\n=== le curseur dit ce qu\'on va faire ===');
+    /* LE CURSEUR SE MESURE APRÈS UN DÉPLACEMENT, JAMAIS AU MOMENT DU CLIC SUR LE
+       BOUTON. C'est la leçon de ce défaut-ci : cette sonde lisait le curseur
+       juste après setTool, et le trouvait juste — « l'outil texte donne le
+       curseur de frappe », vert. Mais le survol recalcule le curseur à CHAQUE
+       mouvement de souris, et il repartait d'un « default » en dur : le I
+       disparaissait au premier pixel parcouru. « Quand on va sur le canvas, on a
+       toujours le pointeur de la souris. » La sonde mesurait le bon fait au
+       mauvais instant, ce qui est la façon la plus sûre de passer à côté.
+
+       Ils étaient ONZE dans ce cas, mesuré : le texte, le stylo, le croquis, la
+       gomme et tous les outils magiques — tout ce qui ne figurait pas dans la
+       courte liste des outils de tracé. Le survol repart donc du curseur que
+       l'outil a demandé, et non du néant. */
+    console.log('\n=== le curseur dit ce qu\'on va faire, et il le dit encore après un mouvement ===');
     {
         const page = await nav.newPage({ viewport: { width: 1400, height: 950 } });
         page.on('pageerror', e => erreurs.push(e.message));
         await page.goto(PAGE);
         await page.waitForFunction(() => window.app);
-        const cur = await page.evaluate(() => {
+        const vide = await page.evaluate(() => {
             const a = window.app;
             const m = document.getElementById('customModal');
             if (m) m.style.display = 'none';
-            const out = {};
-            ['text', 'segment', 'point', 'line', 'circle', 'stylo', 'move', 'pan']
-                .forEach(t => { a.setTool(t); out[t] = a.canvas.style.cursor; });
-            return out;
+            a.entities = []; a.historyPast = [];
+            if (a.cslOublier) a.cslOublier();
+            const r = a.canvas.getBoundingClientRect();
+            return { x: r.left + 700, y: r.top + 600 };
         });
-        ck('l\'outil texte donne le curseur de frappe', cur.text === 'text', cur.text);
-        ck('  et les outils de tracé gardent leur croix',
-           ['segment', 'point', 'line', 'circle', 'stylo'].every(t => cur[t] === 'crosshair'),
+        const OUTILS = ['text', 'segment', 'point', 'line', 'circle', 'polygon', 'angle',
+                        'stylo', 'croquis', 'magic_triangle', 'magic_mediatrice',
+                        'eraser', 'move', 'pan'];
+        const cur = {};
+        for (const t of OUTILS) {
+            await page.evaluate((t) => window.app.setTool(t), t);
+            /* Deux pas, pour que le gestionnaire de survol ait vraiment tourné. */
+            await page.mouse.move(vide.x - 6, vide.y - 6);
+            await page.mouse.move(vide.x, vide.y);
+            await page.waitForTimeout(40);
+            cur[t] = await page.evaluate(() => window.app.canvas.style.cursor);
+        }
+        ck('l\'outil texte garde le curseur de frappe sur la feuille',
+           cur.text === 'text', cur.text);
+        ck('  les outils de tracé gardent leur croix',
+           ['segment', 'point', 'line', 'circle', 'polygon', 'angle'].every(t => cur[t] === 'crosshair'),
            JSON.stringify(cur));
-        ck('  la main et le déplacement, la flèche',
-           cur.move === 'default' && cur.pan === 'default', JSON.stringify(cur));
+        ck('  le stylo, le croquis, la gomme et les magiques aussi',
+           ['stylo', 'croquis', 'eraser', 'magic_triangle', 'magic_mediatrice']
+               .every(t => cur[t] === 'crosshair'), JSON.stringify(cur));
+        ck('  la main garde sa flèche, le panoramique sa main ouverte',
+           cur.move === 'default' && cur.pan === 'grab', JSON.stringify(cur));
+        const perdus = OUTILS.filter(t => t !== 'move' && cur[t] === 'default');
+        ck('aucun outil ne retombe sur la flèche par oubli',
+           perdus.length === 0, perdus.join(', ') || 'aucun');
+
+        /* Sur un texte déjà posé, le clic ne l'écrit pas : il le PREND. Et le
+           corps d'un instrument l'emporte sur tout le reste, comme avant. */
+        const lieux = await page.evaluate(() => {
+            const a = window.app;
+            a.entities = []; a.historyPast = [];
+            if (a.cslOublier) a.cslOublier();
+            const t = new TextLabel(500, 400, 'Bonjour');
+            t.fontSize = 24; a.addEntity(t);
+            if (!a.activeWidgets.ruler) a.toggleWidget('ruler');
+            a.rulerWidget.x = 300; a.rulerWidget.y = 700; a.rulerWidget.angle = 0;
+            a.setTool('text'); a.render();
+            const r = a.canvas.getBoundingClientRect();
+            const e = (x, y) => ({ x: r.left + x * a.view.zoom + a.view.x,
+                                   y: r.top + y * a.view.zoom + a.view.y });
+            return { surTexte: e(520, 412), loin: e(950, 250), regle: e(350, 740) };
+        });
+        const ou = async (p) => {
+            await page.mouse.move(p.x - 5, p.y - 5);
+            await page.mouse.move(p.x, p.y);
+            await page.waitForTimeout(60);
+            return page.evaluate(() => window.app.canvas.style.cursor);
+        };
+        ck('loin de tout, le I de la frappe', await ou(lieux.loin) === 'text');
+        ck('  sur un texte déjà posé, la main qui le prend', await ou(lieux.surTexte) === 'grab');
+        ck('  et le corps de la règle l\'emporte, comme avant',
+           await ou(lieux.regle) === 'move');
         await page.close();
     }
 

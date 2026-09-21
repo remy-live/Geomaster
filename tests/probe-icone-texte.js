@@ -156,8 +156,24 @@ const ck = (nom, ok, detail) => {
                  allume: btn.classList.contains('active'),
                  titre: btn.getAttribute('data-tooltip') };
     });
+    /* LE CURSEUR SE LIT APRÈS UN DÉPLACEMENT. Lu au moment du clic sur le bouton,
+       il est toujours juste — et il ne l'était plus dès le premier pixel
+       parcouru sur la feuille, parce que le survol le recalcule. C'est de
+       l'avoir lu ici, et seulement ici, que le défaut était passé. */
+    const surFeuille = await (async () => {
+        const p = await page.evaluate(() => {
+            const r = window.app.canvas.getBoundingClientRect();
+            return { x: r.left + 720, y: r.top + 620 };
+        });
+        await page.mouse.move(p.x - 6, p.y - 6);
+        await page.mouse.move(p.x, p.y);
+        await page.waitForTimeout(60);
+        return page.evaluate(() => window.app.canvas.style.cursor);
+    })();
     ck('un clic prend l\'outil texte', clic.outil === 'text', clic.outil);
     ck('  avec le curseur de frappe', clic.curseur === 'text', clic.curseur);
+    ck('  et il le garde une fois la souris sur la feuille',
+       surFeuille === 'text', surFeuille);
     ck('  le bouton s\'allume', clic.allume === true, String(clic.allume));
     ck('  et l\'infobulle dit toujours ce qu\'il fait',
        /Texte/.test(clic.titre || '') && /Renommer/.test(clic.titre || ''), clic.titre);
