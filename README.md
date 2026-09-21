@@ -1193,6 +1193,36 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le texte tombe sur le curseur, pas en dessous
+
+*« L'endroit où on écrit le texte est décalé par rapport au curseur. Il faut que
+cela tombe précisément. »*
+
+La correction précédente avait aligné la saisie et le texte validé **l'un sur
+l'autre**, au pixel, sans se demander si les deux tombaient au bon endroit. Ils
+n'y tombaient pas. Mesuré, l'encre par rapport au point cliqué :
+
+| taille | haut | bas | centre |
+|---|---|---|---|
+| 16 px | +4 | +17 | +10,5 |
+| 64 px | +15 | +59 | +37 |
+
+Entièrement **sous** le clic, et d'autant plus bas que la police est grosse. On
+posait le coin haut-gauche de la ligne sur le point cliqué ; or le I du curseur
+de frappe a son point chaud **en son milieu**, comme tout curseur de saisie.
+C'est la ligne d'écriture qui doit l'enjamber, exactement comme le trait
+clignotant d'un champ de texte.
+
+Le champ remonte donc d'une **demi-ligne**, mesurée sur lui-même une fois la
+police appliquée plutôt que calculée : une police au dessin différent donnerait
+une autre hauteur de ligne pour la même taille.
+
+**Ce qu'on mesure ensuite n'est pas « le centre de l'encre vaut zéro ».** Ce
+serait faux, et pour une bonne raison : « ppp » n'a que des jambages et pèse vers
+le bas, « ABC » n'a que des capitales et pèse vers le haut — +3,5 et −1,5 à la
+même taille. Ce qui doit être vrai de toute chaîne, c'est que l'encre **enjambe**
+le clic et que son centre n'en soit jamais loin.
+
 ### Un curseur qui survit au premier mouvement de souris
 
 *« Pour le texte, quand on va sur le canvas, on a toujours le pointeur de la

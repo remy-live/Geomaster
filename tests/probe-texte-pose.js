@@ -219,6 +219,103 @@ const encre = (page, b64) => page.evaluate((b64) => new Promise((res) => {
         await page.close();
     }
 
+    /* LE TEXTE TOMBE SUR LE CURSEUR, PAS EN DESSOUS.
+     *
+     * « L'endroit où on écrit le texte est décalé par rapport au curseur. Il faut
+     *   que cela tombe précisément. »
+     *
+     * La correction précédente avait aligné la saisie et le texte validé L'UN SUR
+     * L'AUTRE — au pixel — sans se demander si les deux tombaient au bon endroit.
+     * Ils n'y tombaient pas. Mesuré, l'encre par rapport au point cliqué :
+     *
+     *     16 px  haut +4   bas +17   (milieu +10,5)
+     *     64 px  haut +15  bas +59   (milieu +37)
+     *
+     * — entièrement SOUS le clic, et d'autant plus bas que la police est grosse.
+     * On posait le coin haut-gauche de la ligne sur le point cliqué ; or le I du
+     * curseur de frappe a son point chaud EN SON MILIEU, comme tout curseur de
+     * saisie. C'est la ligne d'écriture qui doit l'enjamber.
+     *
+     * CE QU'ON MESURE ICI N'EST PAS « le centre de l'encre vaut zéro ». Ce serait
+     * faux, et pour une bonne raison : « ppp » n'a que des jambages et pèse vers
+     * le bas, « ABC » n'a que des capitales et pèse vers le haut — mesuré +4 et
+     * −1 à la même taille. Ce qui doit être vrai de toute chaîne, c'est que
+     * l'encre ENJAMBE le clic, et que le centre n'en soit jamais loin.
+     */
+    console.log('\n=== le texte tombe sur le curseur, pas en dessous ===');
+    {
+        const R = 60;
+        const boite = (page, b64) => page.evaluate(([b64, R]) => new Promise((res) => {
+            const im = new Image();
+            im.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = im.width; c.height = im.height;
+                const x = c.getContext('2d');
+                x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+                x.drawImage(im, 0, 0);
+                const d = x.getImageData(0, 0, c.width, c.height).data;
+                let minX = 1e9, minY = 1e9, maxX = -1, maxY = -1;
+                for (let y = 0; y < c.height; y++) for (let X = 0; X < c.width; X++) {
+                    const i = (y * c.width + X) << 2;
+                    if (d[i] < 120 && d[i + 1] < 120 && d[i + 2] < 120) {
+                        if (X < minX) minX = X; if (X > maxX) maxX = X;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                    }
+                }
+                /* en coordonnées RELATIVES au clic : la capture est cadrée sur lui,
+                   son centre EST donc le curseur. */
+                res(maxX < 0 ? null : { g: minX - R, h: minY - R, b: maxY - R,
+                                        milieu: (minY + maxY) / 2 - R });
+            };
+            im.onerror = () => res(null);
+            im.src = 'data:image/png;base64,' + b64;
+        }), [b64, R]);
+
+        const CAS = [[16, 'Hxp'], [24, 'Hxp'], [40, 'Hxp'], [64, 'Hxp'],
+                     [24, 'ppp'], [24, 'ABC'], [40, 'Aire du triangle']];
+        for (const [fs, mot] of CAS) {
+            const page = await nav.newPage({ viewport: { width: 1400, height: 950 } });
+            page.on('pageerror', e => erreurs.push(e.message));
+            await page.goto(PAGE);
+            await page.waitForFunction(() => window.app);
+            await page.evaluate(() => {
+                try { localStorage.removeItem('geoMaster_backup'); } catch (e) { void e; }
+                const m = document.getElementById('customModal');
+                if (m) m.style.display = 'none';
+                window.app.checkAutoSave = () => {};
+            });
+            const c = await page.evaluate((fs) => {
+                const a = window.app;
+                a.entities = []; a.historyPast = [];
+                if (a.cslOublier) a.cslOublier();
+                a.defaultFontSize = fs; a.setTool('text');
+                const r = a.canvas.getBoundingClientRect();
+                return { x: Math.round(r.left + 500 + a.view.x),
+                         y: Math.round(r.top + 300 + a.view.y) };
+            }, fs);
+            await page.mouse.click(c.x, c.y);
+            await page.waitForTimeout(250);
+            await page.keyboard.type(mot);
+            await page.waitForTimeout(180);
+            await page.evaluate(() => window.app.validerTexteFantome());
+            await page.waitForTimeout(180);
+            const im = (await page.screenshot({
+                clip: { x: c.x - R, y: c.y - R, width: 2 * R, height: 2 * R } })).toString('base64');
+            const e = await boite(page, im);
+            const nom = `${fs} px « ${mot} »`;
+            if (!e) { ck(nom, false, 'aucune encre'); await page.close(); continue; }
+            ck(nom + ' : l\'encre enjambe le clic',
+               e.h < 0 && e.b > 0, `haut ${e.h}, bas ${e.b}`);
+            ck('  et son centre n\'en est jamais loin',
+               Math.abs(e.milieu) <= 5, `milieu ${Math.round(e.milieu * 10) / 10} px`);
+            /* Le texte commence JUSTE À DROITE du curseur, comme après le trait
+               clignotant d'un champ de saisie — la marge est celle du glyphe. */
+            ck('  et il commence juste à droite du curseur',
+               e.g >= 0 && e.g <= 8, `bord gauche ${e.g} px`);
+            await page.close();
+        }
+    }
+
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 
     await nav.close();

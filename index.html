@@ -30087,15 +30087,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ghost.style.font = `${fs}px ${ff}`;
                         ghost.style.lineHeight = '1.2';
 
+                        ghost.style.transform = `scale(${this.view.zoom})`;
+                        ghost.style.display = 'block';
+                        ghost.innerText = '';
+
+                        /* LE TEXTE TOMBE SUR LE CURSEUR, PAS EN DESSOUS.
+                           « L'endroit où on écrit le texte est décalé par rapport
+                           au curseur ; il faut que cela tombe précisément. »
+                           Mesuré, l'encre par rapport au point cliqué :
+
+                             16 px  haut +4   bas +17  (milieu +10,5)
+                             64 px  haut +15  bas +59  (milieu +37)
+
+                           — c'est-à-dire ENTIÈREMENT SOUS le clic, et d'autant
+                           plus bas que la police est grosse. On posait le coin
+                           haut-gauche de la ligne sur le point cliqué. Or le I du
+                           curseur de frappe a son point chaud EN SON MILIEU, comme
+                           tout curseur de saisie : c'est la ligne d'écriture qui
+                           doit être centrée dessus, exactement comme le trait
+                           clignotant d'un champ de texte enjambe la ligne.
+
+                           On remonte donc d'une DEMI-LIGNE — mesurée sur le champ
+                           lui-même une fois la police appliquée, et non calculée :
+                           une police au dessin différent donnerait une autre
+                           hauteur de ligne pour la même taille. D'où l'ordre de ces
+                           lignes : le champ est affiché AVANT d'être placé, sinon
+                           il n'a pas de hauteur à mesurer. */
+                        const demiLigne = (ghost.offsetHeight || fs * 1.2) / 2;
+                        const ancreY = y - demiLigne;
+
                         const screenX = (x * this.view.zoom) + this.view.x;
-                        const screenY = (y * this.view.zoom) + this.view.y;
+                        const screenY = (ancreY * this.view.zoom) + this.view.y;
 
                         ghost.style.left = `${screenX}px`;
                         ghost.style.top = `${screenY}px`;
-                        ghost.style.transform = `scale(${this.view.zoom})`;
-
-                        ghost.style.display = 'block';
-                        ghost.innerText = '';
 
                         toolbar.style.display = 'flex';
                         this.majEscamotagePalette();
@@ -30112,7 +30137,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                         setTimeout(() => { ghost.focus(); }, 50);
 
-                        this.pendingTextCoords = { x: x, y: y };
+                        /* Le point d'ancrage du texte, c'est le HAUT de la ligne —
+                           celui du champ, donc remonté de la demi-ligne. C'est sur
+                           lui que validerTexteFantome recale la ligne de base. */
+                        this.pendingTextCoords = { x: x, y: ancreY };
                     }
                     this.render();
                     return;
@@ -44800,7 +44828,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-21 · 11h';
+        window.GM_VERSION = '2026-09-21 · 14h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
