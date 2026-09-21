@@ -1193,6 +1193,56 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le nom du logiciel, et la porte qu'il y a derrière
+
+*« J'aimerais entre le Géomaster en haut à gauche et l'input du fichier un écart
+un peu plus grand, et quand on passe la souris sur Géomaster, un dégradé animé du
+nom ; et 7 clics dessus met en mode développeur. »*
+
+L'écart passe de **4 à 18 px** — la largeur d'une lettre. De loin, « GÉOMASTER »
+et « Sans titre » se lisaient comme une seule ligne, et l'on ne voyait pas où
+finissait la marque et où commençait le nom du document.
+
+Le dégradé du nom existait, mais fixe. Au survol il devient un ruban de trois
+longueurs qui défile derrière les lettres — la première et la dernière couleur
+sont la même, sans quoi la boucle sauterait à chaque tour. Une animation sans fin
+n'est pas pour tout le monde : sous `prefers-reduced-motion`, le dégradé reste et
+cesse seulement de défiler.
+
+**La porte existait déjà** : sept clics sur la date de version, en petit dans
+l'aide, ouvrent le cabinet de curiosités — d'où l'on atteint le relevé des usages
+et le banc d'essai des phrases. Ce qui est nouveau, c'est une **seconde serrure
+sur la même pièce**, et là où l'on peut l'atteindre : le nom est en haut à gauche
+de la première seconde à la dernière, la date n'existe que si l'on a pensé à
+ouvrir l'aide. La mécanique est commune — deux implémentations auraient divergé
+au premier réglage.
+
+Les règles de la maison tiennent toujours, et c'est ce que la sonde mesure plutôt
+que le compte de sept : **un secret ne touche pas à la figure** (on dessine, on
+ouvre, on referme, la figure est au même objet près) ; **une série lente n'ouvre
+rien**, car sans la fenêtre de 2,5 s sept clics étalés sur une minute finiraient
+par ouvrir la porte et l'on n'y comprendrait rien ; et le curseur **ne promet pas
+de lien** — c'est le dégradé qui invite, et lui seul.
+
+### Le relevé technique
+
+*« Dans la backdoor, donne aussi le numéro de version et des infos de debug au
+besoin. »*
+
+« Ça ne marche pas chez moi » ne dit ni la version, ni le navigateur, ni ce qu'il
+y avait à l'écran. Le cabinet annonce donc la version dès l'entrée, et mène à un
+relevé : adresse, navigateur, langue, écran et densité, tactile ou non, nombre
+d'objets, outil courant, zoom, taille du canevas, contenu de la mémoire locale,
+ouvertures, consignes comprises ou refusées — et **les erreurs JavaScript
+attrapées depuis l'ouverture**. Sans ces dernières, le relevé dirait que tout va
+bien sur une page à moitié morte, et la console d'un navigateur ne s'ouvre pas
+sur un ordinateur de salle de classe.
+
+Un bouton le copie ; rien n'en part tout seul. Et il ne contient **ni le titre du
+projet, ni le nom des points** : ce sont les seules choses qui pourraient
+identifier une classe, et elles n'aident à rien pour déboguer. On compte les
+objets, on ne les nomme pas.
+
 ### Le texte tombe sur le curseur, pas en dessous
 
 *« L'endroit où on écrit le texte est décalé par rapport au curseur. Il faut que
@@ -2916,7 +2966,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 119 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 120 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

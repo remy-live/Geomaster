@@ -361,16 +361,59 @@
            sort comme fichier, ce qu'on en transmet (voir .menu-titre plus haut).
            Une catégorie se reconnaît à sa place, pas à son titre. */
 
+        /* LE NOM, ET CE QU'IL Y A DERRIÈRE. Quatre pixels le séparaient du champ
+           du titre : de loin, « GÉOMASTER » et « Sans titre » se lisaient comme
+           une seule ligne, et l'on ne voyait pas où finissait la marque et où
+           commençait le nom du document. Dix-huit les séparent, soit la largeur
+           d'une lettre : assez pour que l'œil coupe, pas assez pour que l'en-tête
+           s'étire. */
         .logo {
             font-weight: 800;
             font-size: 18px;
             letter-spacing: .5px;
             text-transform: uppercase;
-            margin-right: 4px;
+            margin-right: 18px;
             background: linear-gradient(45deg, #51728e, #51115c);
+            background-size: 100% 100%;
             -webkit-background-clip: text;
             background-clip: text;
-            -webkit-text-fill-color: transparent
+            -webkit-text-fill-color: transparent;
+            /* On ne promet pas un lien : le curseur reste celui de la flèche.
+               C'est le dégradé qui invite, et lui seul. */
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* AU SURVOL, LE NOM S'ANIME. Le dégradé fixe devient un ruban de trois
+           longueurs qui défile derrière les lettres — la première et la dernière
+           couleur sont la même, sans quoi la boucle sauterait à chaque tour. */
+        .logo:hover,
+        .logo.gm-logo-presse {
+            background-image: linear-gradient(90deg,
+                #51728e, #8e44ad, #c0392b, #16a085, #51115c, #51728e);
+            background-size: 300% 100%;
+            animation: gm-logo-ruban 2.6s linear infinite;
+        }
+
+        /* À PARTIR DU QUATRIÈME CLIC, le ruban s'emballe : on ne promet rien à
+           qui passe, on encourage qui insiste. */
+        .logo.gm-logo-presse {
+            animation-duration: .5s;
+        }
+
+        @keyframes gm-logo-ruban {
+            from { background-position: 0 0; }
+            to { background-position: 300% 0; }
+        }
+
+        /* Une animation qui tourne sans fin n'est pas pour tout le monde : le
+           dégradé reste, il cesse seulement de défiler. */
+        @media (prefers-reduced-motion: reduce) {
+            .logo:hover,
+            .logo.gm-logo-presse {
+                animation: none;
+            }
         }
 
         .top-toolbar {
@@ -9092,7 +9135,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          dans son canevas, et sa croix appelait une fonction inexistante — un
          clic dessus levait « app.toggleMiniMap is not a function ». -->
     <header>
-        <div class="logo">Géomaster</div>
+        <!-- Sept clics ici ouvrent le cabinet. Voir armerSecrets : c'est la même
+             porte que la date de version, en plus atteignable. -->
+        <div class="logo" id="gmLogo">Géomaster</div>
         <input type="text" id="docTitleInput" value="Sans titre" placeholder="Nom du projet..."
             aria-label="Renommer le projet" data-tooltip="Renommer le projet">
         <div class="top-toolbar">
@@ -11775,6 +11820,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const signature = msg + '@' + (line || '');
                     if (this.seen.has(signature)) return;
                     this.seen.add(signature);
+                    /* ON LES GARDE, pour le relevé technique du cabinet. La console
+                       du navigateur ne s'ouvre pas sur un ordinateur de salle de
+                       classe, et une fenêtre qu'on a fermée n'existe plus : sans
+                       cette liste, le relevé dirait que tout va bien sur une page à
+                       moitié morte. Seulement le message et la ligne — jamais le
+                       contenu de la figure. */
+                    try {
+                        (window.GM_ERREURS = window.GM_ERREURS || [])
+                            .push(msg + (line ? ' (ligne ' + line + ')' : ''));
+                        if (window.GM_ERREURS.length > 20) window.GM_ERREURS.shift();
+                    } catch (ignore2) { /* rien ne doit casser ici */ }
                     console.error('[GéoMaster]', err);
                     this.show(msg);
                 } catch (ignored) { /* le filet ne doit jamais casser à son tour */ }
@@ -16674,6 +16730,94 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     } catch (e2) { void e2; }
                     return noter('injoignable');
+                }
+            }
+            /* CE QU'IL FAUT SAVOIR QUAND QUELQUE CHOSE CLOCHE.
+               « Dans la backdoor, donne aussi le numéro de version et des infos de
+               debug au besoin. »
+
+               Un défaut se raconte mal au téléphone : « ça ne marche pas chez
+               moi » ne dit ni sur quelle version, ni dans quel navigateur, ni avec
+               quoi à l'écran. Ce relevé-ci répond à ces questions-là et s'arrête :
+               il ne contient rien qu'on n'ait déjà sous les yeux, il ne part nulle
+               part tout seul, et un bouton le copie pour qu'on puisse le coller
+               dans un message.
+
+               PAS DE NOM DE FICHIER, PAS DE TITRE DE PROJET, PAS DE CONTENU DE
+               FIGURE : ce sont les seules choses qui pourraient identifier une
+               classe, et elles n'aident à rien pour déboguer. On compte les objets,
+               on ne les nomme pas. */
+            diagnosticTexte() {
+                const l = [];
+                const dire = (k, v) => l.push(k.padEnd(18) + ': ' + v);
+                l.push('GÉOMASTER — relevé technique');
+                l.push('');
+                dire('version', window.GM_VERSION || '?');
+                dire('adresse', (location.protocol === 'file:')
+                    ? 'fichier local' : location.host || '(inconnue)');
+                dire('hors connexion', navigator.onLine === false ? 'oui' : 'non');
+                l.push('');
+                dire('navigateur', (navigator.userAgent || '').slice(0, 120));
+                dire('langue', navigator.language || '?');
+                dire('écran', `${screen.width}×${screen.height}`
+                    + `, fenêtre ${window.innerWidth}×${window.innerHeight}`
+                    + `, densité ${window.devicePixelRatio || 1}`);
+                dire('tactile', (('ontouchstart' in window) || navigator.maxTouchPoints > 0)
+                    ? `oui (${navigator.maxTouchPoints || '?'} doigts)` : 'non');
+                l.push('');
+                const outils = Object.keys(this.activeWidgets || {})
+                    .filter(k => this.activeWidgets[k]);
+                dire('objets', String((this.entities || []).length));
+                dire('annulations', String((this.historyPast || []).length));
+                dire('instruments', outils.length ? outils.join(', ') : 'aucun');
+                dire('outil courant', this.currentTool || '?');
+                dire('vue', `zoom ${Math.round((this.view.zoom || 1) * 100) / 100}`
+                    + `, décalage ${Math.round(this.view.x)};${Math.round(this.view.y)}`);
+                dire('canevas', `${this.canvas.width}×${this.canvas.height}`);
+                l.push('');
+                /* L'état du stockage local : c'est là que se perd une figure, et
+                   c'est la première chose qu'on veut savoir. */
+                try {
+                    const cles = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const k = localStorage.key(i);
+                        if (!/^(gm_|geoMaster)/.test(k)) continue;
+                        cles.push(`${k} (${(localStorage.getItem(k) || '').length} car.)`);
+                    }
+                    dire('mémoire locale', cles.length ? cles.join(', ') : 'vide');
+                } catch (e) { dire('mémoire locale', 'refusée par le navigateur'); }
+                /* Deux chiffres du relevé d'usage, ceux qui servent à déboguer et
+                   pas à mesurer : combien de fois le logiciel a été ouvert ici, et
+                   combien de consignes il a comprises ou refusées. Le reste est
+                   derrière « Voir les usages », qui est fait pour ça. */
+                try {
+                    dire('ouvertures', localStorage.getItem('gm_ouvertures') || '0');
+                    const u = this.usageLire ? this.usageLire() : null;
+                    const c = (u && u.consignes) || {};
+                    dire('consignes', `${c.ok || 0} comprises, ${c.rate || 0} refusées`);
+                } catch (e) { dire('relevé d\'usage', 'illisible'); }
+                l.push('');
+                /* LES ERREURS JAVASCRIPT ATTRAPÉES DEPUIS L'OUVERTURE. Sans elles,
+                   le relevé dirait que tout va bien sur une page à moitié morte. */
+                const err = (window.GM_ERREURS || []);
+                dire('erreurs JS', err.length ? String(err.length) : 'aucune');
+                err.slice(-5).forEach((m, i) => l.push('   ' + (i + 1) + '. ' + String(m).slice(0, 160)));
+                return l.join('\n');
+            }
+            diagnosticCopier(lien) {
+                const t = this.diagnosticTexte();
+                const dire = (m) => { if (lien) lien.textContent = m; };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(t)
+                        .then(() => dire('Copié'))
+                        .catch(() => dire('Copie refusée par le navigateur'));
+                } else {
+                    const pre = document.querySelector('.secret-releve');
+                    if (pre) {
+                        const r = document.createRange(); r.selectNodeContents(pre);
+                        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+                        dire('Sélectionné — Ctrl+C');
+                    }
                 }
             }
             usageCopier(lien) {
@@ -22434,33 +22578,61 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* LA PORTE DÉROBÉE. La date de version, en petit dans l'aide, ne
                    sert à rien d'autre qu'à être lue — sauf si l'on s'acharne
                    dessus. Sept clics : assez pour que ce ne soit pas un accident,
-                   assez peu pour qu'un curieux y arrive. */
+                   assez peu pour qu'un curieux y arrive.
+
+                   PAS DE CURSEUR MAIN : rien ne doit annoncer qu'il y a quelque
+                   chose. Mais la cible ne fait que 123 sur 12 pixels, et une
+                   hésitation d'une seconde remettait tout à zéro — mesuré : sept
+                   clics au rythme d'un humain qui réfléchit ne marchaient pas. La
+                   fenêtre est donc de deux secondes et demie, et le signe apparaît
+                   À PARTIR DU QUATRIÈME clic : on ne promet rien à celui qui
+                   passe, on encourage celui qui insiste.
+
+                   ET MAINTENANT DEUX PORTES POUR LA MÊME PIÈCE. Celle-ci est
+                   cachée dans l'aide, donc atteignable seulement quand on l'a
+                   ouverte ; le nom du logiciel, lui, est là du début à la fin. Une
+                   seule mécanique, deux serrures — sans quoi la seconde aurait
+                   dérivé de la première au premier réglage. */
                 const v = document.getElementById('gmVersion');
                 if (v) {
-                    let n = 0, dernier = 0, minuteur = null;
-                    /* PAS DE CURSEUR MAIN : rien ne doit annoncer qu'il y a
-                       quelque chose. Mais la cible ne fait que 123 sur 12 pixels,
-                       et une hésitation d'une seconde remettait tout à zéro —
-                       mesuré : sept clics au rythme d'un humain qui réfléchit ne
-                       marchaient pas. La fenêtre passe à deux secondes et demie,
-                       et le texte s'éclaire À PARTIR DU QUATRIÈME clic : on ne
-                       promet rien à celui qui passe, on encourage celui qui
-                       insiste. */
                     v.style.cursor = 'default';
-                    v.addEventListener('click', () => {
-                        const t = Date.now();
-                        n = (t - dernier < 2500) ? n + 1 : 1;
-                        dernier = t;
-                        clearTimeout(minuteur);
+                    this.porteDerobee(v, 'cabinet', (n) => {
                         v.style.color = (n >= 4) ? '#fbbf24' : '';
-                        minuteur = setTimeout(() => { n = 0; v.style.color = ''; }, 2600);
-                        if (n >= 7) {
-                            n = 0; v.style.color = '';
-                            clearTimeout(minuteur);
-                            this.ouvrirSecret('cabinet');
-                        }
                     });
                 }
+                /* LE NOM DU LOGICIEL. Il est en haut à gauche de la première
+                   seconde à la dernière, et il ne servait à rien. Au survol son
+                   dégradé se met à défiler — une invitation sans promesse —, et
+                   sept clics ouvrent le cabinet. Sur téléphone le nom est masqué
+                   (voir .logo dans la feuille de style) : la porte de l'aide reste
+                   la seule, et c'est très bien ainsi. */
+                this.porteDerobee(document.getElementById('gmLogo'), 'cabinet', (n) => {
+                    const l = document.getElementById('gmLogo');
+                    if (l) l.classList.toggle('gm-logo-presse', n >= 4);
+                });
+            }
+            /* Sept clics rapprochés sur un élément, et la pièce s'ouvre. « avance »
+               reçoit le compte après chaque clic, et 0 quand la série retombe :
+               c'est à elle de montrer — ou de ne pas montrer — que quelque chose
+               se prépare. */
+            porteDerobee(el, quoi, avance) {
+                if (!el) return;
+                let n = 0, dernier = 0, minuteur = null;
+                const rendre = (k) => { try { if (avance) avance(k); } catch (e) { void e; } };
+                el.addEventListener('click', () => {
+                    const t = Date.now();
+                    n = (t - dernier < 2500) ? n + 1 : 1;
+                    dernier = t;
+                    clearTimeout(minuteur);
+                    rendre(n);
+                    minuteur = setTimeout(() => { n = 0; rendre(0); }, 2600);
+                    if (n >= 7) {
+                        n = 0;
+                        clearTimeout(minuteur);
+                        rendre(0);
+                        this.ouvrirSecret(quoi);
+                    }
+                });
             }
             ouvrirSecret(quoi) {
                 const v = document.getElementById('secretVoile');
@@ -22531,11 +22703,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (c && this._bancAvecOutils) c.checked = true;
                         if (c) c.addEventListener('change', () => { this._bancAvecOutils = c.checked; });
                     }, 0);
+                } else if (quoi === 'diagnostic') {
+                    /* LE RELEVÉ TECHNIQUE. « Ça ne marche pas chez moi » ne dit ni
+                       la version, ni le navigateur, ni ce qu'il y avait à l'écran.
+                       Tout est ici, et un bouton le copie : il ne reste qu'à le
+                       coller dans un message. Rien n'en part tout seul.
+                       (Le cabinet est la branche PAR DÉFAUT, tout en bas : une
+                       nouvelle pièce se range donc avant lui, jamais après.) */
+                    const t = this.diagnosticTexte();
+                    b.innerHTML = '<h3>Relevé technique</h3>'
+                        + '<p class="secret-mot"><span>Lu sur cette machine, à cet '
+                        + 'instant. Ni le titre du projet ni le contenu de la figure '
+                        + 'n\'y figurent, et rien ne part sur le réseau.</span></p>'
+                        + '<pre class="secret-releve">' + t.replace(/[&<>]/g,
+                            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</pre>'
+                        + '<p class="secret-mot">'
+                        + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
+                        + 'event.stopPropagation(); app.diagnosticCopier(this);">Copier le relevé</a>'
+                        + ' &nbsp;·&nbsp; '
+                        + '<a href="#" class="secret-lien" onclick="event.preventDefault(); '
+                        + 'event.stopPropagation(); app.ouvrirSecret(\'cabinet\');">Retour</a>'
+                        + '</p>';
                 } else {
                     /* LE CABINET DE CURIOSITÉS. Les deux figures qui ne sont dans
                        aucune liste — c'est ici, et nulle part ailleurs, qu'on
                        apprend leur nom. */
+                    /* LA VERSION, DÈS L'ENTRÉE. C'est la première question qu'on
+                       pose quand quelque chose cloche, et la porte dérobée est
+                       justement l'endroit où l'on arrive quand on cherche. */
                     b.innerHTML = '<h3>Cabinet de curiosités</h3>'
+                        + '<p class="secret-mot"><span>Version '
+                        + String(window.GM_VERSION || '?').replace(/[&<>]/g,
+                            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+                        + '</span></p>'
                         + '<p class="secret-mot">Deux figures ne figurent dans aucun menu. '
                         + 'Écrivez-les dans une consigne :</p>'
                         + '<ul class="secret-liste">'
@@ -22553,7 +22753,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         + 'app.ouvrirSecret(\'usages\');">Voir les usages de cette machine</a></p>'
                         + '<p class="secret-mot"><a href="#" class="secret-lien" '
                         + 'onclick="event.preventDefault(); event.stopPropagation(); '
-                        + 'app.ouvrirSecret(\'phrases\');">Banc d\'essai des phrases</a></p>';
+                        + 'app.ouvrirSecret(\'phrases\');">Banc d\'essai des phrases</a></p>'
+                        + '<p class="secret-mot"><a href="#" class="secret-lien" '
+                        + 'onclick="event.preventDefault(); event.stopPropagation(); '
+                        + 'app.ouvrirSecret(\'diagnostic\');">Relevé technique</a></p>';
                 }
                 v.classList.add('ouvert');
                 /* UN PANNEAU OÙ L'ON ÉCRIT NE PEUT PAS SE FERMER À LA FRAPPE.
@@ -44828,7 +45031,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-21 · 14h';
+        window.GM_VERSION = '2026-09-21 · 17h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
