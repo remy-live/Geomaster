@@ -1193,6 +1193,35 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### L'icône du texte appartient enfin à sa famille
+
+*« Je trouve que l'icône du texte n'est pas très parlante, fais-m'en une
+cohérente. »*
+
+Toute la barre d'outils est dessinée **au trait** : `stroke="currentColor"`,
+épaisseur 2, `fill="none"`. L'icône du texte était la seule faite d'une **lettre
+composée** — un `<text>` rempli — et, avec la flèche du pointeur, l'une des deux
+seules sans trait. Une lettre composée ne suit pas l'épaisseur de ses voisines,
+ne se règle pas, et dépend d'une police présente ; agrandie, le A tombait en
+masse pleine au milieu d'un alphabet de traits fins. S'y ajoutaient un petit
+carré flottant en haut à droite et un point que la jambe du A avalait : deux
+détails qui ne disaient rien et se lisaient comme des poussières à 24 px.
+
+**Ce qui ne clochait pas, et qu'il fallait mesurer avant de l'écrire.** À l'œil,
+l'ancienne icône paraissait « plus lourde ». La part d'encre dit le contraire :
+4,9 % de la vignette contre 5,6 % pour le T, dans une famille qui va de 5,6 à
+9,6 %. Ce n'était donc pas une question de quantité d'encre mais de
+**répartition** — une masse pleine contre des traits.
+
+Le **T à empattements** est le signe universel de l'écriture. Ses deux crochets
+du haut comptent : sans eux, un T nu se confondrait avec le ⊥ de la
+perpendiculaire, deux boutons plus haut dans la même colonne et fait des deux
+mêmes traits, une barre et un fût. Mesuré : 69 % des pixels encrés diffèrent
+entre les deux vignettes.
+
+Et l'aide en ligne montre le même dessin. Elle sert à retrouver un bouton du
+doigt ; elle ne peut pas en montrer un autre.
+
 ### Le texte se pose où on l'a vu
 
 *« Pour le texte, j'aimerais avoir le curseur de tape plutôt qu'une croix pour
@@ -2831,7 +2860,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 118 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 119 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

@@ -8617,12 +8617,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             style="font-size: 11px; color:#999; text-transform:uppercase; border-bottom:1px solid #eee; padding-bottom:5px; margin-top:20px;">
                             Formes & Annotations</h3>
                         <div class="help-item-row">
+                            <!-- Le même T que dans la barre : l'aide montre ce qu'on
+                                 y cherche du doigt, sinon elle ne sert à rien. -->
                             <div class="help-item-icon"><svg viewBox="0 0 24 24" width="24" height="24"
-                                    fill="currentColor"><text x="12" y="18" font-family="Arial" font-size="16"
-                                        font-weight="bold" text-anchor="middle">A</text>
-                                    <path d="M14 6 L17 6 L17 8 L15 8 L15 6 L14 6" stroke="currentColor" stroke-width="1"
-                                        fill="none" />
-                                    <circle cx="16" cy="17" r="1" />
+                                    stroke="currentColor" stroke-width="2" fill="none"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 8V5h14v3" />
+                                    <path d="M12 5v14" />
+                                    <path d="M9 19h6" />
                                 </svg></div>
                             <div class="help-item-desc"><strong>Texte</strong>Cliquez n'importe où pour écrire, ou sur
                                 un point pour le renommer. Le <b>gras</b>, l'<i>italique</i> et le <u>souligné</u>
@@ -9949,13 +9951,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 </svg>
             </button>
             <div class="group-label">Annot.</div>
+            <!-- LE T DE L'OUTIL TEXTE. « Je trouve que l'icône du texte n'est pas
+                 très parlante. » C'était un A PLEIN dans une barre entièrement en
+                 trait : la seule icône remplie de la rangée, donc la plus lourde et
+                 la plus sombre, et la seule faite d'une lettre composée — elle ne
+                 suivait pas l'épaisseur des autres, qui est de 2. S'y ajoutaient un
+                 petit carré flottant en haut à droite et un point que la jambe du A
+                 avalait : deux détails qui ne disaient rien et se lisaient comme
+                 des poussières à 24 px.
+                 Le T à empattements est le signe universel de l'écriture, et ses
+                 deux crochets du haut l'empêchent d'être confondu avec le ⊥ de la
+                 perpendiculaire, deux boutons plus haut. Il est dessiné au trait,
+                 à la même épaisseur que ses voisines. -->
             <button class="tool-btn" onclick="app.setTool('text')" aria-label="Texte / Renommer"
                 data-tooltip="Texte / Renommer">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                    <text x="12" y="18" font-family="Arial" font-size="16" font-weight="bold"
-                        text-anchor="middle">A</text>
-                    <path d="M14 6 L17 6 L17 8 L15 8 L15 6 L14 6" stroke="currentColor" stroke-width="1" fill="none" />
-                    <circle cx="16" cy="17" r="1" />
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
+                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 8V5h14v3" />
+                    <path d="M12 5v14" />
+                    <path d="M9 19h6" />
                 </svg>
             </button>
             <button class="tool-btn" onclick="app.setTool('angle')" aria-label="Angle" data-tooltip="Angle">
@@ -44751,7 +44765,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-18 · 11h';
+        window.GM_VERSION = '2026-09-21 · 9h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES
