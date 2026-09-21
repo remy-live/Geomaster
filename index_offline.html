@@ -34128,6 +34128,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return rate("Je sais effacer TOUT — écrivez « efface tout ». "
                             + "Pour un seul objet, la gomme ou Ctrl+Z.");
                     }
+                    /* AVANT TOUT BÂTISSEUR : ce que le logiciel ne sait pas faire,
+                       il le DIT. Voir cslSansBatisseur — un mot de la phrase
+                       suffisait à l'envoyer vers un bâtisseur qui ne lisait pas le
+                       reste, et il répondait « Carré ABCD » à qui demandait les
+                       carrés de Pythagore. Le garde-fou passe AVANT l'angle, le
+                       cercle et les figures : placé après, chacun d'eux attrapait
+                       encore sa phrase au passage. */
+                    const hors = this.cslSansBatisseur(t, rate);
+                    if (hors) return hors;
                     /* « Prolonge [AB] », « Partage [AB] en trois parts égales » :
                        deux verbes d'énoncé qui ne construisaient rien, tout en
                        répondant « Segment [AB] » comme si c'était fait. */
@@ -34300,6 +34309,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                posés, inventer le troisième déplacerait la figure de quelqu'un —
                là, on demande. Rendre null laisse l'appelant dire son propre
                message. */
+            /* CE QU'ON NE SAIT PAS FAIRE, ON LE DIT.
+             *
+             * C'est la faute la plus grave que ce logiciel puisse commettre, et
+             * c'est la seule que l'élève ne voit pas : répondre « oui » et dessiner
+             * autre chose. Mesuré avant, sur un triangle ABC déjà tracé —
+             *
+             *   « Trace deux triangles semblables »        → « Triangle DEF »,
+             *                                                 UN seul triangle
+             *   « Trace un angle égal à l'angle ABC »      → « Angle ABC marqué »,
+             *                                                 rien de neuf
+             *   « Trace les carrés de Pythagore… »         → « Carré ABCD », UN
+             *                                                 carré, au hasard
+             *   « Trace un losange à partir de deux cercles » → « Losange DEFG »,
+             *                                                 ZÉRO cercle
+             *   « Trace la symétrie axiale d'un carré »    → « Carré DEFG », ni
+             *                                                 axe ni image
+             *   « Trace une droite graduée »               → « Droite (d) », sans
+             *                                                 une graduation
+             *
+             * Le point commun : un mot — « triangles », « carré », « losange »,
+             * « droite » — suffisait à envoyer la phrase vers un bâtisseur qui ne
+             * lisait pas le reste. Le professeur s'en aperçoit, trois minutes trop
+             * tard ; l'élève, jamais.
+             *
+             * Refuser n'est pas une reculade : un refus qui dit POURQUOI et ce
+             * qu'on peut écrire à la place vaut mieux qu'une figure fausse
+             * annoncée comme juste. Chaque ligne d'ici est une construction à
+             * écrire, pas une limite définitive — et le jour où elle existe, on
+             * retire la ligne. */
+            cslSansBatisseur(t, rate) {
+                const CAS = [
+                    [/\bsemblables?\b/,
+                     "Les figures semblables ne sont pas encore construites. "
+                     + "En attendant : « Trace un agrandissement du triangle ABC de rapport 2 » "
+                     + "donne deux triangles de mêmes angles."],
+                    [/angles?\s+[ée]gal(?:e|es|aux)?\b|report\w*\s+d(?:e|'un)\s+angle/,
+                     "Le report d'angle au compas n'est pas encore construit. "
+                     + "En attendant : « Trace un angle de 50° » pose la mesure au rapporteur."],
+                    [/pythagore/,
+                     "Les carrés de Pythagore ne sont pas encore construits. "
+                     + "En attendant : « Trace un triangle rectangle en A », puis un carré sur "
+                     + "chaque côté."],
+                    [/[àa]\s+partir\s+de\s+deux\s+cercles|avec\s+deux\s+cercles/,
+                     "La construction au compas à partir de deux cercles n'est pas encore faite. "
+                     + "En attendant : « Trace deux cercles sécants » pose les deux cercles et "
+                     + "leurs points d'intersection."],
+                    [/sym[ée]trie\s+(?:axiale|centrale)\s+d['’]un\b/,
+                     "Écrivez plutôt ce qui est symétrique de quoi : "
+                     + "« Construis A'B'C'D' symétrique de ABCD par rapport à (d) »."],
+                    [/\bgradu[ée]e?s?\b/,
+                     "La droite graduée n'est pas encore construite — celle-ci n'aurait aucune "
+                     + "graduation. En attendant, la règle sort avec les siennes."],
+                ];
+                for (const [re, mot] of CAS) {
+                    if (re.test(t)) return rate(mot);
+                }
+                return null;
+            }
             cslTriangleAbsent(noms) {
                 const trois = (noms || []).slice(0, 3);
                 if (trois.length < 3) return null;
@@ -34341,7 +34408,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    Seulement quand AUCUN des trois sommets n'existe : si deux sont
                    déjà posés, inventer le troisième déplacerait la figure de
                    quelqu'un. Là, on demande. */
+                /* LE TRIANGLE EST CELUI QUE LA PHRASE APPELLE « triangle », pas
+                   les trois premières lettres venues. Mesuré, sur feuille vide :
+                   « Place le centre du cercle circonscrit O au triangle ABC »
+                   répondait « C — centre du cercle circonscrit de OAB ». Les noms
+                   sont relevés dans l'ordre où ils apparaissent, et O vient en
+                   tête : le triangle inventé devenait OAB, et la lettre qui
+                   restait — C — allait au centre. La figure était juste, les noms
+                   tous faux, et la réponse l'affirmait tranquillement. Quand la
+                   phrase écrit « triangle ABC », ces trois-là passent devant. */
                 if (sommets.length === 0 && noms.length >= 3) {
+                    const dit = brut.match(/triangles?\s+([A-Z]'{0,2})\s*([A-Z]'{0,2})\s*([A-Z]'{0,2})/);
+                    if (dit) {
+                        const trois = [dit[1], dit[2], dit[3]];
+                        noms = trois.concat(noms.filter(n => !trois.includes(n)));
+                    }
                     sommets = this.cslTriangleAbsent(noms) || sommets;
                 }
                 if (sommets.length < 3) {
@@ -45031,7 +45112,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-21 · 17h';
+        window.GM_VERSION = '2026-09-21 · 20h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

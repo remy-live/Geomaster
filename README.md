@@ -1193,6 +1193,44 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Ne pas dire qu'on a fait ce qu'on n'a pas fait
+
+C'est la faute la plus grave que ce logiciel puisse commettre, et la seule que
+l'élève ne voit pas : répondre « oui » et dessiner autre chose. `IDEES.md` la
+mettait en tête de liste depuis le début — et elle y est restée, parce
+qu'**aucune sonde ne la tenait**. Tout ce qui a été corrigé ces jours-ci l'a été
+parce qu'une sonde le mesurait ; cette classe-là n'avait pas de garde-fou, et
+c'est exactement pour cela qu'elle a survécu.
+
+Mesuré, sur un triangle ABC déjà tracé :
+
+| Ce qu'on écrit | Ce qui se passait |
+|---|---|
+| `Trace deux triangles semblables` | « Triangle DEF » — **un seul** |
+| `Trace un angle égal à l'angle ABC` | « Angle ABC marqué » — rien de neuf |
+| `Trace les carrés de Pythagore…` | « Carré ABCD » — **un** carré, au hasard |
+| `Trace un losange à partir de deux cercles` | « Losange DEFG » — **zéro cercle** |
+| `Trace la symétrie axiale d'un carré` | « Carré DEFG » — ni axe ni image |
+| `Trace une droite graduée` | « Droite (d) » — sans une graduation |
+
+La règle que tient désormais `probe-dit-vrai.js` : **quand le logiciel répond
+oui, ce que la consigne promet littéralement doit être sur la feuille.** Un
+nombre écrit — « deux cercles » — se compte ; un genre nommé se cherche ; on ne
+juge rien d'autre, ni le beau ni le juste, seulement le promis.
+
+Et **le refus est une réponse acceptable** : une phrase refusée ne ment pas, à
+condition de dire ce qu'on peut écrire à la place. Les six refusent maintenant,
+et chacune propose la tournure qui marche. Le jour où l'une de ces constructions
+existe, la ligne change de camp toute seule — la sonde vérifie alors la figure au
+lieu du refus. La liste ne peut plus vieillir en silence.
+
+La même règle passe sur les **205 phrases du catalogue**. C'est ce balayage qui a
+trouvé, sur feuille vide, `Place le centre du cercle circonscrit O au triangle
+ABC` répondre « C — centre du cercle circonscrit de **OAB** » : les noms sont
+relevés dans l'ordre d'apparition, O venait en tête, le triangle inventé devenait
+OAB et la lettre qui restait allait au centre. La figure était juste, les noms
+tous faux, et la réponse l'affirmait tranquillement.
+
 ### Le nom du logiciel, et la porte qu'il y a derrière
 
 *« J'aimerais entre le Géomaster en haut à gauche et l'input du fichier un écart
@@ -2966,7 +3004,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 120 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 121 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

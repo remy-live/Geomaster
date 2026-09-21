@@ -9,12 +9,18 @@ différence entre les deux ; le professeur, si, mais trois minutes trop tard.
 
 ---
 
-## 1. Les phrases qui répondent « oui » et font autre chose
+## 1. Les phrases qui répondaient « oui » et faisaient autre chose
 
-Ce sont les plus urgentes. Le logiciel affirme avoir fait quelque chose qu'il n'a
-pas fait, et rien sur l'écran ne prévient.
+**Elles ne mentent plus : elles refusent, et disent quoi écrire à la place.** Un
+refus qui explique vaut mieux qu'une figure fausse annoncée comme juste. Restent
+donc à CONSTRUIRE — c'est le tableau ci-dessous, et `probe-dit-vrai.js` monte la
+garde : le jour où l'une existe, la sonde vérifie la figure au lieu du refus, sans
+qu'on ait à toucher à quoi que ce soit.
 
-| Ce qu'on écrit | Ce que ça donne aujourd'hui | Ce que ça devrait donner |
+Cette classe de défaut avait survécu à tout parce qu'**aucune sonde ne la
+tenait** — tout le reste avait été corrigé parce qu'une sonde le mesurait.
+
+| Ce qu'on écrit | Ce que ça donnait (mesuré) | Ce que ça devrait donner |
 |---|---|---|
 | `Trace deux triangles semblables` | **un seul** triangle, « Triangle FGH » | deux triangles de mêmes angles, rapport affiché |
 | `Trace un angle égal à l'angle ABC` | « Angle ABC marqué » — rien de neuf | le report d'angle au compas, le geste du cours |
@@ -22,11 +28,15 @@ pas fait, et rien sur l'écran ne prévient.
 | `Trace un losange à partir de deux cercles` | un losange, **sans les cercles** | la construction au compas, deux cercles de même rayon |
 | `Trace la symétrie axiale d'un carré` | un carré, **sans symétrie** | le carré, l'axe, et l'image |
 
+S'y ajoutait une sixième, trouvée en balayant le corpus : `Trace une droite
+graduée` répondait « Droite (d) » et traçait une droite **sans une graduation**.
+
 Le point commun : un mot de la phrase (« triangles », « cercles », « carré »,
-« losange ») suffit à l'envoyer vers un bâtisseur qui ne lit pas le reste. La
-parade est la même partout, et elle a déjà servi trois fois cette semaine — faire
-passer le mot le PLUS PRÉCIS devant, et refuser clairement quand il n'y a pas de
-bâtisseur derrière.
+« losange », « droite ») suffisait à l'envoyer vers un bâtisseur qui ne lisait pas
+le reste. La parade est celle qui était déjà prescrite ici — faire passer le mot
+le PLUS PRÉCIS devant, et refuser clairement quand il n'y a pas de bâtisseur
+derrière. C'est `cslSansBatisseur`, qui passe avant l'angle, le cercle et les
+figures : placé après, chacun d'eux attrapait encore sa phrase au passage.
 
 **Ce qui a été réparé, exactement pour cette raison :**
 
@@ -94,10 +104,10 @@ Classé par ce que ça coûte à écrire.
   successives ; un pavage, deux translations. Les trois se ramènent à *répéter
   une transformation n fois* — une seule mécanique pour trois chapitres, du CM2
   à la 5e, et de très belles figures.
-- **Le programme de construction à l'envers.** Le logiciel sait exécuter une
-  suite de consignes ; il pourrait **relire une figure et écrire les consignes**.
-  C'est l'exercice « rédige un programme de construction » de tous les manuels, et
-  c'est le seul de la liste qu'aucun autre logiciel ne fait.
+- ~~**Le programme de construction à l'envers.**~~ **Fait** — et cette liste ne
+  s'en était pas aperçue, ce qui est exactement le défaut qu'elle dénonce chez les
+  autres. Une figure dessinée à la souris rend « Trace un triangle ABC isocèle en
+  C tel que CA = CB = 6,4 cm et AB = 8 cm. »
 - **La sphère, le cylindre et le cône en perspective.** Il faudrait des ellipses
   — une classe de plus, avec son enregistrement et sa sélection. En attendant,
   les trois sont **refusés en disant pourquoi**, et le refus renvoie au patron,
@@ -130,7 +140,9 @@ Classé par ce que ça coûte à écrire.
   `Nomme O le centre du cercle`. (Les deux autres — le report de longueur et
   `Que dire de ABC ?` — sont réglées : la première est faite, la seconde est une
   question et répond maintenant « rien à tracer ».)
-- **`Trace la médiane issue de A`** sans nommer le triangle échoue, alors que
-  `Trace la hauteur issue de A` s'en tire en reprenant le triangle courant. Deux
-  phrases jumelles, deux comportements : c'est le genre d'écart qui use la
-  confiance.
+- ~~**`Trace la médiane issue de A`** sans nommer le triangle échoue~~ — **faite** :
+  elle reprend le triangle courant comme sa jumelle la hauteur.
+
+- **Imprimer.** Mesuré : zéro règle `@media print`, aucun bouton. Ctrl+P — le
+  réflexe devant une figure — imprime toute l'interface. L'export PDF existe, mais
+  il faut le savoir.
