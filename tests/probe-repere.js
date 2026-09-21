@@ -195,6 +195,113 @@ const ck = (nom, ok, detail) => {
            aller.svgTextes.join(' '));
     }
 
+    /* LE REPÈRE TOMBE SUR LE QUADRILLAGE.
+     *
+     * « Essaye de bien aligner le repère avec les graduations existantes. »
+     *
+     * Le quadrillage du fond est tracé aux multiples de UNIT, en coordonnées de
+     * feuille. La place libre, elle, ne connaît que le vide : mesuré, l'origine
+     * tombait à 46 px et 49,5 px des nœuds, et les graduations passaient ENTRE
+     * les carreaux. Sur une feuille quadrillée, c'est tout ce qu'on voit.
+     */
+    console.log('\n=== le repère tombe sur le quadrillage ===');
+    {
+        const g = await page.evaluate(() => {
+            const a = window.app;
+            const out = [];
+            ['Trace un repère', "Trace un repère d'unité 2 cm",
+             'Trace un repère de -10 à 10', 'Trace une droite graduée'].forEach((p) => {
+                a.entities = []; a.historyPast = [];
+                if (a.cslOublier) a.cslOublier();
+                a.executerConsigneAvec(p, false);
+                const r = a.entities.filter(e => e instanceof Repere).pop();
+                const O = r && r.origine;
+                out.push({ p,
+                    ecartX: O ? Math.abs(((O.x % UNIT) + UNIT) % UNIT) : null,
+                    ecartY: O ? Math.abs(((O.y % UNIT) + UNIT) % UNIT) : null,
+                    /* Et l'unité doit être un nombre ENTIER de carreaux, sans quoi
+                       une graduation sur deux tomberait à côté. */
+                    cases: r ? r.unite / UNIT : null });
+            });
+            return out;
+        });
+        g.forEach((r) => {
+            ck('« ' + r.p +' » : l\'origine est sur un nœud',
+               r.ecartX === 0 && r.ecartY === 0, `${r.ecartX} ; ${r.ecartY} px du nœud`);
+            ck('  et son unité fait un nombre entier de carreaux',
+               Number.isInteger(r.cases), r.cases + ' carreau(x)');
+        });
+    }
+
+    console.log('\n=== ce que la phrase règle encore ===');
+    {
+        const lire = (p) => page.evaluate((p) => {
+            const a = window.app;
+            a.entities = []; a.historyPast = [];
+            if (a.cslOublier) a.cslOublier();
+            let r;
+            try { r = a.executerConsigneAvec(p, false); }
+            catch (e) { return { boum: e.message }; }
+            const rep = a.entities.filter(e => e instanceof Repere).pop();
+            return { ok: !!(r && r.ok), msg: (r && r.message) || '',
+                     axes: rep ? rep.axes : null, pas: rep ? rep.pas : null,
+                     bornes: rep ? [rep.xMin, rep.xMax, rep.yMin, rep.yMax] : null,
+                     couleur: rep ? rep.color : null };
+        }, p);
+        const axe = await lire('Trace un repère avec x de -3 à 8 et y de 0 à 5');
+        ck('les bornes se disent axe par axe',
+           JSON.stringify(axe.bornes) === '[-3,8,0,5]', JSON.stringify(axe.bornes));
+        for (const [p, attendu] of [
+            ['Trace un repère de -10 à 10 de 2 en 2', 2],
+            ['Trace un repère gradué tous les 5 de -20 à 20', 5],
+            ['Trace un repère de -4 à 4 avec un pas de 0,5', 0.5],
+        ]) {
+            const r = await lire(p);
+            ck('« ' + p + ' » → pas de ' + attendu, r.pas === attendu, String(r.pas));
+        }
+        const bleu = await lire("Trace un repère d'unité 2 cm en bleu");
+        ck('la couleur se dit dans la phrase', bleu.couleur === '#1e88e5', bleu.couleur);
+        ck('  et la réponse la répète', /bleu/.test(bleu.msg), bleu.msg);
+    }
+
+    /* LA DROITE GRADUÉE EST LE MÊME OBJET SANS SON AXE VERTICAL. Une seule
+       classe, deux figures : l'enregistrement, le lien et l'export marchent pour
+       les deux sans une ligne de plus. */
+    console.log('\n=== la droite graduée de 6e ===');
+    {
+        const d = await page.evaluate(() => {
+            const a = window.app;
+            a.entities = []; a.historyPast = [];
+            if (a.cslOublier) a.cslOublier();
+            const r = a.executerConsigneAvec('Trace une droite graduée de 0 à 20 de 2 en 2', false);
+            const rep = a.entities.filter(e => e instanceof Repere).pop();
+            const svg = a.generateSVGString(false, 'text') || '';
+            const textes = (svg.match(/<text[^>]*>([^<]*)<\/text>/g) || [])
+                .map(x => x.replace(/<[^>]*>/g, ''));
+            return { ok: !!(r && r.ok), msg: (r && r.message) || '',
+                     axes: rep ? rep.axes : null,
+                     bornes: rep ? [rep.xMin, rep.xMax] : null,
+                     pas: rep ? rep.pas : null,
+                     textes, fleches: (svg.match(/<polygon /g) || []).length,
+                     pointsVisibles: a.entities.filter(e => e instanceof Point
+                        && e.visible !== false).length };
+        });
+        ck('la phrase est comprise', d.ok, d.msg);
+        ck('  c\'est un repère à un seul axe', d.axes === 'x', String(d.axes));
+        ck('  de 0 à 20', JSON.stringify(d.bornes) === '[0,20]', JSON.stringify(d.bornes));
+        /* LE ZÉRO S'ÉCRIT ICI, contrairement au plan : sur une droite l'origine
+           n'a pas de nom, et une graduation muette à 0 la rend illisible. */
+        ck('  le zéro est écrit', d.textes.includes('0'), d.textes.join(' '));
+        ck('  les nombres vont de 2 en 2',
+           ['0', '2', '4', '20'].every(n => d.textes.includes(n))
+           && !d.textes.includes('1'), d.textes.join(' '));
+        ck('  une seule flèche, pas deux', d.fleches === 1, String(d.fleches));
+        ck('  et pas de nom d\'axe à citer',
+           !d.textes.includes('x') && !d.textes.includes('y'), d.textes.join(' '));
+        ck('  son origine ne traîne pas comme un point', d.pointsVisibles === 0,
+           d.pointsVisibles + ' point(s) visible(s)');
+    }
+
     /* CE QUI NE SE VOIT PAS : la barre d'outils n'a pas grossi. C'est la moitié
        de la décision, et c'est celle qu'on oublie de tenir. */
     console.log('\n=== et la barre d\'outils n\'a pas grossi ===');

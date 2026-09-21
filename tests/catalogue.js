@@ -59,6 +59,13 @@ const GROUPES = [
     ['Place le point A(3;2)', { pts: VIDE, prep: ['Trace un repère'] }],
     ['Place les points A(1;2) et B(-3;4)', { pts: VIDE, prep: ['Trace un repère'] }],
     ['Place les points A(3;2), B(-2;1) et C(1;-3)', { pts: VIDE, prep: ['Trace un repère'] }],
+    ['Trace un repère avec x de -3 à 8 et y de 0 à 5', { pts: VIDE }],
+    ['Trace un repère de -10 à 10 de 2 en 2', { pts: VIDE }],
+    ['Trace un repère gradué tous les 5 de -20 à 20', { pts: VIDE }],
+    ["Trace un repère d'unité 2 cm en bleu", { pts: VIDE }],
+    ['Trace une droite graduée', { pts: VIDE }],
+    ['Trace une droite graduée de 0 à 20 de 2 en 2', { pts: VIDE }],
+    ['Trace une droite graduée de -5 à 5 en rouge', { pts: VIDE }],
   ]],
   ['Traits', [
     'Trace [AB]',

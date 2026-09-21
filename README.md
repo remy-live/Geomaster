@@ -1234,6 +1234,46 @@ qu'elle ne connaît pas y tombe sans rien dire. La figure serait sortie sans ses
 axes, et rien ne l'aurait signalé — exactement la faute que la section précédente
 vient d'outiller.
 
+### Aligné sur le quadrillage, et réglable à la phrase
+
+*« On pourrait rajouter des options dans le texte pour les repères et droites
+(genre de quelle à quelle graduation, le pas, etc.) et même mettre des couleurs
+différentes. Par contre essaye de bien aligner le repère avec les graduations
+existantes. »*
+
+**L'alignement d'abord, parce qu'il était faux.** Le quadrillage du fond est tracé
+aux multiples de `UNIT`, en coordonnées de feuille ; la place libre, elle, ne
+connaît que le vide. Mesuré : l'origine tombait à **46 px et 49,5 px** des nœuds,
+et les graduations passaient *entre* les carreaux. Sur une feuille quadrillée,
+c'est tout ce qu'on voit. L'origine s'arrondit donc au nœud le plus proche —
+vingt-cinq pixels de déplacement au pire — et la sonde exige zéro écart, sur les
+quatre variantes.
+
+**Ce que la phrase règle**, et tout est facultatif :
+
+| Ce qu'on écrit | Ce qu'on obtient |
+|---|---|
+| `Trace un repère de -10 à 10` | les mêmes bornes sur les deux axes |
+| `Trace un repère avec x de -3 à 8 et y de 0 à 5` | une étendue par axe |
+| `… de 2 en 2`, `… tous les 5`, `… avec un pas de 0,5` | le pas des nombres |
+| `Trace un repère d'unité 2 cm` | l'unité, en centimètres |
+| `… en bleu`, `… en rouge` | la couleur |
+
+Trois façons de dire le pas, parce qu'un professeur emploie les trois.
+
+**Et la droite graduée est le même objet sans son axe vertical.** Une seule
+classe, deux figures : l'enregistrement, le lien et l'export marchent pour les
+deux sans une ligne de plus. `Trace une droite graduée de 0 à 20 de 2 en 2` donne
+la droite de 6e — une flèche au lieu de deux, pas de nom d'axe à citer, et le
+**zéro écrit** : dans le plan, le point O le dit déjà et l'écrire une seconde fois
+ferait doublon ; sur une droite, l'origine n'a pas de nom et une graduation muette
+à 0 rend la droite illisible.
+
+Cette dernière phrase était l'une des six qui mentaient. Elle a **changé de camp
+toute seule** : `probe-dit-vrai.js` ne vérifie plus son refus mais sa figure,
+comme annoncé — il a seulement fallu lui apprendre qu'un repère porte des
+graduations sans avoir de propriété qui le dise.
+
 ### Ne pas dire qu'on a fait ce qu'on n'a pas fait
 
 C'est la faute la plus grave que ce logiciel puisse commettre, et la seule que
@@ -3059,7 +3099,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **211 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **218 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

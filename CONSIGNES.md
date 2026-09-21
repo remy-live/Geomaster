@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**211 phrases**, dont 211 passent.
+**218 phrases**, dont 218 passent.
 
 Quelques principes qui valent partout :
 
@@ -54,6 +54,13 @@ Quelques principes qui valent partout :
 | Place le point A(3;2) | A(3 ; 2) |
 | Place les points A(1;2) et B(-3;4) | A(1 ; 2), B(-3 ; 4) |
 | Place les points A(3;2), B(-2;1) et C(1;-3) | A(3 ; 2), B(-2 ; 1), C(1 ; -3) |
+| Trace un repère avec x de -3 à 8 et y de 0 à 5 | Repère d'origine O — unité 1 cm |
+| Trace un repère de -10 à 10 de 2 en 2 | Repère d'origine O — de 2 en 2, unité 1 cm |
+| Trace un repère gradué tous les 5 de -20 à 20 | Repère d'origine O — de 5 en 5, unité 1 cm |
+| Trace un repère d'unité 2 cm en bleu | Repère d'origine O — unité 2 cm — en bleu |
+| Trace une droite graduée | Droite graduée — de 0 à 10, unité 1 cm |
+| Trace une droite graduée de 0 à 20 de 2 en 2 | Droite graduée — de 0 à 20, de 2 en 2, unité 1 cm |
+| Trace une droite graduée de -5 à 5 en rouge | Droite graduée — de -5 à 5, unité 1 cm — en rouge |
 
 ## Traits
 

@@ -130,8 +130,13 @@ const corpus = () => fs.readFileSync(path.join(RACINE, 'CONSIGNES.md'), 'utf8')
             if (/sym[ée]trie|sym[ée]trique/.test(t) && a.entities.length <= nAvant) {
                 manque.push('« symétrie » → rien de plus');
             }
+            /* « GRADUÉE » VEUT DIRE DES GRADUATIONS. Le jour où la droite graduée
+               a été construite, cette ligne a changé de camp toute seule — c'était
+               le pari de cette sonde. Encore fallait-il qu'elle sache reconnaître
+               ce qui porte des graduations : un Repere en porte, et il n'a ni
+               propriété « graduations » ni texte. */
             if (/\bgradu[ée]e?s?\b/.test(t)
-                && !a.entities.some(e => e.graduations || e.repere
+                && !a.entities.some(e => e instanceof Repere || e.graduations || e.repere
                     || e instanceof TextLabel || e instanceof Annotation)) {
                 manque.push('« graduée » → aucune graduation');
             }
