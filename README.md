@@ -1193,6 +1193,47 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le repère — et où l'on met une fonctionnalité sans alourdir
+
+C'est la figure de la 5e, et celle de tous les chapitres de fonctions ensuite.
+Elle n'existait pas : `Trace un repère` répondait « Je n'ai pas compris », et
+`Place le point A(3;2)` posait un point **au hasard** — les coordonnées étaient
+lues, puis jetées, et la réponse ne disait rien.
+
+**Il n'a pas de bouton, et c'est la moitié de la décision.** Mesuré : la barre
+d'outils compte 23 icônes, dont **15 hors écran sur un téléphone** ; l'en-tête en
+ajoute 21. Un repère se pose une fois par exercice — c'est une phrase, pas un
+geste. Le flocon de Koch, la spirale de Théodore, le patron du cube et la droite
+d'Euler vivent déjà ainsi, sans une icône. La phrase est la seule surface qui ne
+coûte aucun pixel, et la sonde vérifie qu'aucun bouton n'a été ajouté.
+
+**Son origine est un vrai point de la figure**, nommé O. Ce n'est pas un détail
+d'enregistrement : c'est ce qui permet de *tirer* le repère pour le déplacer,
+comme n'importe quoi d'autre, et de l'enregistrer sans inventer un second
+mécanisme. Tout le reste — axes, graduations, nombres — se déduit de lui et de
+l'unité.
+
+**Et l'axe des ordonnées monte.** Le canevas compte ses y vers le bas ; un repère
+les compte vers le haut. Les deux conversions vivent au même endroit, parce que
+c'est le genre de signe qu'on inverse une fois sur deux quand il traîne dans
+quatre fonctions. La sonde ne se contente donc pas de relire (3;2) — elle
+vérifierait juste avec le signe faux, puisque le calcul et le dessin partagent
+l'erreur — : elle demande qu'une ordonnée positive soit **plus haut à l'écran**,
+en pixels.
+
+La phrase règle ce qui doit l'être : `Trace un repère d'unité 2 cm`,
+`Trace un repère de -10 à 10`. Un second repère est refusé. Sans repère, les
+coordonnées se refusent aussi — pas d'origine, pas d'unité, la phrase ne veut
+rien dire — et un point qui existe déjà n'est **pas déplacé en silence** : il est
+peut-être le sommet d'une figure entière.
+
+Trois allers-retours vérifiés : fichier JSON, lien compact (373 caractères pour
+un repère et un triangle), et **export SVG**. Le dernier est le plus sournois :
+la chaîne d'export est une suite de « sinon si » par classe, et une classe
+qu'elle ne connaît pas y tombe sans rien dire. La figure serait sortie sans ses
+axes, et rien ne l'aurait signalé — exactement la faute que la section précédente
+vient d'outiller.
+
 ### Ne pas dire qu'on a fait ce qu'on n'a pas fait
 
 C'est la faute la plus grave que ce logiciel puisse commettre, et la seule que
@@ -3004,7 +3045,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 121 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 122 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
@@ -3018,7 +3059,7 @@ Voir [`tests/README.md`](tests/README.md).
 
 ## Ce que le logiciel comprend
 
-[`CONSIGNES.md`](CONSIGNES.md) liste **205 phrases** avec, en face de chacune, la
+[`CONSIGNES.md`](CONSIGNES.md) liste **211 phrases** avec, en face de chacune, la
 réponse du logiciel. Le fichier n'est pas écrit à la main : `node
 tests/catalogue.js` exécute réellement chaque phrase dans un navigateur et
 recopie ce qui sort. Une liste tenue à la main ment au bout de trois semaines ;

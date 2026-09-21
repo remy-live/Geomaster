@@ -48,6 +48,18 @@ const GROUPES = [
     'Place le point I intersection de (AB) et (CD)',
     'Place le point D tel que ABCD soit un parallélogramme',
   ]],
+  /* LE REPÈRE. Il n'a pas de bouton — la barre en compte déjà vingt-trois, dont
+     quinze hors écran sur un téléphone — et se pose une fois par exercice : c'est
+     une phrase, pas un geste. Les coordonnées, elles, ne veulent rien dire sans
+     lui, et la phrase le dit quand il manque. */
+  ['Repère et coordonnées', [
+    ['Trace un repère', { pts: VIDE }],
+    ["Trace un repère d'unité 2 cm", { pts: VIDE }],
+    ['Trace un repère de -10 à 10', { pts: VIDE }],
+    ['Place le point A(3;2)', { pts: VIDE, prep: ['Trace un repère'] }],
+    ['Place les points A(1;2) et B(-3;4)', { pts: VIDE, prep: ['Trace un repère'] }],
+    ['Place les points A(3;2), B(-2;1) et C(1;-3)', { pts: VIDE, prep: ['Trace un repère'] }],
+  ]],
   ['Traits', [
     'Trace [AB]',
     'Trace (AB)',

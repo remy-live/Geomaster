@@ -15467,6 +15467,152 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.stroke();
             }
         }
+        /* ============================================================
+           LE REPÈRE
+
+           C'est la figure de la 5e, et celle de tous les chapitres de fonctions
+           ensuite. Elle n'existait pas : « Trace un repère » répondait « Je n'ai
+           pas compris », et « Place le point A(3;2) » posait un point AU HASARD.
+
+           IL N'A PAS DE BOUTON, ET C'EST VOULU. La barre d'outils compte déjà
+           vingt-trois icônes dont quinze sont hors écran sur un téléphone —
+           mesuré. Un repère se pose une fois par exercice : c'est une phrase, pas
+           un geste. Le flocon de Koch, la spirale, le patron du cube et la droite
+           d'Euler vivent déjà ainsi, sans une icône.
+
+           SON ORIGINE EST UN VRAI POINT DE LA FIGURE, nommé O. Ce n'est pas un
+           détail d'enregistrement : c'est ce qui permet de TIRER le repère pour le
+           déplacer, comme n'importe quoi d'autre, et de l'enregistrer sans inventer
+           un second mécanisme. Tout le reste — axes, graduations, nombres — se
+           déduit de lui et de l'unité.
+
+           ET L'AXE DES ORDONNÉES MONTE. Le canevas compte ses y vers le BAS ; un
+           repère les compte vers le haut. Les deux conversions sont ici, et nulle
+           part ailleurs : c'est le genre de signe qu'on inverse une fois sur deux
+           quand il traîne dans quatre fonctions différentes. */
+        class Repere extends GeometryObject {
+            constructor(origine, unite = 50, bornes = {}, id = null) {
+                super(null, null, id);
+                this.origine = origine;
+                this.unite = unite || 50;
+                this.xMin = (bornes.xMin !== undefined) ? bornes.xMin : -5;
+                this.xMax = (bornes.xMax !== undefined) ? bornes.xMax : 5;
+                this.yMin = (bornes.yMin !== undefined) ? bornes.yMin : -4;
+                this.yMax = (bornes.yMax !== undefined) ? bornes.yMax : 4;
+                this.nomX = 'x';
+                this.nomY = 'y';
+                this.color = '#2c3e50';
+                this.lineWidth = 1.5;
+                this.fontSize = 13;
+            }
+            /* Des unités vers la feuille, et retour. Le signe de y est ICI. */
+            versFeuille(u, v) {
+                const o = this.origine || { x: 0, y: 0 };
+                return { x: o.x + u * this.unite, y: o.y - v * this.unite };
+            }
+            versRepere(x, y) {
+                const o = this.origine || { x: 0, y: 0 };
+                return { u: (x - o.x) / this.unite, v: (o.y - y) / this.unite };
+            }
+            /* UN NOMBRE TOUS LES COMBIEN ? Écrire chaque graduation d'un repère qui
+               va de −20 à 20 donne quarante nombres collés ; n'en écrire aucun n'est
+               plus un repère. On vise une douzaine par axe, sur les pas familiers —
+               1, 2, 5, 10, puis leurs multiples de dix. */
+            pasNombres() {
+                const etendue = Math.max(this.xMax - this.xMin, this.yMax - this.yMin);
+                const pas = [1, 2, 5, 10, 20, 50, 100];
+                for (const p of pas) if (etendue / p <= 12) return p;
+                return Math.ceil(etendue / 12);
+            }
+            update() { /* tout suit l'origine, il n'y a rien à recalculer */ }
+            /* La zone de prise : le long de l'un ou l'autre axe. On ne prend pas un
+               repère par le vide qu'il entoure. */
+            isNear(x, y) {
+                const o = this.origine;
+                if (!o) return false;
+                const a = this.versFeuille(this.xMin, 0), b = this.versFeuille(this.xMax, 0);
+                const c = this.versFeuille(0, this.yMin), d = this.versFeuille(0, this.yMax);
+                const pres = (p, q) => MathUtils.distanceToSegment(x, y, p.x, p.y, q.x, q.y) < 8;
+                return pres(a, b) || pres(c, d);
+            }
+            dessinerFleche(ctx, x, y, dx, dy) {
+                const n = Math.hypot(dx, dy) || 1;
+                const ux = dx / n, uy = dy / n;
+                const L = 9, l = 4;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - ux * L + uy * l, y - uy * L - ux * l);
+                ctx.lineTo(x - ux * L - uy * l, y - uy * L + ux * l);
+                ctx.closePath();
+                ctx.fill();
+            }
+            draw(ctx, opts) {
+                const o = this.origine;
+                if (!o) return;
+                const options = opts || {};
+                const couleur = options.isToDelete ? '#d32f2f'
+                    : (options.isHovered ? '#00bcd4'
+                    : (options.isSelected ? '#e67e22' : (this.color || '#2c3e50')));
+                ctx.save();
+                ctx.strokeStyle = couleur;
+                ctx.fillStyle = couleur;
+                ctx.lineWidth = this.lineWidth || 1.5;
+                ctx.setLineDash([]);
+                ctx.lineCap = 'butt';
+                /* LES DEUX AXES, qui dépassent d'un tiers d'unité au-delà de la
+                   dernière graduation : une flèche posée SUR le dernier nombre
+                   laisse croire que le repère s'arrête là. */
+                const marge = this.unite / 3;
+                const gx = this.versFeuille(this.xMin, 0), dx = this.versFeuille(this.xMax, 0);
+                const by = this.versFeuille(0, this.yMin), hy = this.versFeuille(0, this.yMax);
+                ctx.beginPath();
+                ctx.moveTo(gx.x - marge, gx.y); ctx.lineTo(dx.x + marge, dx.y);
+                ctx.moveTo(by.x, by.y + marge); ctx.lineTo(hy.x, hy.y - marge);
+                ctx.stroke();
+                this.dessinerFleche(ctx, dx.x + marge, dx.y, 1, 0);
+                this.dessinerFleche(ctx, hy.x, hy.y - marge, 0, -1);
+
+                /* LES GRADUATIONS. Un trait court sur chaque unité, un nombre sur
+                   celles que le pas retient — et jamais sur zéro, où le O du point
+                   d'origine le dirait déjà deux fois. */
+                const pas = this.pasNombres();
+                ctx.font = `${this.fontSize}px ${window.GM_POLICE_PILE || "'Segoe UI', sans-serif"}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                const T = 4;
+                ctx.beginPath();
+                for (let u = Math.ceil(this.xMin); u <= this.xMax; u++) {
+                    if (u === 0) continue;
+                    const p = this.versFeuille(u, 0);
+                    ctx.moveTo(p.x, p.y - T); ctx.lineTo(p.x, p.y + T);
+                }
+                for (let v = Math.ceil(this.yMin); v <= this.yMax; v++) {
+                    if (v === 0) continue;
+                    const p = this.versFeuille(0, v);
+                    ctx.moveTo(p.x - T, p.y); ctx.lineTo(p.x + T, p.y);
+                }
+                ctx.stroke();
+                for (let u = Math.ceil(this.xMin / pas) * pas; u <= this.xMax; u += pas) {
+                    if (u === 0) continue;
+                    const p = this.versFeuille(u, 0);
+                    ctx.fillText(String(u), p.x, p.y + T + 2);
+                }
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                for (let v = Math.ceil(this.yMin / pas) * pas; v <= this.yMax; v += pas) {
+                    if (v === 0) continue;
+                    const p = this.versFeuille(0, v);
+                    ctx.fillText(String(v), p.x - T - 3, p.y);
+                }
+                /* Le nom des axes, au bout de la flèche. */
+                ctx.font = `italic ${this.fontSize + 1}px ${window.GM_POLICE_PILE || "'Segoe UI', sans-serif"}`;
+                ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                if (this.nomX) ctx.fillText(this.nomX, dx.x + marge + 8, dx.y + 2);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                if (this.nomY) ctx.fillText(this.nomY, hy.x - 10, hy.y - marge - 4);
+                ctx.restore();
+            }
+        }
         class Arc extends GeometryObject {
             constructor(center, radius, startAngle, endAngle, id = null) {
                 super(null, null, id);
@@ -20664,6 +20810,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     else if (ent instanceof Circle || ent instanceof CompassCircle) { borderClass = "border-circle"; htmlContent = `Cercle de centre <b>${n(ent.p1) || "O"}</b>`; }
                     else if (ent instanceof Arc || ent instanceof CompassArc) { borderClass = "border-circle"; htmlContent = "Arc de cercle"; }
                     else if (ent instanceof Angle) { borderClass = "border-angle"; const txt = `${n(ent.p1)}${n(ent.p2)}${n(ent.p3)}`; htmlContent = `<span>Angle ${txt}</span>`; }
+                    else if (ent instanceof Repere) { htmlContent = "<span>Repère</span>"; }
                     else if (ent instanceof Polygon) { htmlContent = "Polygone"; }
                     else { htmlContent = "Objet"; }
                     const row = document.createElement('div');
@@ -20817,6 +20964,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (entity instanceof Arc) return 12;
                 if (entity instanceof ToolAnimation) return 13;
                 if (entity instanceof Annotation) return 14;
+                if (entity instanceof Repere) return 15;
                 return 0;
             }
             clearCanvas() {
@@ -20985,6 +21133,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                reste : les liens d'avant se relisent inchangés. */
                             (typeof e.transParam === 'number') ? fa(e.transParam) : 0,
                             (typeof e.transK === 'number') ? fa(e.transK) : 0);
+                    }
+                    else if (e instanceof Repere) {
+                        /* Tout un repère tient en huit champs : son origine (un
+                           point de la figure, donc un rang), l'unité, les quatre
+                           bornes et la couleur. Le reste se déduit. */
+                        arr.push(idMap.has(e.origine && e.origine.id) ? idMap.get(e.origine.id) : -1,
+                            f(e.unite), e.xMin, e.xMax, e.yMin, e.yMax,
+                            this.couleurCompacte(e.color));
                     }
                     else if (e instanceof Segment || e instanceof Line || e instanceof Ray) {
                         arr.push(idMap.get(e.p1.id), idMap.get(e.p2.id), this.couleurCompacte(e.color));
@@ -21343,6 +21499,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             }
                             obj._tempAncre = parseInt(d[2]);
                         }
+                        else if (typeId === 15) {
+                            obj = new Repere(null, parseFloat(d[2] || 50), {
+                                xMin: parseFloat(d[3]), xMax: parseFloat(d[4]),
+                                yMin: parseFloat(d[5]), yMax: parseFloat(d[6]),
+                            });
+                            obj.color = idx2col(d[7] === undefined || d[7] === '' ? 0 : d[7]);
+                            obj._tempOrigine = parseInt(d[1]);
+                        }
                         if (obj) { this.addEntity(obj); tempObjects.push(obj); } else tempObjects.push(null);
                     });
                     const brokenObjects = new Set();
@@ -21376,6 +21540,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (obj._tempAncre >= 0 && !anc) brokenObjects.add(obj);
                             else obj.ancre = anc;
                             delete obj._tempAncre;
+                        }
+                        else if (typeId === 15) {
+                            /* Un repère sans origine n'est pas un repère : tout s'y
+                               mesure à partir d'elle. On le laisse tomber plutôt que
+                               de le poser au coin de la feuille. */
+                            const o = tempObjects[obj._tempOrigine];
+                            if (!o) brokenObjects.add(obj); else obj.origine = o;
+                            delete obj._tempOrigine;
                         }
                     });
                     if (brokenObjects.size > 0) this.entities = this.entities.filter(e => !brokenObjects.has(e));
@@ -25707,6 +25879,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         data.arcCount = e.arcCount || 1;
                         data.coding = e.coding || 'mark-none';
 
+                    } else if (e instanceof Repere) {
+                        data.origineId = e.origine ? e.origine.id : null;
+                        data.unite = e.unite;
+                        data.xMin = e.xMin; data.xMax = e.xMax;
+                        data.yMin = e.yMin; data.yMax = e.yMax;
+                        data.nomX = e.nomX; data.nomY = e.nomY;
                     } else if (e instanceof Polygon) {
                         data.fillMode = e.fillMode;
                         data.opacity = e.opacity;
@@ -25848,6 +26026,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (data.fillMode) obj.fillMode = data.fillMode;
                         if (data.opacity !== undefined) obj.opacity = data.opacity;
                     }
+                    else if (data.type === 'Repere') {
+                        obj = new Repere(null, data.unite, {
+                            xMin: data.xMin, xMax: data.xMax,
+                            yMin: data.yMin, yMax: data.yMax,
+                        }, data.id);
+                        if (data.nomX !== undefined) obj.nomX = data.nomX;
+                        if (data.nomY !== undefined) obj.nomY = data.nomY;
+                    }
                     if (obj) {
                         if (obj instanceof GeometryObject) {
                             obj.color = data.color;
@@ -25909,6 +26095,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // ancre perdue (objet supprimé depuis) : l'encre redevient du décor
                         obj.ancre = data.ancreId ? (idMap.get(data.ancreId) || null) : null;
                         if (!obj.ancre) obj.mode = 'libre';
+                    } else if (data.type === 'Repere') {
+                        obj.origine = idMap.get(data.origineId) || null;
                     } else if (data.type === 'Polygon') {
                         obj.points = data.pointIds.map(pid => idMap.get(pid)).filter(p => p);
                     } else if (data.type === 'ParallelLine' || data.type === 'PerpendicularLine') {
@@ -28482,6 +28670,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 const limit = (this.replayIndex !== null && this.replayIndex < this.entities.length) ? this.replayIndex : this.entities.length;
                 const zIndex = {
+                    /* Le repère est un FOND : la figure se dessine dessus, jamais
+                       dessous. Sans cette ligne il valait 0 comme les polygones et
+                       passait par-dessus eux selon l'ordre de création. */
+                    'Repere': -1,
                     'Polygon': 0,
                     'Angle': 0,
                     'CompassArc': 1,
@@ -29009,6 +29201,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (e instanceof Annotation) {
                         // l'encre part à l'export comme décor, avec sa transparence
                         svgContent += e.versSVG();
+                    }
+                    /* LE REPÈRE PART À L'EXPORT. Une classe que cette chaîne ne
+                       connaît pas tombe SILENCIEUSEMENT : la figure exportée
+                       n'aurait plus eu ses axes, et rien ne l'aurait dit — ce qui
+                       est exactement la faute qu'on vient d'outiller contre. */
+                    else if (e instanceof Repere && e.origine) {
+                        const marge = e.unite / 3;
+                        const gx = e.versFeuille(e.xMin, 0), dx = e.versFeuille(e.xMax, 0);
+                        const by = e.versFeuille(0, e.yMin), hy = e.versFeuille(0, e.yMax);
+                        const w = e.lineWidth || 1.5;
+                        const trait = (p, q) => `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" `
+                            + `stroke="${color}" stroke-width="${w}" />`;
+                        svgContent += trait({ x: gx.x - marge, y: gx.y }, { x: dx.x + marge, y: dx.y });
+                        svgContent += trait({ x: by.x, y: by.y + marge }, { x: hy.x, y: hy.y - marge });
+                        const pointe = (x, y, ux, uy) => {
+                            const L = 9, l = 4;
+                            const p1 = `${x},${y}`;
+                            const p2 = `${x - ux * L + uy * l},${y - uy * L - ux * l}`;
+                            const p3 = `${x - ux * L - uy * l},${y - uy * L + ux * l}`;
+                            return `<polygon points="${p1} ${p2} ${p3}" fill="${color}" />`;
+                        };
+                        svgContent += pointe(dx.x + marge, dx.y, 1, 0);
+                        svgContent += pointe(hy.x, hy.y - marge, 0, -1);
+                        const T = 4, pas = e.pasNombres();
+                        for (let u = Math.ceil(e.xMin); u <= e.xMax; u++) {
+                            if (u === 0) continue;
+                            const p = e.versFeuille(u, 0);
+                            svgContent += trait({ x: p.x, y: p.y - T }, { x: p.x, y: p.y + T });
+                        }
+                        for (let v = Math.ceil(e.yMin); v <= e.yMax; v++) {
+                            if (v === 0) continue;
+                            const p = e.versFeuille(0, v);
+                            svgContent += trait({ x: p.x - T, y: p.y }, { x: p.x + T, y: p.y });
+                        }
+                        /* La même police que les noms de points : celle du logiciel, embarquée,
+                           pour que le PDF écrive les graduations comme le canevas. */
+                        const fam = policePDF(window.GM_POLICE_PILE
+                            || "GeoSans, 'Segoe UI', Arial, sans-serif");
+                        for (let u = Math.ceil(e.xMin / pas) * pas; u <= e.xMax; u += pas) {
+                            if (u === 0) continue;
+                            const p = e.versFeuille(u, 0);
+                            svgContent += `<text x="${p.x}" y="${p.y + T + e.fontSize}" `
+                                + `font-family="${fam}" font-size="${e.fontSize}" `
+                                + `text-anchor="middle" fill="${color}">${u}</text>`;
+                        }
+                        for (let v = Math.ceil(e.yMin / pas) * pas; v <= e.yMax; v += pas) {
+                            if (v === 0) continue;
+                            const p = e.versFeuille(0, v);
+                            svgContent += `<text x="${p.x - T - 3}" y="${p.y + e.fontSize / 3}" `
+                                + `font-family="${fam}" font-size="${e.fontSize}" `
+                                + `text-anchor="end" fill="${color}">${v}</text>`;
+                        }
+                        if (e.nomX) svgContent += `<text x="${dx.x + marge + 8}" y="${dx.y + 6}" `
+                            + `font-family="${fam}" font-size="${e.fontSize + 1}" font-style="italic" `
+                            + `fill="${color}">${e.nomX}</text>`;
+                        if (e.nomY) svgContent += `<text x="${hy.x - 10}" y="${hy.y - marge - 6}" `
+                            + `font-family="${fam}" font-size="${e.fontSize + 1}" font-style="italic" `
+                            + `text-anchor="middle" fill="${color}">${e.nomY}</text>`;
                     }
                     else if (e instanceof Polygon) {
                         const pts = e.points.map(p => `${p.x},${p.y}`).join(' ');
@@ -34137,6 +34387,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        encore sa phrase au passage. */
                     const hors = this.cslSansBatisseur(t, rate);
                     if (hors) return hors;
+                    /* LE REPÈRE ET LES COORDONNÉES, avant les figures : « repère »
+                       n'est pas un mot de forme, et « A(3;2) » se perdait dans le
+                       placement ordinaire, qui lisait la lettre et jetait les
+                       nombres. */
+                    if (/\brep[èe]res?\b/.test(t)
+                        && /^(?:trace|tracer|construis|construire|dessine|dessiner|place|placer|pose|poser)\b/.test(t)) {
+                        return this.cslRepere(brut, t, fait, rate);
+                    }
+                    if (/[A-Z]'{0,2}\s*\(\s*-?\d/.test(brut)) {
+                        const r = this.cslCoordonnees(brut, t, fait, rate);
+                        if (r) return r;
+                    }
                     /* « Prolonge [AB] », « Partage [AB] en trois parts égales » :
                        deux verbes d'énoncé qui ne construisaient rien, tout en
                        répondant « Segment [AB] » comme si c'était fait. */
@@ -34338,6 +34600,84 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
              * annoncée comme juste. Chaque ligne d'ici est une construction à
              * écrire, pas une limite définitive — et le jour où elle existe, on
              * retire la ligne. */
+            /* LE REPÈRE, PAR LA PHRASE. Il n'a pas de bouton : la barre d'outils
+               compte déjà vingt-trois icônes dont quinze hors écran sur un
+               téléphone — mesuré —, et un repère se pose une fois par exercice.
+               C'est une phrase, pas un geste, comme le flocon de Koch ou le patron
+               du cube, qui vivent déjà sans icône. */
+            cslRepere(brut, t, fait, rate) {
+                if (this.entities.some(e => e instanceof Repere)) {
+                    return rate("Il y a déjà un repère sur la feuille.");
+                }
+                /* « d'unité 2 cm », « avec une unité de 1,5 cm » : l'unité est ce
+                   qui décide de tout le reste, et un repère de collège se règle en
+                   centimètres, pas en pixels. */
+                const mu = brut.match(/unit[ée]\s*(?:de\s*|:\s*|=\s*)?(\d+(?:[.,]\d+)?)\s*(mm|cm|dm|m)?/i);
+                let unite = UNIT;
+                if (mu) {
+                    const px = this.cslLongueurPx(mu[1].replace(',', '.') + ' ' + (mu[2] || 'cm'));
+                    if (px > 4) unite = px;
+                }
+                /* « de -5 à 5 », « gradué de 0 à 10 » : les bornes, quand elles
+                   sont dites. Sinon un repère qui tient dans l'écran. */
+                const mb = brut.match(/de\s*(-?\d+)\s*(?:à|a)\s*(-?\d+)/i);
+                let xMin = -5, xMax = 5, yMin = -4, yMax = 4;
+                if (mb) {
+                    const a = parseInt(mb[1], 10), b = parseInt(mb[2], 10);
+                    if (a < b) { xMin = a; xMax = b; yMin = a; yMax = b; }
+                }
+                const c = this.cslPlaceLibre(0, 0);
+                /* L'ORIGINE EST UN VRAI POINT, nommé O — c'est ce qui permet de
+                   tirer le repère pour le déplacer, et de l'enregistrer sans
+                   inventer un second mécanisme. */
+                const nom = this.cslPointNomme('O') ? this.cslNomLibre([]) : 'O';
+                const O = new Point(c.x, c.y, nom);
+                this.addEntity(O);
+                const rep = new Repere(O, unite, { xMin, xMax, yMin, yMax });
+                const st = this.cslStyle();
+                if (st && st.color) rep.color = st.color;
+                this.addEntity(rep);
+                this.render();
+                const cm = Math.round(unite / UNIT * (this.cmScale || 1) * 10) / 10;
+                return fait(`Repère d'origine ${nom} — unité ${this.pgCm ? this.pgCm(cm) : cm + ' cm'}`);
+            }
+            /* « Place le point A(3;2) », « Place les points A(1;2) et B(-2;4) ».
+               Sans repère, cette phrase posait un point AU HASARD en répondant
+               comme si de rien n'était : les coordonnées étaient lues, puis
+               jetées. */
+            cslCoordonnees(brut, t, fait, rate) {
+                const rep = this.entities.filter(e => e instanceof Repere).pop();
+                if (!rep) {
+                    return rate("Il faut un repère pour placer un point par ses coordonnées — "
+                        + "écrivez d'abord « Trace un repère ».");
+                }
+                const RE = /([A-Z]'{0,2})\s*\(\s*(-?\d+(?:[.,]\d+)?)\s*[;,]\s*(-?\d+(?:[.,]\d+)?)\s*\)/g;
+                const poses = [];
+                const refus = [];
+                let m;
+                while ((m = RE.exec(brut)) !== null) {
+                    const nom = m[1];
+                    const u = parseFloat(m[2].replace(',', '.'));
+                    const v = parseFloat(m[3].replace(',', '.'));
+                    const deja = this.cslPointNomme(nom);
+                    /* UN POINT QUI EXISTE NE SE DÉPLACE PAS EN SILENCE. Il est peut-
+                       être le sommet d'une figure entière ; le glisser ailleurs la
+                       déformerait sans prévenir. On le dit, et on passe. */
+                    if (deja) { refus.push(nom); continue; }
+                    const p = rep.versFeuille(u, v);
+                    const pt = new Point(p.x, p.y, nom);
+                    this.addEntity(pt);
+                    poses.push(`${nom}(${m[2]} ; ${m[3]})`);
+                }
+                if (!poses.length && !refus.length) return null;   // pas de coordonnées : ce n'est pas pour nous
+                this.render();
+                if (!poses.length) {
+                    return rate(`${refus.join(' et ')} existe${refus.length > 1 ? 'nt' : ''} déjà — `
+                        + "effacez le point ou choisissez une autre lettre.");
+                }
+                const dit = poses.join(', ');
+                return fait(refus.length ? `${dit} — ${refus.join(' et ')} existait déjà` : dit);
+            }
             cslSansBatisseur(t, rate) {
                 const CAS = [
                     [/\bsemblables?\b/,
@@ -45112,7 +45452,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-21 · 20h';
+        window.GM_VERSION = '2026-09-21 · 23h';
 
         /* ================================================================
            OÙ REMONTENT LES USAGES

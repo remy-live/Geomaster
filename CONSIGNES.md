@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**205 phrases**, dont 205 passent.
+**211 phrases**, dont 211 passent.
 
 Quelques principes qui valent partout :
 
@@ -43,6 +43,17 @@ Quelques principes qui valent partout :
 | Place les milieux I de [AB] et J de [AC] | Milieux : I, J |
 | Place le point I intersection de (AB) et (CD) | I — intersection de (AB) et (CD) |
 | Place le point D tel que ABCD soit un parallélogramme | Parallélogramme DABC |
+
+## Repère et coordonnées
+
+| Ce qu'on écrit | Ce que le logiciel répond |
+|---|---|
+| Trace un repère | Repère d'origine O — unité 1 cm |
+| Trace un repère d'unité 2 cm | Repère d'origine O — unité 2 cm |
+| Trace un repère de -10 à 10 | Repère d'origine O — unité 1 cm |
+| Place le point A(3;2) | A(3 ; 2) |
+| Place les points A(1;2) et B(-3;4) | A(1 ; 2), B(-3 ; 4) |
+| Place les points A(3;2), B(-2;1) et C(1;-3) | A(3 ; 2), B(-2 ; 1), C(1 ; -3) |
 
 ## Traits
 
