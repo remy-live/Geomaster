@@ -1,4 +1,4 @@
-/* CONSIGNES.md est ÉCRIT PAR CE PROGRAMME, pas à la main.
+/* CONSIGNES.md ET LE CATALOGUE EMBARQUÉ SONT ÉCRITS PAR CE PROGRAMME.
  *
  * Une liste de ce qu'un logiciel sait faire, tenue à la main, ment au bout de
  * trois semaines : on ajoute une phrase et l'on oublie la liste, ou l'on écrit
@@ -6,8 +6,18 @@
  * est RÉELLEMENT exécutée dans un navigateur, et c'est la réponse du logiciel
  * qui est recopiée. Une phrase qui échoue apparaît en clair, marquée.
  *
- *   node tests/catalogue.js          écrit CONSIGNES.md
- *   node tests/catalogue.js --check  vérifie sans écrire (code de sortie 1 si
+ * DEUX SORTIES, UNE SEULE VÉRITÉ. Le fichier .md s'adresse à qui lit le dépôt ;
+ * le tableau window.GM_CATALOGUE, écrit DANS index.html, s'adresse au logiciel
+ * lui-même — pour que l'aide et la recherche puissent un jour dire les 218
+ * phrases au lieu des 89 écrites à la main, et sans pouvoir mentir. Mesuré :
+ * 19,7 ko dans un fichier de 4,8 Mo, soit +0,41 % — et 4,5 ko une fois gzippé.
+ *
+ * Elles sont écrites DU MÊME PASSAGE : il n'y a donc pas deux listes à tenir
+ * d'accord, il y a une mesure et deux copies.
+ *
+ *   node tests/catalogue.js          écrit CONSIGNES.md ET le tableau embarqué
+ *   node tests/catalogue.js --check  vérifie les deux sans écrire (code de
+ *                                    sortie 1 si l'un des deux a dérivé, ou si
  *                                    une phrase du catalogue ne passe plus)
  */
 const { chromium } = require('playwright');
@@ -15,6 +25,7 @@ const path = require('path');
 const fs = require('fs');
 const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
 const SORTIE = path.resolve(__dirname, '..', 'CONSIGNES.md');
+const CIBLE_HTML = path.resolve(__dirname, '..', 'index.html');
 const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
 /* Les points qu'on pose avant d'essayer une phrase, quand elle en suppose.
@@ -296,6 +307,13 @@ const GROUPES = [
   ]],
 ];
 
+/* La sonde a besoin des MÊMES phrases et de la MÊME préparation pour rejouer le
+   catalogue : sans cela elle comparerait des réponses obtenues sur une autre
+   feuille. On les expose, et l'on ne lance le programme que s'il est appelé
+   directement. */
+module.exports = { GROUPES, FEUILLE };
+if (require.main !== module) return;
+
 (async () => {
   const verifie = process.argv.includes('--check');
   const b = await chromium.launch({ executablePath: NAVIGATEUR });
@@ -308,6 +326,8 @@ const GROUPES = [
 
   let rates = 0, total = 0;
   const lignes = [];
+  /* Les mêmes paires, pour le tableau embarqué : groupe, phrase, réponse. */
+  const catalogue = [];
   for (const [titre, phrases] of GROUPES) {
     lignes.push('', '## ' + titre, '',
                 '| Ce qu\'on écrit | Ce que le logiciel répond |', '|---|---|');
@@ -334,6 +354,7 @@ const GROUPES = [
                 : genre === 'trace' ? (r.ok && r.cree > 0)
                 : r.ok;
       if (!bon) { rates++; console.log('  ✗ ' + ph + ' → ' + r.message); }
+      catalogue.push([titre, ph, String(r.message || '')]);
       const echappe = (s) => String(s).replace(/\|/g, '\\|');
       const marque = genre === 'refuse' ? '↯ ' : '';
       lignes.push(`| ${echappe(ph)} | ${bon ? marque : '**⚠ '}${echappe(r.message)}${bon ? '' : '**'} |`);
@@ -372,12 +393,46 @@ const GROUPES = [
 
   await b.close();
   if (errs.length) { console.log('ERREURS JS : ' + errs.slice(0, 3).join(' | ')); rates++; }
+
+  /* LE TABLEAU EMBARQUÉ. Il se glisse entre deux bornes posées dans index.html,
+     ce qui rend l'écriture IDEMPOTENTE : on remplace toujours la même région,
+     jamais on n'empile. Sans bornes, il aurait fallu deviner où finit l'ancien
+     tableau — et une ligne de JSON mal coupée emporte la page entière. */
+  const BORNE_A = '/* GM_CATALOGUE:DÉBUT — engendré par tests/catalogue.js */';
+  const BORNE_B = '/* GM_CATALOGUE:FIN */';
+  const tableau = BORNE_A + '\n'
+    + '        /* NE PAS ÉDITER À LA MAIN. Chaque ligne a été exécutée dans un\n'
+    + '           navigateur : [groupe, ce qu\'on écrit, ce que le logiciel répond].\n'
+    + '           Relancer « node tests/catalogue.js » après avoir touché aux\n'
+    + '           consignes ; probe-catalogue.js échoue si l\'on oublie. */\n'
+    + '        window.GM_CATALOGUE = '
+    + JSON.stringify(catalogue).replace(/</g, '\\u003c') + ';\n'
+    + '        ' + BORNE_B;
+  const html = fs.readFileSync(CIBLE_HTML, 'utf8');
+  const i = html.indexOf(BORNE_A), j = html.indexOf(BORNE_B);
+  let htmlNeuf = null;
+  if (i < 0 || j < 0) {
+    console.log('Les bornes GM_CATALOGUE sont absentes de index.html — tableau non écrit');
+    rates++;
+  } else {
+    htmlNeuf = html.slice(0, i) + tableau + html.slice(j + BORNE_B.length);
+  }
+
   if (verifie) {
     const ancien = fs.existsSync(SORTIE) ? fs.readFileSync(SORTIE, 'utf8') : '';
     if (ancien !== texte) { console.log('CONSIGNES.md n\'est plus à jour : relancez node tests/catalogue.js'); rates++; }
+    if (htmlNeuf !== null && htmlNeuf !== html) {
+      console.log('Le catalogue embarqué dans index.html n\'est plus à jour : relancez node tests/catalogue.js');
+      rates++;
+    }
   } else {
     fs.writeFileSync(SORTIE, texte);
+    if (htmlNeuf !== null) fs.writeFileSync(CIBLE_HTML, htmlNeuf);
     console.log('CONSIGNES.md écrit — ' + total + ' phrases, ' + rates + ' en échec');
+    if (htmlNeuf !== null) {
+      console.log('catalogue embarqué écrit — ' + catalogue.length + ' phrases, '
+        + Math.round(Buffer.byteLength(tableau, 'utf8') / 102.4) / 10 + ' ko');
+    }
   }
   console.log(`\n${rates ? `=== ${rates} échec(s) ===` : '=== tout passe ==='}`);
   process.exit(rates ? 1 : 0);

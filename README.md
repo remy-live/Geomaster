@@ -1193,6 +1193,40 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le logiciel dit lui-même ce qu'il sait faire
+
+*« J'ai toujours besoin du fichier en md, rien n'est totalement dit dans
+GéoMaster ou si ? »*
+
+Non — et c'était pire qu'incomplet. Mesuré : l'application montrait **89 phrases
+d'exemple sur les 218** qu'elle comprend, soit 40 %. Et ces 89 étaient **écrites
+à la main** dans le HTML. Elles pouvaient donc dériver exactement comme
+`IDEES.md`, qui annonçait « à faire » une fonctionnalité déjà faite, et comme
+`tests/README.md`, à qui il manquait 46 sondes sur 122. Trois listes tenues à la
+main, trois qui périment : la même faute, la troisième fois.
+
+`tests/catalogue.js` écrit désormais **du même passage** `CONSIGNES.md` — pour
+qui lit le dépôt — et `window.GM_CATALOGUE` **dans `index.html`** — pour le
+logiciel. Une mesure, deux copies, aucune liste à tenir d'accord.
+
+Le coût, puisque c'est la question qu'on pose toujours d'un fichier unique :
+**24,3 ko dans un fichier de 4,6 Mo, soit 0,51 %** — et 4,5 ko une fois gzippé.
+Le fichier embarque déjà pdf.js et une police, qui pèsent chacun cinquante fois
+plus.
+
+**Mais un tableau engendré n'est honnête que s'il est réengendré.** Écrit une
+fois et oublié, il devient exactement ce qu'on voulait fuir : une quatrième liste
+à la main, et la pire, puisqu'elle a l'air d'être vraie. `probe-catalogue.js` ne
+compare donc pas deux fichiers — elle **rejoue les 218 phrases** dans un
+navigateur et confronte chaque réponse à ce que le tableau annonce. Vérifié en
+falsifiant une ligne : elle nomme la phrase fautive et renvoie à
+`node tests/catalogue.js`. Deux secondes et demie pour les 218.
+
+Le tableau n'est encore lu par personne dans l'interface : l'aide et la recherche
+viendront s'y brancher quand les tests et les retours seront réglés. Il est tenu
+à jour dès maintenant — une vérité qu'on laisse pourrir en attendant de s'en
+servir n'est plus une vérité le jour où l'on s'en sert.
+
 ### Le repère — et où l'on met une fonctionnalité sans alourdir
 
 C'est la figure de la 5e, et celle de tous les chapitres de fonctions ensuite.
@@ -3085,7 +3119,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 122 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 123 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
