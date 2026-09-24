@@ -576,19 +576,8 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
   console.log('\n=== ce qui marchait doit marcher pareil ===');
   const nonReg = [
-    /* LES LETTRES CHANGENT ICI, ET C'EST LE CORRECTIF QUI LE VEUT. La feuille
-       de ce bloc porte A(300,500), B(640,500) et C(450,250) — trois points
-       quelconques, posés pour les phrases voisines (« la médiatrice de [AB] »,
-       « l'angle ABC »). AUCUN carré n'a ces trois sommets-là : |AB| = 6,8 cm
-       quand la phrase en demande 3. L'ancienne réponse « Carré ABCD » gardait
-       A, B et C où ils étaient et ajoutait D : un quadrilatère quelconque
-       annoncé comme un carré. Le carré est maintenant tracé pour de bon, à
-       côté, sous des lettres libres, sans qu'un seul point de la feuille bouge,
-       et la ligne le dit. On attend donc un carré, pas les lettres. */
-    ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] [A-Z]{4}/],
     ['Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', /Triangle ABC/],
     ['Trace le cercle de centre A et de rayon 3 cm', /Cercle/],
-    ['Trace un hexagone ABCDEF de 3 cm de côté', /Hexagone/],
     ['Trace la médiatrice de [AB]', /M[ée]diatrice/],
     ['Place le milieu I de [AB]', /milieu/],
     ['Trace un cube de 4 cm', /Cube/],
@@ -601,6 +590,33 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const r = await faire(phrase, false, [[300, 500, 'A'], [640, 500, 'B'], [450, 250, 'C']]);
     ck(`« ${phrase.slice(0, 44)}${phrase.length > 44 ? '…' : ''} »`,
        r.ok && attendu.test(r.message), r.message);
+  }
+
+  /* LE CARRÉ ET L'HEXAGONE ONT DEUX FACES, ET C'EST LE CORRECTIF QUI LE VEUT.
+     Ils étaient dans la liste ci-dessus, sur la feuille A(300,500) B(640,500)
+     C(450,250) — trois points quelconques posés pour les phrases voisines
+     (« la médiatrice de [AB] », « l'angle ABC »). Or AUCUN carré n'a ces trois
+     sommets-là : |AB| = 6,8 cm quand la phrase en demande 3. La réponse
+     « Carré ABCD » gardait A, B et C où ils étaient et ajoutait D — un
+     quadrilatère quelconque annoncé comme un carré, exactement la faute qu'on
+     corrige. Les deux phrases restent donc vérifiées, mais SUR LEURS DEUX
+     FACES : elles tracent quand la feuille le permet, et elles refusent en
+     expliquant quand elle l'interdit. */
+  console.log('\n=== le carré et l\'hexagone, sur leurs deux faces ===');
+  for (const [phrase, attendu] of [
+    ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] ABCD/],
+    ['Trace un hexagone ABCDEF de 3 cm de côté', /Hexagone ABCDEF/],
+  ]) {
+    const libre = await faire(phrase, false, []);
+    ck(`« ${phrase.slice(0, 40)}… » sur feuille libre`,
+       libre.ok && attendu.test(libre.message), libre.message);
+    const pris = await faire(phrase, false,
+      [[300, 500, 'A'], [640, 500, 'B'], [450, 250, 'C']]);
+    ck('  refusée quand A, B et C sont pris par autre chose',
+       !pris.ok && /Impossible/.test(pris.message || ''), pris.message);
+    ck('    et le refus dit lequel gêne, et de combien',
+       /\bC\b/.test(pris.message || '') && /\d+(,\d)? cm/.test(pris.message || ''),
+       ((pris.message || '').match(/\d+(,\d)? cm/g) || []).join(' · '));
   }
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));

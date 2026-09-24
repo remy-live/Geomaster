@@ -1235,22 +1235,45 @@ les deux retournements ; on garde le meilleur et l'on compare ce qui reste. À u
 pixel près : accepter « presque un carré » serait recommencer la même faute en
 plus discret.
 
-### On ne refuse pas pour autant
+### Alors on refuse, et l'on dit pourquoi
 
-Une première version refusait, et c'est la mesure qui a tranché : quatre phrases
-du catalogue et deux sondes tombaient, dont **« Trace un carré ABCD de 3 cm de
-côté »**. C'est une phrase de manuel ; sur une feuille de classe, A, B et C sont
-presque toujours déjà pris par autre chose, et refuser en bloc l'aurait rendue
-inutilisable dès le deuxième exercice.
+Une version intermédiaire traçait la figure à côté, sous des lettres libres,
+plutôt que de refuser. Elle ne bloquait jamais rien — et répondait à une question
+que personne n'avait posée : on demande « un carré BCDE », on reçoit un carré
+GHIJ. Entre une figure juste qui répond à côté et un refus qui explique, c'est le
+refus qui apprend quelque chose. **Rien n'est tracé, rien n'est effacé, rien
+n'est déplacé.**
 
-La règle retenue tient en une ligne : **le logiciel construit toujours la figure
-que la phrase nomme.** Sur les points posés s'ils s'y prêtent ; à côté et sous
-des lettres libres sinon. Il n'efface ni ne déplace jamais rien — et il dit ce
-qu'il a fait : le bandeau annonce la lettre changée, **la modale explique
-pourquoi**, distances mesurées à l'appui, et dit quoi écrire si l'on voulait
-vraiment ces points-là. C'est la réponse qui transporte l'explication et
-l'interface qui l'affiche : le catalogue rejoue ses 218 phrases sans qu'une
-seule fenêtre s'ouvre.
+Le bandeau de la consigne tient une ligne — assez pour « Quels sommets ? », pas
+pour dire qu'un carré est géométriquement impossible sur *cette* feuille. Un
+refus qui n'enseigne rien ne vaut guère mieux qu'un mensonge, alors la modale
+nomme le sommet en cause, donne les deux distances — celle qu'il a, celle qu'il
+devrait avoir — et dit trois façons d'avancer :
+
+> **Carré BCDE : impossible sur cette feuille.**
+>
+> B et C sont déjà posés, à 8 cm l'un de l'autre. Un carré BCDE est entièrement
+> déterminé par ces deux sommets-là : il exige tous les autres à des endroits
+> précis.
+>
+> - **E** est à 20,4 cm de B ; le carré le demande à 8 cm — il est à 20,4 cm de
+>   la place qui lui revient.
+>
+> **Rien n'a été tracé**, et aucun de vos points n'a bougé.
+>
+> Trois façons d'avancer : effacer ou déplacer E, puis relancer la consigne ;
+> écrire « Trace un carré » sans nommer les sommets ; ou relier vos points tels
+> qu'ils sont avec « Trace le polygone BCDE », qui ne promet rien sur leur forme.
+
+C'est la réponse qui transporte l'explication et l'interface qui l'affiche : le
+catalogue rejoue ses 218 phrases sans qu'une seule fenêtre s'ouvre.
+
+**Le prix est réel**, et il est payé plutôt que caché : « Trace un carré ABCD de
+3 cm de côté » ne marche plus sur une feuille où A, B et C sont déjà pris par
+autre chose. Six entrées du catalogue ont reçu la feuille vide qu'elles
+supposaient — elles ne demandaient aucun point préalable —, et `probe-patrons`
+vérifie maintenant les deux faces : la phrase sur feuille libre, le refus sur la
+feuille encombrée.
 
 ### Deux autres mensonges, trouvés en mesurant
 

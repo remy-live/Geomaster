@@ -31,23 +31,28 @@
  * pixel : accepter « presque un carré » serait recommencer la même faute en
  * plus discret.
  *
- * ON NE REFUSE PAS POUR AUTANT, et c'est une décision qu'une première version
- * de cette sonde a mise à l'épreuve. Refuser en bloc a fait tomber quatre
- * phrases du catalogue et deux de probe-patrons — dont « Trace un carré ABCD de
- * 3 cm de côté », qui est une phrase de manuel : sur une feuille de classe, A, B
- * et C sont presque toujours déjà pris par autre chose, et la phrase serait
- * devenue inutilisable dès le deuxième exercice. La règle retenue tient en une
- * ligne : LE LOGICIEL CONSTRUIT TOUJOURS LA FIGURE QUE LA PHRASE NOMME — sur les
- * points posés s'ils s'y prêtent, à côté et sous des lettres libres sinon —, il
- * n'efface ni ne déplace jamais rien, et IL DIT CE QU'IL A FAIT.
+ * ALORS ON REFUSE, ET L'ON DIT POURQUOI. Une version intermédiaire traçait la
+ * figure à côté, sous des lettres libres, plutôt que de refuser : elle ne
+ * bloquait jamais rien, et répondait à une question que personne n'avait posée —
+ * on demande « un carré BCDE », on reçoit un carré GHIJ. Entre une figure juste
+ * qui répond à côté et un refus qui explique, c'est le refus qui apprend quelque
+ * chose. Rien n'est tracé, rien n'est effacé, rien n'est déplacé.
  *
- * ET IL LE DIT EN GRAND. Le bandeau de la consigne tient une ligne — assez pour
- * annoncer la lettre changée, pas pour expliquer pourquoi. La modale donne les
- * distances mesurées, le sommet en cause, ce qui a été tracé et sous quelles
- * lettres, et quoi écrire si l'on voulait vraiment ces points-là. C'est la
- * RÉPONSE qui la transporte (r.modale) et l'interface qui l'affiche : le banc
- * d'essai et le catalogue rejouent deux cent dix-huit phrases sans qu'une
- * fenêtre s'ouvre.
+ * LE PRIX EST RÉEL, et cette sonde le montre au lieu de le cacher : « Trace un
+ * carré ABCD de 3 cm de côté » ne marche plus sur une feuille où A, B et C sont
+ * déjà pris. Six entrées du catalogue ont reçu la feuille vide qu'elles
+ * supposaient, et probe-patrons vérifie les deux faces — la phrase sur feuille
+ * libre, le refus sur la feuille encombrée. La section 3 d'ici tient l'autre
+ * bord : trois points qui FORMENT un carré ne doivent pas être refusés.
+ *
+ * ET LE REFUS S'EXPLIQUE EN GRAND. Le bandeau de la consigne tient une ligne —
+ * assez pour « Quels sommets ? », pas pour dire qu'un carré est géométriquement
+ * impossible sur CETTE feuille. Un refus qui n'enseigne rien ne vaut guère mieux
+ * qu'un mensonge : la modale nomme le sommet en cause, donne les deux distances
+ * — celle qu'il a, celle qu'il devrait avoir —, et dit trois façons d'avancer.
+ * C'est la RÉPONSE qui la transporte (r.modale) et l'interface qui l'affiche :
+ * le banc d'essai et le catalogue rejouent deux cent dix-huit phrases sans
+ * qu'une fenêtre s'ouvre.
  *
  * DEUX AUTRES MENSONGES SONT TOMBÉS EN MESURANT, sur feuille vide et aux
  * instruments — donc sans rapport avec le signalement, et invisibles jusque-là :
@@ -143,65 +148,39 @@ const FEUILLE = { A: [400, 800], B: [400, 400], C: [800, 400], D: [800, 800],
                 a.addEntity(new Point(FEUILLE[n][0], FEUILLE[n][1], n)));
             const avant = a.entities.filter(e => e instanceof Point)
                 .map(p => ({ l: p.label, x: p.x, y: p.y }));
+            const nAvant = a.entities.length;
             let res;
             try { res = a.executerConsigneAvec('trace un carré BCDE', avec); }
             catch (e) { return { boum: e.message }; }
-            /* La figure NEUVE : les quatre sommets que la consigne vient de
-               poser, et ce qu'ils forment réellement. */
-            /* DANS L'ORDRE DES LETTRES, et non dans celui où ils sont nés : la
-               figure s'appelle « Carré GHIJ », c'est donc le contour G-H-I-J
-               qu'elle prétend être un carré. Lire l'ordre de fabrication
-               ferait passer pour faux un bâtisseur qui pose son troisième
-               sommet avant son deuxième. */
-            const neufs = a.entities.filter(e => e instanceof Point
-                && !avant.some(q => q.l === e.label))
-                .sort((p, q) => String(p.label).localeCompare(String(q.label)));
-            const cm = (v) => Math.round(v / 50 * 10) / 10;
-            const cotes = neufs.map((q, i) => {
-                const s = neufs[(i + 1) % neufs.length];
-                return cm(Math.hypot(s.x - q.x, s.y - q.y));
-            });
-            const angles = neufs.map((q, i) => {
-                const av = neufs[(i - 1 + neufs.length) % neufs.length];
-                const ap = neufs[(i + 1) % neufs.length];
-                const a1 = Math.atan2(av.y - q.y, av.x - q.x);
-                const a2 = Math.atan2(ap.y - q.y, ap.x - q.x);
-                let d = Math.abs(a1 - a2) * 180 / Math.PI;
-                if (d > 180) d = 360 - d;
-                return Math.round(d);
-            });
-            /* ET LES ANCIENS N'ONT PAS BOUGÉ D'UN PIXEL. */
+            /* RIEN N'A ÉTÉ TRACÉ, ET RIEN N'A BOUGÉ D'UN PIXEL. Un refus qui
+               laisse des traits derrière lui est pire qu'un refus : il ment de
+               la main gauche. */
             const bouges = avant.filter((q) => {
                 const p = a.entities.find(e => e instanceof Point && e.label === q.l);
                 return !p || Math.hypot(p.x - q.x, p.y - q.y) > 0.001;
             }).map(q => q.l);
             return { ok: !!(res && res.ok), msg: (res && res.message) || '',
                      modale: (res && res.modale) || '',
-                     astuce: (res && res.astuce) || '',
-                     lettres: neufs.map(p => p.label).join(''), cotes, angles, bouges };
+                     pose: a.entities.length - nAvant, bouges };
         }, [avec, FEUILLE]);
 
-        ck(`${comment} : la figure est bien tracée`, !r.boum && r.ok,
-           r.boum ? 'BOUM ' + r.boum : r.msg);
-        ck('  et c\'est un vrai carré', r.cotes && r.cotes.length === 4
-            && r.cotes.every(x => Math.abs(x - r.cotes[0]) < 0.05)
-            && r.angles.every(x => Math.abs(x - 90) < 1),
-           (r.cotes || []).join(' · ') + ' cm   ' + (r.angles || []).join('° · ') + '°');
-        ck('  sous des lettres libres, pas BCDE', !!r.lettres && !/[BCDE]/.test(r.lettres),
-           r.lettres || '(aucune)');
-        ck('  aucun point de la feuille n\'a bougé', (r.bouges || []).length === 0,
+        ck(`${comment} : la consigne est refusée`, !r.boum && r.ok === false,
+           r.boum ? 'BOUM ' + r.boum : r.msg.slice(0, 90));
+        ck('  le refus nomme le sommet qui gêne', /\bE\b/.test(r.msg || ''));
+        ck('  et il chiffre l\'écart', /\d+(,\d)? cm/.test(r.msg || ''),
+           ((r.msg || '').match(/\d+(,\d)? cm/g) || []).join(' · '));
+        ck('  rien n\'a été ajouté à la feuille', r.pose === 0, r.pose + ' objets');
+        ck('  et aucun point n\'a bougé', (r.bouges || []).length === 0,
            (r.bouges || []).join(', ') || 'aucun');
-        /* LE LOGICIEL DIT CE QU'IL A FAIT : la ligne annonce la lettre changée,
-           la modale explique pourquoi, mesures à l'appui, et dit quoi écrire si
-           l'on voulait vraiment ces points-là. Une modale qui dirait seulement
-           « impossible » ne serait qu'un refus en plus grand. */
-        ck('  la ligne annonce le changement de lettres',
-           /lettres/.test(r.astuce) && r.astuce.includes(r.lettres), r.astuce.slice(0, 90));
+        /* UN REFUS QUI N'ENSEIGNE RIEN NE VAUT GUÈRE MIEUX QU'UN MENSONGE : la
+           modale doit nommer le sommet, donner les deux distances — celle qu'il
+           a, celle qu'il devrait avoir — et dire quoi écrire à la place. */
         ck('  la modale nomme le sommet qui gêne', /<b>E<\/b>/.test(r.modale || ''),
            r.modale ? Math.round(r.modale.length / 10) * 10 + ' caractères' : 'aucune');
-        ck('    elle donne les distances mesurées', /\d+(,\d)? cm/.test(r.modale || ''),
+        ck('    elle donne les distances mesurées',
+           ((r.modale || '').match(/\d+(,\d)? cm/g) || []).length >= 3,
            ((r.modale || '').match(/\d+(,\d)? cm/g) || []).slice(0, 3).join(' · '));
-        ck('    elle dit que rien n\'a bougé', /n'ont pas bougé/.test(r.modale || ''));
+        ck('    elle dit que rien n\'a été tracé', /Rien n'a été tracé/.test(r.modale || ''));
         ck('    et ce qu\'on peut écrire à la place', /polygone BCDE/.test(r.modale || ''));
     }
 
@@ -303,7 +282,7 @@ const FEUILLE = { A: [400, 800], B: [400, 400], C: [800, 400], D: [800, 800],
         };
         const fermer = () => { if (a.closeModal) a.closeModal(); };
 
-        poser(); const lettresPrises = ligne('trace un carré BCDE'); fermer();
+        poser(); const impossible = ligne('trace un carré BCDE'); fermer();
         /* Une consigne ORDINAIRE ne doit rien ouvrir, réussie ou non : une
            fenêtre qu'on voit partout est une fenêtre qu'on ferme sans lire. */
         poser(); const ordinaire = ligne('trace un bidule truc'); fermer();
@@ -313,12 +292,12 @@ const FEUILLE = { A: [400, 800], B: [400, 400], C: [800, 400], D: [800, 800],
         try { a.executerConsigneAvec('trace un carré BCDE', false); } catch (e) { void e; }
         const parLaLangue = modale();
         fermer();
-        return { lettresPrises, ordinaire, banale, parLaLangue };
+        return { impossible, ordinaire, banale, parLaLangue };
     }, [FEUILLE]);
-    ck('les lettres prises ouvrent la modale', ecran.lettresPrises.ouverte);
+    ck('la consigne impossible ouvre la modale', ecran.impossible.ouverte);
     ck('  et le titre nomme la figure qu\'on avait demandée',
-       /Carré BCDE/.test(ecran.lettresPrises.texte),
-       ecran.lettresPrises.texte.split('\n')[0]);
+       /Carré BCDE/.test(ecran.impossible.texte),
+       ecran.impossible.texte.split('\n')[0]);
     ck('un refus ordinaire n\'ouvre rien', !ecran.ordinaire.ouverte);
     ck('une consigne qui marche n\'ouvre rien non plus', !ecran.banale.ouverte);
     ck('et la langue appelée seule reste muette', !ecran.parLaLangue);

@@ -39924,14 +39924,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    elle est surdéterminée — ou bien les points s'y prêtent, ou
                    bien AUCUN carré n'a ces sommets-là.
 
-                   ON NE REFUSE PAS POUR AUTANT, et c'est une décision, pas un
-                   oubli. « Trace un carré ABCD de 3 cm de côté » est une phrase
-                   de manuel ; sur une feuille de classe, A, B et C sont presque
-                   toujours déjà pris par autre chose. Refuser en bloc rendrait
-                   la phrase inutilisable dès le deuxième exercice. On trace donc
-                   la figure — la vraie — à côté, avec des lettres libres, sans
-                   rien effacer ni déplacer, ET ON LE DIT : le bandeau pour la
-                   lettre changée, la modale pour la raison, mesures à l'appui.
+                   ALORS ON REFUSE, ET L'ON DIT POURQUOI. C'est une décision, et
+                   elle a été prise contre la facilité : une version intermédiaire
+                   traçait la figure à côté, sous des lettres libres, plutôt que
+                   de refuser. Elle avait l'avantage de ne jamais rien bloquer et
+                   l'inconvénient d'être une réponse à une question que personne
+                   n'avait posée — on demande « un carré BCDE », on reçoit un
+                   carré GHIJ. Entre une figure juste qui répond à côté et un
+                   refus qui explique, c'est le refus qui apprend quelque chose :
+                   il dit QUEL sommet interdit la figure, de combien il rate sa
+                   place, et quoi écrire à la place. Rien n'est tracé, rien n'est
+                   effacé, rien n'est déplacé.
+
+                   LE PRIX EST RÉEL et il est payé ici : « Trace un carré ABCD de
+                   3 cm de côté » ne marche plus sur une feuille où A, B et C
+                   sont déjà pris par autre chose. Six entrées du catalogue ont
+                   donc reçu la feuille vide qu'elles supposaient — elles ne
+                   demandaient aucun point préalable —, et probe-patrons vérifie
+                   maintenant les deux faces : la phrase sur feuille libre, et le
+                   refus sur la feuille encombrée.
 
                    SEULES LES FIGURES QUE DEUX POINTS SUFFISENT À FIXER passent
                    ici, et c'est une limite de méthode : la comparaison se fait
@@ -39948,34 +39959,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const PROMET = ['carré', 'carre', 'pentagone', 'hexagone',
                     'heptagone', 'octogone', 'ennéagone', 'enneagone',
                     'décagone', 'decagone', 'dodécagone', 'dodecagone'];
-                let lettresPrises = null;
                 if (PROMET.includes(quoi)
                     && noms.slice(0, sommets).filter(n => this.cslPointNomme(n)).length >= 3) {
                     const essai = this.cslCoinsFigure(quoi, t, brut, L, deux, sommets,
                         noms.slice(0, sommets));
                     const v = this.cslAjusterFigure(essai.coins, essai.noms);
                     if (v && v.fautifs.length) {
-                        lettresPrises = { ecrits: essai.noms.slice(), verdict: v };
-                        noms = [];                    // la suite prendra des lettres libres
+                        const dit = this.cslFigureImpossible(quoi, essai.noms, v);
+                        const r = rate(dit.court);
+                        r.modale = dit.long;
+                        return r;                     // rien n'est tracé
                     }
                 }
 
                 while (noms.length < sommets) { const n = this.cslNomLibre(noms); if (!n) break; noms.push(n); }
                 noms = noms.slice(0, sommets);
-
-                if (lettresPrises) {
-                    /* Plus une seule lettre libre : là, et là seulement, il n'y a
-                       rien à tracer. On refuse, et la modale dit pourquoi. */
-                    if (noms.length < sommets) {
-                        const dit = this.cslFigureLettresPrises(quoi, lettresPrises, null);
-                        const r = rate(dit.court);
-                        r.modale = dit.long;
-                        return r;
-                    }
-                    const dit = this.cslFigureLettresPrises(quoi, lettresPrises, noms);
-                    this.cslDire(dit.court);
-                    this._cslModale = dit.long;
-                }
 
                 /* OÙ CHAQUE SOMMET DOIT TOMBER — une seule fois, pour les trois
                    chemins qui suivent. La forme idéale est posée sur les sommets
@@ -40305,17 +40303,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     .sort((a, b) => b.d - a.d);
                 return { positions, poses, ou, fautifs, tol: TOL };
             }
-            /* CE QU'ON DIT QUAND LES LETTRES ÉCRITES ÉTAIENT PRISES. Deux
-               textes : une ligne pour le bandeau de la consigne, et
-               l'explication entière pour la modale — parce qu'on ne change pas
-               les lettres d'une figure sous les yeux d'un professeur sans lui
-               dire de combien ses points rataient, et ce qu'il peut écrire s'il
-               voulait vraiment ceux-là.
+            /* CE QU'ON RÉPOND QUAND LA FEUILLE INTERDIT LA FIGURE. Deux textes :
+               une ligne pour le bandeau de la consigne, et l'explication entière
+               pour la modale.
 
-               « neufs » est nul dans le seul cas où il n'y a rien eu à tracer :
-               plus une lettre de libre sur la feuille. */
-            cslFigureLettresPrises(quoi, pris, neufs) {
-                const v = pris.verdict, ecrits = pris.ecrits;
+               UN REFUS QUI N'ENSEIGNE RIEN NE VAUT GUÈRE MIEUX QU'UN MENSONGE :
+               « Je n'ai pas compris » laisse chercher la faute dans la phrase,
+               alors qu'elle est sur la feuille. Celui-ci nomme le sommet qui
+               interdit la figure, donne les deux distances — celle qu'il a,
+               celle qu'il devrait avoir —, et dit les deux façons d'obtenir
+               quand même quelque chose. Les nombres comptent autant que le
+               refus : c'est par eux qu'on voit QUE le point est mal placé, et de
+               combien. */
+            cslFigureImpossible(quoi, ecrits, v) {
                 const cm = (px) => {
                     const val = px / UNIT * (this.cmScale || 1);
                     return (Math.round(val * 10) / 10).toString().replace('.', ',');
@@ -40326,24 +40326,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const plur = fautives.length > 1;
                 const ancre = ecrits[v.ou[0]], ancre2 = ecrits[v.ou[1]];
 
-                const court = neufs
-                    ? `${fautives.join(' et ')} ${plur ? 'ne sont' : "n'est"} pas `
-                      + `${plur ? 'des sommets' : 'un sommet'} possible${plur ? 's' : ''} `
-                      + `d'un ${quoi} ${figure} : la figure a été tracée à côté, `
-                      + `sous les lettres ${neufs.join('')}.`
-                    : `Impossible : ${fautives.join(' et ')} ${plur ? 'sont' : 'est'} déjà `
-                      + `sur la feuille, et il ne reste plus de lettre libre pour `
-                      + `tracer le ${quoi} ailleurs.`;
+                const court = `Impossible : ${fautives.join(' et ')} `
+                    + `${plur ? 'sont déjà posés' : 'est déjà posé'} sur la feuille, et `
+                    + `${plur ? 'aucun' : 'aucun'} ${quoi} ${figure} ne `
+                    + `${plur ? 'les' : 'le'} met là — `
+                    + `${plur ? 'le plus écarté est' : 'il est'} à ${cm(v.fautifs[0].d)} cm `
+                    + `de la place qu'il devrait occuper.`;
 
                 const lignes = v.fautifs.slice(0, 3).map((x) => {
                     const p = v.poses[x.k], veut = v.positions[x.k];
                     const a = v.poses[v.ou[0]];
                     return `<li><b>${ecrits[x.k]}</b> est à ${cm(Math.hypot(p.x - a.x, p.y - a.y))} cm `
-                        + `de ${ancre} ; le ${quoi} le demanderait à `
+                        + `de ${ancre} ; le ${quoi} le demande à `
                         + `${cm(Math.hypot(veut.x - a.x, veut.y - a.y))} cm — `
-                        + `il est à ${cm(x.d)} cm de la place qui lui reviendrait.</li>`;
+                        + `il est à ${cm(x.d)} cm de la place qui lui revient.</li>`;
                 });
-                const long = `<b>${nom} ${figure} : ces points-là n'en font pas un.</b>`
+                const long = `<b>${nom} ${figure} : impossible sur cette feuille.</b>`
                     + `<div style="text-align:left;margin-top:12px">`
                     + `${ancre} et ${ancre2} sont déjà posés, à `
                     + `${cm(Math.hypot(v.poses[v.ou[1]].x - v.poses[v.ou[0]].x,
@@ -40352,17 +40350,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     + `il exige tous les autres à des endroits précis.`
                     + `<ul style="margin:10px 0 0 0;padding-left:22px">`
                     + lignes.join('') + `</ul>`
-                    + (neufs
-                        ? `<p style="margin:14px 0 0 0">Le ${quoi} a donc été tracé à côté, `
-                          + `sous les lettres <b>${neufs.join('')}</b>. `
-                          + `<b>Vos points n'ont pas bougé</b> et rien n'a été effacé.</p>`
-                        : `<p style="margin:14px 0 0 0">Il ne reste plus une seule lettre libre `
-                          + `sur la feuille : rien n'a pu être tracé.</p>`)
-                    + `<p style="margin:14px 0 0 0">Si vous vouliez la figure sur ces points-là :</p>`
+                    + `<p style="margin:14px 0 0 0"><b>Rien n'a été tracé</b>, et aucun de vos `
+                    + `points n'a bougé.</p>`
+                    + `<p style="margin:14px 0 0 0">Trois façons d'avancer :</p>`
                     + `<ul style="margin:6px 0 0 0;padding-left:22px">`
-                    + `<li>effacez ou déplacez ${fautives.join(' et ')}, puis relancez la consigne ;</li>`
-                    + `<li>ou reliez-les tels qu'ils sont avec « Trace le polygone ${figure} », `
-                    + `qui ne promet rien sur leur forme.</li></ul></div>`;
+                    + `<li>effacer ou déplacer ${fautives.join(' et ')}, puis relancer la consigne ;</li>`
+                    + `<li>écrire « Trace un ${quoi} » sans nommer les sommets — `
+                    + `il sera posé à côté, avec des lettres libres ;</li>`
+                    + `<li>ou relier vos points tels qu'ils sont avec `
+                    + `« Trace le polygone ${figure} », qui ne promet rien sur leur forme.</li>`
+                    + `</ul></div>`;
                 return { court, long };
             }
             /* ============================================================
@@ -45917,7 +45914,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-24 · 18h';
+        window.GM_VERSION = '2026-09-24 · 21h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
