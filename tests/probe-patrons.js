@@ -576,7 +576,16 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
   console.log('\n=== ce qui marchait doit marcher pareil ===');
   const nonReg = [
-    ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] ABCD/],
+    /* LES LETTRES CHANGENT ICI, ET C'EST LE CORRECTIF QUI LE VEUT. La feuille
+       de ce bloc porte A(300,500), B(640,500) et C(450,250) — trois points
+       quelconques, posés pour les phrases voisines (« la médiatrice de [AB] »,
+       « l'angle ABC »). AUCUN carré n'a ces trois sommets-là : |AB| = 6,8 cm
+       quand la phrase en demande 3. L'ancienne réponse « Carré ABCD » gardait
+       A, B et C où ils étaient et ajoutait D : un quadrilatère quelconque
+       annoncé comme un carré. Le carré est maintenant tracé pour de bon, à
+       côté, sous des lettres libres, sans qu'un seul point de la feuille bouge,
+       et la ligne le dit. On attend donc un carré, pas les lettres. */
+    ['Trace un carré ABCD de 3 cm de côté', /Carr[ée] [A-Z]{4}/],
     ['Trace un triangle ABC tel que AB = 5 cm, AC = 4 cm et BC = 3 cm', /Triangle ABC/],
     ['Trace le cercle de centre A et de rayon 3 cm', /Cercle/],
     ['Trace un hexagone ABCDEF de 3 cm de côté', /Hexagone/],

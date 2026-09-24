@@ -34142,6 +34142,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const phraseEleve = this.cslMajuscules(source);
                 const avant = this.entities.length;
                 this._cslAstuces = [];
+                /* L'EXPLICATION EN GRAND VOYAGE AVEC LA RÉPONSE, jamais dans une
+                   fenêtre ouverte depuis la langue : trois branches différentes
+                   peuvent construire la figure, et le catalogue rejoue deux cent
+                   dix-huit phrases d'affilée. C'est l'interface qui affiche. */
+                this._cslModale = null;
                 if (phraseEleve !== source) {
                     this.cslDire(`Notation : un point se note par une MAJUSCULE — « ${phraseEleve} ».`);
                 }
@@ -34172,9 +34177,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.render();
                     return { ok: true, message: quoi + (lu.dit ? ' — ' + lu.dit : ''),
                              cree: this.entities.length - avant,
-                             astuce: this._cslAstuces.join(' ') };
+                             astuce: this._cslAstuces.join(' '),
+                             modale: this._cslModale || undefined };
                 };
-                const rate = (m) => ({ ok: false, message: m, astuce: this._cslAstuces.join(' ') });
+                const rate = (m) => ({ ok: false, message: m,
+                                       astuce: this._cslAstuces.join(' '),
+                                       modale: this._cslModale || undefined });
 
                 try {
                     /* « Dessine » se comprend, mais ce n'est pas le mot du cours :
@@ -39910,8 +39918,82 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // rectangle, équilatéral — et leurs combinaisons
                 if (quoi === 'triangle') return this.cslTriangle(brut, t, fait, rate);
 
+                /* ---- QUAND LES LETTRES ÉCRITES NE PEUVENT PAS ÊTRE CELLES-LÀ
+                   Deux points ne contredisent jamais un carré : ils en fixent le
+                   côté, et la figure se construit dessus. À partir du troisième
+                   elle est surdéterminée — ou bien les points s'y prêtent, ou
+                   bien AUCUN carré n'a ces sommets-là.
+
+                   ON NE REFUSE PAS POUR AUTANT, et c'est une décision, pas un
+                   oubli. « Trace un carré ABCD de 3 cm de côté » est une phrase
+                   de manuel ; sur une feuille de classe, A, B et C sont presque
+                   toujours déjà pris par autre chose. Refuser en bloc rendrait
+                   la phrase inutilisable dès le deuxième exercice. On trace donc
+                   la figure — la vraie — à côté, avec des lettres libres, sans
+                   rien effacer ni déplacer, ET ON LE DIT : le bandeau pour la
+                   lettre changée, la modale pour la raison, mesures à l'appui.
+
+                   SEULES LES FIGURES QUE DEUX POINTS SUFFISENT À FIXER passent
+                   ici, et c'est une limite de méthode : la comparaison se fait
+                   par similitude, en posant la forme idéale sur deux sommets.
+                   Elle ne vaut donc que pour les figures dont le nom fixe TOUS
+                   les rapports — le carré et les polygones réguliers. Un losange
+                   garde un angle libre, un rectangle un rapport, un
+                   parallélogramme deux : leur forme idéale n'est qu'un
+                   représentant de leur famille, et s'en servir pour juger
+                   reviendrait à inventer une contrainte que la phrase n'écrit
+                   pas. Mesuré en la mettant trop large : « Place le point D tel
+                   que ABCD soit un parallélogramme » — la phrase même où A, B et
+                   C DOIVENT être déjà là — était refusée. */
+                const PROMET = ['carré', 'carre', 'pentagone', 'hexagone',
+                    'heptagone', 'octogone', 'ennéagone', 'enneagone',
+                    'décagone', 'decagone', 'dodécagone', 'dodecagone'];
+                let lettresPrises = null;
+                if (PROMET.includes(quoi)
+                    && noms.slice(0, sommets).filter(n => this.cslPointNomme(n)).length >= 3) {
+                    const essai = this.cslCoinsFigure(quoi, t, brut, L, deux, sommets,
+                        noms.slice(0, sommets));
+                    const v = this.cslAjusterFigure(essai.coins, essai.noms);
+                    if (v && v.fautifs.length) {
+                        lettresPrises = { ecrits: essai.noms.slice(), verdict: v };
+                        noms = [];                    // la suite prendra des lettres libres
+                    }
+                }
+
                 while (noms.length < sommets) { const n = this.cslNomLibre(noms); if (!n) break; noms.push(n); }
                 noms = noms.slice(0, sommets);
+
+                if (lettresPrises) {
+                    /* Plus une seule lettre libre : là, et là seulement, il n'y a
+                       rien à tracer. On refuse, et la modale dit pourquoi. */
+                    if (noms.length < sommets) {
+                        const dit = this.cslFigureLettresPrises(quoi, lettresPrises, null);
+                        const r = rate(dit.court);
+                        r.modale = dit.long;
+                        return r;
+                    }
+                    const dit = this.cslFigureLettresPrises(quoi, lettresPrises, noms);
+                    this.cslDire(dit.court);
+                    this._cslModale = dit.long;
+                }
+
+                /* OÙ CHAQUE SOMMET DOIT TOMBER — une seule fois, pour les trois
+                   chemins qui suivent. La forme idéale est posée sur les sommets
+                   déjà là s'il y en a (cslAjusterFigure), sinon au milieu d'une
+                   place libre. Les trois chemins la calculaient chacun à leur
+                   façon, et aucun ne regardait les points de la feuille. */
+                const forme = this.cslCoinsFigure(quoi, t, brut, L, deux, sommets, noms);
+                const coins = forme.coins;
+                noms = forme.noms;
+                const ajuste = this.cslAjusterFigure(coins, noms);
+                const c = this.cslPlaceLibre(0, 0);
+                const boite = coins.reduce((o, s) => ({
+                    x0: Math.min(o.x0, s[0]), y0: Math.min(o.y0, s[1]),
+                    x1: Math.max(o.x1, s[0]), y1: Math.max(o.y1, s[1]) }),
+                    { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 });
+                const ox = c.x - (boite.x0 + boite.x1) / 2, oy = c.y - (boite.y0 + boite.y1) / 2;
+                const places = (ajuste && ajuste.positions) ? ajuste.positions
+                    : coins.map(s => ({ x: s[0] + ox, y: s[1] + oy }));
 
                 // avec la construction détaillée : les bâtisseurs, sur une base tracée
                 const batisseur = this.cslDetaille() ? {
@@ -39925,9 +40007,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    signature de leurs bâtisseurs. */
                 if (this.cslDetaille() && (quoi === 'rectangle' || quoi === 'parallélogramme'
                         || quoi === 'parallelogramme')) {
-                    const o3 = this.cslPlaceLibre(0, 0);
-                    const l1 = deux ? this.cslLongueurPx(deux[1]) : L;
-                    const l2 = deux ? this.cslLongueurPx(deux[2]) : L * 0.62;
                     /* ON NE POSE QUE LE SOMMET D'OÙ PARTENT LES DEUX CÔTÉS. Les
                        trois sommets paraissaient d'un coup, puis la règle venait
                        les relier : la réponse était donnée avant la construction.
@@ -39935,14 +40014,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        les range après leur segment (aTrouver). p2 est le pivot :
                        c'est de lui que partent [BA] et [BC]. */
                     const neufs = [];
-                    const mk = (i, x, y) => {
+                    const mk = (i) => {
                         const d0 = this.cslPointNomme(noms[i]);
                         if (d0) return d0;
-                        const p = new Point(x, y, noms[i]); neufs.push(p); return p;
+                        const p = new Point(places[i].x, places[i].y, noms[i]);
+                        neufs.push(p); return p;
                     };
-                    const p1 = mk(0, o3.x - l1 / 2, o3.y + l2 / 2);
-                    const p2 = mk(1, p1.x + l1, p1.y);
-                    const p3 = mk(2, p2.x + (quoi === 'rectangle' ? 0 : l2 * 0.4), p2.y - l2);
+                    const p1 = mk(0), p2 = mk(1), p3 = mk(2);
                     if (neufs.includes(p2)) this.addEntity(p2);
                     const aTrouver = neufs.filter(p => p !== p2);
                     this.cslBatir(noms.slice(3), () => (quoi === 'rectangle'
@@ -39952,10 +40030,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
                 }
                 if (batisseur || (this.cslDetaille() && quoi === 'triangle' && /[ée]quilat[ée]ral/.test(t))) {
-                    const o = this.cslPlaceLibre(0, 0);
-                    const pA = this.cslPointNomme(noms[0]) || new Point(o.x - L / 2, o.y + L / 2, noms[0]);
-                    if (!this.cslPointNomme(noms[0])) this.addEntity(pA);
-                    const pB = this.cslPointNomme(noms[1]) || new Point(pA.x + L, pA.y, noms[1]);
+                    /* LE CENTRE N'EST PAS UN SOMMET. buildRegularPentagon et
+                       buildHexagon partent du CERCLE CIRCONSCRIT : le segment
+                       qu'on leur donne va du centre à un sommet. On leur donnait
+                       [AB], deux sommets voisins — A devenait le centre, et
+                       « Trace un pentagone ABCDE » rendait un pentagone de 3,5 cm
+                       de côté dont A était le milieu, avec quatre lettres sur
+                       cinq sommets. L'hexagone cachait la même faute mieux que
+                       les autres, son côté valant son rayon : les six longueurs
+                       sortaient égales et seuls les angles — 120, 60, 120, 120,
+                       120, 60 — disaient que le contour se croisait. */
+                    const parLeCentre = (quoi === 'pentagone' || quoi === 'hexagone');
+                    /* DE QUEL CÔTÉ DE LA BASE. batirRectangleSurBase pose
+                       toujours ses deux sommets à baseAngle - 90°, et le compas
+                       du losange tourne toujours de -60° : le côté vit dans le
+                       bâtisseur, pas dans l'appel. Quand un sommet déjà posé
+                       décide de l'autre côté — « Trace un carré ABCD » avec A, B
+                       et C sur la feuille —, le carré partait à l'opposé de C et
+                       rendait 8, 8, 17,9 et 8 cm. La seule façon de faire
+                       basculer le bâtisseur sans renommer personne est de lui
+                       donner la base à l'envers. */
+                    const versLautreBord = !parLeCentre && places.length >= 3
+                        && ((places[1].x - places[0].x) * (places[2].y - places[0].y)
+                          - (places[1].y - places[0].y) * (places[2].x - places[0].x)) > 0;
+                    const i0 = versLautreBord ? 1 : 0, i1 = versLautreBord ? 0 : 1;
+                    const o = parLeCentre
+                        ? { x: places.reduce((s, p) => s + p.x, 0) / places.length,
+                            y: places.reduce((s, p) => s + p.y, 0) / places.length }
+                        : places[i0];
+                    const pA = parLeCentre ? new Point(o.x, o.y, '')
+                        : (this.cslPointNomme(noms[i0]) || new Point(places[i0].x, places[i0].y, noms[i0]));
+                    if (parLeCentre || !this.cslPointNomme(noms[i0])) this.addEntity(pA);
+                    const pB = parLeCentre ? new Point(places[0].x, places[0].y, noms[0])
+                        : (this.cslPointNomme(noms[i1]) || new Point(places[i1].x, places[i1].y, noms[i1]));
                     /* LE PREMIER CÔTÉ, LÀ AUSSI, NAÎT DE LA RÈGLE. Le carré, le
                        losange, l'hexagone : leur base apparaissait toute faite,
                        deux points et un trait, avant que les instruments ne
@@ -39963,8 +40070,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        la mesure donne le second. */
                     this.cslPremierCote(pA, pB);
                     const base = this.entities.filter(e => e instanceof Segment).pop();
-                    this.cslBatir(noms.slice(2), () => (batisseur ? batisseur(base)
-                        : this.buildEquilateralTriangle(base)));
+                    /* Le rayon du cercle circonscrit n'est pas un côté de la
+                       figure : il a servi à la construire, il ne doit pas rester
+                       tracé par-dessus. */
+                    if (parLeCentre && base) base.hidden = true;
+                    const neufs = this.cslBatir(noms.slice(parLeCentre ? 1 : 2),
+                        () => (batisseur ? batisseur(base) : this.buildEquilateralTriangle(base)));
+                    /* pA et pB sont du lot : ils sont exactement sur leur place,
+                       donc ils gardent leur lettre — mais les inclure évite
+                       qu'un sommet neuf, plus proche d'eux que de sa propre
+                       place, ne vienne leur voler la leur. */
+                    this.cslNommerParPlace(parLeCentre ? neufs.concat([pB])
+                        : neufs.concat([pA, pB]), noms, places);
                     /* LA FIGURE QU'ON VIENT DE TRACER RESTE LE SUJET. Sans cette
                        ligne, « Trace un carré ABCD et ses diagonales » marchait
                        sans les instruments et échouait avec — « De quelle
@@ -39975,7 +40092,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
                 }
 
-                const c = this.cslPlaceLibre(0, 0);
+                /* LA FIGURE SE POSE SUR CE QUI EST DÉJÀ LÀ. Les sommets déjà
+                   nommés sur la feuille donnaient leur NOM à la figure et rien
+                   d'autre : la forme idéale était jetée pour eux, et les sommets
+                   neufs allaient se ranger à leur place théorique, dans un coin
+                   libre de la feuille. « Trace un carré ABCD » avec A et B déjà
+                   posés rendait un quadrilatère de côtés 8, 6,9, 3 et 6,5 cm —
+                   annoncé « Carré ABCD ». places, calculé plus haut, tient
+                   compte d'eux ; et si la forme ne peut pas s'y poser, on l'a
+                   refusée bien avant d'arriver ici. */
+                const pts = coins.map((s, i) => {
+                    const deja = this.cslPointNomme(noms[i]);
+                    if (deja) return deja;
+                    const p = new Point(places[i].x, places[i].y, noms[i]);
+                    this.addEntity(p);
+                    return p;
+                });
+                for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
+                this.cslPoserPolygone(pts);
+                this._cslSujet = noms.slice();
+                return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}`);
+            }
+            /* LA FORME IDÉALE, en coordonnées locales, avant d'être posée où que
+               ce soit. Elle était calculée au milieu de la construction ; elle est
+               ici parce qu'il faut pouvoir l'INTERROGER avant de tracer quoi que
+               ce soit — pour savoir si les points déjà sur la feuille s'y prêtent.
+               Aucun effet de bord, hormis le rappel sur la diagonale du losange,
+               que cslDire ne répète pas. */
+            cslCoinsFigure(quoi, t, brut, L, deux, sommets, noms) {
                 let coins;
                 if (quoi === 'rectangle') {
                     const a = deux ? this.cslLongueurPx(deux[1]) : L;
@@ -40054,22 +40198,172 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         coins.push([Math.cos(a) * R, Math.sin(a) * R]);
                     }
                 }
-                const boite = coins.reduce((o, s) => ({
-                    x0: Math.min(o.x0, s[0]), y0: Math.min(o.y0, s[1]),
-                    x1: Math.max(o.x1, s[0]), y1: Math.max(o.y1, s[1]) }),
-                    { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 });
-                const ox = c.x - (boite.x0 + boite.x1) / 2, oy = c.y - (boite.y0 + boite.y1) / 2;
-                const pts = coins.map((s, i) => {
-                    const deja = this.cslPointNomme(noms[i]);
-                    if (deja) return deja;
-                    const p = new Point(s[0] + ox, s[1] + oy, noms[i]);
-                    this.addEntity(p);
-                    return p;
+                return { coins, noms };
+            }
+            /* NOMMER PAR LA PLACE, ET NON PAR L'ORDRE DE FABRICATION.
+               cslBatir distribue les lettres dans l'ordre où les points
+               naissent ; or un bâtisseur ne fabrique pas ses sommets dans
+               l'ordre du contour. Le losange pose D avant C — c'est la
+               construction au compas qui le veut, D est B tourné de 60° autour
+               de A et C ferme la figure — si bien que « Trace un losange ABCD »
+               aux instruments rendait le contour A-B-D-C : côtés 3, 3, 3 et
+               5,2 cm, angles 30°, 60°, 60° et 30°. La figure était juste, ses
+               lettres étaient croisées, et le nom mentait quand même.
+
+               On ne redistribue QUE les lettres que ces points portent déjà :
+               rien d'autre sur la feuille n'est renommé, et l'on n'en invente
+               aucune. */
+            cslNommerParPlace(neufs, noms, places) {
+                if (!places || !neufs || neufs.length < 2) return;
+                const aPlacer = noms.map((n, i) => ({ n, i }))
+                    .filter(x => x.n && places[x.i] && neufs.some(p => p.label === x.n));
+                const restants = neufs.slice();
+                aPlacer.forEach(({ n, i }) => {
+                    let best = -1, d = Infinity;
+                    restants.forEach((p, k) => {
+                        const e = Math.hypot(p.x - places[i].x, p.y - places[i].y);
+                        if (e < d) { d = e; best = k; }
+                    });
+                    if (best >= 0) { restants[best].label = n; restants.splice(best, 1); }
                 });
-                for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
-                this.cslPoserPolygone(pts);
-                this._cslSujet = noms.slice();
-                return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}`);
+            }
+            /* ============================================================
+               LA FIGURE QUE LA FEUILLE INTERDIT
+
+               « Trace un carré BCDE » sur une feuille où B, C, D et E sont déjà
+               posés répondait « ✓ Carré BCDE » et reliait les quatre points tels
+               qu'ils étaient. Mesuré sur la figure du signalement : côtés 8, 8,
+               12,6 et 20,4 cm, angles 11°, 90°, 72° et 30°. Le logiciel
+               annonçait un carré en montrant un quadrilatère quelconque — la
+               faute que probe-dit-vrai tient partout ailleurs, et qui avait ici
+               sa propre porte d'entrée.
+
+               La cause tenait en deux lignes : la forme idéale était calculée,
+               puis JETÉE pour tout sommet déjà nommé. Il ne restait du carré que
+               son nom.
+
+               DEUX POINTS NE CONTREDISENT JAMAIS UN CARRÉ : ils en fixent le
+               côté, et la figure se construit dessus — c'est le cas courant,
+               « je pose A et B, trace le carré ABCD », qui rendait lui aussi
+               n'importe quoi. À partir du troisième la figure est
+               surdéterminée : ou bien les points s'y prêtent, ou bien elle est
+               IMPOSSIBLE, et alors il faut le dire, et dire pourquoi.
+
+               ON LA CHERCHE PAR SIMILITUDE. La forme idéale est posée sur les
+               deux premiers sommets déjà là — translation, rotation, et
+               l'échelle que donne leur écart —, dans les deux retournements ; on
+               garde le meilleur et l'on compare CE QUI RESTE à ce que la figure
+               exige. Une similitude, et non un déplacement : sans longueur
+               écrite, le côté du carré est l'écart de A à B, et c'est bien ce
+               qu'on veut.
+
+               L'ÉCART TOLÉRÉ EST D'UN PIXEL, soit deux dixièmes de millimètre
+               sur la feuille. On pourrait être plus large et accepter « presque
+               un carré » ; ce serait recommencer la même faute en plus discret.
+               Quatre points posés à la main ne forment presque jamais un carré,
+               et le refus DIT DE COMBIEN — c'est cela qui est utile.
+               ============================================================ */
+            cslAjusterFigure(coins, noms) {
+                const TOL = 1;                          // px : 0,2 mm sur la feuille
+                const poses = noms.map(n => n ? this.cslPointNomme(n) : null);
+                const ou = [];
+                poses.forEach((p, i) => { if (p && i < coins.length) ou.push(i); });
+                if (!ou.length) return null;            // feuille vierge : figure libre
+
+                /* Le retournement change la figure et non sa forme : un carré
+                   posé sur [AB] peut l'être d'un côté ou de l'autre du trait. */
+                const poser = (miroir) => {
+                    const c = coins.map(s => [s[0], miroir ? -s[1] : s[1]]);
+                    if (ou.length === 1) {
+                        const k = ou[0];
+                        const dx = poses[k].x - c[k][0], dy = poses[k].y - c[k][1];
+                        return c.map(s => ({ x: s[0] + dx, y: s[1] + dy }));
+                    }
+                    const [i, j] = ou;
+                    const vx = c[j][0] - c[i][0], vy = c[j][1] - c[i][1];
+                    const wx = poses[j].x - poses[i].x, wy = poses[j].y - poses[i].y;
+                    const d0 = Math.hypot(vx, vy), d1 = Math.hypot(wx, wy);
+                    if (d0 < 0.001 || d1 < 0.001) return null;
+                    const k = d1 / d0, th = Math.atan2(wy, wx) - Math.atan2(vy, vx);
+                    const co = Math.cos(th) * k, si = Math.sin(th) * k;
+                    return c.map(s => {
+                        const x = s[0] - c[i][0], y = s[1] - c[i][1];
+                        return { x: poses[i].x + x * co - y * si,
+                                 y: poses[i].y + x * si + y * co };
+                    });
+                };
+                const ecart = (pos) => !pos ? Infinity : ou.reduce((m, k) =>
+                    Math.max(m, Math.hypot(pos[k].x - poses[k].x, pos[k].y - poses[k].y)), 0);
+                const droit = poser(false), envers = poser(true);
+                const positions = (ecart(envers) < ecart(droit)) ? envers : droit;
+                if (!positions) return null;
+
+                const fautifs = ou
+                    .map(k => ({ k, d: Math.hypot(positions[k].x - poses[k].x,
+                                                  positions[k].y - poses[k].y) }))
+                    .filter(x => x.d > TOL)
+                    .sort((a, b) => b.d - a.d);
+                return { positions, poses, ou, fautifs, tol: TOL };
+            }
+            /* CE QU'ON DIT QUAND LES LETTRES ÉCRITES ÉTAIENT PRISES. Deux
+               textes : une ligne pour le bandeau de la consigne, et
+               l'explication entière pour la modale — parce qu'on ne change pas
+               les lettres d'une figure sous les yeux d'un professeur sans lui
+               dire de combien ses points rataient, et ce qu'il peut écrire s'il
+               voulait vraiment ceux-là.
+
+               « neufs » est nul dans le seul cas où il n'y a rien eu à tracer :
+               plus une lettre de libre sur la feuille. */
+            cslFigureLettresPrises(quoi, pris, neufs) {
+                const v = pris.verdict, ecrits = pris.ecrits;
+                const cm = (px) => {
+                    const val = px / UNIT * (this.cmScale || 1);
+                    return (Math.round(val * 10) / 10).toString().replace('.', ',');
+                };
+                const nom = quoi.charAt(0).toUpperCase() + quoi.slice(1);
+                const figure = ecrits.join('');
+                const fautives = v.fautifs.slice(0, 2).map(x => ecrits[x.k]);
+                const plur = fautives.length > 1;
+                const ancre = ecrits[v.ou[0]], ancre2 = ecrits[v.ou[1]];
+
+                const court = neufs
+                    ? `${fautives.join(' et ')} ${plur ? 'ne sont' : "n'est"} pas `
+                      + `${plur ? 'des sommets' : 'un sommet'} possible${plur ? 's' : ''} `
+                      + `d'un ${quoi} ${figure} : la figure a été tracée à côté, `
+                      + `sous les lettres ${neufs.join('')}.`
+                    : `Impossible : ${fautives.join(' et ')} ${plur ? 'sont' : 'est'} déjà `
+                      + `sur la feuille, et il ne reste plus de lettre libre pour `
+                      + `tracer le ${quoi} ailleurs.`;
+
+                const lignes = v.fautifs.slice(0, 3).map((x) => {
+                    const p = v.poses[x.k], veut = v.positions[x.k];
+                    const a = v.poses[v.ou[0]];
+                    return `<li><b>${ecrits[x.k]}</b> est à ${cm(Math.hypot(p.x - a.x, p.y - a.y))} cm `
+                        + `de ${ancre} ; le ${quoi} le demanderait à `
+                        + `${cm(Math.hypot(veut.x - a.x, veut.y - a.y))} cm — `
+                        + `il est à ${cm(x.d)} cm de la place qui lui reviendrait.</li>`;
+                });
+                const long = `<b>${nom} ${figure} : ces points-là n'en font pas un.</b>`
+                    + `<div style="text-align:left;margin-top:12px">`
+                    + `${ancre} et ${ancre2} sont déjà posés, à `
+                    + `${cm(Math.hypot(v.poses[v.ou[1]].x - v.poses[v.ou[0]].x,
+                                       v.poses[v.ou[1]].y - v.poses[v.ou[0]].y))} cm l'un de l'autre. `
+                    + `Un ${quoi} ${figure} est entièrement déterminé par ces deux sommets-là : `
+                    + `il exige tous les autres à des endroits précis.`
+                    + `<ul style="margin:10px 0 0 0;padding-left:22px">`
+                    + lignes.join('') + `</ul>`
+                    + (neufs
+                        ? `<p style="margin:14px 0 0 0">Le ${quoi} a donc été tracé à côté, `
+                          + `sous les lettres <b>${neufs.join('')}</b>. `
+                          + `<b>Vos points n'ont pas bougé</b> et rien n'a été effacé.</p>`
+                        : `<p style="margin:14px 0 0 0">Il ne reste plus une seule lettre libre `
+                          + `sur la feuille : rien n'a pu être tracé.</p>`)
+                    + `<p style="margin:14px 0 0 0">Si vous vouliez la figure sur ces points-là :</p>`
+                    + `<ul style="margin:6px 0 0 0;padding-left:22px">`
+                    + `<li>effacez ou déplacez ${fautives.join(' et ')}, puis relancez la consigne ;</li>`
+                    + `<li>ou reliez-les tels qu'ils sont avec « Trace le polygone ${figure} », `
+                    + `qui ne promet rien sur leur forme.</li></ul></div>`;
+                return { court, long };
             }
             /* ============================================================
                LE TRIANGLE
@@ -41408,6 +41702,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 c.astuce = r.astuce || '';
                 c.faite = !!r.ok;
                 c.signature = texte;
+                /* UN REFUS QUI DEMANDE UNE EXPLICATION L'OBTIENT EN GRAND.
+                 *
+                 * « Si ce n'est pas possible, il faut expliquer pourquoi (avec
+                 *   une modale). »
+                 *
+                 * Le bandeau de la consigne tient une ligne, et une ligne suffit
+                 * pour « Quels sommets ? ». Elle ne suffit pas pour dire qu'un
+                 * carré BCDE est géométriquement impossible sur CETTE feuille :
+                 * il faut les distances mesurées, le sommet en cause, et ce
+                 * qu'on peut écrire à la place. La modale ne s'ouvre donc que
+                 * lorsque la réponse en porte une — jamais pour un refus
+                 * ordinaire, sans quoi on apprendrait à la fermer sans la lire.
+                 *
+                 * C'est la RÉPONSE qui la transporte, pas la langue qui
+                 * l'affiche : executerConsigneAvec reste muet, et le banc
+                 * d'essai comme le catalogue peuvent rejouer deux cents phrases
+                 * sans qu'une fenêtre s'ouvre. */
+                if (r.modale && this.showModal) this.showModal(r.modale);
                 // une ligne vide reste prête au bout de la liste
                 if (r.ok && i === liste.length - 1) liste.push(this.consigneNeuve());
                 this.majConsignes(r.ok ? Math.min(i + 1, liste.length - 1) : i);
@@ -45605,7 +45917,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-24 · 9h';
+        window.GM_VERSION = '2026-09-24 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

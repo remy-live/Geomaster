@@ -1193,6 +1193,87 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Un carré qui n'en est pas un, annoncé « ✓ Carré »
+
+*« Regarde ce qu'il a fait. D'ailleurs si ce n'est pas possible, il faut
+expliquer pourquoi (avec une modale). »*
+
+Sur une feuille portant déjà un carré ABCD et un cercle de centre E,
+`trace un carré BCDE` répondait **✓ Carré BCDE** et reliait les quatre points
+tels qu'ils étaient :
+
+| | côtés | angles |
+| --- | --- | --- |
+| ce qui était tracé | 8 · 8 · 12,6 · 20,4 cm | 11° · 90° · 72° · 30° |
+| ce qu'un carré exige | quatre fois la même | quatre fois 90° |
+
+C'est la faute la plus grave que ce logiciel puisse commettre — dire qu'il a
+fait ce qu'il n'a pas fait —, et elle avait ici sa propre porte d'entrée, que
+`probe-dit-vrai` ne pouvait pas voir : cette sonde-là vérifie qu'un carré
+**existe**, pas qu'il est carré.
+
+La cause tenait en deux lignes. La forme idéale était calculée, puis **jetée
+pour tout sommet déjà nommé** :
+
+```js
+const deja = this.cslPointNomme(noms[i]);
+if (deja) return deja;              // le nom, et rien de la forme
+```
+
+Ce n'était donc pas l'affaire d'une phrase bizarre : **toute** figure nommant un
+point déjà posé sortait fausse. « Trace un carré ABCD » avec A et B sur la
+feuille rendait 8, 6,9, 3 et 6,5 cm ; le pentagone ABCDE, 8, 7,2, 3, 3 et 8 cm.
+Le seul cas juste était le cas sans aucun point.
+
+**Deux points ne contredisent jamais un carré** : ils en fixent le côté, et la
+figure se construit dessus — c'est le cas courant, « je pose A et B, trace le
+carré ABCD », qui rendait lui aussi n'importe quoi. À partir du troisième la
+figure est surdéterminée : ou bien les points s'y prêtent, ou bien aucun carré
+n'a ces sommets-là. La forme idéale est donc posée sur les sommets déjà là **par
+similitude** — translation, rotation, et l'échelle que donne leur écart —, dans
+les deux retournements ; on garde le meilleur et l'on compare ce qui reste. À un
+pixel près : accepter « presque un carré » serait recommencer la même faute en
+plus discret.
+
+### On ne refuse pas pour autant
+
+Une première version refusait, et c'est la mesure qui a tranché : quatre phrases
+du catalogue et deux sondes tombaient, dont **« Trace un carré ABCD de 3 cm de
+côté »**. C'est une phrase de manuel ; sur une feuille de classe, A, B et C sont
+presque toujours déjà pris par autre chose, et refuser en bloc l'aurait rendue
+inutilisable dès le deuxième exercice.
+
+La règle retenue tient en une ligne : **le logiciel construit toujours la figure
+que la phrase nomme.** Sur les points posés s'ils s'y prêtent ; à côté et sous
+des lettres libres sinon. Il n'efface ni ne déplace jamais rien — et il dit ce
+qu'il a fait : le bandeau annonce la lettre changée, **la modale explique
+pourquoi**, distances mesurées à l'appui, et dit quoi écrire si l'on voulait
+vraiment ces points-là. C'est la réponse qui transporte l'explication et
+l'interface qui l'affiche : le catalogue rejoue ses 218 phrases sans qu'une
+seule fenêtre s'ouvre.
+
+### Deux autres mensonges, trouvés en mesurant
+
+Sur feuille vide, aux instruments — donc sans rapport avec le signalement, et
+invisibles jusque-là :
+
+| aux instruments | côtés | angles |
+| --- | --- | --- |
+| losange ABCD | 3 · 3 · 3 · **5,2** | 30 · 60 · 60 · 30 |
+| pentagone ABCDE | 3 · **3,5 · 3,5 · 3,5** · 3 | 144 · 54 · 108 · 108 · 54 |
+| hexagone ABCDEF | 3 · 3 · 3 · 3 · 3 · 3 | 120 · **60** · 120 · 120 · 120 · **60** |
+
+Le losange : `cslBatir` distribue les lettres dans l'ordre où les points
+naissent, et la construction au compas fabrique D avant C — le contour lu
+A-B-C-D se croisait. Les lettres se donnent maintenant **par la place occupée**,
+non par l'ordre de fabrication.
+
+Le pentagone et l'hexagone : leurs bâtisseurs partent du **cercle circonscrit**,
+le segment qu'on leur donne va du centre à un sommet, et on leur donnait [AB],
+deux sommets voisins — **A devenait le centre**. L'hexagone cachait la faute
+mieux que tous, son côté valant son rayon : six longueurs égales, et seuls les
+angles disaient que le contour se croisait.
+
 ### Le stylo magique n'écrivait rien — sur une feuille blanche
 
 *« Le stylo magique n'écrit rien mais donne la figure finale. »*
@@ -3177,7 +3258,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 124 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 125 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
