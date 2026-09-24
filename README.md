@@ -1193,6 +1193,64 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le stylo magique n'écrivait rien — sur une feuille blanche
+
+*« Le stylo magique n'écrit rien mais donne la figure finale. »*
+
+Et ce n'était pas le stylo magique. L'aperçu du geste — le trait bleu qui se
+forme sous le doigt pendant qu'on dessine — était tracé tout en haut du rendu,
+**avant `drawGrid()`**. Sur un quadrillage, la grille ne fait que poser des
+lignes, et le trait survivait entre elles. Sur fond blanc, `drawGrid()` ne pose
+rien : il **repeint la feuille entière**. L'aperçu passait dessous.
+
+Mesuré pendant le geste, pixels d'encre sur une bande de 360 × 40 que le trait
+traverse :
+
+| outil | quadrillage | points | isométrique | blanc |
+| --- | --- | --- | --- | --- |
+| stylo magique | 1903 | 1296 | 2813 | **0** |
+| croquis | 1903 | 1296 | 2813 | **0** |
+| stylo | 1341 | 722 | 2212 | **0** |
+
+Trois outils, un seul fond. Ce n'était donc pas une panne du stylo magique,
+c'était une panne de la feuille blanche — et c'est aussi, dix jours plus tard,
+la réponse à *« le tracé libre ne s'affiche pas en temps réel »*, signalé
+alors et jamais reproduit faute d'avoir essayé sur la bonne feuille.
+
+Le bloc est passé en dernier, juste avant la sélection : un geste en cours
+passe au-dessus de tout, comme la main au-dessus de la feuille.
+
+### Les lettres d'un croquis se rangent dehors
+
+*« Quand tu places les lettres (sur un rectangle par exemple), utilise le
+placement magique qui fait que la lettre est bien placée. »*
+
+Tous les chemins de création rangent leurs lettres — le segment tracé à la
+main, le polygone, l'angle, la parallèle. `finirCroquis` était le seul à ne
+pas le faire : les quatre sommets d'un rectangle esquissé gardaient l'angle par
+défaut, **droit au-dessus du point**. A et B tombaient juste par accident,
+étant en haut ; C et D se posaient **dans** la figure, sur leurs propres
+marques d'angle droit.
+
+Le rangement branché, la moitié du défaut restait — parce que le rangement
+lui-même ne savait pas répondre. `computeBestLabelAngle` ne connaissait que
+deux cas : le sommet d'un `Polygon`, où il suit la bissectrice vers le dehors
+(la bonne réponse), et **tout le reste**, où il ne regardait qu'**un seul
+trait** et posait la lettre perpendiculairement, sans rien savoir du côté où
+est le dedans.
+
+Or un croquis ne fabrique pas de `Polygon` : il pose quatre points, quatre
+segments et quatre angles droits. Le trou valait donc pour toute figure faite
+trait par trait — au stylo magique comme à la règle. Deux traits qui se
+rejoignent suffisent pourtant à désigner le dehors : c'est ce que fait
+maintenant la règle générale, et les quatre lettres sortent chacune par son
+coin — −135, −45, 45, 135.
+
+**On ne range que ce qu'on vient de poser.** Ranger toute la feuille
+déplacerait les lettres qu'on a écartées à la main sur une figure d'à côté, et
+celles-là, personne ne les a mises là par hasard. Le rangement se fait avant
+l'enregistrement de l'état, pour que l'annulation les retrouve à leur place.
+
 ### Le logiciel dit lui-même ce qu'il sait faire
 
 *« J'ai toujours besoin du fichier en md, rien n'est totalement dit dans
@@ -3119,7 +3177,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 123 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 124 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

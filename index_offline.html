@@ -21894,6 +21894,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const index = poly.points.indexOf(pt);
                     return this.getPolygonExitAngle(poly, index);
                 }
+                /* PAS DE POLYGONE, MAIS DEUX TRAITS QUI SE REJOIGNENT ICI.
+                   C'est le cas de toute figure faite trait par trait — un
+                   croquis du stylo magique, un rectangle tracé à la règle —, et
+                   c'était le trou : la suite ne regarde QU'UN SEUL trait
+                   (lines[0]) et pose la lettre perpendiculairement, sans savoir
+                   de quel côté est le dedans. Mesuré sur un rectangle croqué :
+                   C et D tombaient À L'INTÉRIEUR, sur leurs propres marques
+                   d'angle droit. On fait donc ici ce que le polygone fait déjà :
+                   on s'écarte à l'opposé de la bissectrice des traits qui
+                   partent du point, c'est-à-dire vers le dehors du coin. */
+                const voisins = [];
+                this.entities.forEach(e => {
+                    if (!(e instanceof Segment || e instanceof Ray || e instanceof Line)) return;
+                    if (e.p1 === pt && e.p2) voisins.push(e.p2);
+                    else if (e.p2 === pt && e.p1) voisins.push(e.p1);
+                });
+                if (voisins.length >= 2) {
+                    let bx = 0, by = 0;
+                    voisins.forEach(v => {
+                        const d = Math.hypot(v.x - pt.x, v.y - pt.y);
+                        if (d > 0.001) { bx += (v.x - pt.x) / d; by += (v.y - pt.y) / d; }
+                    });
+                    /* Deux traits alignés se neutralisent : aucune direction ne
+                       sort du lot, on laisse la règle d'en dessous trancher. */
+                    if (Math.abs(bx) > 0.001 || Math.abs(by) > 0.001) {
+                        return Math.atan2(-by, -bx);
+                    }
+                }
                 const lines = this.entities.filter(e =>
                     (e instanceof Segment || e instanceof Ray || e instanceof Line || e instanceof Angle) &&
                     (e.p1 === pt || e.p2 === pt || (e.p3 && e.p3 === pt))
@@ -27461,10 +27489,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
 
             finirCroquis(res, avecOutils) {
+                /* LES LETTRES SE RANGENT, COMME PARTOUT AILLEURS.
+                 *
+                 * « Quand tu places les lettres (sur un rectangle par exemple),
+                 *   utilise le placement magique qui fait que la lettre est bien
+                 *   placée. »
+                 *
+                 * Tous les chemins de création appellent autoPlaceLabels — le
+                 * segment à la main, le polygone, l'angle, la parallèle. Le croquis
+                 * était le seul à ne pas le faire : ses quatre lettres gardaient
+                 * l'angle par défaut, droit au-dessus du point. Mesuré sur un
+                 * rectangle esquissé, les quatre à -90° : A et B tombaient juste
+                 * par accident, étant en haut ; C et D se posaient DANS la figure,
+                 * sur leurs propres marques d'angle droit. Les quatre sortent
+                 * maintenant par leur coin — -135, -45, 45, 135.
+                 *
+                 * ON NE RANGE QUE CE QU'ON VIENT DE POSER. Ranger toute la feuille
+                 * déplacerait les lettres qu'on a écartées à la main sur une figure
+                 * d'à côté — et celles-là, personne ne les a mises là par hasard.
+                 * Avant saveState, pour que l'annulation les retrouve à leur place. */
+                const avantPts = new Set(this.entities.filter(e => e instanceof Point));
                 const nom = avecOutils ? this.construireCroquisAvecOutils(res)
                     : this.construireCroquisSimple(res, this.croquisCodage !== false);
                 // aucun bâtisseur appelé : le repère de relecture ne doit pas rester
                 this.croquisDebutRejeu = null;
+                if (this.isAutoLabelMode) {
+                    const neufs = this.entities.filter(e => e instanceof Point && !avantPts.has(e));
+                    if (neufs.length) this.autoPlaceLabels(neufs);
+                }
                 this.saveState();
                 /* L'outil RESTE armé. On dessine rarement une figure seule : après un
                    triangle vient son cercle circonscrit, après un carré un autre carré.
@@ -28655,27 +28707,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 // la barre du document suit le cadre : elle se replace à chaque rendu
                 if (!targetCtx && !this.isExporting) this.placerBarreDocument();
-                // trace du croquis en cours : visible pendant le geste, jamais gardée
-                if (this.traitCroquis && this.traitCroquis.length > 1 && !this.isExporting) {
-                    const c = this.ctx;
-                    const auStylo = (this.currentTool === 'stylo');
-                    c.save();
-                    c.globalAlpha = auStylo ? (this.styloSurligneur ? 0.35 : 1) : 1;
-                    c.strokeStyle = auStylo ? (this.globalStyle.color || '#c0392b') : 'rgba(41,128,185,0.75)';
-                    c.lineWidth = auStylo
-                        ? (this.globalStyle.width || 3) * (this.styloSurligneur ? 5 : 1)
-                        : 2.5 / (this.view.zoom || 1);
-                    c.lineCap = 'round'; c.lineJoin = 'round';
-                    c.setLineDash([]);
-                    c.beginPath();
-                    // au stylo, l'aperçu est arrondi comme le sera le trait posé :
-                    // sinon le tracé change de forme au lever du doigt
-                    Annotation.tracerChemin(this.traitCroquis, c,
-                        auStylo && this.styloAdoucir !== false);
-                    c.stroke();
-                    c.restore();
-                }
-
                 this.drawGrid();
 
                 if (this.isGridMagnetActive && this.activeSnapPoint) {
@@ -28792,6 +28823,48 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         for (let i = 0; i < 3; i++) ent.draw(this.ctx, { isHovered: true });
                         this.ctx.restore();
                     }
+                }
+
+                /* LE TRAIT EN COURS SE DESSINE EN DERNIER.
+                 *
+                 * « Le stylo magique n'écrit rien mais donne la figure finale. »
+                 *
+                 * Il était tracé tout en haut de cette fonction — avant drawGrid().
+                 * Sur un quadrillage, la grille ne fait que poser des lignes et le
+                 * trait survivait ; SUR FOND BLANC, drawGrid() remplit toute la
+                 * feuille, et l'aperçu disparaissait sous la peinture. Mesuré, sur
+                 * une bande de 360×40 traversée par le geste, pendant le geste :
+                 *
+                 *              quadrillage  points  isométrique  BLANC
+                 *   magique          1903    1296         2813      0
+                 *   croquis          1903    1296         2813      0
+                 *   stylo            1341     722         2212      0
+                 *
+                 * Ce n'était donc pas l'outil magique : c'étaient les trois, sur un
+                 * seul fond. C'est aussi ce qui se cachait derrière « le tracé libre
+                 * ne s'affiche pas en temps réel », signalé plus tôt et jamais
+                 * reproduit — faute d'avoir essayé sur la bonne feuille.
+                 *
+                 * Sa place est ici, après la figure : un geste en cours passe
+                 * au-dessus de tout, comme la main au-dessus de la feuille. */
+                if (this.traitCroquis && this.traitCroquis.length > 1 && !this.isExporting) {
+                    const c = this.ctx;
+                    const auStylo = (this.currentTool === 'stylo');
+                    c.save();
+                    c.globalAlpha = auStylo ? (this.styloSurligneur ? 0.35 : 1) : 1;
+                    c.strokeStyle = auStylo ? (this.globalStyle.color || '#c0392b') : 'rgba(41,128,185,0.75)';
+                    c.lineWidth = auStylo
+                        ? (this.globalStyle.width || 3) * (this.styloSurligneur ? 5 : 1)
+                        : 2.5 / (this.view.zoom || 1);
+                    c.lineCap = 'round'; c.lineJoin = 'round';
+                    c.setLineDash([]);
+                    c.beginPath();
+                    // au stylo, l'aperçu est arrondi comme le sera le trait posé :
+                    // sinon le tracé change de forme au lever du doigt
+                    Annotation.tracerChemin(this.traitCroquis, c,
+                        auStylo && this.styloAdoucir !== false);
+                    c.stroke();
+                    c.restore();
                 }
 
                 this.dessinerSelection(this.ctx);
@@ -45532,7 +45605,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-22 · 11h';
+        window.GM_VERSION = '2026-09-24 · 9h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
