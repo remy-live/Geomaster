@@ -1250,6 +1250,50 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### Le crayon suivait l'autre bord de l'équerre
+
+*« Je traçais une parallèle et le crayon monte toujours, il ne va pas sur le bon
+côté de l'équerre. »* — *« En fait le crayon suit la direction de la droite
+tracée (et là en l'occurrence c'est avec l'équerre). »*
+
+Le geste est celui-ci : on couche la règle, on pose l'équerre contre elle, on la
+fait **glisser** jusqu'au point, et l'on trace le long de l'autre bord de
+l'équerre. Les deux instruments sont sortis en même temps et **ils se touchent** :
+c'est là que tout se joue.
+
+**La règle n'a qu'un bord gradué, et tout avait été écrit pour elle.**
+`planRegle` — qui dit où le crayon en est le long de l'instrument — faisait
+partir son axe de l'angle du widget, c'est-à-dire du **grand** côté de l'équerre.
+Or la parallèle se trace le long du **petit**, celui qui reste libre une fois
+l'équerre glissée contre la règle. Relevé au rejeu, équerre posée en (900, 500)
+tournée d'un demi-tour, trait **vertical** en x = 900 :
+
+| | avant | après |
+| --- | --- | --- |
+| crayon à t = 0,3 | (780, **500**) | (900, 425) |
+| crayon à t = 0,6 | (660, **500**) | (900, 350) |
+| crayon à t = 0,9 | (540, **500**) | (900, 275) |
+
+Le trait montait, le crayon filait à l'horizontale, jusqu'à **360 px** du trait
+qu'il était censé tracer — le long du bord posé sur la règle. Et chaque bord a sa
+portée : le grand fait `width`, le petit `height` ; prendre `width` pour les deux
+fait courir le crayon dans le vide.
+
+**Et l'équerre n'était reconnue qu'à moitié.** `getNearbyWidget` cherchait son
+petit côté en y **négatif** — hors du triangle — et bornait le grand à `height`
+au lieu de `width`. Mesuré sur une équerre de 400 × 250 :
+
+| point du bord | avant |
+| --- | --- |
+| grand côté, x = 200 | `setsquare` |
+| grand côté, x = 300 | `null` *(le côté fait 400)* |
+| petit côté, y = 120 | `null` *(jamais, nulle part)* |
+
+Ne reconnaissant pas l'équerre, le logiciel se rabattait sur **la règle d'à côté**
+et orientait le crayon par rapport au corps de la règle. La règle, elle, n'a pas
+changé d'un pixel : son crayon court toujours le long de son unique bord gradué,
+et la sonde tient ce bord-là aussi.
+
 ### Le compas et l'équerre ne mesuraient pas la même chose
 
 *« Bug découvert entre le compas et l'équerre, problème de longueur. De mémoire,
@@ -3515,7 +3559,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 131 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 132 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

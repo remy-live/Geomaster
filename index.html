@@ -24497,7 +24497,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (anim.widgetType !== 'ruler' && anim.widgetType !== 'setsquare') return null;
                 if (!cible || !cible.p1 || !anim.startState) return null;
                 const w = (anim.widgetType === 'ruler') ? this.rulerWidget : this.setSquareWidget;
-                const portee = (w && w.width) ? w.width : 400;
                 const O = { x: anim.startState.x, y: anim.startState.y };
                 /* L'AXE EST CELUI DE L'INSTRUMENT, PAS CELUI DE L'OBJET. Une
                    règle porte son bord gradué de son origine vers son angle : le
@@ -24508,11 +24507,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    côté. Le compte des passes était juste, la pose était fausse, et
                    seul un relevé image par image pouvait le dire. */
                 if (typeof anim.startState.angle !== 'number') return null;
-                const ux = Math.cos(anim.startState.angle);
-                const uy = Math.sin(anim.startState.angle);
+                let ux = Math.cos(anim.startState.angle);
+                let uy = Math.sin(anim.startState.angle);
+                let portee = (w && w.width) ? w.width : 400;
                 let bout = cible.p2;
                 if (!bout && cible.getDynamicP2) bout = cible.getDynamicP2();
                 if (!bout) return null;
+                /* MAIS L'ÉQUERRE A DEUX BORDS, ET LE CRAYON N'EN SUIT QU'UN.
+                   « Je traçais une parallèle et le crayon monte toujours, il ne
+                     va pas sur le bon côté de l'équerre. »
+                   La règle n'a qu'un bord gradué, et tout ce qui précède avait
+                   été écrit pour elle : l'axe partait toujours de l'angle de
+                   l'instrument, c'est-à-dire du GRAND côté de l'équerre. Or la
+                   parallèle se trace le long du PETIT — celui qui reste libre
+                   une fois l'équerre glissée contre la règle. Relevé au rejeu,
+                   équerre posée en (900,500) tournée d'un demi-tour, trait
+                   VERTICAL en x = 900 :
+                       crayon à t=0,3 → (780, 500)
+                       crayon à t=0,6 → (660, 500)
+                       crayon à t=0,9 → (540, 500)
+                   Le trait montait, le crayon partait à l'horizontale : il
+                   longeait l'autre bord, celui posé sur la règle.
+                   On choisit donc le bord que le trait suit vraiment — d'abord
+                   celui qui lui est parallèle, et si les deux se valent (un
+                   trait à 45°), le plus proche de lui. Chaque bord a sa propre
+                   portée : le grand fait width, le petit height. */
+                if (anim.widgetType === 'setsquare' && w && w.height) {
+                    const dx = bout.x - cible.p1.x, dy = bout.y - cible.p1.y;
+                    const dl = Math.hypot(dx, dy) || 1;
+                    const note = (c) =>
+                        Math.abs((dx * c.ux + dy * c.uy) / dl) * 1000
+                        - Math.abs((cible.p1.x - O.x) * c.uy - (cible.p1.y - O.y) * c.ux);
+                    const cotes = [{ ux, uy, portee: w.width },
+                                   { ux: -uy, uy: ux, portee: w.height }];
+                    const choisi = note(cotes[1]) > note(cotes[0]) ? cotes[1] : cotes[0];
+                    ux = choisi.ux; uy = choisi.uy; portee = choisi.portee;
+                }
                 /* Tout se compte en abscisse le long du trait, depuis la pose. */
                 const absc = (p) => (p.x - O.x) * ux + (p.y - O.y) * uy;
                 const infinie = !(cible instanceof Segment);
@@ -28309,13 +28339,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
                 if (this.activeWidgets.setsquare && this.setSquareWidget) {
+                    /* L'ÉQUERRE EST UN TRIANGLE (0,0) (width,0) (0,height).
+                       Ses deux bords étaient cherchés ailleurs qu'où ils sont :
+                       le petit en y NÉGATIF, hors du triangle, et le grand borné
+                       à height au lieu de width. Mesuré, équerre 400 × 250 :
+                           bord horizontal x=200 → setsquare
+                           bord horizontal x=300 → null   (le côté fait 400)
+                           bord vertical   y=120 → null   (jamais, nulle part)
+                       Or c'est le petit côté qu'on longe pour une parallèle,
+                       l'équerre ayant glissé contre la règle. Ne la reconnaissant
+                       pas, le logiciel se rabattait sur la règle d'à côté. */
                     const w = this.setSquareWidget;
                     const l = w.toLocal(x, y);
-                    if (l.y >= -w.width && l.y <= 0 && Math.abs(l.x) < minDist) {
+                    if (l.y >= 0 && l.y <= w.height && Math.abs(l.x) < minDist) {
                         minDist = Math.abs(l.x);
                         best = 'setsquare';
                     }
-                    if (l.x >= 0 && l.x <= w.height && Math.abs(l.y) < minDist) {
+                    if (l.x >= 0 && l.x <= w.width && Math.abs(l.y) < minDist) {
                         minDist = Math.abs(l.y);
                         best = 'setsquare';
                     }
@@ -46238,7 +46278,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 18h';
+        window.GM_VERSION = '2026-09-26 · 19h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
