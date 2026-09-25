@@ -16142,6 +16142,47 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return svg;
             }
         }
+        /* ============================================================
+           LES GRADUATIONS D'UN INSTRUMENT SUIVENT L'ÉCHELLE DE LA FEUILLE
+
+           « Bug découvert entre le compas et l'équerre, problème de longueur.
+             De mémoire, un carreau Seyes, c'est 0,8 cm. »
+
+           C'est exactement cela, et la mémoire est bonne. Sur fond « cahier »,
+           le logiciel pose cmScale = 0,8 : le carreau Seyes vaut 8 mm, donc un
+           CENTIMÈTRE vaut 62,5 pixels et non 50. La figure le sait, le compas le
+           sait — il affichait 2,4 cm pour un écartement de 150 px, ce qui est
+           juste. Les instruments, eux, gravaient leurs traits tous les 50 px en
+           les appelant « 1 », « 2 », « 3 » :
+
+               une même longueur de 150 px, sur fond cahier
+                 le segment dit    2,4 cm
+                 le compas dit     2,4 cm
+                 la règle grave      3 cm      ← 25 % de trop
+
+           La cause tenait en une ligne, répétée quatre fois — deux instruments,
+           chacun à l'écran et à l'export : « const mm = 5; const cm = 50; ». Un
+           nombre en dur là où il fallait une division.
+
+           ON COMPTE DÉSORMAIS EN MILLIMÈTRES, et non en pixels : l'écart d'un
+           centimètre valant 62,5 px, aucun test de divisibilité sur les pixels
+           ne pouvait retomber juste. Le rang du trait dit tout — un sur dix est
+           un centimètre, un sur cinq un demi.
+
+           Une conséquence assumée : sur fond cahier, la règle de 400 px porte
+           désormais 6 graduations et non 7. C'est le même objet sur une feuille
+           dont l'échelle a changé — comme une vraie règle posée sur du Seyes.
+           ============================================================ */
+        function gmGraduations(longueur, marge) {
+            const ech = (window.app && window.app.cmScale) || 1;
+            const mm = UNIT / ech / 10;                 // pixels pour un millimètre
+            const out = [];
+            for (let k = 0; k * mm <= longueur - marge; k++) {
+                out.push({ px: k * mm, rang: k,
+                           cm: (k % 10 === 0), demi: (k % 5 === 0), nombre: k / 10 });
+            }
+            return out;
+        }
         class SetSquareWidget {
             constructor(x, y) {
                 this.x = x; this.y = y; this.angle = 0; this.scale = 1; this.width = 400; this.height = 250; this.widgetRotationOffset = 0; this.slideMode = false;
@@ -16190,23 +16231,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const opa = Math.min(style.background.opacity, OPACITE_MAX);
                 ctx.fillStyle = `rgba(${style.background.color}, ${opa})`; ctx.fill();
                 ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.stroke();
-                const mm = 5; const cm = 50; const padding = 10;
+                const padding = 10;
                 ctx.fillStyle = style.graduations.color; ctx.strokeStyle = style.graduations.color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font; ctx.lineWidth = style.graduations.width;
-                for (let i = 0; i <= this.width - padding; i += mm) {
-                    const hAvailable = this.height * ((this.width - i) / this.width); if (hAvailable < 35) break;
-                    let len = 6; if (i % cm === 0) len = 14; else if (i % (cm / 2) === 0) len = 9;
-                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, len); ctx.stroke();
-                    if (i > 0 && i % cm === 0) {
-                        if (!window.app || window.app.exportNumbersMode !== 'none') ctx.fillText(i / cm, i, 22);
+                for (const g of gmGraduations(this.width, padding)) {
+                    const hAvailable = this.height * ((this.width - g.px) / this.width); if (hAvailable < 35) break;
+                    const len = g.cm ? 14 : (g.demi ? 9 : 6);
+                    ctx.beginPath(); ctx.moveTo(g.px, 0); ctx.lineTo(g.px, len); ctx.stroke();
+                    if (g.rang > 0 && g.cm) {
+                        if (!window.app || window.app.exportNumbersMode !== 'none') ctx.fillText(g.nombre, g.px, 22);
                     }
                 }
-                for (let i = 0; i <= this.height - padding; i += mm) {
-                    const wAvailable = this.width * ((this.height - i) / this.height); if (wAvailable < 35) break;
-                    let len = 6; if (i % cm === 0) len = 14; else if (i % (cm / 2) === 0) len = 9;
-                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(len, i); ctx.stroke();
-                    if (i > 0 && i % cm === 0) {
+                for (const g of gmGraduations(this.height, padding)) {
+                    const wAvailable = this.width * ((this.height - g.px) / this.height); if (wAvailable < 35) break;
+                    const len = g.cm ? 14 : (g.demi ? 9 : 6);
+                    ctx.beginPath(); ctx.moveTo(0, g.px); ctx.lineTo(len, g.px); ctx.stroke();
+                    if (g.rang > 0 && g.cm) {
                         if (!window.app || window.app.exportNumbersMode !== 'none') {
-                            ctx.save(); ctx.translate(22, i); ctx.rotate(-Math.PI / 2); ctx.fillText(i / cm, 0, 0); ctx.restore();
+                            ctx.save(); ctx.translate(22, g.px); ctx.rotate(-Math.PI / 2); ctx.fillText(g.nombre, 0, 0); ctx.restore();
                         }
                     }
                 }
@@ -16229,28 +16270,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const style = ToolStyle.setSquare;
                 let svg = `<g transform="translate(${this.x}, ${this.y}) rotate(${this.angle * 180 / Math.PI})">`;
                 svg += `<polygon points="0,0 ${this.width},0 0,${this.height}" fill="rgb(${style.background.color})" fill-opacity="${style.background.opacity}" stroke="rgba(${style.border.color}, ${style.border.opacity})" stroke-width="${style.border.width}" />`;
-                const mm = 5; const cm = 50; const padding = 10; let paths = "";
-                for (let i = 0; i <= this.width - padding; i += mm) {
-                    const hAvailable = this.height * ((this.width - i) / this.width); if (hAvailable < 35) break;
-                    let len = 6; if (i % cm === 0) len = 14; else if (i % (cm / 2) === 0) len = 9;
-                    paths += `M ${i} 0 L ${i} ${len} `;
-                    if (numbersMode !== 'none' && i > 0 && i % cm === 0) {
+                const padding = 10; let paths = "";
+                for (const g of gmGraduations(this.width, padding)) {
+                    const hAvailable = this.height * ((this.width - g.px) / this.width); if (hAvailable < 35) break;
+                    const len = g.cm ? 14 : (g.demi ? 9 : 6);
+                    paths += `M ${g.px} 0 L ${g.px} ${len} `;
+                    if (numbersMode !== 'none' && g.rang > 0 && g.cm) {
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
-                            svg += VectorFontUtils.getSVGGroup(i / cm, i, 22, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
+                            svg += VectorFontUtils.getSVGGroup(g.nombre, g.px, 22, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
                         } else {
-                            svg += `<text x="${i}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${i / cm}</text>`;
+                            svg += `<text x="${g.px}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${g.nombre}</text>`;
                         }
                     }
                 }
-                for (let i = 0; i <= this.height - padding; i += mm) {
-                    const wAvailable = this.width * ((this.height - i) / this.height); if (wAvailable < 35) break;
-                    let len = 6; if (i % cm === 0) len = 14; else if (i % (cm / 2) === 0) len = 9;
-                    paths += `M 0 ${i} L ${len} ${i} `;
-                    if (numbersMode !== 'none' && i > 0 && i % cm === 0) {
+                for (const g of gmGraduations(this.height, padding)) {
+                    const wAvailable = this.width * ((this.height - g.px) / this.height); if (wAvailable < 35) break;
+                    const len = g.cm ? 14 : (g.demi ? 9 : 6);
+                    paths += `M 0 ${g.px} L ${len} ${g.px} `;
+                    if (numbersMode !== 'none' && g.rang > 0 && g.cm) {
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
-                            svg += VectorFontUtils.getSVGGroup(i / cm, 22, i, this.EXPORT_SCALES.vector, style.graduations.color, -Math.PI / 2, "center");
+                            svg += VectorFontUtils.getSVGGroup(g.nombre, 22, g.px, this.EXPORT_SCALES.vector, style.graduations.color, -Math.PI / 2, "center");
                         } else {
-                            svg += `<text x="22" y="${i + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" transform="rotate(-90, 22, ${i})">${i / cm}</text>`;
+                            svg += `<text x="22" y="${g.px + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle" transform="rotate(-90, 22, ${g.px})">${g.nombre}</text>`;
                         }
                     }
                 }
@@ -16287,13 +16328,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`; ctx.beginPath(); ctx.rect(0, 0, this.width, this.height); ctx.fill();
                 ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.fillRect(0, 0, this.width, this.height / 2);
                 if (style.border.width > 0) { ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.strokeRect(0, 0, this.width, this.height); }
-                const mm = 5; const cm = 50;
                 ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`; ctx.fillStyle = style.graduations.color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font; ctx.lineWidth = style.graduations.width;
-                for (let i = 0; i <= this.width - 5; i += mm) {
-                    let len = 6; if (i % cm === 0) len = 18; else if (i % (cm / 2) === 0) len = 12;
-                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, len); ctx.stroke();
-                    if (i > 0 && i % cm === 0) {
-                        if (!window.app || window.app.exportNumbersMode !== 'none') ctx.fillText(i / cm, i, 28);
+                for (const g of gmGraduations(this.width, 5)) {
+                    const len = g.cm ? 18 : (g.demi ? 12 : 6);
+                    ctx.beginPath(); ctx.moveTo(g.px, 0); ctx.lineTo(g.px, len); ctx.stroke();
+                    if (g.rang > 0 && g.cm) {
+                        if (!window.app || window.app.exportNumbersMode !== 'none') ctx.fillText(g.nombre, g.px, 28);
                     }
                 }
                 if (!window.app || !window.app.isExporting) {
@@ -16306,15 +16346,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let svg = `<g transform="translate(${this.x}, ${this.y}) rotate(${this.angle * 180 / Math.PI})">`;
                 svg += `<rect x="0" y="0" width="${this.width}" height="${this.height}" fill="rgb(${style.background.color})" fill-opacity="${style.background.opacity}" />`;
                 if (style.border.width > 0) svg += `<rect x="0" y="0" width="${this.width}" height="${this.height}" stroke="rgba(${style.border.color}, ${style.border.opacity})" stroke-width="${style.border.width}" fill="none" />`;
-                const mm = 5; const cm = 50; let paths = "";
-                for (let i = 0; i <= this.width - 5; i += mm) {
-                    let len = 6; if (i % cm === 0) len = 18; else if (i % (cm / 2) === 0) len = 12;
-                    paths += `M ${i} 0 L ${i} ${len} `;
-                    if (numbersMode !== 'none' && i > 0 && i % cm === 0) {
+                let paths = "";
+                for (const g of gmGraduations(this.width, 5)) {
+                    const len = g.cm ? 18 : (g.demi ? 12 : 6);
+                    paths += `M ${g.px} 0 L ${g.px} ${len} `;
+                    if (numbersMode !== 'none' && g.rang > 0 && g.cm) {
                         if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
-                            svg += VectorFontUtils.getSVGGroup(i / cm, i, 28, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
+                            svg += VectorFontUtils.getSVGGroup(g.nombre, g.px, 28, this.EXPORT_SCALES.vector, style.graduations.color, 0, "center");
                         } else {
-                            svg += `<text x="${i}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${i / cm}</text>`;
+                            svg += `<text x="${g.px}" y="${28 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textFont}" fill="${style.graduations.color}" text-anchor="middle">${g.nombre}</text>`;
                         }
                     }
                 }
@@ -46143,7 +46183,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 9h';
+        window.GM_VERSION = '2026-09-26 · 14h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

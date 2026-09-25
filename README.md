@@ -1221,6 +1221,37 @@ cas, 562 px de feuille et le même point au centre de l'écran.
 Les liens déjà distribués qui ne portent pas de bloc `VIEW` s'ouvrent comme
 avant, au cadrage par défaut.
 
+### Le compas et l'équerre ne mesuraient pas la même chose
+
+*« Bug découvert entre le compas et l'équerre, problème de longueur. De mémoire,
+un carreau Seyes, c'est 0,8 cm. »*
+
+La mémoire est bonne, et c'est elle qui rend le défaut visible. Sur fond
+**cahier**, GéoMaster pose une échelle de 0,8 : le carreau Seyes vaut 8 mm, donc
+un centimètre vaut **62,5 pixels** et non 50. La figure le savait, le compas le
+savait. Les instruments gravaient leurs traits tous les 50 px en les appelant
+« 1 », « 2 », « 3 » :
+
+| une même longueur de 150 px | sur quadrillage | sur cahier |
+| --- | --- | --- |
+| le segment dit | 3 cm | 2,4 cm |
+| le compas dit | 3 cm | 2,4 cm |
+| la règle gravait | 3 cm | **3 cm** — 25 % de trop |
+
+Un élève qui reporte une longueur au compas puis la relit à la règle trouvait
+deux réponses. C'est la faute la plus coûteuse dans un cahier : elle ne se voit
+qu'au moment où l'on compare, c'est-à-dire pendant l'exercice.
+
+La cause tenait en une ligne, **répétée quatre fois** — règle et équerre, chacune
+à l'écran et à l'export : `const mm = 5; const cm = 50;`. Un nombre en dur là où
+il fallait une division. Les quatre comptent maintenant en **millimètres** et non
+en pixels : avec 62,5 px par centimètre, aucun test de divisibilité sur les
+pixels ne pouvait retomber juste.
+
+Conséquence assumée : sur cahier, la règle de 400 px porte **6 graduations et non
+7**. C'est le même objet sur une feuille dont l'échelle a changé — comme une
+vraie règle posée sur du Seyes, où un centimètre couvre un carreau et quart.
+
 ### Le crayon traçait la parallèle du mauvais côté
 
 *« Lorsque j'ai tracé une parallèle — une droite, un point, puis l'équerre qui
@@ -3455,7 +3486,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 129 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 130 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
