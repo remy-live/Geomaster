@@ -41435,11 +41435,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             + `${this.cslNomNotation(genre, noms[0], noms[1])}.`);
                     }
                 }
-                let a, b;
+                let a, b, poserB = () => {};
                 if (m) {
                     const neufA = !this.cslPointNomme(m[1]), neufB = !this.cslPointNomme(m[2]);
                     a = this.cslPoint(m[1], true, -90, 40);
                     b = this.cslPoint(m[2], true, 90, -40);
+                    /* ---- LE POINT D'ARRIVÉE SE TROUVE AU BOUT DU TRAIT ----
+                     *
+                     * « Quand un segment est dessiné sans outils à partir de deux
+                     *   points, les deux points apparaissent puis le segment. On a
+                     *   fait un comportement inverse en tracé, je crois. »
+                     *
+                     * C'est exactement cela. La règle a été posée pour le geste à
+                     * la main — on pose A, on couche la règle, on trace, et B est
+                     * ce qu'on TROUVE à la graduation — et le chemin des consignes
+                     * ne l'a jamais suivie. Mesuré :
+                     *
+                     *   outil segment à la main   Point(A) · Segment · Point(B)
+                     *   « Trace le segment [AB] » Point(A) · Point(B) · Segment
+                     *
+                     * Et aux instruments, la même phrase ne sortait AUCUNE
+                     * animation : la règle ne se couchait même pas.
+                     *
+                     * ON NE DIFFÈRE QUE CE QU'ON VIENT DE CRÉER. Deux points déjà
+                     * posés qu'on relie doivent rester avant le trait : ils
+                     * existaient vraiment avant, et les faire paraître après
+                     * serait le mensonge inverse. */
+                    if (neufB) {
+                        this.entities = this.entities.filter(e => e !== b);
+                        poserB = () => { if (!this.entities.includes(b)) this.addEntity(b); };
+                    }
+                    void neufA;
                     /* « Trace un segment VERTICAL [OQ] » : l'énoncé dit aussi
                        comment le poser. On ne redresse que ce qu'on vient de
                        créer — déplacer un point déjà placé changerait la figure
@@ -41558,7 +41584,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 if (a === b) return rate("Il faut deux points différents.");
                 const nom = `${a.label}${b.label}`;
-                if (genre === 'segment') { this.cslSegment(a, b); return fait(`Segment [${nom}]`); }
+                if (genre === 'segment') {
+                    /* AUX INSTRUMENTS, LA RÈGLE SE COUCHE. cslPremierCote fait les
+                       trois gestes dans l'ordre : elle se pose, le trait vient,
+                       le point d'arrivée se trouve au bout. Elle range q
+                       elle-même, d'où le poserB neutralisé. */
+                    if (this.cslDetaille() && this.entities.indexOf(b) < 0) {
+                        this.cslBatir(null, () => this.cslPremierCote(a, b));
+                    } else {
+                        this.cslSegment(a, b);
+                        poserB();
+                    }
+                    return fait(`Segment [${nom}]`);
+                }
                 const obj = (genre === 'droite') ? new Line(a, b, this.cslStyle())
                                                  : new Ray(a, b, this.cslStyle());
                 /* « Trace la droite (d) passant par A et B » : la droite a un nom
@@ -41567,7 +41605,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const n = this.cslNomsDeDroite(brut)[0];
                     if (n) { obj.nomDroite = n; this.cslMemoire().droites[n] = obj; }
                 }
-                this.addEntity(obj);
+                /* LA MÊME RÈGLE POUR LA DROITE ET LA DEMI-DROITE. Aux
+                   instruments, la règle se couche puis le trait vient ; le point
+                   d'arrivée se trouve ensuite, comme pour le segment. On écrit
+                   l'animation ici plutôt que d'appeler cslPremierCote, qui pose
+                   un SEGMENT : une droite n'a pas d'extrémités. */
+                if (this.cslDetaille() && this.entities.indexOf(b) < 0) {
+                    const pose = { x: a.x, y: a.y,
+                                   angle: Math.atan2(b.y - a.y, b.x - a.x) };
+                    const an = new ToolAnimation('trace', pose, pose);
+                    an.widgetType = 'ruler';
+                    this.addEntity(an);
+                    this.addEntity(obj);
+                    poserB();
+                    this.addEntity(new ToolAnimation('rulerHide', {}, {}));
+                } else {
+                    this.addEntity(obj);
+                    poserB();
+                }
                 return fait(genre === 'droite' ? `Droite (${nom})` : `Demi-droite [${nom})`);
             }
             /* POSER UNE DROITE QUI PORTE UN NOM, là où l'on regarde. Deux points
@@ -46183,7 +46238,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 14h';
+        window.GM_VERSION = '2026-09-26 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

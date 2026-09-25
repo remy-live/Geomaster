@@ -115,20 +115,34 @@ const ck = (nom, ok, detail) => {
     ck('  la troisième est refusée, et le refus est expliqué',
        res[2] && !res[2].ok && /pas compris/i.test(res[2].detail),
        res[2] && res[2].detail);
-    /* LE BANC EST FIDÈLE, PAS GÉNÉREUX. « Trace le segment [MN] de 6 cm » ne
-       sort aucun instrument — ni dans le banc, ni hors de lui : c'est vérifié.
-       Le milieu, lui, se construit au compas, et c'est là qu'on doit voir les
-       gestes. Viser la mauvaise ligne aurait fait passer le banc pour fautif
-       alors qu'il ne faisait que dire la vérité. */
+    /* LE BANC EST FIDÈLE, PAS GÉNÉREUX — et c'est LA FIDÉLITÉ qu'on mesure,
+       non un nombre.
+       Cette ligne exigeait autrefois ZÉRO geste pour « Trace le segment [MN] de
+       6 cm » : à l'époque, la case « avec les instruments » ne changeait rien
+       pour un segment, la règle ne se couchait même pas. C'était un défaut, pas
+       une propriété — signalé, puis corrigé : le segment sort maintenant sa
+       règle comme le reste (voir probe-arrivee-consigne.js). Écrire ici le
+       nouveau nombre en dur reviendrait à refaire la même faute à l'envers, et
+       à figer une seconde fois ce qui doit pouvoir changer.
+       On compare donc le compte du BANC à celui obtenu HORS du banc, sur la
+       même phrase : c'est tout ce que le banc promet — dire ce qui se passe
+       vraiment. Le milieu, lui, se construit au compas, et il doit montrer plus
+       de gestes qu'un simple segment. */
     ck('  et les instruments comptent : le milieu se construit au compas',
        /[1-9]\d* geste/.test((res[1] || {}).chiffres || ''), (res[1] || {}).chiffres);
-    ck('  tandis qu\'un simple segment n\'en demande aucun, ici comme ailleurs',
-       / 0 geste/.test((res[0] || {}).chiffres || ''), (res[0] || {}).chiffres);
     const dehors = await page.evaluate(() => window.app.bancIsoler(() => {
         window.app.executerConsigneAvec('Trace le segment [MN] de 6 cm', true);
         return window.app.entities.filter(e => e instanceof ToolAnimation).length;
     }));
-    ck('    — mesuré hors de l\'interface du banc aussi', dehors === 0, dehors + ' geste(s)');
+    const dansLeBanc = Number((((res[0] || {}).chiffres || '').match(/(\d+) geste/) || [])[1]);
+    ck('  et le banc compte les mêmes gestes que la feuille',
+       Number.isFinite(dansLeBanc) && dansLeBanc === dehors,
+       `${dansLeBanc} dans le banc, ${dehors} hors de lui`);
+    ck('    le segment aux instruments sort bien sa règle', dehors > 0,
+       dehors + ' geste(s)');
+    ck('    et le milieu en demande davantage',
+       Number((((res[1] || {}).chiffres || '').match(/(\d+) geste/) || [])[1]) > dehors,
+       (res[1] || {}).chiffres);
     const bilan = await page.evaluate(() => (document.querySelector('.banc-bilan') || {}).textContent || '');
     ck('  le bilan compte juste', /2 phrase\(s\) comprise\(s\) sur 3/.test(bilan), bilan.trim());
 

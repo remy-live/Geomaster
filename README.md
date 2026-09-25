@@ -1221,6 +1221,35 @@ cas, 562 px de feuille et le même point au centre de l'écran.
 Les liens déjà distribués qui ne portent pas de bloc `VIEW` s'ouvrent comme
 avant, au cadrage par défaut.
 
+### La consigne aussi trouve son point d'arrivée au bout du trait
+
+*« Quand un segment est dessiné sans outils à partir de deux points, les deux
+points apparaissent puis le segment. On a fait un comportement inverse en tracé,
+je crois. »*
+
+Exactement — et la moitié de la phrase importe autant que l'autre, car il y a
+**deux situations et une seule était fausse**.
+
+La règle avait été posée pour le geste à la main : on pose A, on couche la
+règle, on trace, et B est ce qu'on **trouve** à la graduation. Le chemin des
+consignes ne l'avait jamais suivie :
+
+| | ordre des objets |
+| --- | --- |
+| outil segment, à la main | Point(A) · Segment · **Point(B)** |
+| « Trace le segment [AB] » | Point(A) · **Point(B)** · Segment |
+
+Pire : aux instruments, la même phrase ne sortait **aucune animation**. « Avec
+les instruments de géométrie » était coché, et rien ne distinguait la
+construction de celle sans outils — la règle ne se couchait même pas. Le segment,
+la droite et la demi-droite donnent désormais :
+
+`Point(A) · règle qui trace · le trait · Point(B) · règle rangée`
+
+**L'autre bord est tenu aussi.** Deux points *déjà* posés qu'on relie restent
+avant le trait : ils existaient vraiment avant, et les faire paraître après
+serait le mensonge inverse.
+
 ### Le compas et l'équerre ne mesuraient pas la même chose
 
 *« Bug découvert entre le compas et l'équerre, problème de longueur. De mémoire,
@@ -3486,7 +3515,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 130 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 131 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
