@@ -1193,6 +1193,65 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le symbole qu'on ne trouvait pas, et le clavier qui n'en avait aucun
+
+*« Il n'y a pas le symbole n'appartient pas pour le texte. »*
+*« Je trouve ça galère de taper pour avoir un symbole, on pourrait pas avoir
+quelque chose de plus pratique ? »*
+
+La seconde phrase est la vraie. Le composeur connaît ∉ depuis toujours —
+`\notin` est dans sa table — mais il fallait le **savoir** : l'aide aux formules
+offrait ∈ sans ∉ et ≤ sans ≥, et le bouton de la barre du texte qui s'appelle
+« Ouvrir le Clavier Mathématique » ouvrait quarante-huit touches de lettres et de
+chiffres, **sans un seul symbole mathématique**.
+
+Le clavier a donc une **page de symboles**, atteinte par la touche à gauche de la
+barre d'espace — là où les téléphones mettent « 123 ». Quarante symboles, un
+appui, et **aucun bouton de plus à l'écran** : la touche vit à l'intérieur d'un
+clavier qu'on ouvrait déjà.
+
+| | |
+| --- | --- |
+| ∈ ∉ ⊂ ∪ ∩ ∅ ≤ ≥ ≠ ≈ | ∥ ⊥ ∠ ° ′ π ∞ ± × ÷ |
+| → ← ⇒ ⇔ … · ∗ ≡ ∼ ∝ | α β γ δ θ λ µ σ ω Δ |
+
+Ils s'insèrent **tels quels**, et non sous leur commande : écrire `\notin` ferait
+basculer *toute* la ligne en composition mathématique, et « le point A
+n'appartient pas à (d) » y perdrait son allure de phrase. La liste est tirée de
+celle du composeur, si bien qu'elle ne peut pas diverger.
+
+### Suivre le symbole jusqu'au bout a révélé deux autres choses
+
+**L'export TikZ détruisait toute formule.** Il protégeait chaque caractère
+spécial par une barre oblique, d'un bloc — or `\\` ne protège pas la barre
+oblique en LaTeX : c'est un **saut de ligne**. Compilé pour voir, plutôt que
+raisonné :
+
+| ce qu'on écrit | ce que le PDF montrait |
+| --- | --- |
+| `A \notin D` | Anotin D |
+| `\frac{a}{b} \le 30\degree` | frac{a}{b}le 30degree |
+| `(AB) \parallel (CD)` | (AB)parallel (CD) |
+
+Une formule de GéoMaster **est** du LaTeX, à trois commandes près : `\degree` et
+`\deg`, que LaTeX ne connaît pas sans paquet, et `\par` — qu'il connaît, et qui
+est un changement de paragraphe. Elle part donc en mode mathématique telle
+quelle. Les lettres accentuées, **interdites en mode mathématique**, sont mises à
+l'abri par mot entier : `unit\mbox{é}s` compile, mais coupe le mot en trois
+morceaux composés différemment.
+
+**Le PDF, lui, ne porte aucun symbole** — et c'est le seul maillon qui reste
+cassé. La police embarquée est Instrument Sans : elle a les lettres et les
+accents, pas les mathématiques. À l'écran et dans le SVG cela ne se voit pas, le
+navigateur remplaçant le glyphe manquant caractère par caractère ; jsPDF n'a
+aucun repli et écrit le glyphe « absent », qui ne dessine rien. « A ∉ D » sortait
+« A   D », pendant que l'export annonçait « ✅ PDF vectoriel exporté ! ».
+
+Embarquer une police de symboles réglerait la chose au prix de quelques dizaines
+de kilo-octets — c'est une décision de poids de fichier, pas une correction. En
+attendant, **le silence est réparé** : le logiciel nomme les symboles perdus et
+renvoie au SVG ou au TikZ, qui les conservent tous les deux.
+
 ### Un carré qui n'en est pas un, annoncé « ✓ Carré »
 
 *« Regarde ce qu'il a fait. D'ailleurs si ce n'est pas possible, il faut
@@ -3281,7 +3340,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 125 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 126 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

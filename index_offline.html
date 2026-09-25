@@ -23880,23 +23880,52 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const row3_up = ["W", "X", "C", "V", "B", "N", ".", ":", ";", "/"];
                 const row4_low = ["é", "è", "à", "ù", "ç", "'", "-", "(", ")", "="];
                 const row4_up = ["É", "È", "À", "Ù", "Ç", '"', "+", "[", "]", "*"];
-                const currentR1 = this.isShift ? row1_up : row1_low;
-                const currentR2 = this.isShift ? row2_up : row2_low;
-                const currentR3 = this.isShift ? row3_up : row3_low;
-                const currentR4 = this.isShift ? row4_up : row4_low;
+                /* ---- LA PAGE DES SYMBOLES ---------------------------------
+                   « Je trouve ça galère de taper pour avoir un symbole. »
+                   Et pour cause : le bouton de la barre du texte s'appelle
+                   « Ouvrir le Clavier Mathématique », et ce clavier ne portait
+                   PAS UN SEUL symbole mathématique — quarante-huit touches, des
+                   lettres et des chiffres. Pour un ∉ il fallait ouvrir l'aide
+                   aux formules et y trouver la bonne vignette, ou connaître
+                   « \notin » par cœur.
+
+                   Une page de plus sur le clavier, atteinte par la touche qui
+                   servait de majuscule — c'est le geste de tous les téléphones,
+                   et il ne coûte aucun bouton à l'écran. Les quarante symboles
+                   sont ceux que le composeur connaît déjà : la liste ne peut pas
+                   diverger, puisqu'elle en est tirée.
+
+                   ILS S'INSÈRENT TELS QUELS, et non sous leur commande. Écrire
+                   « \notin » ferait basculer TOUTE la ligne en composition
+                   mathématique — une phrase comme « le point A n'appartient pas
+                   à (d) » y perdrait son allure de phrase. Le caractère, lui,
+                   se pose dans du texte ordinaire comme dans une formule. */
+                const math1 = ["∈", "∉", "⊂", "∪", "∩", "∅", "≤", "≥", "≠", "≈"];
+                const math2 = ["∥", "⊥", "∠", "°", "′", "π", "∞", "±", "×", "÷"];
+                const math3 = ["→", "←", "⇒", "⇔", "…", "·", "∗", "≡", "∼", "∝"];
+                const math4 = ["α", "β", "γ", "δ", "θ", "λ", "µ", "σ", "ω", "Δ"];
+                const currentR1 = this.vkMath ? math1 : (this.isShift ? row1_up : row1_low);
+                const currentR2 = this.vkMath ? math2 : (this.isShift ? row2_up : row2_low);
+                const currentR3 = this.vkMath ? math3 : (this.isShift ? row3_up : row3_low);
+                const currentR4 = this.vkMath ? math4 : (this.isShift ? row4_up : row4_low);
                 this.createRow(row0, 'num');
                 this.createRow(currentR1);
                 this.createRow(currentR2);
                 const div3 = document.createElement('div');
                 div3.className = 'vk-row';
-                const btnShift = document.createElement('button');
-                btnShift.className = 'vk-btn special' + (this.isShift ? ' active-shift' : '');
-                btnShift.innerHTML = '⇧';
-                btnShift.onmousedown = (e) => {
-                    e.preventDefault();
-                    this.toggleShift();
-                };
-                div3.appendChild(btnShift);
+                /* Pas de majuscule sur la page des symboles : ∈ n'en a pas, et
+                   deux touches « revenir aux lettres » côte à côte laisseraient
+                   croire qu'elles font deux choses différentes. */
+                if (!this.vkMath) {
+                    const btnShift = document.createElement('button');
+                    btnShift.className = 'vk-btn special' + (this.isShift ? ' active-shift' : '');
+                    btnShift.innerHTML = '⇧';
+                    btnShift.onmousedown = (e) => {
+                        e.preventDefault();
+                        this.toggleShift();
+                    };
+                    div3.appendChild(btnShift);
+                }
                 currentR3.forEach(char => {
                     const btn = document.createElement('button');
                     btn.className = 'vk-btn';
@@ -23919,6 +23948,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.createRow(currentR4);
                 const divSpace = document.createElement('div');
                 divSpace.className = 'vk-row';
+                /* La bascule est à gauche de la barre d'espace, là où les
+                   téléphones mettent « 123 » : c'est la touche qu'on y cherche
+                   sans y penser. Elle montre où elle mène plutôt que ce qu'elle
+                   fait — « ∉ ≤ π » se reconnaît de plus loin qu'un mot. */
+                const btnMath = document.createElement('button');
+                btnMath.className = 'vk-btn special' + (this.vkMath ? ' active-shift' : '');
+                btnMath.innerText = this.vkMath ? 'ABC' : '∉≤π';
+                btnMath.style.fontSize = '13px';
+                btnMath.title = this.vkMath ? 'Revenir aux lettres' : 'Symboles mathématiques';
+                btnMath.onmousedown = (e) => {
+                    e.preventDefault();
+                    this.vkMath = !this.vkMath;
+                    this.renderKeyboard();
+                };
+                divSpace.appendChild(btnMath);
                 const btnSpace = document.createElement('button');
                 btnSpace.className = 'vk-btn space';
                 btnSpace.innerText = 'Espace';
@@ -29904,9 +29948,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (textes.length) {
                     corps.push('  % --- les textes ---');
                     for (const e of textes) {
-                        const t = String(e.texteBrut ? e.texteBrut() : (e.text || ''))
-                            .replace(/[\\{}&%$#_^~]/g, (m) => '\\' + m);
-                        if (!t.trim()) continue;
+                        const brut = String(e.texteBrut ? e.texteBrut() : (e.text || ''));
+                        if (!brut.trim()) continue;
+                        const t = this.tikzTexte(brut);
                         const c = nomCouleur(e.color || '#000000');
                         corps.push(`  \\node[anchor=north west${c === 'black' ? '' : ',' + c}] at (${X(e.x)},${Y(e.y)}) {${t}};`);
                     }
@@ -29931,6 +29975,105 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 L.push('\\end{tikzpicture}');
                 void rendus;
                 return L.join('\n') + '\n';
+            }
+            /* LES SYMBOLES QUE CE PDF NE SAIT PAS ÉCRIRE.
+               On ne devine pas la couverture d'une police, on la DEMANDE au
+               document lui-même : jsPDF donne au glyphe absent une largeur
+               unique, et il suffit de la relever sur un caractère qui n'existe
+               dans aucune police — la zone à usage privé — pour avoir l'étalon.
+               Aucune liste à tenir : le jour où l'on embarque une police de
+               symboles, cette fonction ne renverra plus rien d'elle-même. */
+            symbolesHorsPdf(pdf) {
+                const S = (typeof GmFormule !== 'undefined' && GmFormule.SYMBOLES) || {};
+                const vus = new Set();
+                this.entities.forEach((e) => {
+                    const brut = (e instanceof TextLabel || e instanceof Annotation)
+                        ? String((e.texteBrut ? e.texteBrut() : e.text) || '') : '';
+                    if (!brut) return;
+                    // ceux qu'une commande fera paraître, et ceux tapés tels quels
+                    brut.replace(/\\([A-Za-z]+)/g, (m, n) => { if (S[n]) vus.add(S[n]); return m; });
+                    brut.replace(/[^\x00-\x7F]/g, (c) => { vus.add(c); return c; });
+                });
+                if (!vus.size) return [];
+                try {
+                    pdf.setFont('GeoSans', 'normal');
+                    const absent = pdf.getTextWidth('');   // zone privée : jamais dessinée
+                    const reel = pdf.getTextWidth('A');
+                    if (Math.abs(absent - reel) < 0.01) return [];   // étalon inutilisable
+                    return [...vus].filter(c => Math.abs(pdf.getTextWidth(c) - absent) < 0.01);
+                } catch (e) { void e; return []; }
+            }
+            /* ============================================================
+               UN TEXTE POUR LATEX — ET UNE FORMULE RESTE UNE FORMULE
+
+               L'export TikZ protégeait CHAQUE caractère spécial par une barre
+               oblique, d'un bloc :
+
+                   .replace(/[\\{}&%$#_^~]/g, (m) => '\\' + m)
+
+               C'est juste pour une accolade, faux pour tout le reste. « \\ » ne
+               protège pas la barre oblique : en LaTeX, c'est un SAUT DE LIGNE.
+               Une formule y perdait donc son sens entier. Compilé pour voir,
+               plutôt que raisonné :
+
+                   A \notin D                  → « Anotin D »
+                   A \in D                     → « Ain D »
+                   \frac{a}{b} \le 30\degree   → « frac{a}{b}le 30degree »
+                   (AB) \parallel (CD)         → « (AB)parallel (CD) »
+
+               Or une formule de GéoMaster EST du LaTeX, à trois commandes près.
+               Elle part donc en mode mathématique telle quelle, et seules ces
+               trois-là sont traduites : \degree et \deg, que LaTeX ne connaît
+               pas sans paquet, et \par — qui existe, lui, et qui est un
+               changement de paragraphe : le raccourci de \parallel aurait cassé
+               la formule au milieu.
+
+               DEUX PIÈGES DE PLUS, qu'on ne voit qu'en compilant. Les lettres
+               accentuées sont INTERDITES en mode mathématique — « unités » dans
+               une formule arrête la compilation —, d'où le \mbox. Et un symbole
+               tapé tel quel — ∉, ≤, π, collé depuis ailleurs — n'est dans aucune
+               police de LaTeX : « Unicode character not set up ». On lui rend sa
+               commande, en retournant la table des symboles du composeur : une
+               seule liste tenue à jour, dans les deux sens.
+               ============================================================ */
+            tikzTexte(brut) {
+                const LATEX = { degree: '^{\\circ}', deg: '^{\\circ}', par: '\\parallel' };
+                const commande = (nom) => (LATEX[nom] !== undefined ? LATEX[nom] : '\\' + nom);
+                /* La table du composeur, à l'envers. Le premier nom rencontré
+                   gagne : « le » avant « leq », « parallel » avant « par ». */
+                const S = (typeof GmFormule !== 'undefined' && GmFormule.SYMBOLES) || {};
+                const parCaractere = {};
+                Object.keys(S).forEach((k) => {
+                    if (parCaractere[S[k]] === undefined) parCaractere[S[k]] = k;
+                });
+                const estFormule = !!(typeof GmFormule !== 'undefined'
+                    && GmFormule.contientFormule && GmFormule.contientFormule(brut));
+
+                if (!estFormule) {
+                    /* TEXTE ORDINAIRE : chaque caractère reçoit SA protection.
+                       « \^ » tout seul est un accent circonflexe en attente de
+                       sa lettre, pas un accent circonflexe imprimé. */
+                    const PROTEGE = { '\\': '\\textbackslash{}', '{': '\\{', '}': '\\}',
+                        '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#', '_': '\\_',
+                        '^': '\\textasciicircum{}', '~': '\\textasciitilde{}' };
+                    return brut.replace(/[\\{}&%$#_^~]/g, (m) => PROTEGE[m])
+                        .replace(/[^\x00-\x7F]/g, (c) => (parCaractere[c]
+                            ? '$' + commande(parCaractere[c]) + '$' : c));
+                }
+                let t = brut.replace(/\\([A-Za-z]+)/g, (m, nom) => commande(nom));
+                // %, & et # ne font pas partie de la syntaxe des formules
+                t = t.replace(/[%&#]/g, (m) => '\\' + m);
+                t = t.replace(/[^\x00-\x7F]/g, (c) => (parCaractere[c]
+                    ? commande(parCaractere[c]) + ' ' : c));
+                /* Ce qui reste hors ASCII est de l'écriture, pas des
+                   mathématiques, et les lettres accentuées sont INTERDITES en
+                   mode mathématique : « unités » y arrête la compilation. On met
+                   le MOT ENTIER à l'abri, pas la seule lettre accentuée —
+                   « unit\mbox{é}s » compile, mais coupe le mot en trois morceaux
+                   composés différemment. */
+                t = t.replace(/[^\s\\{}^_$]*[^\x00-\x7F][^\s\\{}^_$]*/g,
+                    (m) => '\\mbox{' + m + '}');
+                return '$' + t + '$';
             }
             exportTikZ() {
                 const code = this.genererTikZ();
@@ -30049,9 +30192,34 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
 
                     pdf.save(this.getSafeFilename('pdf'));
+                    /* LE PDF NE PORTE PAS TOUT, ET IL DOIT LE DIRE. La police
+                       embarquée est Instrument Sans : elle a les lettres et les
+                       accents, pas les symboles mathématiques. À l'écran et dans
+                       le SVG cela ne se voit pas — le navigateur remplace le
+                       glyphe manquant par celui d'une autre police, caractère par
+                       caractère. jsPDF, lui, n'a aucun repli : il écrit le glyphe
+                       « absent », qui ne dessine RIEN. Mesuré : « A ∉ D » sort
+                       « A   D », un trou à la place du symbole, et l'export
+                       annonçait « ✅ PDF vectoriel exporté ! ».
+                       Embarquer une police de symboles réglerait la chose au prix
+                       de quelques dizaines de kilo-octets ; en attendant cette
+                       décision, on nomme les symboles perdus. */
+                    const perdus = this.symbolesHorsPdf(pdf);
                     this.showToast(pagesDoc.length > 1
                         ? `✅ PDF de ${pagesDoc.length} pages exporté !`
                         : "✅ PDF vectoriel exporté !");
+                    if (perdus.length) {
+                        this.showModal('<b>Le PDF ne porte pas '
+                            + (perdus.length > 1 ? 'ces symboles' : 'ce symbole')
+                            + ' : <span style="font-size:20px">' + perdus.join(' ') + '</span></b>'
+                            + '<div style="text-align:left;margin-top:12px">'
+                            + 'La police embarquée dans le fichier a les lettres et les accents, '
+                            + 'mais pas les symboles mathématiques : ils laissent un blanc dans le '
+                            + 'PDF. Sur la feuille et dans le SVG, ils sont bien là.'
+                            + '<p style="margin:12px 0 0 0">Pour les conserver, exportez en '
+                            + '<b>SVG</b> (image vectorielle, qui s\'insère dans un document) '
+                            + 'ou en <b>TikZ</b> (code LaTeX).</p></div>');
+                    }
 
                 } catch (error) {
                     console.error("Erreur d'export PDF:", error);
@@ -45228,10 +45396,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ['pi', '\\pi', 0],
                         ['Multiplié', '\\times', 0],
                         ['Inférieur ou égal', '\\le', 0],
+                        /* LES DEUX MOITIÉS D'UNE PAIRE VONT ENSEMBLE. Le panneau
+                           offrait ≤ sans ≥ et ∈ sans ∉ — « il n'y a pas le
+                           symbole n'appartient pas ». Le composeur les connaît
+                           depuis toujours (\ge, \notin) ; seules les vignettes
+                           manquaient, et personne ne devine une syntaxe qu'on ne
+                           lui montre pas. Le panneau défile déjà : deux tuiles de
+                           plus ne coûtent pas un pixel d'écran. */
+                        ['Supérieur ou égal', '\\ge', 0],
                         ['Différent', '\\ne', 0],
                         ['Parallèle', '\\parallel', 0],
                         ['Perpendiculaire', '\\perp', 0],
                         ['Appartient', '\\in', 0],
+                        ['N\'appartient pas', '\\notin', 0],
                         ['Aire du triangle', '\\frac{b \\times h}{2}', 0],
                     ];
                     MODELES.forEach(([nom, syntaxe, recul]) => {
@@ -45914,7 +46091,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-24 · 21h';
+        window.GM_VERSION = '2026-09-25 · 11h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
