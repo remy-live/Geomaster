@@ -1327,17 +1327,40 @@ quelle. Les lettres accentuées, **interdites en mode mathématique**, sont mise
 l'abri par mot entier : `unit\mbox{é}s` compile, mais coupe le mot en trois
 morceaux composés différemment.
 
-**Le PDF, lui, ne porte aucun symbole** — et c'est le seul maillon qui reste
-cassé. La police embarquée est Instrument Sans : elle a les lettres et les
-accents, pas les mathématiques. À l'écran et dans le SVG cela ne se voit pas, le
-navigateur remplaçant le glyphe manquant caractère par caractère ; jsPDF n'a
-aucun repli et écrit le glyphe « absent », qui ne dessine rien. « A ∉ D » sortait
-« A   D », pendant que l'export annonçait « ✅ PDF vectoriel exporté ! ».
+**Le PDF, lui, ne portait aucun symbole** — c'était le dernier maillon
+cassé. La police embarquée, Instrument Sans, a les lettres et les accents, pas
+les mathématiques. À l'écran et dans le SVG cela ne se voyait pas : le navigateur
+descend sa pile de polices **glyphe par glyphe** et remplace ce qui manque. jsPDF
+choisit **une** police par passage de texte et écrit le glyphe « absent » pour
+tout le reste — lequel ne dessine rien. « A ∉ D » sortait « A   D », et le texte
+du PDF, celui qu'on cherche au Ctrl+F, ne portait que
+`A   D  a   b  ( A B )   ( C D )`.
 
-Embarquer une police de symboles réglerait la chose au prix de quelques dizaines
-de kilo-octets — c'est une décision de poids de fichier, pas une correction. En
-attendant, **le silence est réparé** : le logiciel nomme les symboles perdus et
-renvoie au SVG ou au TikZ, qui les conservent tous les deux.
+### La police porte maintenant les symboles
+
+Les quarante symboles qui manquaient sont pris dans **DejaVu Sans**, réduits à
+ces seuls glyphes, ramenés de 2048 à 1000 unités par cadratin — l'échelle de
+l'hôte — et **fusionnés** dans la police embarquée. Les sept qu'Instrument Sans
+possédait déjà (× ÷ · ° → ← …) gardent son dessin : c'est pourquoi le degré des
+angles, lui, sortait bien depuis toujours.
+
+Coût : **1 Ko sur 178**, parce qu'on n'embarque que quarante dessins.
+
+Fusionner plutôt qu'ajouter une seconde police, c'est toute l'affaire : une pile
+de familles dans le SVG ne servirait à rien, jsPDF ne sachant pas en descendre
+les marches. Il aurait fallu découper chaque texte en passages — lettres ici,
+symboles là — et recalculer leurs abscisses.
+
+La police fusionnée s'appelle **GeoMaster Sans**, et ce nom est une condition :
+l'OFL réserve « Instrument Sans » aux versions non modifiées, et la licence
+Bitstream Vera de DejaVu n'autorise l'ajout de glyphes qu'à condition de
+renommer sans « Bitstream » ni « Vera ». Les deux licences sont reproduites dans
+le fichier, comme l'une et l'autre l'exigent, et une sonde les y tient.
+
+Le garde-fou qui nommait les symboles perdus reste, et **se tait tout seul** : il
+n'interroge pas une liste, il demande au document s'il sait écrire ce qu'on lui
+donne. Il reparlera le jour où un caractère venu d'ailleurs traversera la
+feuille.
 
 ### Un carré qui n'en est pas un, annoncé « ✓ Carré »
 
@@ -3419,15 +3442,20 @@ fichier, sous licence MIT, avec leurs notices d'origine :
 | [svg2pdf.js](https://github.com/yWorks/svg2pdf.js) | convertir la figure en PDF vectoriel | 85 Ko |
 | [lz-string](https://github.com/pieroxy/lz-string) | comprimer la figure dans l'URL | 6 Ko |
 | bibliothèque QR | afficher le lien en QR code | 55 Ko |
-| police GeoSans (2 graisses) | même rendu à l'écran et dans le PDF | 181 Ko |
+| police GeoMaster Sans (2 graisses) | même rendu à l'écran et dans le PDF | 182 Ko |
 
-La police est sous licence SIL Open Font.
+La police est faite de deux polices libres : les lettres, les chiffres et les
+accents viennent d'**Instrument Sans** (SIL Open Font License 1.1), les quarante
+symboles mathématiques de **DejaVu Sans** (licence Bitstream Vera), réduits à ces
+seuls glyphes et fusionnés dans la première. Les deux licences sont reproduites
+dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
+« GeoMaster Sans » est ce qui rend la fusion licite.
 
 ---
 
 ## Les tests
 
-`tests/` contient 128 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 129 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

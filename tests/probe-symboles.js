@@ -45,17 +45,23 @@
  * traduites, dont \par, que LaTeX connaît et qui est un changement de
  * paragraphe.
  *
- * LE PDF, LUI, NE PORTE AUCUN SYMBOLE, et c'est le seul point qui n'est pas
- * réparé : la police embarquée est Instrument Sans, qui a les lettres et les
- * accents mais pas les mathématiques. À l'écran et dans le SVG cela ne se voit
- * pas — le navigateur remplace le glyphe manquant, caractère par caractère.
- * jsPDF n'a aucun repli : il écrit le glyphe « absent », qui ne dessine RIEN.
- * Mesuré : « A ∉ D » sort « A   D », et l'export annonçait « ✅ PDF vectoriel
- * exporté ! ». Embarquer une police de symboles est une décision de poids de
- * fichier ; en attendant, LE LOGICIEL NE DIT PLUS QU'IL A EXPORTÉ CE QU'IL A
- * LAISSÉ TOMBER — il nomme les symboles perdus et renvoie au SVG ou au TikZ.
- * C'est cette honnêteté-là que la sonde tient, et elle la tient dans les deux
- * sens : la fenêtre ne doit pas s'ouvrir sur une figure sans symbole.
+ * LE PDF, LUI, NE PORTAIT AUCUN SYMBOLE — et c'est le seul point qui est resté
+ * ouvert quelque temps : la police embarquée était Instrument Sans, qui a les
+ * lettres et les accents mais pas les mathématiques. À l'écran et dans le SVG
+ * cela ne se voit pas — le navigateur remplace le glyphe manquant, caractère par
+ * caractère. jsPDF n'a aucun repli : il écrit le glyphe « absent », qui ne
+ * dessine RIEN. Mesuré : « A ∉ D » sortait « A   D » pendant que l'export
+ * annonçait « ✅ PDF vectoriel exporté ! ». On a d'abord réparé le SILENCE — le
+ * logiciel nommant les symboles perdus et renvoyant au SVG ou au TikZ —, puis
+ * les quarante glyphes manquants ont été fusionnés dans la police (voir
+ * probe-pdf-symboles.js).
+ *
+ * L'AVERTISSEMENT S'EST ALORS TU TOUT SEUL, et c'était son pari : il
+ * n'interroge pas une liste, il demande au document s'il sait écrire ce qu'on
+ * lui donne. La section 5 garde donc les deux bords — le silence sur les
+ * symboles du logiciel, qui prouve que le PDF les porte, et la parole sur un
+ * caractère venu d'ailleurs, qu'aucune police du fichier ne dessine. Sans ce
+ * second cas, l'avertissement pourrait disparaître sans que rien ne l'annonce.
  */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -320,15 +326,29 @@ const ck = (nom, ok, detail) => {
        tikz.texte === 'Aire : 100 \\% de plus', tikz.texte);
 
     /* ============================================================
-       5. LE PDF DIT CE QU'IL NE SAIT PAS ÉCRIRE
-       C'est le seul maillon non réparé : la police embarquée n'a pas les
-       symboles. Ce qui est réparé, c'est le silence.
+       5. LE PDF LES ÉCRIT — ET IL DIT CE QU'IL NE SAIT PAS ÉCRIRE
+
+       Cette section a changé de camp, et c'était le pari de l'avertissement.
+       Quand elle a été écrite, la police embarquée n'avait pas les symboles :
+       le PDF les perdait, et tout ce qu'on pouvait réparer était le SILENCE —
+       l'export annonçait « ✅ PDF vectoriel exporté ! » sur une figure amputée.
+       Les quarante glyphes manquants ont depuis été fusionnés dans la police
+       (voir probe-pdf-symboles.js), et l'avertissement s'est tu TOUT SEUL :
+       il n'interroge pas une liste, il demande au document s'il sait écrire ce
+       qu'on lui donne.
+
+       ON GARDE LES DEUX BORDS. Le silence sur les symboles du logiciel — c'est
+       la preuve que le PDF les porte — et la parole sur un caractère venu
+       d'ailleurs, collé d'un traitement de texte, qu'aucune police du fichier
+       ne dessine. Sans ce second cas, l'avertissement pourrait disparaître sans
+       que rien ne l'annonce.
        ============================================================ */
-    console.log('\n=== et le PDF ne se vante plus de ce qu\'il laisse tomber ===');
+    console.log('\n=== le PDF écrit les symboles, et nomme ce qu\'il ne sait pas écrire ===');
     for (const [titre, textes, attendu] of [
-        ['avec des symboles', ['A \\notin D', 'a \\ge b'], true],
-        ['avec le symbole tapé tel quel', ['A ∉ D'], true],
+        ['avec des symboles du logiciel', ['A \\notin D', 'a \\ge b'], false],
+        ['avec le symbole tapé au clavier', ['A ∉ D'], false],
         ['sans symbole, mais avec des accents', ['Périmètre : 12 cm'], false],
+        ['avec un caractère venu d\'ailleurs', ['Aire : 12 中'], true],
     ]) {
         await page.evaluate((textes) => {
             const a = window.app;
@@ -345,10 +365,10 @@ const ck = (nom, ok, detail) => {
             return { ouverte: !!(m && getComputedStyle(m).display !== 'none'),
                      texte: (document.getElementById('modalMessage') || {}).innerText || '' };
         });
-        ck(titre + ' : ' + (attendu ? 'le PDF le dit' : 'rien à signaler'),
+        ck(titre + ' : ' + (attendu ? 'le PDF le signale' : 'le PDF l\'écrit, rien à signaler'),
            r.ouverte === attendu, r.ouverte ? r.texte.split('\n')[0] : 'aucune fenêtre');
         if (attendu) {
-            ck('    il nomme le symbole perdu', /∉/.test(r.texte));
+            ck('    il nomme le caractère perdu', /中/.test(r.texte), r.texte.split('\n')[0]);
             ck('    et dit par où le conserver', /SVG/.test(r.texte) && /TikZ/.test(r.texte));
         }
         await page.evaluate(() => { if (window.app.closeModal) window.app.closeModal(); });
