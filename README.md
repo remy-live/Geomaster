@@ -1193,6 +1193,34 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le lien garde la vue dans laquelle on travaille
+
+*« Quand on fait créer un lien partageable, il faudrait pouvoir garder la vue
+dans laquelle on travaille. »*
+
+Le cadrage était déjà dans le lien : le code de la figure porte un bloc
+`¦VIEW:zoom;x;y;largeur;hauteur`, et la relecture le rangeait bien de côté. Mais
+la fonction qui l'applique n'était appelée que dans la branche du **mode
+lecture** — le cadrage faisait tout le voyage, écrit, compressé, transporté,
+décompressé, relu, pour être **jeté à l'arrivée**.
+
+Mesuré sur une vue de travail à zoom 2,3 centrée sur le point (516, 361) de la
+feuille :
+
+| lien | zoom | centre du monde | feuille visible |
+| --- | --- | --- | --- |
+| élève (`?mode=lecture&fig=`) | 2,49 | (516, 361) | 562 px |
+| ordinaire (`?fig=`) | 1 | **(646, 450)** | **1292 px** |
+
+**Ce qui est gardé, c'est la portion de feuille, pas le zoom.** Le zoom est remis
+à l'échelle de la fenêtre qui ouvre : 2,3 devient 2,49 quand la barre d'outils
+disparaît et que le canevas s'élargit, et 1,25 sur un écran deux fois plus
+étroit. Le nombre change *pour que* le cadrage ne change pas — dans les trois
+cas, 562 px de feuille et le même point au centre de l'écran.
+
+Les liens déjà distribués qui ne portent pas de bloc `VIEW` s'ouvrent comme
+avant, au cadrage par défaut.
+
 ### Le crayon traçait la parallèle du mauvais côté
 
 *« Lorsque j'ai tracé une parallèle — une droite, un point, puis l'équerre qui
@@ -3399,7 +3427,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 127 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 128 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

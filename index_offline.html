@@ -46140,7 +46140,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-25 · 18h';
+        window.GM_VERSION = '2026-09-25 · 21h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
@@ -46389,8 +46389,32 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
         }
         else {
-            // une adresse peut porter plusieurs pages : on ouvre le document entier
-            if (figData) setTimeout(() => app.chargerDocument(figData), 100);
+            /* LE LIEN GARDE LA VUE DANS LAQUELLE ON TRAVAILLE.
+             *
+             * « Quand on fait créer un lien partageable, il faudrait pouvoir
+             *   garder la vue dans laquelle on travaille. »
+             *
+             * Le cadrage était DÉJÀ dans le lien — getCompressedString y écrit
+             * « ¦VIEW:zoom;x;y;largeur;hauteur » — et la relecture le rangeait
+             * bien dans importedView. Mais syncViewWithTeacher, qui l'applique,
+             * n'était appelé que dans la branche du mode lecture : le cadrage
+             * faisait tout le voyage pour être jeté à l'arrivée. Mesuré sur une
+             * vue de travail à zoom 2,3 centrée en (516, 361) : le lien élève
+             * rendait ce centre au pixel près, le lien ordinaire rouvrait à
+             * zoom 1 sur (646, 450).
+             *
+             * On passe par la MÊME fonction que l'élève, et non par une remise
+             * en place à l'identique : elle remet le zoom à l'échelle de la
+             * fenêtre qui ouvre, de sorte qu'on retrouve la même PORTION DE
+             * FEUILLE sur un autre écran. C'est cela qu'on veut garder — pas un
+             * nombre.
+             *
+             * Après le chargement, et pas avant : c'est lui qui remplit
+             * importedView, et syncViewWithTeacher ne fait rien sans. */
+            if (figData) setTimeout(() => {
+                app.chargerDocument(figData);
+                requestAnimationFrame(() => app.syncViewWithTeacher());
+            }, 100);
         }
         app.majBarrePages();
         (function () {
