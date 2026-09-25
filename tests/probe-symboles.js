@@ -123,9 +123,14 @@ const ck = (nom, ok, detail) => {
     ck('  et la majuscule ne traîne pas sur les symboles',
        clavier.shiftSurLettres && !clavier.shiftSurMaths);
 
-    /* LE GESTE ENTIER, à la souris : outil texte, clic, clavier, deux appuis.
-       Une touche peut exister et n'écrire nulle part — c'est arrivé au clavier
-       virtuel, dont les touches perdaient le focus du champ. */
+    /* LE GESTE ENTIER, à la souris : outil texte, clic, LE BOUTON DE LA BARRE,
+       la touche. Une touche peut exister et n'écrire nulle part — c'est arrivé
+       au clavier virtuel, dont les touches perdaient le focus du champ. Et un
+       bouton peut ouvrir la bonne chose sans qu'on le trouve : celui-ci portait
+       un dessin de clavier, rectangle bleu de 16 px dans une barre où tout le
+       reste est une lettre, et la question est revenue — « où sont les
+       symboles ?? ». La sonde vérifie donc ce qu'il MONTRE autant que ce qu'il
+       fait. */
     console.log('\n=== et deux appuis suffisent à poser le symbole ===');
     const pose = await page.evaluate(() => {
         const a = window.app;
@@ -142,23 +147,52 @@ const ck = (nom, ok, detail) => {
         const a = window.app;
         const g = document.getElementById('ghostTextInput');
         if (!g || g.style.display !== 'block') return { champ: false };
-        a.toggleVirtualKeyboard();
+        const btn = document.getElementById('btnSymboles');
+        if (!btn) return { champ: true, bouton: 'absent' };
+        /* CE QUE LE BOUTON MONTRE. Un dessin de clavier ne dit pas
+           « symboles » ; un symbole, si. On exige donc du texte, et un
+           caractère que le composeur connaît. */
+        const connus = new Set(Object.values(GmFormule.SYMBOLES));
+        const face = btn.innerText || '';
+        const montreUnSymbole = [...face].some(c => connus.has(c));
+        const svg = !!btn.querySelector('svg');
+        btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
         const vk = document.getElementById('virtualKeyboard');
-        const appui = (libelle) => {
-            const b = [...vk.querySelectorAll('.vk-btn')].find(x => x.innerText === libelle);
-            if (!b) return false;
-            g.focus();
-            b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-            return true;
-        };
-        const ok1 = appui('∉≤π');
-        const ok2 = appui('∉');
-        return { champ: true, bascule: ok1, touche: ok2, ecrit: g.innerText };
+        const ouvert = vk.classList.contains('visible');
+        const surSymboles = [...vk.querySelectorAll('.vk-btn')].some(x => x.innerText === '∉');
+        const t = [...vk.querySelectorAll('.vk-btn')].find(x => x.innerText === '∉');
+        if (t) { g.focus(); t.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); }
+        return { champ: true, face, montreUnSymbole, svg, ouvert, surSymboles,
+                 ecrit: g.innerText };
     });
     ck('le champ de texte est ouvert', frappe.champ);
-    ck('  la bascule répond', !!frappe.bascule);
+    ck('  la barre porte un bouton des symboles', frappe.bouton !== 'absent');
+    ck('  et il montre un symbole, pas un pictogramme',
+       frappe.montreUnSymbole && !frappe.svg, JSON.stringify(frappe.face));
+    ck('  un appui ouvre le clavier', !!frappe.ouvert);
+    ck('    directement sur la page des symboles', !!frappe.surSymboles);
     ck('  la touche ∉ écrit dans le champ', frappe.ecrit === '∉',
        JSON.stringify(frappe.ecrit));
+    /* TROIS ÉTATS, UN SEUL GESTE. Pressé alors que le clavier montre
+       l'alphabet, le bouton doit basculer — et non tout refermer, ce qui
+       ferait chercher les symboles une seconde fois. */
+    const trois = await page.evaluate(() => {
+        const a = window.app;
+        const vk = document.getElementById('virtualKeyboard');
+        const btn = document.getElementById('btnSymboles');
+        const etat = () => ({ ouvert: vk.classList.contains('visible'), math: !!a.vkMath });
+        const presser = () => btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        a.vkMath = false; a.renderKeyboard();          // ouvert sur les lettres
+        if (!vk.classList.contains('visible')) a.toggleVirtualKeyboard();
+        presser(); const depuisLettres = etat();
+        presser(); const referme = etat();
+        presser(); const rouvre = etat();
+        return { depuisLettres, referme, rouvre };
+    });
+    ck('  ouvert sur les lettres, il bascule au lieu de fermer',
+       trois.depuisLettres.ouvert && trois.depuisLettres.math);
+    ck('  ouvert sur les symboles, il referme', !trois.referme.ouvert);
+    ck('  et il rouvre sur les symboles', trois.rouvre.ouvert && trois.rouvre.math);
     await page.evaluate(() => {
         const a = window.app;
         if (a.validerTexteFantome) a.validerTexteFantome();

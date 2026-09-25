@@ -1193,6 +1193,47 @@ démasqué le défaut suivant : la perpendiculaire pose sa règle en C **tourné
 envoyait le crayon à −400 px de l'origine. Derrière la règle, donc dans le vide
 de l'autre côté. Le compte des passes était juste, la pose était fausse.
 
+### Le crayon traçait la parallèle du mauvais côté
+
+*« Lorsque j'ai tracé une parallèle — une droite, un point, puis l'équerre qui
+glisse le long de la règle —, lors du replay le crayon a dessiné du mauvais
+côté. »*
+
+Mesuré, et c'était pire que de travers : le trait ne touchait **pas du tout** le
+côté où se trouve la figure. Compté dans deux fenêtres posées à 200 px de C,
+pendant tout le tracé :
+
+| avancement | côté de B | côté opposé |
+| --- | --- | --- |
+| 15 % | **0** | 125 |
+| 99 % | **0** | 133 |
+
+La parallèle se traçait entièrement dans le vide de la feuille, à l'opposé du
+segment dont elle est parallèle — c'est-à-dire là où l'œil ne peut pas comparer
+les deux droites, ce qui est pourtant tout l'objet de la figure.
+
+**La cause tient à la main de l'équerre.** Son bord de tracé est son côté +x ; le
+côté qui monte le rail est ce bord tourné d'un quart de tour, et c'est *lui* qui
+doit pointer vers C, sans quoi l'instrument glisserait à travers la règle. Selon
+le côté de la droite où tombe C, le bord de tracé vaut donc +AB ou −AB : **une
+fois sur deux il part à l'envers**. C'est aussi pourquoi le défaut a survécu — la
+moitié des figures était juste.
+
+Deux choses qu'on ne pouvait pas changer : le crayon ne recule pas (il ne court
+que dans le sens de l'instrument, sinon il tracerait derrière la règle, dans le
+vide) et l'équerre ne se retourne pas (le modèle n'en a qu'une main, là où le
+carton d'une trousse se retourne).
+
+**Reste la pose.** Le recul de l'équerre décide de la portion de droite que le
+trait couvre ; il était fixe, il est maintenant choisi pour que cette portion
+tombe le long du segment de référence. Le geste ne change pas, la pose seule
+change :
+
+| portion couverte, en px depuis C, dans le sens A→B | avant | après |
+| --- | --- | --- |
+| C au-dessus de (AB) | −270 … +130 | −151 … **+249** |
+| C en dessous | −130 … +270 | −60 … **+340** |
+
 ### Le symbole qu'on ne trouvait pas, et le clavier qui n'en avait aucun
 
 *« Il n'y a pas le symbole n'appartient pas pour le texte. »*
@@ -1219,6 +1260,24 @@ Ils s'insèrent **tels quels**, et non sous leur commande : écrire `\notin` fer
 basculer *toute* la ligne en composition mathématique, et « le point A
 n'appartient pas à (d) » y perdrait son allure de phrase. La liste est tirée de
 celle du composeur, si bien qu'elle ne peut pas diverger.
+
+### Où sont les symboles ??
+
+Bonne question, et elle est arrivée **après** la correction : les symboles
+étaient là, derrière un bouton qui portait un **dessin de clavier** — un
+rectangle, quatre points, une barre d'espace. À 16 px, dans une barre où tout le
+reste est une lettre (B, I, S, ?), ce rectangle bleu ne dit rien du tout.
+
+Un bouton qui ouvre des symboles montre un symbole. Il affiche maintenant
+**∉ ≤**, se lit de loin, et ne peut pas être pris pour autre chose. Un appui, et
+la page des symboles est ouverte — pas le clavier de lettres, qui n'est pas ce
+qu'on vient y chercher : sur un ordinateur il y a un vrai clavier, et sur une
+tablette celui du système s'ouvre tout seul dès qu'on touche le champ.
+
+Trois états, un seul geste : fermé, il ouvre les symboles ; ouvert sur les
+lettres, il y bascule ; ouvert sur les symboles, il referme. Sans le deuxième, le
+bouton pressé pendant que le clavier montre l'alphabet refermerait tout — et l'on
+se demanderait une seconde fois où sont les symboles.
 
 ### Suivre le symbole jusqu'au bout a révélé deux autres choses
 
@@ -3340,7 +3399,7 @@ La police est sous licence SIL Open Font.
 
 ## Les tests
 
-`tests/` contient 126 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 127 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

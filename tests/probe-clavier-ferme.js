@@ -24,7 +24,12 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     await page.mouse.click(box.x + x, box.y + y); await page.waitForTimeout(250);
     await page.click('#ghostTextInput');
     await page.keyboard.type('Essai');
-    await page.click('#textFormatToolbar button[onclick*="toggleVirtualKeyboard"]');
+    /* Le bouton du clavier s'appelle désormais #btnSymboles et porte « ∉ ≤ » :
+       il ne montrait qu'un dessin de clavier de 16 px, et la question est
+       revenue — « où sont les symboles ?? ». Il ouvre directement la page des
+       symboles ; ce que cette sonde vérifie (la fermeture avec la saisie) vaut
+       pour les deux pages. */
+    await page.click('#btnSymboles');
     await page.waitForTimeout(350);
   };
 

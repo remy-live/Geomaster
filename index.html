@@ -10309,18 +10309,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     style="display:none; width: 26px; height: 26px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: transparent;">
                 <div style="width:1px; height:16px; background:#ddd; margin:0 2px;"></div>
 
-                <button onclick="app.toggleVirtualKeyboard()"
-                    style="padding:4px 6px; height: 26px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#1976d2; border-radius:4px; display:flex; align-items:center; justify-content:center;"
-                    data-tooltip="Ouvrir le Clavier Mathématique">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                        <rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect>
-                        <line x1="6" y1="10" x2="6.01" y2="10"></line>
-                        <line x1="10" y1="10" x2="10.01" y2="10"></line>
-                        <line x1="14" y1="10" x2="14.01" y2="10"></line>
-                        <line x1="18" y1="10" x2="18.01" y2="10"></line>
-                        <line x1="8" y1="14" x2="16" y2="14"></line>
-                    </svg>
-                </button>
+                <!-- « Où sont les symboles ?? »
+                     Ils étaient derrière CE bouton, qui portait un dessin de
+                     clavier : un rectangle avec quatre points et une barre
+                     d'espace. À 16 px, dans une barre où tout le reste est une
+                     LETTRE — B, I, S, ? —, ce rectangle bleu ne dit rien du
+                     tout ; la capture d'écran du signalement le montre mieux
+                     qu'aucune description. Un bouton qui ouvre des symboles doit
+                     montrer un symbole : « ∉ ≤ » se lit de loin et ne peut pas
+                     être pris pour autre chose.
+                     Il ouvre directement la PAGE DES SYMBOLES. Le clavier de
+                     lettres reste à un appui de là (touche ABC), mais ce n'est
+                     pas ce qu'on vient y chercher : sur un ordinateur il y a un
+                     vrai clavier, et sur une tablette celui du système s'ouvre
+                     tout seul dès qu'on touche le champ. -->
+                <button id="btnSymboles" onpointerdown="event.preventDefault(); app.ouvrirSymboles();"
+                    style="padding:4px 7px; height: 26px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#1976d2; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:14px; letter-spacing:1px;"
+                    data-tooltip="Symboles mathématiques : ∈ ∉ ≤ ≥ π ∠ …"
+                    aria-label="Symboles mathématiques">∉&#8239;≤</button>
 
                 <!-- Aide à la saisie des formules. Bien plus qu'un aide-mémoire :
                      chaque exemple s'insère au curseur, ce qui évite de taper des
@@ -27653,6 +27659,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 vk.style.top = '';
                 vk.style.transform = '';
             }
+            /* LE BOUTON DE LA BARRE DU TEXTE OUVRE LES SYMBOLES, PAS UN CLAVIER.
+               Trois états, et un seul geste : fermé, il ouvre la page des
+               symboles ; ouvert sur les lettres, il y bascule ; ouvert sur les
+               symboles, il referme. Sans quoi le bouton, pressé alors que le
+               clavier montre l'alphabet, refermerait tout — et l'on se
+               demanderait une seconde fois où sont les symboles. */
+            ouvrirSymboles() {
+                const vk = document.getElementById('virtualKeyboard');
+                if (!vk) return;
+                const ouvert = vk.classList.contains('visible');
+                if (ouvert && this.vkMath) { this.toggleVirtualKeyboard(); return; }
+                this.vkMath = true;
+                this.renderKeyboard();
+                if (!ouvert) this.toggleVirtualKeyboard();
+            }
             toggleVirtualKeyboard() {
                 const vk = document.getElementById('virtualKeyboard');
                 if (vk) {
@@ -37809,11 +37830,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const u = { x: n.y, y: -n.x };
                 const aU = Math.atan2(u.y, u.x);
                 const aRail = Math.atan2(n.y, n.x);
-                /* N'IMPORTE OÙ LE LONG DE LA DROITE — mais pas au hasard : assez
-                   en arrière pour qu'on voie bien qu'on ne vise pas C, assez peu
-                   pour que le bord de l'équerre, long de 400, le dépasse
-                   largement quand il arrivera. */
-                const RECUL = 130;
+                /* ---- OÙ POSER L'ÉQUERRE, ET POURQUOI ÇA DÉCIDE DU CÔTÉ ----
+                 *
+                 * « Lors du replay, le crayon a dessiné du mauvais côté. »
+                 *
+                 * Le bord de tracé de l'équerre est son côté +x, c'est-à-dire u,
+                 * et u est imposé par la règle ci-dessus : le côté qui monte le
+                 * rail doit pointer vers C. Selon le côté de la droite où tombe
+                 * C, u vaut donc +AB ou -AB. Mesuré sur « la parallèle à (AB)
+                 * passant par C » : u·AB = -1, le crayon partait exactement à
+                 * l'opposé de la droite de référence. Et comme le crayon ne peut
+                 * courir que dans le sens de l'instrument — c'est la règle qui
+                 * l'empêche de tracer derrière la règle —, tout le trait se
+                 * posait du côté vide de la feuille. Compté dans deux fenêtres à
+                 * 200 px de C pendant le tracé : 0 pixel d'encre du côté de B,
+                 * 125 de l'autre, à tous les avancements.
+                 *
+                 * ON NE PEUT PAS RETOURNER L'ÉQUERRE (le modèle n'a qu'une
+                 * main), ni faire reculer le crayon. Mais on peut la POSER PLUS
+                 * LOIN : le recul décide de la portion de droite que le trait
+                 * couvre. On le choisit donc pour que cette portion tombe le
+                 * long du segment de référence — là où la figure est, et là où
+                 * l'œil compare les deux droites — au lieu de partir dans le
+                 * vide. Le geste reste le même, la pose seule change.
+                 *
+                 * Bornes : l'équerre doit rester posée EN ARRIÈRE de C — sinon
+                 * on la verrait viser le point d'emblée, ce qui n'est pas le
+                 * geste — et C doit rester sous son bord, sans quoi le trait ne
+                 * passerait pas par lui. */
+                const w = this.setSquareWidget;
+                const portee = (w && w.width) ? w.width : 400;
+                const M = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                const versRef = (M.x - F.x) * u.x + (M.y - F.y) * u.y;
+                const RECUL = Math.max(60, Math.min(portee - 60, portee / 2 - versRef));
                 const P = { x: F.x - u.x * RECUL, y: F.y - u.y * RECUL };
                 const poseSur = { x: P.x, y: P.y, angle: aU };
                 const poseArrivee = { x: P.x + n.x * saut, y: P.y + n.y * saut, angle: aU };
@@ -46091,7 +46140,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-25 · 11h';
+        window.GM_VERSION = '2026-09-25 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
