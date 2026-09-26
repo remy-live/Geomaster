@@ -1250,6 +1250,65 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### Sept refus sur dix-sept tenaient à un mot mal tapé
+
+Le relevé d'usage donne les phrases que le logiciel **n'a pas comprises**, et il
+les donne toutes : sur 448 ouvertures, 104 consignes faites et 17 refusées. Sept
+des dix-sept sont la même phrase, recopiée d'une feuille d'exercice :
+
+> « Tracer le **traingle** ABC tel que : AB = 7 cm ; BC = 8 cm et AC = 6 cm »
+
+On aurait pu accuser quatre choses à la fois. Mesuré en n'en changeant qu'**une**
+à la fois — la seule façon de savoir laquelle casse la lecture :
+
+| ce qu'on enlève | comprise ? |
+| --- | --- |
+| rien (la phrase réelle) | non |
+| « traingle » → « triangle » | **oui** |
+| l'infinitif → « Trace » | non |
+| les deux-points après « tel que » | non |
+| les points-virgules → virgules | non |
+| tout sauf l'infinitif | **oui** |
+
+L'infinitif, les deux-points, les points-virgules et le « 7cm » collé passaient
+donc **déjà**. Le seul obstacle était le mot mal tapé. Avec « paralléle » (une
+fois), **huit des dix-sept refus réels** tiennent à une faute de frappe.
+
+**Une seconde lecture, et deux décisions qui se tiennent.**
+
+1. **On ne corrige qu'après un refus.** La phrase est d'abord lue telle qu'elle
+   est écrite ; ce n'est que si le logiciel n'a rien compris qu'il tente une
+   seconde lecture. Une phrase qui marche ne peut donc pas être réécrite dans son
+   dos — c'est la seule garantie qui vaille, et elle ne dépend d'aucune liste.
+   Et si la phrase corrigée échoue à son tour, c'est le refus **d'origine** qui
+   est rendu : aucun mot que personne n'a écrit n'apparaît à l'écran.
+2. **Le vocabulaire est tiré du catalogue**, pas écrit à la main. Les 218 phrases
+   de `window.GM_CATALOGUE` sont celles que le logiciel sait faire : leurs mots
+   sont exactement les mots qu'il connaît — 157 mots de six lettres et plus. Une
+   liste recopiée à côté se périmerait au premier ajout, et personne ne s'en
+   apercevrait.
+
+**Et il le dit** : « Orthographe : j'ai lu « traingle » → « triangle ». »
+Corriger en silence serait lui faire dire qu'il a compris une phrase qu'il n'a
+pas lue.
+
+**La transposition compte pour une faute.** « traingle » → « triangle » échange
+deux lettres voisines : au sens de Levenshtein c'est une distance **deux**, et une
+correction qui ne compterait que les lettres changées, ajoutées ou retirées ne
+l'attraperait pas — or c'est la faute de frappe la plus banale qui soit.
+
+**L'accent, lui, n'était presque jamais un obstacle**, et il fallait le mesurer
+avant de croire le contraire : *trapeze*, *regulier*, *equilateral*, *isocele*,
+*parallelogramme*, *mediatrice*, *arete*, *tetraedre*, *carree* passaient déjà.
+La seule phrase qui achoppait est « une paralléle à (d) ».
+
+**Deux limites, mesurées et écrites plutôt que masquées.** Sur 68 mots courants
+absents du catalogue, quatre sont réécrits, dont un à tort — « partie » →
+« partir » ; la conséquence est bornée par la règle 1. Et une phrase qui réussit
+n'est pas relue, même de travers : « Place le **mileu** I de [AB] » pose un
+*point* I — et l'annonce ainsi, « Point I placé », sans mentir, mais sans faire
+le milieu.
+
 ### Le crayon suivait l'autre bord de l'équerre
 
 *« Je traçais une parallèle et le crayon monte toujours, il ne va pas sur le bon
@@ -3559,7 +3618,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 132 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 133 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

@@ -34408,7 +34408,145 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 return { ok: true, message: dits.join(' · '), astuce: notes.join(' ') };
             }
+            /* ================================================================
+               LA SECONDE LECTURE : LE MOT MAL TAPÉ
+
+               Relevé sur 448 ouvertures réelles : 104 consignes comprises, 17
+               refusées — et les dix-sept sont connues, une par une. Sept d'entre
+               elles sont LA MÊME PHRASE, recopiée d'une feuille d'exercice :
+
+                   « Tracer le traingle ABC tel que : AB = 7 cm ; BC = 8 cm
+                     et AC = 6 cm »
+
+               Mesuré mot à mot, en ne changeant qu'une chose à la fois :
+               l'infinitif « Tracer », les deux-points après « tel que », les
+               points-virgules entre les longueurs et le « 7cm » collé passaient
+               DÉJÀ. Le seul obstacle était « traingle ». Huit des dix-sept refus
+               réels tiennent à un mot mal tapé — « traingle » sept fois,
+               « paralléle » une fois.
+
+               DEUX DÉCISIONS, ET ELLES SE TIENNENT.
+
+               1. ON NE CORRIGE QU'APRÈS UN REFUS. La phrase est d'abord lue
+                  telle qu'elle est écrite ; ce n'est que si le logiciel n'a rien
+                  compris qu'il tente une seconde lecture. Une phrase qui marche
+                  ne peut donc pas être réécrite dans son dos — c'est la seule
+                  garantie qui vaille, et elle ne dépend d'aucune liste.
+
+               2. LE VOCABULAIRE EST TIRÉ DU CATALOGUE, pas écrit à la main. Les
+                  218 phrases de `window.GM_CATALOGUE` sont celles que le
+                  logiciel sait faire : leurs mots sont exactement les mots qu'il
+                  connaît. Une liste recopiée à côté se périmerait au premier
+                  ajout — et personne ne s'en apercevrait.
+
+               ET ON LE DIT. Le logiciel annonce ce qu'il a lu à la place de ce
+               qui était écrit. Corriger en silence serait lui faire dire qu'il a
+               compris une phrase qu'il n'a pas lue.
+
+               LA TRANSPOSITION COMPTE POUR UNE FAUTE. « traingle » → « triangle »
+               échange deux lettres voisines : au sens de Levenshtein c'est une
+               distance DEUX, et une correction qui ne compterait que les lettres
+               changées, ajoutées ou retirées ne l'attraperait pas. Or c'est la
+               faute de frappe la plus banale qui soit.
+               ================================================================ */
+            cslSansAccent(s) {
+                return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+            }
+            /* Passe-t-on de a à b en UNE faute ? Une lettre changée, ajoutée,
+               retirée — ou deux lettres voisines échangées. */
+            cslUneFaute(a, b) {
+                if (a === b) return false;
+                const la = a.length, lb = b.length;
+                if (Math.abs(la - lb) > 1) return false;
+                if (la === lb) {
+                    let i = 0;
+                    while (i < la && a[i] === b[i]) i++;
+                    /* une lettre changée */
+                    let k = i + 1;
+                    while (k < la && a[k] === b[k]) k++;
+                    if (k === la) return true;
+                    /* deux lettres voisines échangées */
+                    if (a[i] === b[i + 1] && a[i + 1] === b[i]) {
+                        for (let j = i + 2; j < la; j++) if (a[j] !== b[j]) return false;
+                        return true;
+                    }
+                    return false;
+                }
+                const longue = la > lb ? a : b, courte = la > lb ? b : a;
+                let i = 0;
+                while (i < courte.length && longue[i] === courte[i]) i++;
+                for (let j = i; j < courte.length; j++) {
+                    if (longue[j + 1] !== courte[j]) return false;
+                }
+                return true;
+            }
+            cslVocabulaire() {
+                if (this._cslVoc) return this._cslVoc;
+                const vus = new Set();
+                (window.GM_CATALOGUE || []).forEach(l => {
+                    String(l && l[1] || '').toLowerCase()
+                        .split(/[^a-zà-öø-ÿ-]+/)
+                        .forEach(m => {
+                            const mot = m.replace(/^-+|-+$/g, '');
+                            if (mot.length >= 6) vus.add(mot);
+                        });
+                });
+                this._cslVoc = [...vus].map(m => ({ mot: m, nu: this.cslSansAccent(m) }));
+                return this._cslVoc;
+            }
+            /* Rend la phrase relue et la liste de ce qu'on a changé. Rien n'est
+               changé si le mot est déjà connu, s'il est tout en majuscules (c'est
+               un groupe de points : ABCDEFGHI), ou si PLUSIEURS mots du
+               vocabulaire sont à une faute de lui — dans le doute, on se taît. */
+            cslOrthographe(t) {
+                const voc = this.cslVocabulaire();
+                if (!voc.length) return { texte: String(t || ''), fautes: [] };
+                const fautes = [];
+                const texte = String(t || '').replace(/[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ-]{5,}/g, (mot) => {
+                    if (mot === mot.toUpperCase()) return mot;
+                    const bas = mot.toLowerCase();
+                    const nu = this.cslSansAccent(bas);
+                    const connu = voc.find(v => v.nu === nu);
+                    if (connu) {
+                        /* même mot, accent près : « paralléle » se lit comme
+                           « parallèle », mais le reste du logiciel ne reconnaît
+                           que l'orthographe du catalogue. */
+                        if (connu.mot === bas) return mot;
+                        fautes.push([mot, connu.mot]);
+                        return this.cslMemeCasse(mot, connu.mot);
+                    }
+                    const proches = voc.filter(v => this.cslUneFaute(nu, v.nu));
+                    if (proches.length !== 1) return mot;
+                    fautes.push([mot, proches[0].mot]);
+                    return this.cslMemeCasse(mot, proches[0].mot);
+                });
+                return { texte, fautes };
+            }
+            cslMemeCasse(ancien, neuf) {
+                return /^[A-ZÀ-Þ]/.test(ancien)
+                    ? neuf.charAt(0).toUpperCase() + neuf.slice(1) : neuf;
+            }
             executerConsigneSimple(phrase) {
+                const avant = this.entities.length;
+                const r = this.cslLirePhrase(phrase);
+                if (r && r.ok) return r;
+                const relu = this.cslOrthographe(phrase);
+                if (!relu.fautes.length) return r;
+                /* UN REFUS NE CONSTRUIT RIEN — c'est la règle de la maison. Si
+                   jamais elle était prise en défaut quelque part, la feuille
+                   revient ici comme elle était : la seconde lecture ne doit pas
+                   pouvoir doubler une figure. */
+                if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
+                const r2 = this.cslLirePhrase(relu.texte);
+                if (!r2 || !r2.ok) {
+                    if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
+                    return r;   /* on rend le refus d'origine : pas de mot inventé */
+                }
+                const dit = relu.fautes.map(([a, b]) => `« ${a} » → « ${b} »`).join(', ');
+                r2.astuce = (r2.astuce ? r2.astuce + ' ' : '') + `Orthographe : j'ai lu ${dit}.`;
+                return r2;
+            }
+            cslLirePhrase(phrase) {
                 const source = this.cslNettoyer(phrase);
                 if (!source) return { ok: false, message: "Écrivez une consigne." };
                 const phraseEleve = this.cslMajuscules(source);
@@ -46278,7 +46416,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 19h';
+        window.GM_VERSION = '2026-09-26 · 22h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
