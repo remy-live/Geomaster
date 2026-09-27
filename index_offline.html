@@ -34530,21 +34530,58 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const avant = this.entities.length;
                 const r = this.cslLirePhrase(phrase);
                 if (r && r.ok) return r;
+                /* LES SECONDES LECTURES, DANS L'ORDRE. Chacune propose une autre
+                   façon de lire la MÊME phrase, et chacune dit ce qu'elle a lu.
+                   L'orthographe passe d'abord : « Tracer le traingle ABC tel
+                   que… » est d'abord une faute de frappe, et la figure
+                   sous-entendue ne se pose qu'ensuite. */
+                const essais = [];
                 const relu = this.cslOrthographe(phrase);
-                if (!relu.fautes.length) return r;
-                /* UN REFUS NE CONSTRUIT RIEN — c'est la règle de la maison. Si
-                   jamais elle était prise en défaut quelque part, la feuille
-                   revient ici comme elle était : la seconde lecture ne doit pas
-                   pouvoir doubler une figure. */
-                if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
-                const r2 = this.cslLirePhrase(relu.texte);
-                if (!r2 || !r2.ok) {
-                    if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
-                    return r;   /* on rend le refus d'origine : pas de mot inventé */
+                if (relu.fautes.length) {
+                    essais.push({ texte: relu.texte,
+                        dit: 'Orthographe : j\'ai lu '
+                            + relu.fautes.map(([a, b]) => `« ${a} » → « ${b} »`).join(', ') + '.' });
                 }
-                const dit = relu.fautes.map(([a, b]) => `« ${a} » → « ${b} »`).join(', ');
-                r2.astuce = (r2.astuce ? r2.astuce + ' ' : '') + `Orthographe : j'ai lu ${dit}.`;
-                return r2;
+                const sous = this.cslFigureSousEntendue(phrase);
+                if (sous) essais.push(sous);
+                for (const e of essais) {
+                    /* UN REFUS NE CONSTRUIT RIEN — c'est la règle de la maison. Si
+                       jamais elle était prise en défaut quelque part, la feuille
+                       revient ici comme elle était : une seconde lecture ne doit
+                       pas pouvoir doubler une figure. */
+                    if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
+                    const r2 = this.cslLirePhrase(e.texte);
+                    if (r2 && r2.ok) {
+                        r2.astuce = (r2.astuce ? r2.astuce + ' ' : '') + e.dit;
+                        return r2;
+                    }
+                }
+                if (this.entities.length > avant) this.entities = this.entities.slice(0, avant);
+                return r;   /* le refus D'ORIGINE : jamais un mot que personne n'a écrit */
+            }
+            /* « Tracer ABC tel que AB = 7 cm ; BC = 8 cm et AC = 6 cm » — sans le
+               mot « triangle ». Relevé une fois en usage réel, et c'est
+               l'abréviation du tableau.
+               ON NE COMPLÈTE QUE SI LA PHRASE NE PEUT RIEN DÉSIGNER D'AUTRE :
+               trois points nommés, et les TROIS longueurs entre eux. Trois côtés
+               déterminent un triangle et un seul. À quatre lettres on se taît —
+               un quadrilatère n'est pas fixé par ses côtés, et « ABCD tel que
+               AB = 5, BC = 3, CD = 5, DA = 3 » peut être un rectangle comme un
+               parallélogramme aplati. */
+            cslFigureSousEntendue(phrase) {
+                const brut = this.cslMajuscules(this.cslNettoyer(phrase));
+                if (/triangle|carr|rectangle|losange|parall|trap[èe]ze|polygone|pentagone|hexagone|cercle|segment|droite|angle/i.test(brut)) return null;
+                const groupe = brut.match(/\b([A-Z])([A-Z])([A-Z])\b(?=\s+(?:tel|telle)s?\s+que)/);
+                if (!groupe) return null;
+                const S = [groupe[1], groupe[2], groupe[3]];
+                if (new Set(S).size !== 3) return null;
+                const cotes = [[0, 1], [1, 2], [0, 2]].every(([i, j]) =>
+                    new RegExp(`\\b(?:${S[i]}${S[j]}|${S[j]}${S[i]})\\s*=\\s*\\d`).test(brut));
+                if (!cotes) return null;
+                const nom = S.join('');
+                return { texte: brut.replace(groupe[0], 'triangle ' + nom),
+                         dit: `Formulation : trois côtés donnés déterminent un triangle — `
+                            + `j'ai lu « triangle ${nom} ».` };
             }
             cslLirePhrase(phrase) {
                 const source = this.cslNettoyer(phrase);
@@ -34756,7 +34793,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     /* « l'image DU triangle ABC » autant que « l'image DE A » :
                        le « du » n'était pas prévu, et la phrase retombait sur le
                        bâtisseur de figures, qui retraçait le triangle en silence. */
-                    if (/sym[ée]trique|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)
+                    /* LE NOM DE LA TRANSFORMATION AUTANT QUE CELUI DE L'IMAGE.
+                       « Fais moi la SYMÉTRIE centrale par rapport au point O de
+                       la figure ABCDEFGHI », relevé deux fois en usage réel, ne
+                       contient ni « symétrique » ni « image de » : la phrase ne
+                       venait jamais ici. Elle tombait sur le poseur de points,
+                       qui lisait « par rapport au point O » comme « place le
+                       point O » — et répondait « Point O placé », sans faire la
+                       symétrie et sans refuser. Le pire des trois. */
+                    if (/sym[ée]trique|sym[ée]trie|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)
                         /* AGRANDIR ET RÉDUIRE sont des transformations, et les mots
                            du collège avant « homothétie ». Sans ce passage ici,
                            « un agrandissement du TRIANGLE ABC » partait vers le
@@ -36530,7 +36575,59 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return { x: o.x + dx * co - dy * si, y: o.y + dx * si + dy * co };
                 }, sources, fait, `par la rotation de centre ${mc[1]}, ${nomSens} et d'angle ${deg}°`);
             }
+            /* L'OBJET D'ABORD, LE CENTRE ENSUITE — ET L'INVERSE SE DIT AUSSI.
+               « Fais moi la symétrie centrale par rapport au point O de la figure
+               ABCDEFGHI » : le centre est annoncé avant la figure, ce qui est
+               l'ordre de la phrase parlée, et c'est ainsi que deux professeurs
+               l'ont écrit. Tout le reste de la lecture attend l'inverse — les
+               sources AVANT « par rapport à ». On remet donc la phrase dans cet
+               ordre, et on le dit.
+               DEUX GARDES, pour ne pas retourner une phrase déjà correcte :
+                 · la tête ne doit nommer AUCUN point (sinon l'objet y est déjà) ;
+                 · ce qui suit le « de » final doit être un groupe d'au moins DEUX
+                   majuscules — une figure s'écrit en juxtaposant ses sommets,
+                   alors qu'un centre est une lettre seule.
+               Le texte du centre est gardé TEL QUEL et non réduit à son premier
+               nom : « par rapport à (EF) de la figure ABC » est une symétrie
+               AXIALE, et n'en garder que le E en ferait une symétrie centrale. */
+            cslSymetrieRemise(brut) {
+                /* Le défaut ne tient pas à un mot mais à une PLACE : l'objet est
+                   du mauvais côté du séparateur. On l'écrit donc pour le
+                   séparateur, quel qu'il soit — « par rapport à » est la forme
+                   relevée en usage, « la symétrie centrale de centre O » est sa
+                   sœur, et il n'y a pas de raison d'en traiter une seule. */
+                const SEPARATEURS = [
+                    /par\s+rapport\s+[àa]\s*/i,
+                    /(?:par\s+)?(?:la\s+|une\s+)?sym[ée]trie\s+(?:centrale\s+|axiale\s+)?(?:de\s+centre\s+|d['’]?axe\s+)/i,
+                ];
+                for (const sep of SEPARATEURS) {
+                    const co = brut.split(sep);
+                    if (co.length < 2) continue;
+                    /* la tête nomme un point : l'objet est déjà à sa place */
+                    if (this.cslNoms(co[0]).length) return null;
+                    const queue = co.slice(1).join(' ');
+                    const m = queue.match(/^(.*?)\s*\bd[eu]\s+(?:la\s+|le\s+|les\s+)?(?:figure|triangle|polygone|quadrilat[èe]re|carr[ée]|rectangle|losange|pentagone|hexagone)?\s*([A-Z][A-Z'’]*)\s*$/);
+                    if (!m) continue;
+                    /* une figure s'écrit en juxtaposant ses sommets : au moins deux
+                       majuscules. Un centre, lui, est une lettre seule. */
+                    if (this.cslNoms(m[2]).length < 2) continue;
+                    const centre = m[1].trim()
+                        .replace(/^(?:aux?|du|des|de\s+la|de|[àa])\s+/i, '')
+                        .replace(/^points?\s+/i, '').trim();
+                    if (!centre) continue;
+                    return { phrase: `Trace le symétrique de ${m[2].trim()} par rapport à ${centre}`,
+                             objet: m[2].trim(), centre };
+                }
+                return null;
+            }
             cslSymetrique(brut, t, fait, rate) {
+                const remise = this.cslSymetrieRemise(brut);
+                if (remise) {
+                    this.cslDire(`Formulation : on écrit « Trace le symétrique de ${remise.objet} `
+                        + `par rapport à ${remise.centre} » — la figure d'abord, le centre ensuite.`);
+                    brut = remise.phrase;
+                    t = brut.toLowerCase();
+                }
                 /* « Trace A', B', C' symétriques de A, B, C par rapport à O » : les
                    images à gauche, les sources après « de », le centre ou l'axe après
                    « par rapport à ». Les noms d'images sont facultatifs — sans eux, on
@@ -38343,6 +38440,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'}${sien ? ' (' + sien + ')' : ''}`
                                 + ` à ${nomRef}${parN ? ' passant par ' + parN[1] : ''}`);
                         }
+                    }
+                    /* « Trace la médiatrice de [ACB] », relevé DEUX FOIS en usage
+                       réel. La réponse rappelait comment on écrit une médiatrice
+                       sans dire ce qui n'allait pas — et le professeur, lui, voit
+                       sa phrase refusée alors qu'elle a l'air juste. Elle ne l'est
+                       pas : un segment a DEUX extrémités, et il en avait mis trois.
+                       On nomme la faute, et l'on propose les segments que ces
+                       lettres-là désignent : c'est très probablement l'un d'eux. */
+                    const trop = brut.match(/[[(]\s*([A-Z]'{0,2}(?:\s*[A-Z]'{0,2}){2,})\s*[\])]/);
+                    if (trop) {
+                        const L = this.cslNoms(trop[1]);
+                        const paires = [];
+                        for (let i = 0; i < L.length; i++) {
+                            for (let j = i + 1; j < L.length; j++) paires.push(`[${L[i]}${L[j]}]`);
+                        }
+                        return rate(`[${L.join('')}] porte ${L.length} lettres : un segment n'en a `
+                            + `que deux, ses deux extrémités. Vouliez-vous `
+                            + `${paires.slice(0, 3).join(', ')}${paires.length > 3 ? '…' : ''} ?`);
                     }
                     return rate(med ? "De quel segment ? Écrivez « Trace la médiatrice de [AB] »."
                         : "À quelle droite ? Écrivez « … à (AB) passant par C ».");
@@ -40884,7 +40999,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 // angles : « l'angle BAC = 60° », « l'angle en A mesure 60° », « 60° en A »
                 [...sansChapeau.matchAll(/angle\s+([A-Z]'{0,2})([A-Z]'{0,2})([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°?/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[4].replace(',', '.')); });
-                [...sansChapeau.matchAll(/angle\s+(?:en\s+)?([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°/g)]
+                /* « l'angle DE SOMMET D mesure 30° », relevé en usage réel. « en A »
+                   et « BAC » étaient lus, « de sommet A » non — alors que la même
+                   tournure était déjà admise pour « isocèle de sommet A ». */
+                [...sansChapeau.matchAll(/angle\s+(?:en\s+|d[eu]\s+sommet\s+)?([A-Z]'{0,2})\s*(?:=|mesure|de)?\s*(\d+(?:[.,]\d+)?)\s*°/g)]
                     .forEach(m => { const i = iSommet[m[1]]; if (i !== undefined && angles[i] === null) angles[i] = parseFloat(m[2].replace(',', '.')); });
                 [...sansChapeau.matchAll(/(\d+(?:[.,]\d+)?)\s*°\s*(?:en|au sommet)\s+([A-Z]'{0,2})/g)]
                     .forEach(m => { const i = iSommet[m[2]]; if (i !== undefined) angles[i] = parseFloat(m[1].replace(',', '.')); });
@@ -46416,7 +46534,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 22h';
+        window.GM_VERSION = '2026-09-26 · 23h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

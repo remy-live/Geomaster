@@ -1250,6 +1250,57 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### Les dix autres refus réels, un par un
+
+Le relevé donne les dix-sept phrases refusées avec leur nombre d'occurrences ;
+en les additionnant on retombe exactement sur dix-sept. On les tient donc
+**toutes** — pas un échantillon. Trois sont de vrais refus (« coucou »). Huit
+tenaient à un mot mal tapé (section suivante). Voici les six autres.
+
+**« Fais moi la symétrie centrale par rapport au point O de la figure ABCDEFGHI »
+(×2).** Mesuré sur feuille vierge, la réponse était **« Point O placé »** : le
+logiciel lisait « par rapport au point O » comme « place le point O », faisait
+autre chose que ce qu'on demandait, et **ne refusait pas**. C'est le pire des
+trois sorts. Deux causes :
+
+- le mot **« symétrie »** n'était pas un déclencheur de transformation — seuls
+  « symétrique », « image de », « translation » et « rotation » l'étaient ;
+- l'objet était **du mauvais côté du séparateur** : la phrase dit le *centre*
+  d'abord, la *figure* ensuite, et toute la lecture attendait l'inverse.
+
+La phrase est donc remise dans l'ordre que le reste sait lire, et le logiciel le
+dit. Deux gardes pour ne pas retourner une phrase déjà correcte : la tête ne doit
+nommer **aucun** point, et ce qui suit le « de » final doit être un groupe d'au
+moins **deux** majuscules — une figure s'écrit en juxtaposant ses sommets, un
+centre est une lettre seule. Et le texte du centre est gardé **tel quel** : « par
+rapport à (EF) de la figure ABC » est une symétrie *axiale*, et n'en garder que le
+E en ferait une symétrie centrale. En mesurant, un second cas du même genre est
+apparu : « Trace la symétrie axiale par rapport à (AB) de la figure ABC »
+répondait **« Droite (AB) »** — il traçait une droite.
+
+**« Trace la médiatrice de [ACB] » (×2).** Celle-ci **doit** rester refusée : un
+segment a deux extrémités. Mais le refus rappelait comment on écrit une médiatrice
+sans dire ce qui n'allait pas, devant une phrase qui a l'air juste. Il nomme
+maintenant la faute :
+
+> `[ACB]` porte 3 lettres : un segment n'en a que deux, ses deux extrémités.
+> Vouliez-vous [AC], [AB], [CB] ?
+
+**« … et l'angle de sommet D mesure 30° » (×1).** « en D » et « EDF » étaient lus,
+« de sommet D » non — alors que la même tournure était déjà admise pour « isocèle
+de sommet A ». La sonde mesure l'angle **sur la figure** : un triangle tracé avec
+l'angle ignoré aurait la même réponse.
+
+**« Tracer ABC tel que AB = 7cm ; BC = 8cm et AC = 6cm » (×1)**, sans le mot
+« triangle ». Trois côtés déterminent un triangle et un seul. **À quatre lettres
+on se taît** — « ABCD tel que AB = 5, BC = 3, CD = 5, DA = 3 » est un rectangle
+comme un parallélogramme aplati, et choisir pour le professeur serait deviner.
+
+**« trace une droite (d) et un point A qui n'est pas sur (d) et la parallèle à (d)
+passant par A » (×1) marche aujourd'hui.** Ce refus vient d'une version
+antérieure : les 51 ouvertures encore sur `2026-09-09 · 10h` rappellent que ces
+dix-sept refus se sont accumulés sur dix-huit versions.
+
 ### Sept refus sur dix-sept tenaient à un mot mal tapé
 
 Le relevé d'usage donne les phrases que le logiciel **n'a pas comprises**, et il
@@ -3618,7 +3669,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 133 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 134 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
