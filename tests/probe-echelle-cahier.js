@@ -35,6 +35,32 @@
  * graduations et non 7. C'est le même objet sur une feuille dont l'échelle a
  * changé — comme une vraie règle posée sur du Seyes, où un centimètre couvre un
  * carreau et quart.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SECOND SIGNALEMENT, MÊME RACINE : « bug de longueur », avec une capture.
+ *
+ * Le crayon était à la graduation 4,1 de l'équerre et l'étiquette du trait
+ * annonçait 5,1 — le rapport vaut exactement 1,25, soit 1/0,8. On avait corrigé
+ * LES INSTRUMENTS ; trois autres lecteurs divisaient encore par 50 en douce, et
+ * le premier est celui qu'on a sous les yeux EN TRAÇANT :
+ *
+ *     sur cahier, un trait de 4 cm    pendant le geste   5,0
+ *                                      une fois posé      4,0
+ *                                      à l'équerre        4
+ *
+ * Trois réponses pour un seul trait, et c'est la fausse qu'on regarde pendant
+ * qu'on trace. Les deux autres : la RÈGLE-FANTÔME dessinée sous le trait, qui
+ * gravait ses traits tous les 50 px (elle contredisait donc la vraie règle
+ * posée à côté d'elle), et la CALCULATRICE, où « AB » valait 5 pour un segment
+ * que la figure appelait 4,0 cm — « AB+BC » répondant 8,75 au lieu de 7.
+ *
+ * CE QUE CE SECOND TOUR A APPRIS : ce n'était pas « un instrument à corriger »
+ * mais une conversion ÉPARPILLÉE. Elle tient maintenant dans gmCm(), une seule
+ * fonction, et la sonde ne cherche plus des lecteurs un par un : elle relève
+ * TOUS LES NOMBRES écrits sur le canevas dans une même situation sur les deux
+ * papiers, et exige que la même figure — la même en centimètres — donne les
+ * mêmes nombres. C'est ainsi que les trois ont été trouvés, et c'est ce filet-là
+ * qui attrapera le quatrième.
  */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -224,6 +250,163 @@ const ck = (nom, ok, detail) => {
         ck(`  ${e.px} px : compas ${e.compas} cm`, accord,
            e.equerre === null ? 'pas de graduation entière ici' : 'équerre ' + e.equerre + ' cm');
     });
+
+    /* ============================================================
+       CE QU'ON LIT EN TRAÇANT — le second signalement
+       « Bug de longueur » : crayon à la graduation 4,1, étiquette 5,1.
+       On ne demande rien à une fonction : on relève le texte écrit sur le
+       canevas pendant le geste, celui que l'œil lit.
+       ============================================================ */
+    console.log('\n=== le nombre affiché PENDANT le tracé ===');
+    await page.evaluate(() => {
+        window.__ecrits = [];
+        const a = window.app;
+        if (!a.__fillTextPiege) {
+            const vrai = a.ctx.fillText.bind(a.ctx);
+            a.ctx.fillText = function (t, x, y) { window.__ecrits.push(String(t)); return vrai(t, x, y); };
+            a.__fillTextPiege = true;
+        }
+    });
+    for (const [titre, fond] of [['le quadrillage ordinaire', 0], ['le cahier Seyes', 4]]) {
+        await allerAuFond(fond);
+        const r = await page.evaluate(() => {
+            const a = window.app;
+            a.entities = []; a.historyPast = [];
+            a.view = { zoom: 1, x: 0, y: 0 };
+            a.activeWidgets.ruler = false; a.activeWidgets.setsquare = false;
+            const u = UNIT / (a.cmScale || 1);            /* un centimètre, ici */
+            a.currentTool = 'segment';
+            a.creationStartPoint = { x: 300, y: 400 };
+            a.mousePos = { x: 300 + 4 * u, y: 400 };
+            a.isDraggingCreation = true; a.tactileMode = false;
+            window.__ecrits = [];
+            a.render();
+            const pendant = window.__ecrits.filter(s => /^\d+[.,]\d+$/.test(s));
+            /* et le même trait, posé pour de bon */
+            a.isDraggingCreation = false; a.creationStartPoint = null;
+            const p1 = new Point(300, 400), p2 = new Point(300 + 4 * u, 400);
+            a.addEntity(p1); a.addEntity(p2);
+            const s = new Segment(p1, p2); s.showLength = true; a.addEntity(s);
+            return { pendant, apres: s.texteLongueur() };
+        });
+        console.log(`  ${titre} :`);
+        ck('    un trait de 4 cm s\'annonce « 4.0 » pendant le geste',
+           r.pendant.length === 1 && r.pendant[0] === '4.0',
+           r.pendant.join(' / ') || 'rien d\'affiché');
+        ck('      et « 4.0 » une fois posé — le même nombre',
+           r.apres === '4.0' && r.pendant[0] === r.apres,
+           `pendant ${r.pendant[0]} · après ${r.apres}`);
+    }
+
+    /* ============================================================
+       LE FILET : tous les nombres du canevas, sur les deux papiers
+       La même figure EN CENTIMÈTRES doit donner les mêmes nombres. C'est ce
+       relevé-là qui a trouvé les trois lecteurs fautifs, et non une lecture du
+       code : il attrapera le quatrième sans qu'on ait à y penser.
+       Les INSTRUMENTS sont hors du filet, et pour une raison : une règle de
+       400 px porte moins de centimètres sur du Seyes — c'est la conséquence
+       assumée, vérifiée plus haut, et non un désaccord.
+       ============================================================ */
+    console.log('\n=== la même figure, les mêmes nombres, sur les deux papiers ===');
+    const SCENES = ['segment en cours', 'cercle en cours', 'segment posé',
+                    'compas ouvert à 3 cm', 'calculatrice : AB + BC'];
+    const relever = async (fond) => {
+        await allerAuFond(fond);
+        return page.evaluate((SCENES) => {
+            const a = window.app;
+            const out = {};
+            for (const scene of SCENES) {
+                a.entities = []; a.historyPast = [];
+                a.view = { zoom: 1, x: 0, y: 0 };
+                a.activeWidgets = { ruler: false, setsquare: false, compass: false, protractor: false };
+                a.isDraggingCreation = false; a.creationStartPoint = null;
+                a.currentTool = 'move'; a.tactileMode = false;
+                /* LES INSTRUMENTS SONT HORS DU FILET, y compris la règle-fantôme
+                   dessinée sous le trait : une règle de 600 px porte moins de
+                   centimètres sur du Seyes, et c'est la conséquence assumée, pas
+                   un désaccord. On la mesure à part, juste après. Ce filet-ci ne
+                   juge que les LECTEURS DE LONGUEUR, qui doivent tous rendre le
+                   même nombre pour la même longueur réelle. */
+                a.showTools = false;
+                const u = UNIT / (a.cmScale || 1);
+                const O = { x: 300, y: 400 };
+                if (scene === 'segment en cours') {
+                    a.currentTool = 'segment';
+                    a.creationStartPoint = { x: O.x, y: O.y };
+                    a.mousePos = { x: O.x + 4 * u, y: O.y };
+                    a.isDraggingCreation = true;
+                } else if (scene === 'cercle en cours') {
+                    a.currentTool = 'circle';
+                    a.creationStartPoint = { x: O.x, y: O.y };
+                    a.mousePos = { x: O.x + 3 * u, y: O.y };
+                    a.isDraggingCreation = true;
+                } else if (scene === 'segment posé') {
+                    const p1 = new Point(O.x, O.y), p2 = new Point(O.x + 4 * u, O.y);
+                    a.addEntity(p1); a.addEntity(p2);
+                    const s = new Segment(p1, p2); s.showLength = true; a.addEntity(s);
+                } else if (scene === 'compas ouvert à 3 cm') {
+                    a.activeWidgets.compass = true;
+                    if (!a.compassWidget) a.compassWidget = new CompassWidget(O.x, O.y);
+                    a.compassWidget.x = O.x; a.compassWidget.y = O.y;
+                    a.compassWidget.radius = 3 * u;
+                } else if (scene === 'calculatrice : AB + BC') {
+                    const A = new Point(O.x, O.y, 'A');
+                    const B = new Point(O.x + 4 * u, O.y, 'B');
+                    const C = new Point(O.x + 4 * u, O.y + 3 * u, 'C');
+                    a.addEntity(A); a.addEntity(B); a.addEntity(C);
+                    out[scene] = [String(a.evaluateExpression('AB')),
+                                  String(a.evaluateExpression('BC')),
+                                  String(a.evaluateExpression('AB+BC'))];
+                    continue;
+                }
+                window.__ecrits = [];
+                a.render();
+                out[scene] = window.__ecrits.filter(s => /\d/.test(s));
+            }
+            return out;
+        }, SCENES);
+    };
+    const blanc = await relever(0);
+    const cahier = await relever(4);
+    for (const scene of SCENES) {
+        const a = (blanc[scene] || []).join(' ');
+        const b = (cahier[scene] || []).join(' ');
+        ck(`« ${scene} » dit la même chose sur les deux papiers`, a === b,
+           a === b ? (a || 'aucun nombre') : `blanc « ${a} » · cahier « ${b} »`);
+    }
+    /* et la calculatrice dit bien ce que la figure dit */
+    ck('  et la calculatrice compte en vrais centimètres',
+       (cahier['calculatrice : AB + BC'] || []).join(' ') === '4 3 7',
+       (cahier['calculatrice : AB + BC'] || []).join(' '));
+
+    /* ============================================================
+       LA RÈGLE-FANTÔME dessinée sous le trait est une RÈGLE
+       Elle gravait tous les 50 px, et contredisait donc la vraie règle posée
+       juste à côté d'elle.
+       ============================================================ */
+    console.log('\n=== la règle-fantôme sous le trait ===');
+    for (const [titre, fond, attendu] of [
+        ['le quadrillage ordinaire', 0, 12],
+        ['le cahier Seyes', 4, 9],
+    ]) {
+        await allerAuFond(fond);
+        const n = await page.evaluate(() => {
+            const a = window.app;
+            a.entities = []; a.historyPast = [];
+            a.activeWidgets.ruler = false; a.activeWidgets.setsquare = false;
+            a.showTools = true; a.currentTool = 'segment'; a.tactileMode = false;
+            a.creationStartPoint = { x: 200, y: 400 };
+            a.mousePos = { x: 600, y: 400 };
+            a.isDraggingCreation = true;
+            window.__ecrits = [];
+            a.render();
+            a.isDraggingCreation = false; a.creationStartPoint = null;
+            const entiers = window.__ecrits.filter(s => /^\d+$/.test(s)).map(Number);
+            return entiers.length ? Math.max(...entiers) : 0;
+        });
+        ck(`${titre} : la règle-fantôme de 600 px va jusqu'à ${attendu}`,
+           n === attendu, 'jusqu\'à ' + n);
+    }
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 

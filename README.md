@@ -1404,6 +1404,45 @@ et orientait le crayon par rapport au corps de la règle. La règle, elle, n'a p
 changé d'un pixel : son crayon court toujours le long de son unique bord gradué,
 et la sonde tient ce bord-là aussi.
 
+### « Bug de longueur » : trois autres lecteurs divisaient encore par 50
+
+Une capture, et un rapport de 1,25 qui saute aux yeux : le crayon est à la
+graduation **4,1** de l'équerre, l'étiquette du trait annonce **5,1**. 5,1 / 4,1 =
+1,25 = 1 / 0,8 — le facteur du carreau Seyes, déjà rencontré.
+
+On avait corrigé **les instruments** (voir la section suivante). Mais la
+conversion pixels → centimètres était **éparpillée**, et trois autres lecteurs
+divisaient encore par 50 en douce. Le premier est celui qu'on a sous les yeux
+*en traçant* :
+
+| sur cahier, un trait de 4 cm | dit |
+| --- | --- |
+| pendant le geste | **5,0** |
+| une fois posé | 4,0 |
+| lu sur l'équerre | 4 |
+
+Trois réponses pour un seul trait, et c'est la fausse qu'on regarde pendant qu'on
+trace. Les deux autres :
+
+- la **règle-fantôme** dessinée sous le trait gravait ses traits tous les 50 px et
+  les numérotait `i/50` — le même nombre en dur que les quatre instruments
+  portaient avant. Elle contredisait donc la vraie règle posée à côté d'elle ;
+- la **calculatrice** : `AB` valait 5 pour un segment que la figure appelait
+  4,0 cm, et `AB+BC` répondait **8,75** au lieu de 7.
+
+**Ce que ce second tour a appris.** Ce n'était pas « un instrument à corriger »
+mais une conversion dispersée dans le fichier. Elle tient maintenant dans une
+seule fonction, `gmCm()`, et la sonde ne cherche plus les lecteurs un par un :
+elle relève **tous les nombres écrits sur le canevas** dans une même situation sur
+les deux papiers, et exige que la même figure — la même *en centimètres* — donne
+les mêmes nombres. C'est ce relevé qui a trouvé les trois, et non une lecture du
+code ; c'est ce filet qui attrapera le quatrième.
+
+Les instruments restent **hors du filet**, et pour une raison : une règle de
+600 px porte moins de centimètres sur du Seyes. C'est la conséquence assumée, et
+elle est vérifiée à part — la règle-fantôme va jusqu'à 12 sur papier blanc et
+jusqu'à 9 sur cahier.
+
 ### Le compas et l'équerre ne mesuraient pas la même chose
 
 *« Bug découvert entre le compas et l'équerre, problème de longueur. De mémoire,

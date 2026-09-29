@@ -14662,8 +14662,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             texteLongueur() {
                 if (!this.p1 || !this.p2) return "";
                 const px = MathUtils.dist(this.p1.x, this.p1.y, this.p2.x, this.p2.y);
-                const scale = (window.app && window.app.cmScale) ? window.app.cmScale : 1;
-                const cm = (px / UNIT) * scale;
+                const cm = gmCm(px);
                 const info = GM_UNITES_INFO[this.lengthUnit];
                 if (!info) return cm.toFixed(1);
                 let v = (cm * info.facteur).toFixed(info.dec);
@@ -16173,6 +16172,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            désormais 6 graduations et non 7. C'est le même objet sur une feuille
            dont l'échelle a changé — comme une vraie règle posée sur du Seyes.
            ============================================================ */
+        /* COMBIEN DE CENTIMÈTRES FONT CES PIXELS ? Une seule réponse dans tout le
+           fichier. Le correctif précédent avait mis les quatre instruments
+           d'accord en leur donnant gmGraduations — mais trois autres lecteurs
+           divisaient encore par 50 en douce, et le premier est celui qu'on a
+           sous les yeux EN TRAÇANT :
+
+               sur cahier, un trait de 4 cm s'annonçait « 5,0 » pendant le geste
+               et « 4,0 » une fois posé.
+
+           Ce n'était donc pas « un instrument à corriger » mais une conversion
+           éparpillée. Elle tient ici, et nulle part ailleurs. */
+        function gmCm(px) {
+            const ech = (window.app && window.app.cmScale) || 1;
+            return (px / UNIT) * ech;
+        }
         function gmGraduations(longueur, marge) {
             const ech = (window.app && window.app.cmScale) || 1;
             const mm = UNIT / ech / 10;                 // pixels pour un millimètre
@@ -20409,7 +20423,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (match === 'PI') return match;
                         const p1 = points.find(p => p.label === l1);
                         const p2 = points.find(p => p.label === l2);
-                        if (p1 && p2) return (MathUtils.dist(p1.x, p1.y, p2.x, p2.y) / 50);
+                        /* « AB + BC » dans la calculatrice : AB vaut la longueur
+                           EN CENTIMÈTRES, et un centimètre ne fait 50 px que sur
+                           papier blanc. Sur cahier, la calculatrice répondait
+                           25 % de trop pendant que la figure disait autre chose. */
+                        if (p1 && p2) return gmCm(MathUtils.dist(p1.x, p1.y, p2.x, p2.y));
                         return match;
                     });
                     let jsExpr = expr
@@ -25461,13 +25479,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = "#333";
                 ctx.textAlign = "center";
                 ctx.font = "10px Arial";
-                for (let i = 0; i <= 600; i += 5) {
-                    const h = (i % 50 === 0) ? 25 : ((i % 50 === 25) ? 20 : 15);
+                /* LA RÈGLE-FANTÔME EST UNE RÈGLE. Elle gravait ses traits tous
+                   les 50 px et numérotait i/50 — le même nombre en dur que les
+                   quatre instruments portaient avant gmGraduations. Sur cahier
+                   elle contredisait donc la vraie règle posée à côté d'elle. */
+                for (const g of gmGraduations(600, 0)) {
+                    const h = g.cm ? 25 : (g.demi ? 20 : 15);
                     ctx.beginPath();
-                    ctx.moveTo(i, 0);
-                    ctx.lineTo(i, h);
+                    ctx.moveTo(g.px, 0);
+                    ctx.lineTo(g.px, h);
                     ctx.stroke();
-                    if (i % 50 === 0 && i != 0) ctx.fillText(i / 50, i, 40);
+                    if (g.cm && g.rang > 0) ctx.fillText(g.nombre, g.px, 40);
                 }
                 ctx.restore();
             }
@@ -28569,8 +28591,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
 
                     if (this.currentTool === 'segment') {
+                        /* CE QU'ON LIT EN TRAÇANT DOIT ÊTRE CE QU'ON LIRA APRÈS.
+                           Sur cahier, ce nombre disait 5,0 là où le trait posé
+                           annonçait 4,0 et où l'équerre gravait 4 : trois
+                           réponses pour un seul trait, et c'est celle-ci qu'on
+                           regarde pendant le geste. */
                         const dist = MathUtils.dist(start.x, start.y, end.x, end.y);
-                        const val = (dist / UNIT).toFixed(1);
+                        const val = gmCm(dist).toFixed(1);
                         const mx = (start.x + end.x) / 2;
                         const my = (start.y + end.y) / 2;
                         let angle = Math.atan2(end.y - start.y, end.x - start.x);
@@ -46534,7 +46561,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-26 · 23h';
+        window.GM_VERSION = '2026-09-29 · 10h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
