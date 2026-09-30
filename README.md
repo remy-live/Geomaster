@@ -1404,6 +1404,86 @@ et orientait le crayon par rapport au corps de la règle. La règle, elle, n'a p
 changé d'un pixel : son crayon court toujours le long de son unique bord gradué,
 et la sonde tient ce bord-là aussi.
 
+### Un geste, un Ctrl+Z
+
+*« Les undo parfois embarquent 2 étapes. »*
+
+**La pile contient les états d'APRÈS chaque action** : `undo()` dépile le dernier
+et rend le précédent. Or la moitié des outils n'enregistraient que l'état
+d'**avant**, celui pris à l'appui — et comme cet état est justement celui qu'a
+laissé le geste précédent, `saveState` l'écartait comme doublon. Le geste
+n'entrait alors **jamais** dans l'historique, et le Ctrl+Z suivant remontait d'un
+cran de trop : il défaisait deux gestes.
+
+Mesuré, gestes à la souris sur feuille vide :
+
+| geste | objets | états poussés |
+| --- | --- | --- |
+| clic de point | 1 | **0** — jamais enregistré |
+| glissé de segment | 3 | **2** — deux Ctrl+Z pour un geste |
+| angle (3 clics) | 4 | 2 |
+| polygone (5 clics) | 9 | 5 — jamais le dernier |
+
+Deux symptômes opposés, une seule cause : **deux conventions mélangées dans la
+même pile**. Un geste qui n'enregistrait que son départ ne poussait rien quand le
+geste précédent avait fait son travail — et deux quand il ne l'avait pas fait.
+D'où le « parfois ».
+
+**Une ligne par outil aurait réparé les quatre connus et laissé le cinquième pour
+plus tard.** La règle tient donc en un seul endroit : si des objets sont nés et
+qu'aucun glissé n'est en cours — un glissé finit au relâchement, qui enregistre
+déjà —, on enregistre l'arrivée. L'outil ajouté demain n'aura pas à y penser.
+
+Les outils à plusieurs clics comptent **par clic** : un polygone de quatre sommets
+se défait en quatre Ctrl+Z. C'est un choix, pas une conséquence, et la sonde le
+vérifie explicitement.
+
+### Le pot de peinture visait ce qui passait derrière
+
+*« Le mode peinture ne fonctionne pas sur un point qui est au bout d'un segment
+par exemple. »*
+
+Et c'est bien « par exemple » : le défaut ne tenait pas à ce point-là mais à la
+règle de désignation. La peinture prenait le **dernier objet de la liste** qui
+touche le doigt — or un segment est créé *après* ses deux extrémités, et un
+polygone après ses côtés. Mesuré, un clic pile sur A :
+
+```
+sous le doigt : Point(A), Segment      →      désigné : Segment
+```
+
+Le point n'arrivait jamais son tour, quels que soient le zoom et la précision du
+clic. Un point **libre**, lui, se peignait parfaitement — c'est ce qui rendait le
+défaut si déroutant à décrire.
+
+Le reste du logiciel sait déjà désigner : `closestPoint`, le point visible le plus
+proche dans la tolérance de clic, décide du déplacement et de la sélection. La
+peinture s'en sert désormais comme eux. C'est aussi ce qu'on attend d'un pot de
+peinture : on vise la petite chose, pas celle qui passe derrière.
+
+### La palette dépliée ne s'alignait sur rien
+
+*« La toolbar de style, je la trouve très déséquilibrée (sauf quand elle est
+réduite, je la trouve parfaite). »*
+
+La remarque désigne exactement le contraste : repliée, une seule rangée ;
+dépliée, six rangées. Mesuré, panneau de 212 px, distance du premier contrôle au
+bord du contenu :
+
+| rangée | avant | après |
+| --- | --- | --- |
+| couleurs | 28 px | 14 |
+| épaisseur | 14 px *(et le nombre débordait de 8 px à droite)* | 14 |
+| grille de 4 | 33 px | 14 |
+| grille de 5 | 14 px | 14 |
+| grille de 4 | 33 px | 14 |
+
+Cinq marges différentes dans un panneau large comme la main. Chaque rangée était
+**centrée** avec un écart fixe : sa largeur dépendait donc du nombre de boutons,
+et rien ne tombait en face de rien. Les boutons gardent une **taille constante** —
+les étirer donnerait 44 px sur une rangée et 32 sur la suivante, ce qui serait
+pire — et la rangée s'écarte jusqu'aux deux bords.
+
 ### « Bug de longueur » : trois autres lecteurs divisaient encore par 50
 
 Une capture, et un rapport de 1,25 qui saute aux yeux : le crayon est à la
@@ -3708,7 +3788,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 134 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 136 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.

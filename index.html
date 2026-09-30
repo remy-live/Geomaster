@@ -5871,9 +5871,22 @@
             gap: 12px;
         }
 
+        /* LES RANGÉES PARTAGENT LEURS DEUX BORDS.
+           « La toolbar de style, je la trouve très déséquilibrée. »
+           Mesuré, panneau de 212 px : chaque rangée était CENTRÉE avec un écart
+           fixe, si bien que sa largeur dépendait du nombre de boutons — une
+           rangée de cinq remplissait la largeur, une rangée de quatre rentrait
+           de 19 px de chaque côté, et les couleurs commençaient encore ailleurs.
+           Cinq marges gauches différentes dans un panneau large comme la main :
+           rien ne s'alignait d'une rangée à l'autre, et c'est cela qu'on voit.
+           On garde des boutons de taille CONSTANTE — les étirer donnerait des
+           boutons de 44 px sur une rangée et de 32 sur la suivante, ce qui serait
+           pire — et l'on écarte jusqu'aux deux bords. L'espacement intérieur
+           diffère alors d'une rangée à l'autre : c'est normal dans un panneau, et
+           bien moins visible qu'un bord en escalier. */
         .p-grid-4, .p-grid-5 {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             gap: 6px;
             width: 100%;
@@ -5932,7 +5945,7 @@
 
         .quick-color-bar {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             gap: 4px;
             align-items: center;
             flex-wrap: wrap;
@@ -11657,9 +11670,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         </svg>
                     </div>
                 </div>
+                <!-- LE CURSEUR PREND CE QUI RESTE, ET RIEN DE PLUS. « min-width:
+                     36px » l'empêchait de rétrécir : la rangée dépassait alors sa
+                     propre largeur et poussait le nombre 8 px DEHORS, à droite —
+                     mesuré, le « 2 » finissait à 6 px du bord du panneau quand
+                     toutes les autres rangées s'arrêtent à 14. « min-width: 0 »
+                     lui rend le droit de céder la place. -->
                 <input type="range" class="compact-slider" min="1" max="8" value="2" id="sliderThickness"
                     oninput="app.setGlobalWidth(this.value)" data-tooltip="Changer l'épaisseur"
-                    style="flex: 1 1 36px; accent-color: #0284c7; min-width: 36px;">
+                    style="flex: 1 1 36px; accent-color: #0284c7; min-width: 0;">
                 <!-- LE NOMBRE NE DOIT PAS DÉBORDER DE SA CASE. Il portait
                      « width: 14px » sans plus, mais c'est un élément flex : le
                      curseur voisin le comprimait, et sa case tombait à 8 px de
@@ -30903,7 +30922,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const x = finalX;
                 const y = finalY;
                 if (this.isPaintMode && e.button === 0) {
-                    const target = [...this.entities].reverse().find(ent => ent.isNear(x, y));
+                    /* UN POINT AU BOUT D'UN SEGMENT ÉTAIT IMPEIGNABLE.
+                       « Le mode peinture ne fonctionne pas sur un point qui est au
+                         bout d'un segment par exemple. »
+                       On prenait le DERNIER objet de la liste qui touche le doigt —
+                       et un segment est créé APRÈS ses deux extrémités. Mesuré, un
+                       clic pile sur A :
+                           sous le doigt : Point(A), Segment   →   désigné : Segment
+                       Le point n'arrivait jamais son tour, quel que soit le zoom ou
+                       la précision du clic. Un point libre, lui, se peignait très
+                       bien : c'est ce qui rendait le défaut si déroutant.
+                       closestPoint — le point visible le plus proche, avec la
+                       tolérance de tout le reste du logiciel — est calculé quelques
+                       lignes plus haut. La peinture s'en sert désormais comme le
+                       déplacement et la sélection : sous le doigt, un POINT l'emporte
+                       sur le trait qui le traverse. */
+                    const target = closestPoint
+                        || [...this.entities].reverse().find(ent => ent.isNear(x, y));
                     if (target) {
                         target.color = this.globalStyle.color;
                         target.lineWidth = this.globalStyle.width;
@@ -31241,7 +31276,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     else {
                         this.tactileMode = false;
+                        /* CETTE SAUVEGARDE-CI EST CELLE D'AVANT LE GESTE, et elle
+                           ne vaut que pour les outils qui se terminent au
+                           RELÂCHEMENT (segment, cercle…) : l'appui pose le
+                           premier point, le relâchement finit l'objet et
+                           enregistre l'état d'arrivée. Pour les outils qui font
+                           tout ici, elle ne suffit pas — voir juste en dessous. */
                         this.saveState();
+                        const avantOutil = this.entities.length;
                         if (this.currentTool === 'point') {
                             this.createPointAt(x, y);
                         }
@@ -31323,6 +31365,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                 }
                             }
                         }
+                        /* ============================================================
+                           TOUT GESTE QUI SE TERMINE ICI ENREGISTRE SON ARRIVÉE.
+
+                           « Les undo parfois embarquent 2 étapes. »
+
+                           LA PILE CONTIENT LES ÉTATS D'APRÈS CHAQUE ACTION : undo()
+                           dépile le dernier et rend le précédent. Or la moitié des
+                           outils n'enregistraient QUE l'état d'AVANT, celui pris à
+                           l'appui — et comme cet état est justement celui qu'a laissé
+                           le geste précédent, saveState l'écartait comme doublon. Le
+                           geste n'entrait alors JAMAIS dans l'historique, et le Ctrl+Z
+                           suivant remontait d'un cran de trop : il défaisait deux
+                           gestes. Mesuré, gestes à la souris sur feuille vide :
+
+                               clic de point     1 objet  · 0 état poussé
+                               angle (3 clics)   4 objets · 2 états
+                               polygone (5 clics) 9 objets · 5 états — jamais le dernier
+
+                           Une ligne PAR OUTIL aurait réparé les quatre connus et
+                           laissé le cinquième pour plus tard. La règle tient donc en
+                           un seul endroit : si des objets sont nés et qu'aucun glissé
+                           n'est en cours — un glissé finit au relâchement, qui
+                           enregistre déjà —, on enregistre l'arrivée. L'outil ajouté
+                           demain n'aura pas à y penser.
+
+                           La sauvegarde d'AVANT, elle, reste : elle devient un doublon
+                           inoffensif dès lors que chaque geste enregistre son arrivée,
+                           et elle sert encore de filet aux glissés. */
+                        if (!this.isDraggingCreation && this.entities.length !== avantOutil) {
+                            this.saveState();
+                        }
                     }
                 }
                 else if (this.currentTool === 'delete') {
@@ -31369,6 +31442,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.entities = this.entities.filter(e => !aRetirer.includes(e));
                         this.toDeletePreview = [];
                         this.selectedObject = null;
+                        /* MÊME RAISON QUE LE CLIC DE POINT : la gomme ne gardait
+                           que l'état d'avant, donc rien du tout quand celui-ci
+                           était déjà en haut de la pile. */
+                        this.saveState();
                     }
                 }
                 this.render();
@@ -46561,7 +46638,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-29 · 10h';
+        window.GM_VERSION = '2026-09-30 · 9h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

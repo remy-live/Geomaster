@@ -164,6 +164,70 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   const apres = await etat();
   ck('dépliée à la main, elle rouvre dépliée', apres.repliee === false, JSON.stringify(apres));
 
+  /* ============================================================
+     DÉPLIÉE, LES RANGÉES PARTAGENT LEURS DEUX BORDS
+
+     « La toolbar de style, je la trouve très déséquilibrée (sauf quand elle est
+       réduite, je la trouve parfaite). »
+
+     La remarque désigne exactement le contraste : repliée, une seule rangée ;
+     dépliée, six rangées qui ne s'alignaient sur rien. Mesuré, panneau de
+     212 px, distance du premier contrôle au bord du contenu :
+
+         couleurs        28 px
+         épaisseur       14 px   (et le nombre DÉBORDAIT de 8 px à droite)
+         grille de 4     33 px
+         grille de 5     14 px
+         grille de 4     33 px
+
+     Cinq marges différentes dans un panneau large comme la main. Chaque rangée
+     était CENTRÉE avec un écart fixe : sa largeur dépendait donc du nombre de
+     boutons, et rien ne tombait en face de rien.
+
+     CE QUE LA SONDE MESURE EST L'ALIGNEMENT, PAS UNE VALEUR. Elle ne demande
+     pas « 14 px » — elle exige que TOUTES les rangées commencent et finissent
+     à la même distance du bord, quelle que soit cette distance. C'est la seule
+     formulation qui survivra au jour où l'on changera la marge du panneau.
+
+     LA TOLÉRANCE DE 3 PX N'EST PAS DU CONFORT : la pastille de couleur
+     sélectionnée porte un anneau et un agrandissement de 1,15 qui débordent de
+     deux pixels, et cette pastille se déplace quand on change de couleur.
+     ============================================================ */
+  console.log('\n=== dépliée, toutes les rangées s\'alignent ===');
+  await page.evaluate(() => window.app.basculerPliagePalette(false));
+  await page.waitForTimeout(300);
+  const rangees = await page.evaluate(() => {
+    const c = document.querySelector('#stylePalettePanel .palette-content');
+    const cr = c.getBoundingClientRect();
+    return [...c.children]
+      .filter(el => !el.classList.contains('p-divider')
+                 && el.getBoundingClientRect().height > 4)
+      .map(el => {
+        const enfants = [...el.children].filter(k => k.getBoundingClientRect().width > 1);
+        const kb = enfants.map(k => k.getBoundingClientRect());
+        const b = el.getBoundingClientRect();
+        return {
+          nom: el.className.split(' ')[0] || el.tagName.toLowerCase(),
+          /* le bouton large du mode peinture EST la rangée : on le juge sur
+             ses propres bords, pas sur son icône centrée */
+          gauche: Math.round((kb.length > 1 ? kb[0].left : b.left) - cr.left),
+          droite: Math.round(cr.right - (kb.length > 1 ? kb[kb.length - 1].right : b.right)),
+          /* même tolérance de 3 px, et pour la même raison : l'anneau de
+             sélection est peint HORS de la boîte de la pastille */
+          deborde: kb.some(k => k.right > b.right + 3 || k.left < b.left - 3),
+        };
+      });
+  });
+  const g = rangees.map(r => r.gauche), d = rangees.map(r => r.droite);
+  const ecart = (t) => Math.max(...t) - Math.min(...t);
+  ck(`les ${rangees.length} rangées commencent au même endroit`, ecart(g) <= 3,
+     rangees.map(r => `${r.nom} ${r.gauche}`).join(' · '));
+  ck('  et finissent au même endroit', ecart(d) <= 3,
+     rangees.map(r => `${r.nom} ${r.droite}`).join(' · '));
+  ck('  et rien ne déborde de sa rangée',
+     rangees.every(r => !r.deborde),
+     rangees.filter(r => r.deborde).map(r => r.nom).join(' ') || 'aucun débordement');
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);
