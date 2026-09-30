@@ -228,6 +228,73 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      rangees.every(r => !r.deborde),
      rangees.filter(r => r.deborde).map(r => r.nom).join(' ') || 'aucun débordement');
 
+  /* ============================================================
+     CHOISIR, OU AGIR — DEUX NATURES, DEUX FORMES
+
+     Sept dispositions ont été montrées avant celle-ci, et les six premières
+     partageaient la même hypothèse fausse : garder six rangées de carrés
+     identiques et les ranger autrement. Aucune ne convainquait, et la raison
+     était ailleurs que dans les marges — la barre REPLIÉE plaît parce qu'elle
+     montre un ÉTAT ; le panneau déplié alignait vingt-deux icônes muettes où
+     rien ne distinguait un choix d'une action.
+
+     Or « croix, disque, pixel » est un choix EXCLUSIF — un seul peut être vrai —
+     quand « rayons X » ou « codage auto » sont des bascules indépendantes. Les
+     premiers prennent un bouton segmenté qui remplit la largeur ; les secondes
+     gardent des carrés séparés.
+
+     CE QUE LA SONDE VÉRIFIE EST CETTE DISTINCTION, et non un pixel : que les
+     choix exclusifs soient segmentés et JOINTIFS, que les bascules restent
+     séparées, et que chaque groupe porte son nom. C'est la forme qui doit
+     survivre, pas la mesure du jour.
+     ============================================================ */
+  console.log('\n=== chaque groupe porte son nom ===');
+  const noms = await page.evaluate(() => [...document.querySelectorAll(
+      '#stylePalettePanel .palette-content .p-titre')].map(t => t.textContent.trim()));
+  ck('les cinq groupes sont nommés', noms.length === 5, noms.join(' · '));
+  ck('  et ce sont bien ceux-là',
+     ['Couleur', 'Trait', 'Points', 'Noms', 'Affichage'].every(n => noms.includes(n)),
+     noms.join(' · '));
+
+  console.log('\n=== un choix exclusif est segmenté, une bascule ne l\'est pas ===');
+  const formes = await page.evaluate(() => {
+    const c = document.querySelector('#stylePalettePanel .palette-content');
+    const seg = [...c.querySelectorAll('.p-segment')].map(s => {
+      const b = [...s.querySelectorAll('.btn')];
+      const r = b.map(x => x.getBoundingClientRect());
+      /* JOINTIFS : d'un bouton au suivant, aucun blanc (les bords se
+         chevauchent d'un pixel, d'où la tolérance à 0). */
+      let joints = true;
+      for (let i = 1; i < r.length; i++) if (r[i].left - r[i - 1].right > 0.5) joints = false;
+      const sr = s.getBoundingClientRect();
+      return { n: b.length, joints,
+               remplit: Math.abs(r[0].left - sr.left) < 1
+                     && Math.abs(r[r.length - 1].right - sr.right) < 1 };
+    });
+    const grilles = [...c.querySelectorAll('.p-grid-5')].map(g => {
+      const r = [...g.querySelectorAll('.btn')].map(x => x.getBoundingClientRect());
+      let separes = true;
+      for (let i = 1; i < r.length; i++) if (r[i].left - r[i - 1].right < 2) separes = false;
+      return { n: r.length, separes };
+    });
+    return { seg, grilles,
+             /* la grille d'affichage n'est plus parmi les styles de point */
+             grilleAvecLesPoints: !!c.querySelector('.p-segment #btnGrid'),
+             styles: [...c.querySelectorAll('.p-segment .btn')].map(b => b.id) };
+  });
+  ck('deux groupes sont segmentés — le trait et les points',
+     formes.seg.length === 2, formes.seg.map(s => s.n + ' boutons').join(' · '));
+  ck('  leurs boutons sont jointifs', formes.seg.every(s => s.joints),
+     JSON.stringify(formes.seg.map(s => s.joints)));
+  ck('  et remplissent toute la largeur de leur groupe',
+     formes.seg.every(s => s.remplit), JSON.stringify(formes.seg.map(s => s.remplit)));
+  ck('  les trois styles de point y sont, et rien d\'autre',
+     formes.styles.filter(i => /^btnPt/.test(i)).length === 3
+     && !formes.grilleAvecLesPoints, formes.styles.join(' '));
+  ck('les bascules, elles, restent des carrés séparés',
+     formes.grilles.length === 2 && formes.grilles.every(g => g.separes && g.n === 5),
+     formes.grilles.map(g => g.n + (g.separes ? ' séparés' : ' COLLÉS')).join(' · '));
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

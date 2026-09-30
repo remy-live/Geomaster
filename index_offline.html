@@ -5884,6 +5884,65 @@
            pire — et l'on écarte jusqu'aux deux bords. L'espacement intérieur
            diffère alors d'une rangée à l'autre : c'est normal dans un panneau, et
            bien moins visible qu'un bord en escalier. */
+        /* ============================================================
+           CHOISIR, OU AGIR — DEUX NATURES, DEUX FORMES
+
+           « La toolbar de style, je la trouve très déséquilibrée (sauf quand
+             elle est réduite, je la trouve parfaite). »
+
+           Sept dispositions ont été montrées avant celle-ci, et les six
+           premières partageaient la même hypothèse fausse : garder six rangées
+           de carrés identiques et les ranger autrement. Aucune ne convainquait,
+           et pour une raison qu'il a fallu chercher ailleurs que dans les
+           marges — la barre RÉDUITE plaît parce qu'elle montre un ÉTAT (la
+           couleur en cours, le trait en cours, le chiffre) ; le panneau déplié,
+           lui, alignait vingt-deux icônes muettes où rien ne distinguait un
+           choix d'une action.
+
+           Or tout n'est pas de même nature. « Croix, disque, pixel » est un
+           choix EXCLUSIF — un seul peut être vrai. « Rayons X », « codage
+           auto » sont des bascules indépendantes. Les premiers deviennent donc
+           un bouton SEGMENTÉ qui remplit la largeur et dit qu'il n'y a qu'une
+           réponse ; les secondes restent des carrés séparés. L'alignement
+           devient alors une conséquence au lieu d'un effort, et chaque groupe
+           porte son nom : on n'a plus à survoler une icône pour savoir ce
+           qu'elle fait.
+           ============================================================ */
+        .p-titre {
+            font: 600 10px/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            /* Le nom colle à son groupe et respire au-dessus : c'est ce qui
+               les fait lire comme un bloc, et non comme deux lignes. */
+            /* « Moins d'espace vertical entre le nom et les icônes. » Le nom
+               colle à son groupe — 2 px — et respire au-dessus de lui : ce sont
+               ces deux valeurs, et non un filet, qui font lire l'ensemble comme
+               un bloc. */
+            margin: 13px 0 2px 0;
+            user-select: none;
+        }
+        .palette-content > .p-titre:first-child { margin-top: 0; }
+
+        .p-segment {
+            display: flex;
+            width: 100%;
+            gap: 0;
+        }
+        .p-segment > .btn {
+            flex: 1 1 0;
+            min-width: 0;
+            width: auto;
+            border-radius: 0;
+            margin-left: -1px;
+        }
+        .p-segment > .btn:first-child {
+            border-radius: 8px 0 0 8px;
+            margin-left: 0;
+        }
+        .p-segment > .btn:last-child { border-radius: 0 8px 8px 0; }
+        .p-segment > .btn.active { position: relative; z-index: 1; }
+
         .p-grid-4, .p-grid-5 {
             display: flex;
             justify-content: space-between;
@@ -5953,8 +6012,11 @@
         }
 
         .color-swatch {
-            width: 22px;
-            height: 22px;
+            /* « Tu pourrais faire les pastilles plus grandes. » 22 -> 27 px :
+               six pastilles tiennent encore dans les 184 px utiles avec 4 px
+               entre elles. */
+            width: 27px;
+            height: 27px;
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid #fff;
@@ -5971,8 +6033,12 @@
         /* Supporte .active et .selected pour couvrir toutes les versions de ton JS */
         .color-swatch.active,
         .color-swatch.selected {
+            /* L'AGRANDISSEMENT EST PARTI AVEC LA CAUSE. Un scale(1.15) peint la
+               pastille HORS de sa boîte : quand la couleur choisie était la
+               première de la rangée, elle dépassait de deux pixels à gauche et
+               la rangée semblait mal calée — un défaut qui SE DÉPLAÇAIT avec la
+               sélection. L'anneau suffit à désigner, et il ne déborde pas. */
             border-color: #333 !important;
-            transform: scale(1.15);
             box-shadow: 0 0 0 2px #fff, 0 0 0 3px #333 !important;
             z-index: 2;
         }
@@ -11631,6 +11697,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div style="display: none;">
                 <div class="current-color-preview" id="colorIndicator" style="background:#333333;"></div>
             </div>
+            <div class="p-titre">Couleur</div>
             <div class="quick-color-bar">
                 <div class="color-swatch active selected" data-color="#333333" style="background:#333333" data-tooltip="Noir"
                     onclick="app.setGlobalColor('#333333')"></div>
@@ -11649,13 +11716,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         style="position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; opacity: 0; cursor: pointer; display: block;">
                 </div>
             </div>
-            <div class="p-divider"></div>
+            <div class="p-titre">Trait</div>
             <!-- La classe p-thickness ne sert qu'à pouvoir viser cette rangée en
                  CSS : c'est la seule de la palette qui ne se replie pas, et à
                  partir d'une certaine étroitesse elle était rognée en silence par
                  l'overflow:hidden du panneau. Voir le palier 8b. -->
             <div class="p-thickness" style="display:flex; justify-content:space-between; align-items: center; gap: 8px; width: 100%; margin: 2px 0;">
-                <div style="display:flex; gap: 4px;">
+                <!-- PLEIN OU POINTILLÉ : un seul peut être vrai, donc un bouton
+                     segmenté. L'APERÇU N'EN FAIT PAS PARTIE — il ne se clique
+                     pas, il montre l'épaisseur courante ; le coller aux deux
+                     autres laissait croire à un troisième choix. -->
+                <div class="p-segment" style="flex: 0 0 76px;">
                     <button class="btn active" id="btnStyleSolid" onclick="app.setGlobalDash(false)"
                         data-tooltip="Trait Plein"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <line x1="2" y1="12" x2="22" y2="12" stroke-width="3" />
@@ -11664,12 +11735,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <line x1="2" y1="12" x2="22" y2="12" stroke-width="3" stroke-dasharray="4,3" />
                         </svg></button>
-                    <div class="btn thickness-preview" style="pointer-events: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <line id="thicknessLine" x1="2" y1="12" x2="22" y2="12" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
                 </div>
+                <!-- L'APERÇU D'ÉPAISSEUR EST PARTI. C'était un faux bouton —
+                     pointer-events:none — posé au milieu de vrais, et il disait
+                     ce que le curseur et le chiffre disent déjà. Mesuré, il
+                     coûtait 42 px sur une rangée qui en a 184 : le curseur
+                     tombait à 16 px de large, à peine plus que son propre bouton.
+                     Le code qui l'écrivait était déjà gardé par un « if ». -->
                 <!-- LE CURSEUR PREND CE QUI RESTE, ET RIEN DE PLUS. « min-width:
                      36px » l'empêchait de rétrécir : la rangée dépassait alors sa
                      propre largeur et poussait le nombre 8 px DEHORS, à droite —
@@ -11689,8 +11761,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <span id="thicknessValue"
                     style="font-weight: 600; font-size: 15px; flex: 0 0 auto; min-width: 16px; text-align: right; color: #475569;">2</span>
             </div>
-            <div class="p-divider"></div>
-            <div class="p-grid-4">
+            <div class="p-titre">Points</div>
+            <!-- CROIX, DISQUE OU PIXEL : un seul peut être vrai. Le bouton de la
+                 GRILLE était la quatrième case de cette rangée — il n'a jamais
+                 été un style de point mais un réglage d'affichage, et il rejoint
+                 les siens plus bas. -->
+            <div class="p-segment">
                 <button class="btn active" id="btnPtCross" onclick="app.setGlobalPointStyle('cross')" data-tooltip="Croix"><svg
                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none">
                         <path d="M5 5l14 14M19 5l-14 14" />
@@ -11703,18 +11779,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         viewBox="0 0 24 24" fill="currentColor" stroke="none">
                         <rect x="10" y="10" width="4" height="4" />
                     </svg></button>
-                <button class="btn" id="btnGrid" onclick="app.toggleGrid()" data-tooltip="Afficher/Masquer Grille">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <path d="M3 9h18" />
-                        <path d="M3 15h18" />
-                        <path d="M9 3v18" />
-                        <path d="M15 3v18" />
-                    </svg>
-                </button>
             </div>
-            <div class="p-divider"></div>
+            <div class="p-titre">Noms</div>
             <div class="p-grid-5">
                 <button class="btn active" id="btnLabelToggle" onclick="app.toggleGlobalLabelState()"
                     data-tooltip="Afficher Noms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -11750,8 +11816,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <path d="M6.5 17.5L4 20l-2.5-2.5" />
                     </svg></button>
             </div>
-            <div class="p-divider"></div>
-            <div class="p-grid-4">
+            <div class="p-titre">Affichage</div>
+            <!-- CE QUI SE VOIT, ET NON CE QU'ON TRACE. Ces cinq-là sont des
+                 bascules indépendantes : elles gardent donc des carrés séparés,
+                 là où un choix exclusif prend un bouton segmenté. -->
+            <div class="p-grid-5">
+                <button class="btn" id="btnGrid" onclick="app.toggleGrid()" data-tooltip="Afficher/Masquer Grille">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <path d="M3 9h18" />
+                        <path d="M3 15h18" />
+                        <path d="M9 3v18" />
+                        <path d="M15 3v18" />
+                    </svg>
+                </button>
                 <button class="btn" onclick="app.autoCodeAll()" data-tooltip="Codage Auto"><svg viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m17 6 1 3 3 0.5-2.5 2 1 3L17 13l-2.5 1.5 1-3L13 9.5l3-0.5z" />
@@ -25125,8 +25204,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             }
             setGlobalWidth(val) {
                 this.globalStyle.width = parseInt(val);
-                const line = document.getElementById('thicknessLine');
-                if (line) line.setAttribute('stroke-width', val);
+                /* L'APERÇU D'ÉPAISSEUR N'EXISTE PLUS, ET SON CODE NON PLUS.
+                   Il était écrit ici derrière un « if », donc rien ne plantait en
+                   le retirant de la page — et c'est précisément ce qui rend ce
+                   genre de reste invisible. probe-commandes.js l'a vu : elle
+                   vérifie qu'aucun identifiant demandé par le code n'est absent
+                   de la page. Le chiffre et le curseur disent l'épaisseur ; la
+                   pastille de la barre repliée aussi, par majPaletteCompacte. */
                 const numDisplay = document.getElementById('thicknessValue');
                 if (numDisplay) numDisplay.innerText = val;
                 if (this.majPaletteCompacte) this.majPaletteCompacte();
@@ -46638,7 +46722,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-30 · 9h';
+        window.GM_VERSION = '2026-09-30 · 14h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
