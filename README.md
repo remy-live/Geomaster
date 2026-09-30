@@ -1480,17 +1480,33 @@ Or tout n'est pas de même nature :
 - « rayons X », « codage auto », « objets cachés » sont des bascules
   **indépendantes**.
 
-Les premiers deviennent un **bouton segmenté** qui remplit la largeur et dit
-qu'il n'y a qu'une réponse ; les secondes gardent des carrés séparés.
-L'alignement devient alors une *conséquence* au lieu d'un effort, et chaque groupe
-porte son nom — on n'a plus à survoler une icône pour savoir ce qu'elle fait.
+Les premiers deviennent un **interrupteur segmenté** — une piste grise, une
+pastille blanche qui se déplace ; les secondes gardent des carrés séparés.
+L'alignement devient alors une *conséquence* au lieu d'un effort.
+
+**La forme s'est trouvée en deux corrections, et les deux comptent.**
+
+1. **Les intitulés ont été essayés, puis retirés.** Chaque groupe a d'abord porté
+   son nom — Couleur, Trait, Points, Noms, Affichage — et c'est sous cette forme
+   que la disposition a été choisie. À l'usage ils ne gagnaient pas leur place :
+   le panneau passait de 361 à **507 px** pour nommer des rangées qui se lisent
+   seules, des ronds colorés et des traits. Sans eux il tient en **312 px**, soit
+   *moins* que l'original.
+2. **Trois cases bordées ne sont pas un interrupteur.** Côte à côte, elles se
+   lisaient encore comme trois boutons, et l'on pouvait croire en enfoncer
+   plusieurs. Une piste avec une pastille qui se déplace ne laisse aucun doute :
+   il n'y a qu'une position à la fois. C'est la forme que tout le monde connaît,
+   et elle dit la règle sans un mot.
 
 **Trois choses sont tombées d'elles-mêmes.**
 
 - **L'aperçu d'épaisseur.** C'était un *faux* bouton — `pointer-events:none` —
   posé au milieu de vrais, et il disait ce que le curseur et le chiffre disent
   déjà. Mesuré : il coûtait 42 px sur une rangée qui en a 184, et le curseur
-  tombait à **16 px de large**, à peine plus que son propre bouton.
+  tombait à **16 px de large**, à peine plus que son propre bouton. En le
+  retirant de la page j'ai d'abord laissé le code qui le cherchait, derrière un
+  `if` qui empêchait tout plantage — donc invisible pour toujours ;
+  `probe-commandes.js` l'a vu.
 - **L'agrandissement de la pastille sélectionnée.** Le `scale(1.15)` la peignait
   *hors* de sa boîte : quand la couleur choisie était la première de la rangée,
   elle dépassait de 2 px à gauche — un défaut qui **se déplaçait avec la
@@ -1498,14 +1514,8 @@ porte son nom — on n'a plus à survoler une icône pour savoir ce qu'elle fait
 - **La grille**, qui n'a jamais été un style de point, rejoint les réglages
   d'affichage.
 
-Les pastilles passent de 22 à **27 px** ; le nom colle à son groupe (2 px) et
-respire au-dessus (13 px). Ce sont ces deux valeurs, et non un filet, qui font
-lire l'ensemble comme un bloc : les six filets gris ont disparu.
-
-**Le panneau grandit de 361 à 507 px, et cela se vérifie** : à aucune taille de
-fenêtre un bouton ne devient inatteignable. Le panneau demande 567 px de fenêtre,
-le plafond de hauteur existant se déclenche sous 620 — il reste 54 px de marge.
-Et la barre **repliée est identique pixel pour pixel**.
+Les pastilles passent de 22 à **27 px**. La barre **repliée est identique pixel
+pour pixel** : elle n'a pas été touchée.
 
 ### La palette dépliée ne s'alignait sur rien
 

@@ -5904,44 +5904,54 @@
            auto » sont des bascules indépendantes. Les premiers deviennent donc
            un bouton SEGMENTÉ qui remplit la largeur et dit qu'il n'y a qu'une
            réponse ; les secondes restent des carrés séparés. L'alignement
-           devient alors une conséquence au lieu d'un effort, et chaque groupe
-           porte son nom : on n'a plus à survoler une icône pour savoir ce
-           qu'elle fait.
-           ============================================================ */
-        .p-titre {
-            font: 600 10px/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif;
-            letter-spacing: .09em;
-            text-transform: uppercase;
-            color: #94a3b8;
-            /* Le nom colle à son groupe et respire au-dessus : c'est ce qui
-               les fait lire comme un bloc, et non comme deux lignes. */
-            /* « Moins d'espace vertical entre le nom et les icônes. » Le nom
-               colle à son groupe — 2 px — et respire au-dessus de lui : ce sont
-               ces deux valeurs, et non un filet, qui font lire l'ensemble comme
-               un bloc. */
-            margin: 13px 0 2px 0;
-            user-select: none;
-        }
-        .palette-content > .p-titre:first-child { margin-top: 0; }
+           devient alors une conséquence au lieu d'un effort.
 
+           LES INTITULÉS ONT ÉTÉ ESSAYÉS, PUIS RETIRÉS. Chaque groupe a d'abord
+           porté son nom — « Couleur », « Trait », « Points », « Noms »,
+           « Affichage » — et c'est sous cette forme que la disposition a été
+           choisie. À l'usage ils ne gagnaient pas leur place : le panneau passait
+           de 361 à 507 px pour nommer des rangées qui se lisent seules, des ronds
+           colorés et des traits. Sans eux il tient en 312 px, soit MOINS que
+           l'original. Ce qui reste est ce qui portait le sens : la forme.
+           ============================================================ */
+        /* UN INTERRUPTEUR SEGMENTÉ, PAS TROIS BOÎTES. Trois cases bordées
+           côte à côte se lisent encore comme trois boutons — on peut croire
+           qu'on en enfonce plusieurs. Une PISTE grise avec une pastille blanche
+           qui se déplace ne laisse aucun doute : il n'y a qu'une position à la
+           fois. C'est la forme que tout le monde connaît, et elle dit la règle
+           sans un mot. */
         .p-segment {
             display: flex;
             width: 100%;
             gap: 0;
+            background: #eef2f7;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 3px;
+            box-sizing: border-box;
         }
-        .p-segment > .btn {
+        .palette-content .p-segment > .btn {
             flex: 1 1 0;
             min-width: 0;
             width: auto;
-            border-radius: 0;
-            margin-left: -1px;
+            height: 28px;
+            border: 1px solid transparent;
+            background: transparent;
+            border-radius: 7px;
+            box-shadow: none;
         }
-        .p-segment > .btn:first-child {
-            border-radius: 8px 0 0 8px;
-            margin-left: 0;
+        .palette-content .p-segment > .btn:hover {
+            background: rgba(255, 255, 255, 0.55);
+            border-color: transparent;
         }
-        .p-segment > .btn:last-child { border-radius: 0 8px 8px 0; }
-        .p-segment > .btn.active { position: relative; z-index: 1; }
+        /* LA PASTILLE : blanche et posée sur la piste, avec l'ombre qui la
+           décolle. C'est elle qui porte la position courante. */
+        .palette-content .p-segment > .btn.active {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            color: #0284c7;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        }
 
         .p-grid-4, .p-grid-5 {
             display: flex;
@@ -11697,7 +11707,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <div style="display: none;">
                 <div class="current-color-preview" id="colorIndicator" style="background:#333333;"></div>
             </div>
-            <div class="p-titre">Couleur</div>
             <div class="quick-color-bar">
                 <div class="color-swatch active selected" data-color="#333333" style="background:#333333" data-tooltip="Noir"
                     onclick="app.setGlobalColor('#333333')"></div>
@@ -11716,7 +11725,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         style="position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; opacity: 0; cursor: pointer; display: block;">
                 </div>
             </div>
-            <div class="p-titre">Trait</div>
             <!-- La classe p-thickness ne sert qu'à pouvoir viser cette rangée en
                  CSS : c'est la seule de la palette qui ne se replie pas, et à
                  partir d'une certaine étroitesse elle était rognée en silence par
@@ -11761,7 +11769,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 <span id="thicknessValue"
                     style="font-weight: 600; font-size: 15px; flex: 0 0 auto; min-width: 16px; text-align: right; color: #475569;">2</span>
             </div>
-            <div class="p-titre">Points</div>
             <!-- CROIX, DISQUE OU PIXEL : un seul peut être vrai. Le bouton de la
                  GRILLE était la quatrième case de cette rangée — il n'a jamais
                  été un style de point mais un réglage d'affichage, et il rejoint
@@ -11780,7 +11787,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <rect x="10" y="10" width="4" height="4" />
                     </svg></button>
             </div>
-            <div class="p-titre">Noms</div>
             <div class="p-grid-5">
                 <button class="btn active" id="btnLabelToggle" onclick="app.toggleGlobalLabelState()"
                     data-tooltip="Afficher Noms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -11816,7 +11822,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         <path d="M6.5 17.5L4 20l-2.5-2.5" />
                     </svg></button>
             </div>
-            <div class="p-titre">Affichage</div>
             <!-- CE QUI SE VOIT, ET NON CE QU'ON TRACE. Ces cinq-là sont des
                  bascules indépendantes : elles gardent donc des carrés séparés,
                  là où un choix exclusif prend un bouton segmenté. -->
@@ -46722,7 +46727,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-09-30 · 14h';
+        window.GM_VERSION = '2026-09-30 · 17h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

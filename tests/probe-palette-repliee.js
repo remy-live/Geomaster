@@ -206,12 +206,15 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
         const enfants = [...el.children].filter(k => k.getBoundingClientRect().width > 1);
         const kb = enfants.map(k => k.getBoundingClientRect());
         const b = el.getBoundingClientRect();
+        /* DEUX RANGÉES SE JUGENT SUR LEURS PROPRES BORDS et non sur leur
+           contenu : le bouton large du mode peinture, dont l'icône est centrée,
+           et l'INTERRUPTEUR, dont la piste est le contrôle — son rembourrage
+           intérieur est voulu, c'est la piste qui doit tomber en face. */
+        const propre = kb.length <= 1 || el.classList.contains('p-segment');
         return {
           nom: el.className.split(' ')[0] || el.tagName.toLowerCase(),
-          /* le bouton large du mode peinture EST la rangée : on le juge sur
-             ses propres bords, pas sur son icône centrée */
-          gauche: Math.round((kb.length > 1 ? kb[0].left : b.left) - cr.left),
-          droite: Math.round(cr.right - (kb.length > 1 ? kb[kb.length - 1].right : b.right)),
+          gauche: Math.round((propre ? b.left : kb[0].left) - cr.left),
+          droite: Math.round(cr.right - (propre ? b.right : kb[kb.length - 1].right)),
           /* même tolérance de 3 px, et pour la même raison : l'anneau de
              sélection est peint HORS de la boîte de la pastille */
           deborde: kb.some(k => k.right > b.right + 3 || k.left < b.left - 3),
@@ -239,37 +242,47 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      rien ne distinguait un choix d'une action.
 
      Or « croix, disque, pixel » est un choix EXCLUSIF — un seul peut être vrai —
-     quand « rayons X » ou « codage auto » sont des bascules indépendantes. Les
-     premiers prennent un bouton segmenté qui remplit la largeur ; les secondes
-     gardent des carrés séparés.
+     quand « rayons X » ou « codage auto » sont des bascules indépendantes.
+
+     LA FORME A ÉTÉ CHERCHÉE EN DEUX TEMPS, et les deux comptent.
+     D'abord des intitulés au-dessus de chaque groupe ; ils ont été ESSAYÉS PUIS
+     RETIRÉS — le panneau passait de 361 à 507 px pour nommer des rangées qui se
+     lisent seules, des ronds colorés et des traits. Sans eux il tient en 312 px,
+     MOINS que l'original.
+     Ensuite le segment lui-même : trois cases bordées côte à côte se lisaient
+     encore comme trois boutons, et l'on pouvait croire en enfoncer plusieurs.
+     C'est maintenant un INTERRUPTEUR — une piste grise, une pastille blanche qui
+     se déplace —, la forme que tout le monde connaît, et qui dit la règle sans
+     un mot.
 
      CE QUE LA SONDE VÉRIFIE EST CETTE DISTINCTION, et non un pixel : que les
-     choix exclusifs soient segmentés et JOINTIFS, que les bascules restent
-     séparées, et que chaque groupe porte son nom. C'est la forme qui doit
-     survivre, pas la mesure du jour.
+     choix exclusifs soient sur une piste, jointifs et pleine largeur ; que les
+     bascules restent des carrés séparés. C'est la forme qui doit survivre, pas
+     la mesure du jour.
      ============================================================ */
-  console.log('\n=== chaque groupe porte son nom ===');
-  const noms = await page.evaluate(() => [...document.querySelectorAll(
-      '#stylePalettePanel .palette-content .p-titre')].map(t => t.textContent.trim()));
-  ck('les cinq groupes sont nommés', noms.length === 5, noms.join(' · '));
-  ck('  et ce sont bien ceux-là',
-     ['Couleur', 'Trait', 'Points', 'Noms', 'Affichage'].every(n => noms.includes(n)),
-     noms.join(' · '));
-
-  console.log('\n=== un choix exclusif est segmenté, une bascule ne l\'est pas ===');
+  console.log('\n=== un choix exclusif est un interrupteur, une bascule ne l\'est pas ===');
   const formes = await page.evaluate(() => {
     const c = document.querySelector('#stylePalettePanel .palette-content');
     const seg = [...c.querySelectorAll('.p-segment')].map(s => {
       const b = [...s.querySelectorAll('.btn')];
       const r = b.map(x => x.getBoundingClientRect());
-      /* JOINTIFS : d'un bouton au suivant, aucun blanc (les bords se
-         chevauchent d'un pixel, d'où la tolérance à 0). */
+      const sr = s.getBoundingClientRect();
+      const cs = getComputedStyle(s);
+      const pad = parseFloat(cs.paddingLeft) || 0;
+      /* JOINTIFS : d'une case à la suivante, aucun blanc. */
       let joints = true;
       for (let i = 1; i < r.length; i++) if (r[i].left - r[i - 1].right > 0.5) joints = false;
-      const sr = s.getBoundingClientRect();
-      return { n: b.length, joints,
-               remplit: Math.abs(r[0].left - sr.left) < 1
-                     && Math.abs(r[r.length - 1].right - sr.right) < 1 };
+      return {
+        n: b.length, joints,
+        /* les cases occupent toute la PISTE, à son rembourrage près */
+        remplit: Math.abs(r[0].left - (sr.left + pad)) < 1.5
+              && Math.abs(r[r.length - 1].right - (sr.right - pad)) < 1.5,
+        /* une piste : un fond à elle, et les cases sans bordure entre elles */
+        piste: cs.backgroundColor !== 'rgba(0, 0, 0, 0)'
+            && cs.backgroundColor !== 'transparent',
+        /* et la position courante est marquée, une seule fois */
+        actives: b.filter(x => x.classList.contains('active')).length,
+      };
     });
     const grilles = [...c.querySelectorAll('.p-grid-5')].map(g => {
       const r = [...g.querySelectorAll('.btn')].map(x => x.getBoundingClientRect());
@@ -278,22 +291,29 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
       return { n: r.length, separes };
     });
     return { seg, grilles,
-             /* la grille d'affichage n'est plus parmi les styles de point */
              grilleAvecLesPoints: !!c.querySelector('.p-segment #btnGrid'),
-             styles: [...c.querySelectorAll('.p-segment .btn')].map(b => b.id) };
+             styles: [...c.querySelectorAll('.p-segment .btn')].map(b => b.id),
+             /* les intitulés ont été retirés : ni eux, ni leur CSS */
+             intitules: c.querySelectorAll('.p-titre').length };
   });
-  ck('deux groupes sont segmentés — le trait et les points',
-     formes.seg.length === 2, formes.seg.map(s => s.n + ' boutons').join(' · '));
-  ck('  leurs boutons sont jointifs', formes.seg.every(s => s.joints),
-     JSON.stringify(formes.seg.map(s => s.joints)));
-  ck('  et remplissent toute la largeur de leur groupe',
-     formes.seg.every(s => s.remplit), JSON.stringify(formes.seg.map(s => s.remplit)));
+  ck('deux groupes sont des interrupteurs — le trait et les points',
+     formes.seg.length === 2, formes.seg.map(s => s.n + ' positions').join(' · '));
+  ck('  chacun a sa piste', formes.seg.every(s => s.piste),
+     JSON.stringify(formes.seg.map(s => s.piste)));
+  ck('  les cases sont jointives et remplissent la piste',
+     formes.seg.every(s => s.joints && s.remplit),
+     JSON.stringify(formes.seg.map(s => [s.joints, s.remplit])));
+  ck('  et une seule position est marquée par interrupteur',
+     formes.seg.every(s => s.actives === 1),
+     JSON.stringify(formes.seg.map(s => s.actives)));
   ck('  les trois styles de point y sont, et rien d\'autre',
      formes.styles.filter(i => /^btnPt/.test(i)).length === 3
      && !formes.grilleAvecLesPoints, formes.styles.join(' '));
   ck('les bascules, elles, restent des carrés séparés',
      formes.grilles.length === 2 && formes.grilles.every(g => g.separes && g.n === 5),
      formes.grilles.map(g => g.n + (g.separes ? ' séparés' : ' COLLÉS')).join(' · '));
+  ck('  et plus aucun intitulé : ils ont été essayés, puis retirés',
+     formes.intitules === 0, formes.intitules + ' intitulé(s)');
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
