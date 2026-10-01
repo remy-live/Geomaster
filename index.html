@@ -857,6 +857,89 @@
            contextuel et la palette de style s'ouvraient par deux petits chevrons
            qui ne se ressemblaient pas, posés à deux endroits différents.
            ============================================================ */
+        /* LE CADRAN DE POSITION DU NOM. Retiré quand le menu du point pesait
+           437 px, il revient DERRIÈRE LE PLI : il sert peu, mais il est le seul
+           moyen de poser un nom à l'angle voulu sans viser la lettre elle-même —
+           ce que le glissement au doigt demande (voir probe-nom-au-doigt.js). */
+        .label-positioner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto;
+            position: relative;
+            border-radius: 50%;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, .05);
+            cursor: crosshair;
+            /* Sans cela, au doigt le navigateur interprète le glissement comme un
+               défilement, s'approprie le pointeur et émet pointercancel : le
+               cadran restait « collé » au doigt bien après le relâchement. */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .label-cross {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            transform: translate(-50%, -50%);
+            pointer-events: none
+        }
+
+        .label-cross::before {
+            content: '';
+            position: absolute;
+            background: #ccc;
+            width: 100%;
+            height: 2px;
+            top: 4px;
+            left: 0
+        }
+
+        .label-cross::after {
+            content: '';
+            position: absolute;
+            background: #ccc;
+            width: 2px;
+            height: 100%;
+            top: 0;
+            left: 4px
+        }
+
+        .label-knob {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #2980b9;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+            cursor: grab;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .label-knob:active {
+            cursor: grabbing;
+            background: #e67e22
+        }
+
+        .label-preview {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            font-size: 10px;
+            color: #999;
+            font-weight: 700;
+            transform: translate(-50%, -50%);
+            pointer-events: none
+        }
+
         .barre-pliage {
             width: 100%;
             height: 30px;
@@ -10861,6 +10944,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                      rester joignable. La taille d'UN nom ne se règle que là — la
                      palette les change tous —, et croix/disque/pixel y double la
                      palette, qui touche désormais la sélection. -->
+                <div id="rowLabelPos" class="ctx-plus"
+                    style="padding: 4px 0; border-bottom: 1px solid #eee;">
+                    <div class="label-positioner" id="labelPosBox">
+                        <div class="label-preview">A</div>
+                        <div class="label-cross"></div>
+                        <div class="label-knob" id="labelPosKnob"></div>
+                    </div>
+                </div>
                 <div id="rowPointStyle" class="menu-row justify-center ctx-plus"
                     style="border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:4px;">
                     <div class="icon-btn" onclick="app.styleObject('pointStyle-cross')" data-tooltip="Croix"><svg
@@ -25947,7 +26038,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 document.querySelectorAll('.icon-btn, .switch-btn, .mark-btn').forEach(b => b.classList.remove('active'));
 
                 // 2. Masquage systématique des lignes contextuelles pour éviter les superpositions
-                const hideIds = ['rowFill', 'sepFill', 'rowPolyOpacity', 'rowMeasure', 'rowCoding', 'rowAngle', 'rowArcCount', 'rowRenamer', 'rowPointStyle', 'rowTextProps'];
+                const hideIds = ['rowFill', 'sepFill', 'rowPolyOpacity', 'rowMeasure', 'rowCoding', 'rowAngle', 'rowArcCount', 'rowRenamer', 'rowPointStyle', 'rowTextProps', 'rowLabelPos'];
                 hideIds.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = 'none';
@@ -26085,10 +26176,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     document.getElementById('renamerDisplay').innerText = this.selectedObject.label;
                     /* les deux rangées du pli : elles n'existent que pour un point,
                        et c'est .ctx-plus qui décide si on les voit. */
-                    ['rowPointStyle', 'rowTextProps'].forEach(id => {
+                    ['rowPointStyle', 'rowTextProps', 'rowLabelPos'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.style.display = '';
                     });
+                    /* le bouton part de l'angle ACTUEL du nom : un cadran qui
+                       montrerait toujours le nord mentirait sur l'état de l'objet,
+                       et le premier contact ferait sauter le nom sans raison. */
+                    const angleNom = (this.selectedObject.labelAngle !== undefined)
+                        ? this.selectedObject.labelAngle : -Math.PI / 4;
+                    const bouton = document.getElementById('labelPosKnob');
+                    if (bouton) {
+                        bouton.style.left = (30 + Math.cos(angleNom) * 24) + 'px';
+                        bouton.style.top = (30 + Math.sin(angleNom) * 24) + 'px';
+                    }
                 }
 
                 // --- Spécifique TEXTE ---
@@ -26663,6 +26764,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    si l'on vient d'interrompre un rejeu : autrement, une règle sortie
                    à la main disparaîtrait à chaque annulation. */
                 if (rejeuCoupe) this.fastForward(this.replayIndex);
+                this.fermerMenuSurFantome();
                 this.render();
                 this.updateButtons();
             }
@@ -26674,8 +26776,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.entities = this.deserialize(next);
                 this.replayIndex = this.entities.length;
                 if (rejeuCoupe) this.fastForward(this.replayIndex);
+                this.fermerMenuSurFantome();
                 this.render();
                 this.updateButtons();
+            }
+            /* APRÈS UNE ANNULATION, LE MENU PARLE D'UN FANTÔME. deserialize ne
+               modifie pas les objets, il en fabrique de NOUVEAUX : l'objet que le
+               menu décrit n'est plus dans la figure (mesuré : entities.includes
+               rend false juste après undo). Le menu continuait pourtant de
+               l'afficher, et le cadran de position montrait l'angle de l'objet
+               disparu pendant que le nom, à l'écran, était revenu au sien.
+               On le referme : une fiche sur un objet qui n'existe plus vaut moins
+               que pas de fiche. */
+            fermerMenuSurFantome() {
+                const s = this.selectedObject;
+                if (!s || this.entities.includes(s)) return;
+                this.selectedObject = null;
+                const m = document.getElementById('contextMenu');
+                if (m) m.style.display = 'none';
             }
             updateButtons() {
                 document.getElementById('btnUndo').disabled = (this.historyPast.length <= 1);
@@ -28213,6 +28331,62 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
                 this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
                 window.addEventListener('pointerup', this.handlePointerUp.bind(this));
+                /* LE CADRAN DE POSITION DU NOM. Le glissement se suit sur la
+                   FENÊTRE et non sur la boîte : le doigt sort du cercle de 60 px
+                   bien avant d'avoir fini de tourner. */
+                const box = document.getElementById('labelPosBox');
+                const knob = document.getElementById('labelPosKnob');
+                const updateLabelAngle = (e) => {
+                    if (!this.selectedObject || !(this.selectedObject instanceof Point)) return;
+                    const rect = box.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+                    this.selectedObject.labelAngle = angle;
+                    knob.style.left = (30 + Math.cos(angle) * 24) + 'px';
+                    knob.style.top = (30 + Math.sin(angle) * 24) + 'px';
+                    this.render();
+                };
+
+                let isDraggingLabel = false;
+                let doigtLabel = null;
+                /* Fin du glissement. Le relâchement n'était guetté que sur
+                   pointerup : au doigt, le navigateur émet souvent pointercancel
+                   À LA PLACE (il croit à un défilement), et l'état de glissement
+                   survivait au geste — le cadran continuait de suivre le doigt,
+                   puis se laissait bouger par n'importe quel contact suivant, sans
+                   plus jamais s'arrêter. On sort donc par tous les chemins que le
+                   tactile peut prendre. */
+                const finLabel = () => {
+                    if (!isDraggingLabel) return;
+                    isDraggingLabel = false;
+                    if (box && doigtLabel !== null && box.hasPointerCapture &&
+                        box.hasPointerCapture(doigtLabel)) box.releasePointerCapture(doigtLabel);
+                    doigtLabel = null;
+                    this.saveState();
+                };
+
+                if (box) {
+                    box.addEventListener('pointerdown', (e) => {
+                        if (isDraggingLabel) return;      // un seul doigt commande le cadran
+                        isDraggingLabel = true;
+                        doigtLabel = e.pointerId;
+                        updateLabelAngle(e);
+                        e.preventDefault();
+                        try { box.setPointerCapture(e.pointerId); } catch (err) { void err; }
+                    });
+                    box.addEventListener('pointercancel', finLabel);
+                    box.addEventListener('lostpointercapture', finLabel);
+                    window.addEventListener('pointermove', (e) => {
+                        // un second doigt ne doit pas détourner le cadran
+                        if (isDraggingLabel && (doigtLabel === null || e.pointerId === doigtLabel)) updateLabelAngle(e);
+                    });
+                    window.addEventListener('pointerup', finLabel);
+                    window.addEventListener('pointercancel', finLabel);
+                    window.addEventListener('touchend', finLabel);
+                    window.addEventListener('touchcancel', finLabel);
+                }
+
 
                 /* LE CADRAN DE POSITION DU NOM A ÉTÉ RETIRÉ, et son code avec
                    lui : une soixantaine de lignes de glissement, de capture de
@@ -46736,7 +46910,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-01 · 18h';
+        window.GM_VERSION = '2026-10-01 · 22h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

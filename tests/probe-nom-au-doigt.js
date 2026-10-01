@@ -21,9 +21,23 @@
  * glissement, de capture de pointeur et de rattrapage du `pointercancel`
  * tactile sont parties avec lui, ainsi que son CSS.
  *
- * CE QUE CETTE SONDE TIENT MAINTENANT. Le geste qui reste doit marcher, à la
- * souris ET au doigt : attraper le nom, le poser ailleurs, sans emmener le
- * point. Et le cadran ne doit pas revenir — ni son élément, ni son code.
+ * PUIS LE CADRAN EST REVENU, DERRIÈRE LE PLI. « Où est le cercle de
+ * positionnement ? » — « Oui, derrière le pli. » L'argument du geste direct
+ * tenait, mais il demande de VISER UNE LETTRE DE 14 px : au tableau, ce n'est pas
+ * le même geste que viser un cadran de 60. Les deux façons ne se valent pas, et
+ * le pli permet de garder la seconde sans la payer tous les jours.
+ *
+ * CE QUE CETTE SONDE TIENT MAINTENANT. Le geste direct doit marcher, à la souris
+ * ET au doigt : attraper le nom, le poser ailleurs, sans emmener le point. Et
+ * surtout, LES DEUX FAÇONS DOIVENT DIRE LA MÊME CHOSE — c'est là qu'une
+ * duplication devient un mensonge. Après avoir posé le nom au doigt, le cadran
+ * rouvert doit montrer CET angle-là, et non le sien ou celui d'origine : un
+ * cadran qui repart du nord à chaque ouverture ferait sauter le nom au premier
+ * contact, sans que rien ne l'ait demandé.
+ *
+ * ET IL RESTE DERRIÈRE LE PLI. Un menu qui naît replié et montre quand même le
+ * cadran n'aurait rien replié du tout ; la sonde relève sa hauteur dans les deux
+ * états, pas seulement la présence de l'élément.
  */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -98,26 +112,84 @@ const ck = (nom, ok, detail) => {
     }
 
     /* ============================================================
-       LE CADRAN NE REVIENT PAS — NI SON ÉLÉMENT, NI SON CODE
-       Un panneau supprimé dont le code reste est un panneau qui repoussera.
+       LE CADRAN ET LE DOIGT DISENT LA MÊME CHOSE
+       Deux façons de poser le même nom : si elles divergent, l'une des deux ment.
        ============================================================ */
-    console.log('\n=== le cadran a bien disparu, code compris ===');
+    console.log('\n=== le cadran repart d\'où le doigt a laissé le nom ===');
     const page = await nav.newPage({ viewport: { width: 1400, height: 950 } });
     page.on('pageerror', e => erreurs.push(e.message));
     await page.goto(PAGE);
     await page.waitForFunction(() => window.app);
-    const reste = await page.evaluate(() => ({
-        boite: !!document.getElementById('labelPosBox'),
-        bouton: !!document.getElementById('labelPosKnob'),
-        rangee: !!document.getElementById('rowLabelPos'),
-        css: [...document.styleSheets].some(f => {
-            try { return [...f.cssRules].some(r => /label-knob|label-positioner/.test(r.selectorText || '')); }
-            catch (e) { return false; }
-        }),
-    }));
-    ck('plus de cadran dans la page', !reste.boite && !reste.bouton && !reste.rangee,
-       JSON.stringify(reste));
-    ck('  ni son habillage', !reste.css, String(reste.css));
+    await page.evaluate(() => {
+        try {
+            localStorage.removeItem('geoMaster_backup');
+            localStorage.removeItem('gm_menu_replie');
+        } catch (e) { void e; }
+        const m = document.getElementById('customModal');
+        if (m) m.style.display = 'none';
+        window.app.checkAutoSave = () => {};
+    });
+
+    /* un point, son nom posé AU DOIGT très loin de l'angle par défaut */
+    const pose = await page.evaluate(() => {
+        const a = window.app;
+        a.entities = []; a.historyPast = []; a.historyFuture = [];
+        a.view = { zoom: 1, x: 0, y: 0 };
+        const p = new Point(500, 400, 'A');
+        a.addEntity(p); a.saveState();
+        return { defaut: p.labelAngle };
+    });
+    const b = await page.evaluate(() => {
+        const r = window.app.canvas.getBoundingClientRect();
+        return { x: r.left, y: r.top };
+    });
+    /* on attrape la lettre et on la pose en bas à gauche du point */
+    await page.evaluate(() => { window.app.currentTool = 'move'; });
+    const nom = await page.evaluate(() => {
+        const p = window.app.entities[0];
+        const d = (p.padding + (p.fontSize || 14) / 2);
+        const a = (p.labelAngle !== undefined) ? p.labelAngle : -Math.PI / 2;
+        return { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d };
+    });
+    await page.mouse.move(b.x + nom.x, b.y + nom.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x + 460, b.y + 440, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    const apresDoigt = await page.evaluate(() => window.app.entities[0].labelAngle);
+    ck('le doigt a posé le nom ailleurs', Math.abs(apresDoigt - pose.defaut) > 0.3,
+       pose.defaut.toFixed(3) + ' -> ' + apresDoigt.toFixed(3) + ' rad');
+
+    /* on ouvre le menu : le cadran doit montrer CET angle-là */
+    await page.evaluate(() => {
+        const a = window.app;
+        a.selectedObject = a.entities[0];
+        const r = a.canvas.getBoundingClientRect();
+        a.canvas.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true,
+            clientX: r.left + 500, clientY: r.top + 400, button: 2 }));
+    });
+    await page.waitForTimeout(300);
+
+    const cadranReplie = await page.evaluate(() =>
+        Math.round(document.getElementById('rowLabelPos').getBoundingClientRect().height));
+    ck('  et il reste derrière le pli à l\'ouverture', cadranReplie <= 2, cadranReplie + ' px');
+
+    await page.evaluate(() => window.app.basculerPliageMenu(false));
+    await page.waitForTimeout(250);
+    const vu = await page.evaluate(() => {
+        const k = document.getElementById('labelPosKnob');
+        /* l'angle que le bouton DESSINE, relu depuis sa position */
+        return { l: parseFloat(k.style.left), t: parseFloat(k.style.top),
+                 h: Math.round(document.getElementById('rowLabelPos').getBoundingClientRect().height) };
+    });
+    const angleMontre = Math.atan2(vu.t - 30, vu.l - 30);
+    const ecart = Math.abs(Math.atan2(Math.sin(angleMontre - apresDoigt),
+                                      Math.cos(angleMontre - apresDoigt)));
+    ck('  déplié, il montre l\'angle du nom et non le sien', ecart < 0.1,
+       'cadran ' + angleMontre.toFixed(3) + ' rad, nom ' + apresDoigt.toFixed(3)
+       + ' rad, écart ' + ecart.toFixed(3));
+    ck('  et il occupe bien la place qu\'on lui a rendue', vu.h > 50, vu.h + ' px');
+
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 

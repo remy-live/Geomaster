@@ -1461,6 +1461,46 @@ proche dans la tolérance de clic, décide du déplacement et de la sélection. 
 peinture s'en sert désormais comme eux. C'est aussi ce qu'on attend d'un pot de
 peinture : on vise la petite chose, pas celle qui passe derrière.
 
+### Le cadran de position revient, derrière le pli
+
+*« Où est le cercle de positionnement ? » — « Oui, derrière le pli. »*
+
+Il avait été supprimé avec le reste quand le menu du point pesait 437 px, au
+motif que **le nom se déplace au doigt** : on l'attrape sur la feuille et on le
+pose. L'argument tenait, mais il demandait de **viser une lettre de 14 px** — au
+tableau blanc, ce n'est pas le même geste que viser un cadran de 60. Les deux
+façons ne se valent pas, et le pli permet de garder la seconde sans la payer tous
+les jours.
+
+| | |
+| --- | --- |
+| menu replié | **232 px** — inchangé |
+| menu déplié | 334 → **413 px** |
+
+Le cadran revient **tel qu'il était**, commentaires compris : `touch-action: none`
+et la sortie par `pointercancel` avaient été écrites après un défaut mesuré — au
+doigt, le navigateur prenait le glissement pour un défilement, s'appropriait le
+pointeur, et le cadran restait collé au doigt bien après le relâchement. Les
+réécrire de mémoire, c'était refaire le défaut.
+
+**La sonde ne regarde pas s'il paraît : elle le tire.** Elle piège `fillText` et
+relève où la lettre tombe sur la feuille — (500, 383) avant, (517, 400) après
+avoir amené le bouton à droite. Un cadran qui tourne sans que le nom bouge aurait
+passé n'importe quelle vérification écrite sur `labelAngle`.
+
+**Et il a révélé un menu ouvert sur un fantôme.** En vérifiant qu'un glissement
+vaut bien **un** Ctrl+Z, la mesure a montré autre chose : après l'annulation,
+`entities.includes(selectedObject)` rend **false**. `deserialize` ne modifie pas
+les objets, il en fabrique de nouveaux — le menu restait ouvert sur l'objet
+disparu, et le cadran affichait son angle pendant que le nom, à l'écran, était
+revenu au sien. **Le logiciel montrait un état qui n'existait plus.** Le menu se
+referme donc sur une annulation.
+
+Ce défaut était vrai de **tout** le menu bien avant le cadran — l'œil, la
+couleur, le nom décrivaient tous un objet mort. C'est le cadran qui l'a rendu
+visible, parce qu'il est la seule commande qui **montre** un état au lieu de le
+subir. Un bouton qui ne dit rien peut mentir longtemps.
+
 ### Le pli n'est plus une flèche, c'est une barre
 
 *« Je trouve ça un peu moche, la petite flèche pour étendre le menu contextuel,
@@ -1537,9 +1577,8 @@ Trois décisions, et la troisième est celle qu'on oublie :
 - **la flèche ne paraît que s'il y a quelque chose à déplier.** Un segment n'a pas
   de rangée repliée ; un chevron qui n'ouvre rien serait pire que pas de chevron.
 
-**Le cadran ne revient pas par cette porte.** Il n'est pas replié, il est
-supprimé : le nom se déplace au doigt, et reproduire un geste en moins bien n'est
-pas une option à offrir. La sonde vérifie qu'il ne repousse pas.
+**Le cadran, lui, a fini par revenir** — derrière ce pli, et sur demande : voir
+la section plus haut. Il n'y était pas au moment où cette flèche a été posée.
 
 **Un piège de CSS, noté pour qui relira.** `.ctx-plus { display:none }` ne repliait
 **rien** : `.menu-row { display:flex }` est déclarée plus bas dans la feuille, à

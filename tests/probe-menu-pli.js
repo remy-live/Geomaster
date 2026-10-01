@@ -24,9 +24,22 @@
  *    pas de rangée repliée ; un chevron qui n'ouvre rien serait pire que pas de
  *    chevron du tout.
  *
- * ET LE CADRAN NE REVIENT PAS PAR CETTE PORTE : il n'est pas replié, il est
- * supprimé — le nom se déplace au doigt (voir probe-nom-au-doigt.js), et
- * reproduire un geste en moins bien n'est pas une option à offrir.
+ * LE CADRAN DE POSITION EST REVENU — DERRIÈRE LE PLI, et sur demande. Il avait
+ * été supprimé avec le reste quand le menu pesait 437 px, au motif que le nom se
+ * déplace au doigt (voir probe-nom-au-doigt.js). Mais viser une lettre de 14 px
+ * au tableau n'est pas viser un cadran de 60, et les deux gestes ne se valent
+ * pas. Il coûte 79 px, tous derrière le pli : 334 -> 413 px déplié, 232 replié,
+ * inchangé. La sonde ne regarde pas s'il PARAÎT — elle le TIRE, et vérifie que
+ * le nom se déplace LÀ OÙ IL EST PEINT, en piégeant fillText.
+ *
+ * ET UN MENU OUVERT SUR UN FANTÔME. Mesuré en remettant le cadran : après un
+ * Ctrl+Z, « entities.includes(selectedObject) » rend FALSE — deserialize ne
+ * modifie pas les objets, il en fabrique de nouveaux. Le menu restait ouvert sur
+ * l'objet disparu, et le cadran montrait son angle pendant que le nom, à
+ * l'écran, était revenu au sien : le logiciel affichait un état qui n'existait
+ * plus. Le menu se referme donc sur une annulation. C'était vrai de TOUT le menu
+ * avant le cadran ; c'est le cadran, qui montre un état au lieu de le subir, qui
+ * l'a rendu visible.
  *
  * LA FLÈCHE EST DEVENUE UNE BARRE. « Je trouve ça un peu moche, la petite
  * flèche » — et au tableau, un chevron de 20 px dans un coin se rate. Le pli est
@@ -127,7 +140,7 @@ const ck = (nom, ok, detail) => {
     await page.waitForTimeout(250);
     e = await etat();
     ck('le menu s\'allonge', e.deplie && e.h > 260, e.h + ' px');
-    ck('  les deux rangées repliées sont là', e.plus === 2, e.plus + ' rangée(s)');
+    ck('  les trois rangées repliées sont là', e.plus === 3, e.plus + ' rangée(s)');
 
     /* ============================================================
        2. ET CE QUI PARAÎT FONCTIONNE
@@ -173,10 +186,66 @@ const ck = (nom, ok, detail) => {
     });
     await ouvrir('point');
     e = await etat();
-    ck('déplié hier, déplié aujourd\'hui', e.deplie && e.plus === 2,
+    ck('déplié hier, déplié aujourd\'hui', e.deplie && e.plus === 3,
        `${e.h} px, ${e.plus} rangée(s)`);
-    const cadran = await page.evaluate(() => !!document.getElementById('labelPosBox'));
-    ck('  et le cadran n\'est pas revenu par cette porte', !cadran, String(cadran));
+    ck('  et le cadran est du voyage', await page.evaluate(
+        () => document.getElementById('labelPosBox').getBoundingClientRect().height > 2));
+
+    /* ============================================================
+       5. LE CADRAN DÉPLACE LE NOM LÀ OÙ IL EST PEINT
+       Pas « labelAngle a changé » : où la lettre tombe sur la feuille. On piège
+       fillText, parce que c'est le seul endroit où le logiciel dit la vérité.
+       ============================================================ */
+    console.log('\n=== le cadran déplace le nom pour de vrai ===');
+    const ouEstLeNom = () => page.evaluate(() => {
+        const c = window.app.ctx, vrai = c.fillText.bind(c);
+        let vu = null;
+        c.fillText = function (t, x, y) { if (t === 'A') vu = { x: Math.round(x), y: Math.round(y) }; return vrai(t, x, y); };
+        window.app.render();
+        c.fillText = vrai;
+        return vu;
+    });
+    const nomAvant = await ouEstLeNom();
+    const etats0 = await page.evaluate(() => window.app.historyPast.length);
+    const boite = await page.evaluate(() => {
+        const r = document.getElementById('labelPosBox').getBoundingClientRect();
+        return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, c: Math.round(r.width) };
+    });
+    ck('  le cadran se vise au doigt', boite.c >= 56, boite.c + ' px de côté');
+    await page.mouse.move(boite.cx, boite.cy - 20);      /* le bouton part en haut */
+    await page.mouse.down();
+    await page.mouse.move(boite.cx + 40, boite.cy, { steps: 6 });   /* on l'amène à droite */
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    const nomApres = await ouEstLeNom();
+    ck('le nom a bougé sur la feuille',
+       nomAvant && nomApres && (nomApres.x !== nomAvant.x || nomApres.y !== nomAvant.y),
+       JSON.stringify(nomAvant) + ' -> ' + JSON.stringify(nomApres));
+    ck('  et il est parti à DROITE du point, comme le bouton',
+       nomApres.x > nomAvant.x && nomApres.y > nomAvant.y,
+       'dx ' + (nomApres.x - nomAvant.x) + ', dy ' + (nomApres.y - nomAvant.y));
+
+    /* un glissement = un Ctrl+Z, comme tout autre geste */
+    const etats1 = await page.evaluate(() => window.app.historyPast.length);
+    ck('  un glissement vaut un état, pas six', etats1 === etats0 + 1,
+       etats0 + ' -> ' + etats1 + ' état(s)');
+    await page.evaluate(() => window.app.undo());
+    await page.waitForTimeout(200);
+    const nomRevenu = await ouEstLeNom();
+    ck('  et un Ctrl+Z le ramène', nomRevenu && nomRevenu.x === nomAvant.x && nomRevenu.y === nomAvant.y,
+       JSON.stringify(nomRevenu));
+
+    /* ============================================================
+       6. ET LE MENU NE RESTE PAS OUVERT SUR UN OBJET DISPARU
+       ============================================================ */
+    const fantome = await page.evaluate(() => {
+        const a = window.app;
+        return { ouvert: document.getElementById('contextMenu').style.display !== 'none',
+                 choisi: !!a.selectedObject,
+                 orphelin: !!(a.selectedObject && !a.entities.includes(a.selectedObject)) };
+    });
+    ck('le menu se referme sur une annulation', !fantome.ouvert && !fantome.orphelin,
+       JSON.stringify(fantome));
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 
