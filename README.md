@@ -1461,6 +1461,70 @@ proche dans la tolérance de clic, décide du déplacement et de la sélection. 
 peinture s'en sert désormais comme eux. C'est aussi ce qu'on attend d'un pot de
 peinture : on vise la petite chose, pas celle qui passe derrière.
 
+### Le menu du point : 437 px pour trois réglages qu'on n'utilise pas
+
+*« Je trouve le menu contextuel du point un peu lourd. »* — *« Ce qui me sert très
+peu, c'est de changer croix, rond, pixel, la taille, et le rond du nom du
+point. »*
+
+Mesuré avant de proposer quoi que ce soit :
+
+| | taille | contrôles |
+| --- | --- | --- |
+| point | 352 px | 21 |
+| **milieu** | **437 px** | **29** |
+| segment | 324 px | 28 |
+
+Sept dispositions ont été montrées. Celle qui a été retenue n'est pas un
+réarrangement : c'est un **retrait**, et chaque pièce est partie pour sa propre
+raison.
+
+**Le cadran de position du nom (62 px).** Mesuré avant de couper, et c'est la
+mesure qui a décidé : le nom se déplace **déjà** en l'attrapant sur la feuille.
+
+```
+avant le glissé   labelAngle −1,571 · isManuallyPlaced false
+après le glissé   labelAngle  2,356 · labelDistance 56,6 · true
+                  et le POINT n'a pas bougé
+```
+
+Le cadran ne faisait donc rien que la manipulation directe ne fasse mieux : on
+voit où l'on pose, au lieu de viser un disque de 60 px — et au tableau, viser
+petit est précisément ce qu'on veut éviter. Soixante lignes de glissement, de
+capture de pointeur et de rattrapage du `pointercancel` tactile sont parties avec
+lui, ainsi que son CSS.
+
+**Croix / disque / pixel (34 px) — mais la palette d'abord.** J'avais écrit que
+ce réglage « existait déjà dans la palette » : c'était **faux à moitié**. La
+palette ne l'appliquait qu'aux points **à venir**, et c'est précisément pourquoi
+le menu portait sa propre rangée. Elle s'applique maintenant à l'objet
+sélectionné, comme le trait plein/pointillé le fait depuis toujours — et c'est
+seulement à cette condition que la rangée pouvait partir sans rien coûter.
+
+**La taille du nom (34 px).** La seule perte assumée : la palette règle la taille
+de *tous* les noms, le menu réglait *un* nom.
+
+**L'œil du nom** n'est pas parti : il a rejoint la lettre, c'est le même sujet, et
+cela supprime une rangée de plus.
+
+| | avant | après |
+| --- | --- | --- |
+| point | 352 px · 21 contrôles | **194 · 16** |
+| milieu | 437 px · 29 | **279 · 24** |
+
+**Trois choses trouvées en chemin**, qu'on n'allait pas chercher :
+
+- l'interrupteur « Points » de la palette gardait un **bleu pâle** là où celui du
+  trait a une pastille blanche — `setGlobalPointStyle` peignait ses boutons en
+  dur, ce qui écrasait le CSS du segment. Deux formes pour une même chose, à deux
+  rangées d'écart ;
+- la rangée des tailles s'affichait aussi pour un **texte**, où elle **ne faisait
+  rien** : `textSize-inc/dec` ne touchaient qu'un *Point* ;
+- `probe-cadran.js` gardait le cadran, et surtout son vieux défaut tactile. Elle
+  n'a pas été effacée en silence : elle devient `probe-nom-au-doigt.js`, qui tient
+  le geste de remplacement et vérifie que le cadran ne revient pas — ni son
+  élément, ni son habillage.
+
 ### Choisir, ou agir : deux natures, deux formes
 
 *« Rien ne me convainc. »*
