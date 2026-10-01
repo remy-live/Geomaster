@@ -130,7 +130,7 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await page.click('#pucePeinture'); await page.waitForTimeout(180);
 
   console.log('\n=== dépliée, c\'est la palette d\'avant ===');
-  await page.click('#paletteCompacte .btn-pliage'); await page.waitForTimeout(350);
+  await page.click('#paletteCompacte .barre-pliage'); await page.waitForTimeout(350);
   const deplie = await page.evaluate(() => {
     const p = document.getElementById('stylePalettePanel');
     return { largeur: Math.round(p.getBoundingClientRect().width),
@@ -155,11 +155,11 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      croise.rond.replace(/\s/g, '') === 'rgb(192,57,43)', croise.rond);
 
   console.log('\n=== le pliage se retient d\'une fois sur l\'autre ===');
-  await page.click('.palette-drag-handle .btn-pliage'); await page.waitForTimeout(300);
+  await page.click('.palette-content .barre-pliage'); await page.waitForTimeout(300);
   ck('elle se replie', (await etat()).repliee === true);
   await page.reload(); await page.waitForTimeout(1600);
   ck('et rouvre repliée', (await etat()).repliee === true);
-  await page.click('#paletteCompacte .btn-pliage'); await page.waitForTimeout(300);
+  await page.click('#paletteCompacte .barre-pliage'); await page.waitForTimeout(300);
   await page.reload(); await page.waitForTimeout(1600);
   const apres = await etat();
   ck('dépliée à la main, elle rouvre dépliée', apres.repliee === false, JSON.stringify(apres));
@@ -314,6 +314,61 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
      formes.grilles.map(g => g.n + (g.separes ? ' séparés' : ' COLLÉS')).join(' · '));
   ck('  et plus aucun intitulé : ils ont été essayés, puis retirés',
      formes.intitules === 0, formes.intitules + ' intitulé(s)');
+
+  /* ============================================================
+     LE TIROIR SE VOIT
+
+     « Je trouve ça un peu moche, la petite flèche pour étendre le menu
+       contextuel — idem pour la flèche du menu de style. »
+
+     Ce n'est pas qu'une affaire de goût : un chevron de 15 px posé dans un coin
+     dit « il se passe quelque chose », une barre pleine largeur dit « cela
+     s'ouvre ». Mesuré, la cible passait de 27 × 21 px à toute la largeur du
+     panneau — au doigt, cela change tout.
+
+     ET LES DEUX PANNEAUX PARLENT LA MÊME LANGUE. Le menu contextuel et la
+     palette s'ouvraient par deux petits chevrons qui ne se ressemblaient pas,
+     posés à deux endroits différents — l'un en haut à droite, l'autre en haut à
+     gauche. La même barre les sert maintenant, et elle vit EN BAS dans les deux
+     cas : là où s'ouvre ce qu'elle montre.
+     ============================================================ */
+  console.log('\n=== la barre de pliage, et non un chevron perdu ===');
+  /* CHAQUE BARRE SE MESURE DANS SON ÉTAT. Une première version les relevait
+     toutes les deux d'un coup : la barre de la version repliée était alors
+     dans un panneau en display:none et rendait 0 × 0 — une mesure qui ne
+     mesurait rien, et qui passait pour vraie. */
+  const barreDe = (quoi) => page.evaluate((quoi) => {
+    const p = document.getElementById('stylePalettePanel');
+    const b = p.querySelector(quoi + ' .barre-pliage');
+    if (!b) return null;
+    const r = b.getBoundingClientRect();
+    const pere = b.parentElement.getBoundingClientRect();
+    return { l: Math.round(r.width), h: Math.round(r.height),
+             pleine: r.width > 0 && r.width > pere.width - 30,
+             dessine: !!b.querySelector('svg path') };
+  }, quoi);
+
+  await page.evaluate(() => window.app.basculerPliagePalette(false));
+  await page.waitForTimeout(250);
+  const bDeplie = await barreDe('.palette-content');
+  ck('dépliée, la barre est en bas et pleine largeur',
+     !!bDeplie && bDeplie.pleine && bDeplie.h >= 28, JSON.stringify(bDeplie));
+  ck('  son chevron est un tracé, pas un caractère', !!bDeplie && bDeplie.dessine);
+
+  await page.evaluate(() => window.app.basculerPliagePalette(true));
+  await page.waitForTimeout(250);
+  const bReplie = await barreDe('#paletteCompacte');
+  ck('repliée, elle a la sienne', !!bReplie && bReplie.pleine && bReplie.h >= 28,
+     JSON.stringify(bReplie));
+  ck('  et le même chevron dessiné', !!bReplie && bReplie.dessine);
+
+  const restes = await page.evaluate(() => ({
+    palette: document.querySelectorAll('#stylePalettePanel .btn-pliage').length,
+    menu: !!document.querySelector('#contextMenu .barre-pliage'),
+  }));
+  ck('plus aucun petit chevron ne traîne', restes.palette === 0,
+     restes.palette + ' .btn-pliage');
+  ck('  et le menu contextuel porte la MÊME barre', restes.menu);
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();

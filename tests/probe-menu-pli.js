@@ -28,6 +28,15 @@
  * supprimé — le nom se déplace au doigt (voir probe-nom-au-doigt.js), et
  * reproduire un geste en moins bien n'est pas une option à offrir.
  *
+ * LA FLÈCHE EST DEVENUE UNE BARRE. « Je trouve ça un peu moche, la petite
+ * flèche » — et au tableau, un chevron de 20 px dans un coin se rate. Le pli est
+ * maintenant une barre pleine largeur en bas du menu, chevron dessiné au centre :
+ * cible mesurée 168 × 30 px au lieu de 20 × 20 — toute la largeur du menu moins
+ * ses marges. Elle coûte 38 px de hauteur (194 → 232 replié, 296 → 334 déplié) ;
+ * c'est le prix assumé d'une cible qu'on ne rate pas, et la sonde mesure donc
+ * la LARGEUR de la barre autant que la hauteur du menu — c'est la largeur qui
+ * est l'objet du changement.
+ *
  * UN PIÈGE DE CSS, mesuré et noté pour qui relira : « .ctx-plus { display:none } »
  * ne repliait RIEN. La règle « .menu-row { display:flex } » est déclarée plus bas
  * dans la feuille, à spécificité égale, et c'est la dernière qui gagne — le menu
@@ -94,6 +103,8 @@ const ck = (nom, ok, detail) => {
         return { h: Math.round(m.getBoundingClientRect().height),
                  deplie: m.classList.contains('deplie'),
                  fleche: !!(bb && bb.height > 1),
+                 barreL: bb ? Math.round(bb.width) : 0,
+                 menuL: Math.round(m.getBoundingClientRect().width),
                  plus: [...m.querySelectorAll('.ctx-plus')]
                         .filter(e => e.getBoundingClientRect().height > 2).length };
     });
@@ -104,9 +115,12 @@ const ck = (nom, ok, detail) => {
     console.log('\n=== le menu du point naît replié ===');
     await ouvrir('point');
     let e = await etat();
-    ck('il est court', e.h < 230, e.h + ' px');
+    /* 232 px : les 194 px d'avant, plus les 38 px de la barre de pli. */
+    ck('il est court', e.h < 245, e.h + ' px');
     ck('  rien n\'est déplié', !e.deplie && e.plus === 0, e.plus + ' rangée(s) visible(s)');
     ck('  mais la flèche est là', e.fleche);
+    ck('  et elle tient toute la largeur', e.barreL > e.menuL - 30,
+       e.barreL + ' px de barre pour ' + e.menuL + ' px de menu');
 
     console.log('\n=== un appui, et tout paraît ===');
     await page.click('#btnPliageMenu');

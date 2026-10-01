@@ -842,14 +842,44 @@
            déclarée plus bas dans la feuille avec « display:flex », et à
            spécificité égale c'est la dernière qui gagne — le pli n'aurait rien
            replié du tout. Mesuré : le menu restait à 296 px au lieu de 194. */
+        /* ============================================================
+           LE TIROIR SE VOIT
+
+           « Je trouve ça un peu moche, la petite flèche pour étendre le menu
+             contextuel — idem pour la flèche du menu de style. »
+
+           Et c'est plus qu'une affaire de goût : un chevron de 15 px posé dans
+           un coin dit « il se passe quelque chose », une barre pleine largeur
+           dit « cela s'ouvre ». La cible passe de 27 × 21 px à toute la largeur
+           du panneau — au tableau, on ne la rate plus.
+
+           La même barre sert aux DEUX panneaux, et c'est le but : le menu
+           contextuel et la palette de style s'ouvraient par deux petits chevrons
+           qui ne se ressemblaient pas, posés à deux endroits différents.
+           ============================================================ */
+        .barre-pliage {
+            width: 100%;
+            height: 30px;
+            border: 0;
+            background: #f1f5f9;
+            border-radius: 9px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 0 0 auto;
+            padding: 0;
+            transition: background .15s, color .15s;
+        }
+        .barre-pliage:hover { background: #e8eef4; color: #0284c7; }
+        .barre-pliage svg { width: 18px; height: 18px; }
+        /* Au doigt, 30 px se rate : probe-cibles-doigt.js tient 32 px pour le
+           minimum, et le tableau blanc interactif est aussi un pointeur grossier. */
+        @media (pointer: coarse) { .barre-pliage { height: 34px; } }
+
         #contextMenu .ctx-plus { display: none; }
         #contextMenu.deplie .ctx-plus { display: flex; }
-        #contextMenu .btn-pliage {
-            position: absolute;
-            right: 6px;
-            top: 4px;
-            z-index: 2;
-        }
 
         /* Les boutons carrés/ronds du menu */
         .icon-btn {
@@ -5739,14 +5769,6 @@
 
         .btn-pliage:hover { color: #0284c7; }
 
-        /* le chevron qui replie vit dans la poignée, à gauche de la croix */
-        .palette-drag-handle .btn-pliage {
-            position: absolute;
-            left: 8px;
-            top: 8px;
-        }
-
-        .style-palette.repliee .palette-drag-handle .btn-pliage { display: none; }
 
         /* La rangée de couleurs, ouverte par un appui maintenu. Elle sort SUR LE
            CÔTÉ, pas au-dessus : la palette est en haut à droite, et au-dessus
@@ -10583,8 +10605,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             </div>
             <div id="contextMenu">
                 <div class="drag-handle" id="menuDragHandle"></div>
-                <button class="btn-pliage" id="btnPliageMenu" onclick="app.basculerPliageMenu()"
-                    data-tooltip="Toutes les options">&#8964;</button>
                 <div id="imageControls"
                     style="display:none; position:absolute; top:80px; left:50%; transform:translateX(-50%); background:white; padding:8px 15px; border-radius:30px; box-shadow:0 4px 15px rgba(0,0,0,0.15); z-index:1000; align-items:center; gap:15px; font-family:sans-serif; font-size:13px;">
                     <span style="font-weight:bold; color:#555;">Image :</span>
@@ -10901,6 +10921,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     </div>
                     <div class="icon-btn btn-trash" onclick="app.deleteFromMenu()" style="flex:1;">🗑️</div>
                 </div>
+                <!-- LE TIROIR SE VOIT. La barre vient EN BAS, là où s'ouvre ce
+                     qu'elle montre : un chevron posé en haut à droite annonçait
+                     un dépliage qui se produisait dessous. -->
+                <button class="barre-pliage" id="btnPliageMenu" onclick="app.basculerPliageMenu()"
+                    data-tooltip="Toutes les options"></button>
             </div>
         </div>
             <button id="panelToggle" class="panel-toggle" onclick="app.toggleRightPanel()">
@@ -11616,8 +11641,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          donc de primer sur la feuille de style. -->
     <div class="style-palette floating-window" id="stylePalettePanel" style="top: 60px; left: auto;">
         <div class="palette-drag-handle" id="paletteHandle">
-            <button class="btn-pliage" onclick="app.basculerPliagePalette()"
-                data-libelle="Replier la palette" data-tooltip="Replier la palette">&#8963;</button>
             <div class="drag-pill"></div>
             <button class="close-palette" onclick="app.toggleStylePalette()">&times;</button>
         </div>
@@ -11655,8 +11678,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <circle cx="16.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
                 </svg>
             </button>
-            <button class="btn-pliage" onclick="app.basculerPliagePalette()"
-                data-libelle="Déplier la palette" data-tooltip="Déplier : tout le reste">&#8964;</button>
+            <button class="barre-pliage" onclick="app.basculerPliagePalette()"
+                data-libelle="Déplier la palette"
+                data-tooltip="Déplier : tout le reste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
         </div>
         <div class="palette-content">
             <div style="display: none;">
@@ -11831,6 +11855,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     <circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" stroke="none" />
                 </svg>
             </button>
+            <!-- LA MÊME BARRE QUE LE MENU CONTEXTUEL, et au même endroit : en bas,
+                 là où le panneau se referme. Le chevron vivait en haut à gauche de
+                 la poignée, à 27 × 21 px, et annonçait un pliage qui se produit
+                 dessous. -->
+            <button class="barre-pliage" onclick="app.basculerPliagePalette()"
+                data-libelle="Replier la palette"
+                data-tooltip="Replier la palette"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
         </div>
     </div>
     <div class="instruments-palette floating-window" id="instrumentsPalettePanel">
@@ -20175,6 +20206,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                segment n'a pas de rangée repliée ; afficher chez lui un chevron
                qui n'ouvre rien serait pire que de ne rien afficher.
                ============================================================ */
+            /* Le chevron des deux barres de pliage. Un glyphe de police — ⌄,
+               ⌃ — ne se dessine pas pareil d'une police à l'autre et ne se met
+               pas à l'échelle ; un tracé, si. */
+            chevronSVG(sens) {
+                const d = (sens === 'haut') ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6';
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                    + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                    + '<path d="' + d + '"/></svg>';
+            }
             menuEstReplie() {
                 if (this._menuReplie === undefined) {
                     let m = null;
@@ -20199,7 +20239,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const cache = [...m.querySelectorAll('.ctx-plus')]
                     .some(el => el.style.display !== 'none');
                 b.style.display = cache ? 'block' : 'none';
-                b.innerHTML = this.menuEstReplie() ? '&#8964;' : '&#8963;';
+                b.innerHTML = this.chevronSVG(this.menuEstReplie() ? 'bas' : 'haut');
                 b.setAttribute('data-tooltip',
                     this.menuEstReplie() ? 'Toutes les options' : 'Replier');
             }
@@ -46696,7 +46736,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-01 · 14h';
+        window.GM_VERSION = '2026-10-01 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

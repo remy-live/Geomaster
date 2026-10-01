@@ -1461,6 +1461,54 @@ proche dans la tolérance de clic, décide du déplacement et de la sélection. 
 peinture s'en sert désormais comme eux. C'est aussi ce qu'on attend d'un pot de
 peinture : on vise la petite chose, pas celle qui passe derrière.
 
+### Le pli n'est plus une flèche, c'est une barre
+
+*« Je trouve ça un peu moche, la petite flèche pour étendre le menu contextuel,
+idem pour la flèche du menu de style. »*
+
+Le reproche était esthétique, la mesure l'a rendu fonctionnel. Le chevron du menu
+contextuel était un caractère `⌄` dans un bouton de **20 × 20 px**, posé dans le
+coin haut-droit ; celui de la palette, le même, à cheval sur la poignée de
+déplacement. **Au tableau blanc interactif, un doigt couvre bien davantage** — et
+les deux boutons visaient précisément le coin où le geste est le moins sûr.
+
+Quatre dispositions ont été dessinées avant de choisir. Celle retenue est une
+**barre pleine largeur en bas du panneau**, fond gris doux, chevron centré :
+
+| | avant | après |
+| --- | --- | --- |
+| cible dans le menu contextuel | 20 × 20 px | **168 × 30 px** |
+| cible dans la palette dépliée | 20 × 20 px | **184 × 30 px** |
+| cible dans la palette repliée | 20 × 20 px | **36 × 30 px** |
+
+**Elle coûte 38 px de hauteur**, et c'est le prix assumé : le menu du point passe
+de 194 à 232 px replié, de 296 à 334 déplié. Une cible qu'on rate ne vaut pas les
+pixels qu'elle économise.
+
+Trois choix accompagnent la forme :
+
+- **la barre est en bas, pas en haut.** C'est un tiroir : on voit qu'il y a
+  quelque chose *en dessous*, et le chevron dit dans quel sens on tire ;
+- **le chevron est un tracé, plus un caractère.** `⌄` et `⌃` ne se ressemblent pas
+  d'une police à l'autre, et aucun des deux ne grossit proprement ; un `<svg>`
+  commun aux trois barres les rend identiques partout. La sonde vérifie ce point
+  en comptant les `<svg>`, pas en lisant le texte ;
+- **les trois barres sont la même.** Une seule règle CSS, `.barre-pliage`, et une
+  seule méthode qui dessine le chevron dans le bon sens. La palette repliée en
+  reçoit une aussi, large de 36 px seulement parce que la palette l'est — mais
+  pleine largeur tout de même, et c'est ce que la sonde mesure.
+
+**Et 30 px ne suffisaient pas au doigt.** `probe-cibles-doigt.js` tient 32 px
+pour le minimum touchable, et a signalé la barre de la palette repliée dès le
+premier passage : 36 × **30** px. Elle monte donc à **34 px sur pointeur
+grossier** — téléphone comme tableau blanc interactif —, et reste à 30 à la
+souris, où rien n'a jamais eu besoin de grossir.
+
+**La sonde mesure chaque barre dans son propre état.** La première version les
+relevait toutes les deux d'un coup : celle de la palette repliée vivait alors dans
+un panneau en `display:none`, rendait 0 × 0 px — et **passait**. Une sonde qui
+mesure du vide ne dit rien du logiciel.
+
 ### Et une petite flèche rend les options retirées
 
 *« Rajoute aux menus contextuels juste une petite flèche comme le menu de style,
@@ -1474,6 +1522,9 @@ réglages sans les imposer.
 | --- | --- |
 | replié, à l'ouverture | **194 px** |
 | déplié d'un appui | 296 px |
+
+*La flèche a depuis été remplacée par une barre pleine largeur — voir la section
+précédente ; le menu mesure aujourd'hui 232 px replié, 334 déplié.*
 
 Trois décisions, et la troisième est celle qu'on oublie :
 
