@@ -1461,6 +1461,41 @@ proche dans la tolérance de clic, décide du déplacement et de la sélection. 
 peinture s'en sert désormais comme eux. C'est aussi ce qu'on attend d'un pot de
 peinture : on vise la petite chose, pas celle qui passe derrière.
 
+### Et une petite flèche rend les options retirées
+
+*« Rajoute aux menus contextuels juste une petite flèche comme le menu de style,
+pour étendre le menu contextuel à toutes les options. »*
+
+Le ménage de la section suivante avait fait tomber le menu du point de 352 à
+194 px. Mais **« ça me sert très peu » n'est pas « jamais »** : la flèche rend ces
+réglages sans les imposer.
+
+| | |
+| --- | --- |
+| replié, à l'ouverture | **194 px** |
+| déplié d'un appui | 296 px |
+
+Trois décisions, et la troisième est celle qu'on oublie :
+
+- **le menu naît replié** et retient le dernier choix d'une ouverture à l'autre —
+  même mécanique que la palette, et pour la même raison : c'est une habitude de
+  travail, pas un réglage à reprendre à chaque objet ;
+- **ce qui se déplie fonctionne.** La sonde ne regarde pas si les rangées
+  *paraissent* : elle **clique** dedans et vérifie que le point passe en disque et
+  que son nom grandit. Un bouton sans action vaut moins que pas de bouton ;
+- **la flèche ne paraît que s'il y a quelque chose à déplier.** Un segment n'a pas
+  de rangée repliée ; un chevron qui n'ouvre rien serait pire que pas de chevron.
+
+**Le cadran ne revient pas par cette porte.** Il n'est pas replié, il est
+supprimé : le nom se déplace au doigt, et reproduire un geste en moins bien n'est
+pas une option à offrir. La sonde vérifie qu'il ne repousse pas.
+
+**Un piège de CSS, noté pour qui relira.** `.ctx-plus { display:none }` ne repliait
+**rien** : `.menu-row { display:flex }` est déclarée plus bas dans la feuille, à
+spécificité égale, et c'est la dernière qui gagne — le menu restait à 296 px au
+lieu de 194. Le sélecteur porte donc `#contextMenu` devant, et ce n'est pas du
+zèle.
+
 ### Le menu du point : 437 px pour trois réglages qu'on n'utilise pas
 
 *« Je trouve le menu contextuel du point un peu lourd. »* — *« Ce qui me sert très
@@ -3908,7 +3943,7 @@ dans le fichier, comme l'une et l'autre l'exigent ; le renommage en
 
 ## Les tests
 
-`tests/` contient 136 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
+`tests/` contient 137 sondes qui **ouvrent GéoMaster dans un vrai navigateur** et
 se comportent comme un utilisateur : elles dessinent, cliquent, exportent, puis
 vérifient le résultat. Elles tournent à chaque poussée sur `main`
 (`.github/workflows/tests.yml`), en cinq minutes.
