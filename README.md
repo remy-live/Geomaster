@@ -1250,6 +1250,108 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### « De centre H » : la lettre était lue, puis jetée
+
+*« Tracer un rectangle ABCD de centre H tel que : AB = 8 cm, BC = 10 cm… »*
+*« Il n'arrive pas à faire de centre H. » — « Et il se trompe sur les longueurs. »*
+
+Deux défauts dans une seule phrase, et tous deux **silencieux** : la réponse
+disait « Rectangle ABCD », `ok`, et rien d'autre.
+
+**Le centre était ignoré.** Le « de centre H » ne traçait rien et ne refusait
+rien. Écrit sur sa propre ligne, c'était pire :
+
+| ce qu'on écrivait | ce qu'on obtenait |
+| --- | --- |
+| `Trace un rectangle ABCD de centre H` | « Rectangle ABCD » — **pas de H** |
+| `Place le centre H du rectangle ABCD` | « **Rectangle HABC** » — un second rectangle |
+| `Place H le centre de ABCD` | « Point H placé » — **à 28 px du centre** |
+
+Le mot « rectangle » suffisait à envoyer la deuxième phrase au bâtisseur de
+figures, qui prenait le H pour un cinquième sommet. Trois formulations, trois
+façons de dire qu'on avait fait ce qu'on n'avait pas fait.
+
+**Le centre d'un quadrilatère est le croisement de ses diagonales**, et celui
+d'un polygone régulier le centre de son cercle circonscrit. Les trois
+formulations le posent maintenant au pixel près, et « le point d'intersection
+des diagonales de ABCD » — la formule du manuel — y mène aussi.
+
+**Et un quadrilatère quelconque n'en a pas.** Ses diagonales se coupent, mais ce
+point n'a aucune des propriétés qu'on attend d'un centre : la phrase est refusée,
+avec la formule qui donne le croisement si c'est lui qu'on voulait. Quand
+l'énoncé ne nomme pas la figure, elle est **mesurée** : quatre sommets dont les
+diagonales ont le même milieu forment un parallélogramme — c'est le théorème, et
+il suffit ici.
+
+### La seconde longueur était inventée
+
+`AB = 8 cm et BC = 10 cm` donnait 8 cm et **4,96**. En faisant varier les deux, la
+cause saute aux yeux : **BC ne dépendait que de AB**. Elle valait 0,62 × AB — le
+rapport du rectangle par défaut — quelle que soit la valeur écrite.
+
+| | AB voulu | BC voulu | BC obtenu |
+| --- | --- | --- | --- |
+| | 8 | 10 | 4,96 |
+| | 8 | 3 | 4,96 |
+| | 4 | 2 | 2,48 |
+
+Le lecteur de mesures nommées existait pourtant. Mais il exige la chaîne
+**entière** — les quatre côtés et une diagonale. C'est juste pour un quadrilatère
+quelconque, où rien d'autre ne fixe la forme, et **de trop pour un rectangle,
+dont le nom donne déjà les angles** : deux côtés adjacents suffisent. Le
+parallélogramme était dans le même cas (8 et 3 rendaient 8 et 5,56) ; son
+inclinaison, elle, n'est pas donnée par la phrase et n'a pas bougé.
+
+**Et les mots comptent plus que la place.** « de largeur 3 cm et de longueur
+8 cm » rendait un rectangle de 3 sur 1,86 : la première valeur lue devenait la
+longueur, et les deux mots n'étaient jamais regardés.
+
+### Trois autres défauts, trouvés en suivant l'énoncé ligne à ligne
+
+L'exercice entier a été joué, les vingt-quatre lignes, et relu sur ce qui se
+posait vraiment sur la feuille — pas sur ce que la réponse annonçait.
+
+- **« Placer E le milieu de [AH], F le milieu de [BH] et M le milieu de [DC] »**
+  n'en posait **qu'un**, et répondait « E est le milieu de [AH] » sans un mot sur
+  les deux autres. La règle du pluriel ne se déclenchait que sur le mot
+  « milieux » ; cette phrase-là écrit « le milieu » trois fois. Le nom se cherche
+  maintenant **devant le crochet** et non collé à lui — une seule règle lit les
+  deux formulations.
+- **« Tracer la droite (d) parallèle à (AB) passant par H »** perdait le `(d)` :
+  la droite naissait anonyme. Deux lignes plus loin, « Elle coupe la droite (d)
+  en G » ne trouvait plus aucune droite `d`, retombait sur la dernière tracée —
+  elle-même — et refusait : « Un objet ne se coupe pas lui-même. » **Un refus
+  juste sur une figure fausse**, ce qui est la pire espèce : rien n'indique où est
+  l'erreur. La branche voisine, celle où la droite de référence porte un nom,
+  savait déjà nommer sa fille ; celle-ci, non.
+- **« l'arc de cercle de centre M d'extrémités E et F »** réclamait « … de rayon
+  3 cm » — un rayon qui est écrit dans la phrase : c'est ME. La forme « de E à F »
+  était lue, « d'extrémités E et F » non. Et « le **petit** arc » rendait parfois
+  le grand : l'écart entre les deux angles sort d'`atan2` et pouvait dépasser un
+  demi-tour. Si les deux extrémités ne sont pas à la même distance du centre,
+  **aucun arc ne passe par les deux**, et les deux longueurs sont dites — mais
+  seulement pour « d'extrémités X et Y », car c'est ce mot-là qui affirme que les
+  deux points sont *sur* l'arc. « de A à B » dit autre chose : le rayon vient de A
+  et B ne donne qu'une direction. J'avais mis la règle trop large, et c'est
+  `probe-enonce.js` qui a refusé une phrase déjà en service.
+
+Le compte, sur l'exercice complet : **22 lignes sur 24** se tracent, contre 15
+avant. Les deux qui restent refusent, et elles refusent pour une vraie raison.
+
+### Ce qui n'est pas fait, et qui est écrit dans la sonde
+
+**« Placer X et Y tels que HXMY soit un losange, XY = 11 cm »** rend un losange
+**XYHM** — H et M voisins au lieu d'opposés — et ignore `XY = 11 cm` : mesuré,
+HX = 8,67 cm pour XM = 5,01, et la diagonale vaut 5 au lieu de 11. La réponse dit
+« Losange XYHM », ce qui nomme l'ordre employé mais annonce une réussite.
+
+C'est une construction qui n'existe pas : **deux sommets opposés connus et une
+diagonale donnée**. Tant qu'elle n'existe pas, `probe-centre-et-longueurs.js` ne
+fait pas échouer la suite dessus — elle **imprime la mesure** à chaque passage, et
+dit ce qu'il faudrait pour que la section devienne une épreuve. Une sonde qui tait
+ce qui ne marche pas ne sert à rien ; une sonde qui exige ce qui n'a jamais existé
+non plus.
+
 ### Les dix autres refus réels, un par un
 
 Le relevé donne les dix-sept phrases refusées avec leur nombre d'occurrences ;

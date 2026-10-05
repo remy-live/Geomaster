@@ -35166,6 +35166,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         return this.cslTriangleRemarquable(brut, t, fait, rate);
                     }
                     if (/milieu/.test(t)) return this.cslMilieu(brut, t, fait, rate);
+                    /* LE CENTRE D'UNE FIGURE DÉJÀ TRACÉE. « Place le centre H du
+                       rectangle ABCD » traçait UN SECOND RECTANGLE, nommé HABC,
+                       et répondait « Rectangle HABC » : le mot « rectangle »
+                       envoyait la phrase au bâtisseur de figures, qui prenait le
+                       H pour un sommet. « Place H le centre de ABCD » posait un
+                       point H quelque part — à 28 px du centre — et répondait
+                       « Point H placé ». Dans les deux cas le logiciel disait
+                       avoir fait ce qu'il n'avait pas fait.
+                       Le « de centre X » d'une CONSTRUCTION (« Trace un rectangle
+                       ABCD de centre H ») reste au bâtisseur, qui le pose
+                       maintenant lui-même ; celui d'un CERCLE lui appartient
+                       depuis toujours. */
+                    /* « le point d'intersection des DIAGONALES de ABCD » dit la
+                       même chose que « le centre », et c'est la formule du manuel
+                       quand il veut qu'on le CONSTRUISE. Elle partait au
+                       croisement de deux droites nommées, qui n'en voyait
+                       aucune : « De quoi et de quoi ? ». */
+                    if ((/\bcentre\b/.test(t)
+                         || (/diagonales/.test(t) && /intersection|se\s+(?:coupent|croisent)|crois/.test(t)))
+                        && !/\bde\s+centre\b|cercle|rosace|rotation|homoth[ée]tie|sym[ée]trie|gravit[ée]|circonscrit|inscrit|graduée?/.test(t)
+                        && /^(?:place|placer|pose|poser|marque|marquer|soit|appelle|nomme|on\s+note)\b/.test(t)) {
+                        const c = this.cslCentreFigure(brut, t, fait, rate);
+                        if (c) return c;
+                    }
                     /* « l'image DU triangle ABC » autant que « l'image DE A » :
                        le « du » n'était pas prévu, et la phrase retombait sur le
                        bâtisseur de figures, qui retraçait le triangle en silence. */
@@ -36518,14 +36542,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             cslMilieu(brut, t, fait, rate) {
                 /* PLUSIEURS MILIEUX D'UN COUP. « Place les milieux I de [AB] et
                    J de [AC] » n'en posait qu'UN : la phrase énumère, le logiciel
-                   n'en lisait que le premier morceau et se taisait sur le reste. */
-                const paires = [...brut.matchAll(/([A-Z]'{0,2})?\s*(?:de\s+)?\[([A-Z]'{0,2})([A-Z]'{0,2})\]/g)];
-                if (paires.length > 1 && /milieux/.test(t)) {
+                   n'en lisait que le premier morceau et se taisait sur le reste.
+
+                   PUIS LA MÊME PHRASE AU SINGULIER RÉPÉTÉ. « Placer E le milieu
+                   de [AH], F le milieu de [BH] et M le milieu de [DC] » — la
+                   formule d'un énoncé réel — n'en posait QU'UN lui aussi, et
+                   répondait « E est le milieu de [AH] » sans un mot sur les deux
+                   autres : la règle du pluriel ne se déclenchait que sur le mot
+                   « milieux », et celle-ci écrit « le milieu » trois fois.
+
+                   LE NOM SE CHERCHE DEVANT LE CROCHET, et non collé à lui. Le
+                   motif d'avant exigeait « I de [AB] » : dans « E le milieu de
+                   [AH] », les mots « le milieu » séparent le nom du segment, la
+                   capture rendait vide, et E aurait été remplacé par une lettre
+                   libre. On prend donc la DERNIÈRE majuscule libre écrite depuis
+                   le crochet précédent — ce qui lit les deux formulations avec
+                   une seule règle. */
+                const paires = [...brut.matchAll(/\[([A-Z]'{0,2})([A-Z]'{0,2})\]/g)];
+                const combienDits = (t.match(/\bmilieux?\b/g) || []).length;
+                if (paires.length > 1 && (/milieux/.test(t) || combienDits >= paires.length)) {
                     const dits = [];
+                    let depuis = 0;
                     for (const m of paires) {
-                        const a = this.cslPointNomme(m[2]), b = this.cslPointNomme(m[3]);
-                        if (!a || !b) return rate(`Je ne connais pas ${!a ? m[2] : m[3]}.`);
-                        const n = (m[1] && !this.cslPointNomme(m[1])) ? m[1] : this.cslNomLibre(dits);
+                        const avant = brut.slice(depuis, m.index);
+                        depuis = m.index + m[0].length;
+                        const a = this.cslPointNomme(m[1]), b = this.cslPointNomme(m[2]);
+                        if (!a || !b) return rate(`Je ne connais pas ${!a ? m[1] : m[2]}.`);
+                        const libres = (avant.match(/\b[A-Z]'{0,2}\b/g) || [])
+                            .filter(n => !this.cslPointNomme(n) && !dits.includes(n));
+                        const n = libres.length ? libres[libres.length - 1] : this.cslNomLibre(dits);
                         this.poserMilieu(a, b, n);
                         dits.push(n);
                     }
@@ -38885,15 +38930,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const dejaLa = this.entities.find(e => (e instanceof Line)
                     && ((e.p1 === a && e.p2 === b) || (e.p1 === b && e.p2 === a))) || null;
                 const refVrai = dejaLa || { p1: a, p2: b };
+                let dNeuve = null;
                 if (this.cslDetaille()) {
-                    this.cslBatir(null, () => (perp ? this.cslGestePerpendiculaire(c, a, b, refVrai)
-                                                    : this.cslGesteParallele(c, a, b, refVrai)));
+                    this.cslBatir(null, () => {
+                        dNeuve = perp ? this.cslGestePerpendiculaire(c, a, b, refVrai)
+                                      : this.cslGesteParallele(c, a, b, refVrai);
+                    });
                 } else {
-                    const d = this.cslPoserStyle(perp ? new PerpendicularLine(c, refVrai)
+                    dNeuve = this.cslPoserStyle(perp ? new PerpendicularLine(c, refVrai)
                                                      : new ParallelLine(c, refVrai));
-                    this.addEntity(d);
+                    this.addEntity(dNeuve);
                 }
-                return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'} à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
+                /* ET ELLE GARDE SON NOM. « Tracer la droite (d) parallèle à (AB)
+                   passant par H » traçait bien la parallèle, mais le (d) tombait :
+                   la droite naissait anonyme, et la réponse n'en disait rien. Deux
+                   lignes plus loin, « Elle coupe la droite (d) en G » ne trouvait
+                   plus aucune droite nommée d — elle retombait sur la dernière
+                   tracée, c'est-à-dire sur elle-même, et refusait : « Un objet ne
+                   se coupe pas lui-même. » Un refus JUSTE sur une figure FAUSSE,
+                   ce qui est la pire espèce : rien ne dit où est l'erreur.
+                   La branche voisine — celle où la droite de référence porte un
+                   nom — savait déjà le faire ; celle-ci, non. */
+                const sienNeuf = dNeuve ? this.cslNomsDeDroite(brut)
+                    .find(n => !this.cslDroiteNommee(n)) : null;
+                if (sienNeuf) {
+                    dNeuve.nomDroite = sienNeuf;
+                    this.cslMemoire().droites[sienNeuf] = dNeuve;
+                }
+                return fait(`${perp ? 'Perpendiculaire' : 'Parallèle'}${sienNeuf ? ' (' + sienNeuf + ')' : ''}`
+                    + ` à (${seg[1]}${seg[2]}) passant par ${par[1]}`);
             }
             /* CE QU'ON TRACE DANS UN CERCLE : un rayon, un diamètre, une corde,
                une tangente. Ce sont des traits, pas des cercles — et le mot
@@ -40326,13 +40391,55 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!nomC) return rate("De quel centre ? Écrivez « Trace l'arc de cercle de centre O… ».");
                 const centre = this.cslPoint(nomC);
                 const bouts = [...brut.matchAll(/\bd[eu]\s+([A-Z]'{0,2})\s+[àa]\s+([A-Z]'{0,2})\b/g)];
-                const de = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][1]) : null;
-                const a2 = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][2]) : null;
+                /* « D'EXTRÉMITÉS E ET F » DIT LA MÊME CHOSE QUE « DE E À F », et
+                   c'est la formule des énoncés. Elle n'était pas lue : le logiciel
+                   réclamait « … de rayon 3 cm » alors que le rayon est écrit dans
+                   la phrase — c'est ME, la distance du centre à l'extrémité. */
+                const ext = brut.match(/extr[ée]mit[ée]s?\s+\[?([A-Z]'{0,2})\]?\s*(?:,|\bet\b|;)\s*\[?([A-Z]'{0,2})\]?/i);
+                const de = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][1])
+                    : (ext ? this.cslPointNomme(ext[1]) : null);
+                const a2 = bouts.length ? this.cslPointNomme(bouts[bouts.length - 1][2])
+                    : (ext ? this.cslPointNomme(ext[2]) : null);
+                if (ext && (!de || !a2)) {
+                    return rate(`Je ne connais pas ${!de ? ext[1] : ext[2]}.`);
+                }
                 let r = this.cslLongueurPx((brut.match(/rayon\s*(?:de\s*)?(.+)$/i) || [])[1] || '');
                 if (r === null && de) r = MathUtils.dist(centre.x, centre.y, de.x, de.y);
                 if (r === null || !(r > 0)) return rate("Quel rayon ? Écrivez « … de rayon 3 cm ».");
+                /* UN ARC PASSE PAR SES DEUX EXTRÉMITÉS, OU CE N'EST PAS UN ARC.
+                   Si elles ne sont pas à la même distance du centre, aucun cercle
+                   de centre M ne les porte toutes les deux : on le dit au lieu de
+                   tracer un arc qui rate l'une des deux sans prévenir.
+                   SEULEMENT POUR « D'EXTRÉMITÉS X ET Y » : c'est ce mot-là qui
+                   affirme que les deux points sont SUR l'arc. « de A à B » dit
+                   autre chose — le rayon vient de A, et B ne donne qu'une
+                   DIRECTION ; l'exiger là aurait refusé la phrase d'un énoncé
+                   déjà en service, où OA = 3 cm et OB = 3,87. Mesuré en le
+                   mettant trop large : c'est probe-enonce.js qui l'a dit. */
+                if (ext && de && a2) {
+                    const r2 = MathUtils.dist(centre.x, centre.y, a2.x, a2.y);
+                    if (Math.abs(r2 - r) > 1) {
+                        const cm = (px) => String(Math.round(gmCm(px) * 100) / 100).replace('.', ',');
+                        return rate(`Aucun arc de centre ${nomC} ne passe par ${de.label} ET ${a2.label} : `
+                            + `${nomC}${de.label} = ${cm(r)} cm et ${nomC}${a2.label} = ${cm(r2)} cm. `
+                            + `Un arc a un seul rayon.`);
+                    }
+                }
                 const ang = (p) => p ? Math.atan2(p.y - centre.y, p.x - centre.x) : null;
-                const a1 = ang(de), af = ang(a2);
+                const a1 = ang(de);
+                let af = ang(a2);
+                /* LE PETIT ARC OU LE GRAND. Le sens de tracé vient de la
+                   comparaison des deux angles, qui sort d'atan2 : l'écart pouvait
+                   dépasser un demi-tour, et « le PETIT arc » rendait alors le
+                   grand. On ramène l'écart du bon côté — c'est le seul endroit où
+                   le mot de l'énoncé change le dessin. */
+                if (a1 !== null && af !== null) {
+                    let d = af - a1;
+                    while (d > Math.PI) d -= 2 * Math.PI;
+                    while (d < -Math.PI) d += 2 * Math.PI;
+                    if (/\bgrand\b|\bmajeur\b/.test(t)) d = d > 0 ? d - 2 * Math.PI : d + 2 * Math.PI;
+                    af = a1 + d;
+                }
                 const arc = this.cslPoserStyle(new Arc(centre, r,
                     a1 === null ? -Math.PI / 2 : a1, af === null ? Math.PI / 2 : af));
                 this.addEntity(arc);
@@ -40765,6 +40872,95 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     + `inscrit dans le cercle de centre ${nomO} et de rayon `
                     + `${String(cm(rayon)).replace('.', ',')} cm`);
             }
+            /* LE CENTRE D'UN QUADRILATÈRE EST LE CROISEMENT DE SES DIAGONALES —
+               et celui d'un polygone régulier, le centre de son cercle
+               circonscrit. Un quadrilatère QUELCONQUE n'a pas de centre : ses
+               diagonales se coupent, mais ce point n'a aucune des propriétés
+               qu'on attend d'un centre. On ne le pose donc que là où le NOM de la
+               figure le garantit. */
+            cslCentreCalcule(quoi, pts) {
+                const AVEC = ['carré', 'carre', 'rectangle', 'losange',
+                    'parallélogramme', 'parallelogramme'];
+                const regulier = /r[ée]gulier|pentagone|hexagone|heptagone|octogone|enn[ée]agone|d[ée]cagone|dod[ée]cagone/.test(quoi);
+                if (!pts || pts.length < 4) return null;
+                if (!AVEC.includes(quoi) && !regulier) return null;
+                if (regulier || pts.length !== 4) {
+                    return { x: pts.reduce((v, p) => v + p.x, 0) / pts.length,
+                             y: pts.reduce((v, p) => v + p.y, 0) / pts.length };
+                }
+                const [A, B, C, D] = pts;
+                const ax = C.x - A.x, ay = C.y - A.y, bx = D.x - B.x, by = D.y - B.y;
+                const den = ax * by - ay * bx;
+                if (Math.abs(den) < 1e-9) return null;      // diagonales parallèles
+                const k = ((B.x - A.x) * by - (B.y - A.y) * bx) / den;
+                return { x: A.x + ax * k, y: A.y + ay * k };
+            }
+            /* « Trace un rectangle ABCD DE CENTRE H » : la lettre est une donnée
+               de la figure, pas un cinquième sommet. Elle était purement et
+               simplement ignorée — la réponse disait « Rectangle ABCD » et le
+               point H n'existait pas, sans un mot de refus. */
+            cslCentreDemande(brut, noms) {
+                const m = brut.match(/\bde\s+centre\s+([A-Z]'{0,2})\b/);
+                if (!m) return null;
+                return (noms && noms.includes(m[1])) ? null : m[1];
+            }
+            cslPoserCentre(nomCentre, quoi, pts) {
+                if (!nomCentre || this.cslPointNomme(nomCentre)) return '';
+                const o = this.cslCentreCalcule(quoi, pts);
+                if (!o) return '';
+                this.addEntity(new Point(o.x, o.y, nomCentre));
+                return ` de centre ${nomCentre}`;
+            }
+            /* LE CENTRE D'UNE FIGURE QUI EST DÉJÀ SUR LA FEUILLE.
+               LES SOMMETS SONT UN GROUPE DE LETTRES, LE CENTRE EST UNE LETTRE
+               SEULE : c'est la seule chose qui distingue le H de ABCD dans
+               « Place le centre H du rectangle ABCD », et c'est suffisant.
+               ON NE DEVINE PAS LA NATURE DE LA FIGURE. Si la phrase ne la nomme
+               pas, on la lit sur les points : quatre sommets dont les diagonales
+               se coupent en leur milieu forment un parallélogramme, et là le
+               centre existe. Ailleurs on refuse — un quadrilatère quelconque n'a
+               pas de centre, et en poser un serait inventer une propriété. */
+            cslCentreFigure(brut, t, fait, rate) {
+                const groupes = (brut.match(/[A-Z]'{0,2}(?:[A-Z]'{0,2}){2,}/g) || [])
+                    .map(g => g.match(/[A-Z]'{0,2}/g) || []);
+                const fig = groupes.find(ns => ns.length >= 4
+                    && ns.every(n => this.cslPointNomme(n)));
+                if (!fig) {
+                    /* rien à quoi se rapporter : on laisse la phrase suivre son
+                       chemin plutôt que de refuser à la place d'un autre. */
+                    return null;
+                }
+                const pts = fig.map(n => this.cslPointNomme(n));
+                const quoiDit = (t.match(/carr[ée]|rectangle|losange|parall[ée]logramme|pentagone|hexagone|heptagone|octogone|polygone\s+r[ée]gulier/) || [])[0];
+                let quoi = quoiDit;
+                if (!quoi) {
+                    /* la figure n'est pas nommée : on la mesure. Un quadrilatère
+                       dont les diagonales ont le même milieu EST un
+                       parallélogramme — c'est le théorème, et il suffit ici. */
+                    if (pts.length === 4) {
+                        const m1 = { x: (pts[0].x + pts[2].x) / 2, y: (pts[0].y + pts[2].y) / 2 };
+                        const m2 = { x: (pts[1].x + pts[3].x) / 2, y: (pts[1].y + pts[3].y) / 2 };
+                        if (Math.hypot(m1.x - m2.x, m1.y - m2.y) < 1) quoi = 'parallélogramme';
+                    }
+                }
+                const o = quoi ? this.cslCentreCalcule(quoi, pts) : null;
+                if (!o) {
+                    return rate(`${fig.join('')} n'a pas de centre : un quadrilatère `
+                        + `quelconque n'en a pas. Un parallélogramme, un rectangle, un `
+                        + `losange et un carré en ont un — c'est le croisement de leurs `
+                        + `diagonales. Écrivez « Place le point H intersection de (${fig[0]}${fig[2]}) `
+                        + `et (${fig[1]}${fig[3]}) » si c'est ce croisement que vous voulez.`);
+                }
+                /* le nom voulu : une lettre seule, qui n'est pas un sommet */
+                const seules = (brut.match(/\b[A-Z]'{0,2}\b/g) || [])
+                    .filter(n => !fig.includes(n));
+                const nom = seules.find(n => !this.cslPointNomme(n)) || this.cslNomLibre(fig);
+                const deja = this.cslPointNomme(nom);
+                if (deja) { deja.x = o.x; deja.y = o.y; }
+                else this.addEntity(new Point(o.x, o.y, nom));
+                this._cslSujet = [nom];
+                return fait(`${nom} — centre de ${fig.join('')}, au croisement des diagonales`);
+            }
             cslPolygone(brut, t, quoi, fait, rate) {
                 let sommets = { 'carré': 4, 'carre': 4, 'rectangle': 4, 'losange': 4,
                                 'parallélogramme': 4, 'parallelogramme': 4, 'triangle': 3,
@@ -40781,6 +40977,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     quoi = `polygone régulier à ${sommets} côtés`;
                 }
                 let noms = this.cslNoms(brut);
+                /* La lettre du centre sort de la liste des sommets AVANT tout le
+                   reste : sur « Trace un rectangle de centre H de 8 cm sur 5 cm »,
+                   sans noms de sommets écrits, H serait devenu le sommet A. */
+                const nomCentre = (brut.match(/\bde\s+centre\s+([A-Z]'{0,2})\b/) || [])[1];
+                if (nomCentre && noms.length <= sommets) {
+                    noms = noms.filter(n => n !== nomCentre);
+                }
 
                 // « polygone ABCDE » : on relie des points qu'on a déjà
                 if (quoi === 'polygone') {
@@ -40809,7 +41012,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                 const cote = this.cslLongueurPx((brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/) || [])[1] || '');
                 const deux = brut.match(/(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))\s*(?:sur|par|x|×|et\s+(?:de\s+)?(?:largeur|hauteur))\s*(?:de\s+)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i)
-                    || brut.match(/longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
+                    || brut.match(/longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i)
+                    /* ÉCRIT DANS L'AUTRE ORDRE, C'EST LA MÊME PHRASE. « de largeur
+                       3 cm et de longueur 8 cm » rendait un rectangle de 3 sur
+                       1,86 : la première valeur lue devenait la longueur, et les
+                       mots n'étaient jamais regardés. On les remet dans l'ordre. */
+                    || (() => {
+                        const m = brut.match(/(?:largeur|hauteur)\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m)).*?longueur\s*(?:de\s*|:\s*)?(\d+(?:[.,]\d+)?\s*(?:mm|cm|dm|m))/i);
+                        return m ? [m[0], m[2], m[1]] : null;
+                    })();
                 const L = cote || 150;
 
                 /* LES MESURES DEUX À DEUX passent avant tout le reste : c'est
@@ -40954,7 +41165,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ? this.buildRectangle(p1, p2, p3, aTrouver)
                         : this.buildParallelogram(p1, p2, p3, aTrouver)));
                     this._cslSujet = noms.slice();
-                    return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
+                    const ctr = this.cslPoserCentre(this.cslCentreDemande(brut, noms), quoi,
+                        noms.map(n => this.cslPointNomme(n)).filter(Boolean));
+                    return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}${ctr} — construction détaillée`);
                 }
                 if (batisseur || (this.cslDetaille() && quoi === 'triangle' && /[ée]quilat[ée]ral/.test(t))) {
                     /* LE CENTRE N'EST PAS UN SOMMET. buildRegularPentagon et
@@ -41016,7 +41229,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        propose. Les deux autres chemins la posaient déjà ; ce
                        bâtisseur-ci, non. */
                     this._cslSujet = noms.slice();
-                    return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')} — construction détaillée`);
+                    const ctr2 = this.cslPoserCentre(this.cslCentreDemande(brut, noms), quoi,
+                        noms.map(n => this.cslPointNomme(n)).filter(Boolean));
+                    return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}${ctr2} — construction détaillée`);
                 }
 
                 /* LA FIGURE SE POSE SUR CE QUI EST DÉJÀ LÀ. Les sommets déjà
@@ -41038,7 +41253,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 for (let i = 0; i < pts.length; i++) this.cslSegment(pts[i], pts[(i + 1) % pts.length]);
                 this.cslPoserPolygone(pts);
                 this._cslSujet = noms.slice();
-                return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}`);
+                const ctr3 = this.cslPoserCentre(this.cslCentreDemande(brut, noms), quoi, pts);
+                return fait(`${quoi.charAt(0).toUpperCase() + quoi.slice(1)} ${noms.join('')}${ctr3}`);
             }
             /* LA FORME IDÉALE, en coordonnées locales, avant d'être posée où que
                ce soit. Elle était calculée au milieu de la construction ; elle est
@@ -41046,11 +41262,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                ce soit — pour savoir si les points déjà sur la feuille s'y prêtent.
                Aucun effet de bord, hormis le rappel sur la diagonale du losange,
                que cslDire ne répète pas. */
+            /* DEUX CÔTÉS ADJACENTS, DONNÉS PAR LEURS NOMS. « Trace un rectangle
+               ABCD tel que AB = 8 cm et BC = 10 cm » est la façon dont un manuel
+               écrit un rectangle, et c'est celle que le logiciel comprenait le
+               moins bien : il lisait la PREMIÈRE longueur et inventait la seconde
+               au rapport 0,62 — BC = 10 cm rendait un côté de 4,96 cm, sans un
+               mot. cslPolygoneMesures, qui sait lire « XY = n cm », exige la
+               chaîne ENTIÈRE (les quatre côtés et une diagonale) : c'est juste
+               pour un quadrilatère quelconque, où rien d'autre ne fixe la forme,
+               et de trop pour un rectangle, dont le NOM donne déjà les angles.
+               Deux côtés adjacents suffisent alors, et le parallélogramme est
+               dans le même cas. */
+            cslCotesAdjacents(brut, noms) {
+                if (!noms || noms.length < 3) return null;
+                const dits = {};
+                const re = /\b([A-Z]'{0,2})\s*([A-Z]'{0,2})\s*=\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|dm|m)\b/g;
+                let m;
+                while ((m = re.exec(brut))) {
+                    if (m[1] === m[2]) continue;
+                    const v = this.cslLongueurPx(m[3] + ' ' + m[4]);
+                    if (v > 0) dits[[m[1], m[2]].sort().join('')] = v;
+                }
+                const d = (a, b) => dits[[a, b].sort().join('')];
+                const a = d(noms[0], noms[1]), b = d(noms[1], noms[2]);
+                return (a > 0 && b > 0) ? { a, b } : null;
+            }
             cslCoinsFigure(quoi, t, brut, L, deux, sommets, noms) {
                 let coins;
                 if (quoi === 'rectangle') {
-                    const a = deux ? this.cslLongueurPx(deux[1]) : L;
-                    const b = deux ? this.cslLongueurPx(deux[2]) : L * 0.62;
+                    const nom2 = this.cslCotesAdjacents(brut, noms);
+                    const a = deux ? this.cslLongueurPx(deux[1]) : (nom2 ? nom2.a : L);
+                    const b = deux ? this.cslLongueurPx(deux[2]) : (nom2 ? nom2.b : L * 0.62);
                     coins = [[0, 0], [a, 0], [a, b], [0, b]];
                 } else if (quoi === 'carré' || quoi === 'carre') {
                     coins = [[0, 0], [L, 0], [L, L], [0, L]];
@@ -41089,7 +41331,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 } else if (quoi === 'parallélogramme' || quoi === 'parallelogramme') {
-                    coins = [[0, 0], [L, 0], [L + L * 0.35, L * 0.6], [L * 0.35, L * 0.6]];
+                    /* Le second côté se lisait lui aussi au rapport fixe 0,694 —
+                       AB = 8 et BC = 3 rendaient 5,56. L'INCLINAISON reste celle
+                       d'avant (le vecteur (0,35 ; 0,6), soit environ 60°) : elle
+                       n'est pas donnée par la phrase, la longueur si. */
+                    const nom2 = this.cslCotesAdjacents(brut, noms);
+                    const a = nom2 ? nom2.a : L;
+                    const b = nom2 ? nom2.b : L * 0.694;
+                    const ux = 0.504, uy = 0.864;          // (0,35 ; 0,6) normalisé
+                    coins = [[0, 0], [a, 0], [a + b * ux, b * uy], [b * ux, b * uy]];
                 } else if (quoi === 'trapèze' || quoi === 'trapeze') {
                     /* UN TRAPÈZE A DEUX CÔTÉS PARALLÈLES, et c'est tout ce qu'il
                        affirme. La phrase « Trace un trapèze ABCD » se traduisait
@@ -46910,7 +47160,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-01 · 22h';
+        window.GM_VERSION = '2026-10-05 · 11h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
