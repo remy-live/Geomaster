@@ -1326,6 +1326,31 @@ vingt-quatre points construits les uns sur les autres.
 Les deux arcs sont le même juge, en plus sévère : l'arc de centre M par V et W
 n'existe que si MV = MW. Avant, c'était **3,2 cm contre 38,22**.
 
+**Puis le corrigé du professeur est arrivé.** Quinze pages, construites pas à
+pas : le rectangle, la médiatrice de [HM], le losange, les droites, puis la tête
+de Batman au feutre. La figure du logiciel lui correspond trait pour trait.
+
+**Mais une figure peut « avoir l'air bien » et être fausse de deux millimètres**,
+et une sonde qui se contente de regarder ne vaut pas mieux. Les vingt-quatre
+points sont donc **recalculés à part, dans la sonde, sans le logiciel** :
+A=(0,0), B=(8,0), C=(8,10), D=(0,10) en centimètres, l'énoncé suivi à la lettre,
+et une seule fonction d'intersection de vingt lignes. Les deux listes doivent
+coïncider.
+
+C'est la différence entre « la sonde est d'accord avec le logiciel » — ce qui ne
+prouve rien — et « le logiciel est d'accord avec la géométrie ».
+
+| | |
+| --- | --- |
+| écart maximal sur les 24 points | **0,0009 cm** |
+| le point le plus éloigné | T |
+
+*Et une précision sur l'image que j'avais montrée la veille : elle paraissait
+incomplète, les deux côtés de la tête manquant. Ce n'était pas la figure, c'était
+ma façon de la photographier — je masquais tout ce qui précédait l'étape 11, donc
+aussi [AD] et [BC], que la ligne polygonale REPREND au lieu d'en tracer de
+nouveaux. Le défaut était dans le script de capture, pas dans le logiciel.*
+
 **Un effet de bord assumé.** « Place le point D tel que ABCD soit un
 parallélogramme » répondait « Parallélogramme **DABC** » — l'ordre du texte, là
 encore. Il répond maintenant « Parallélogramme **ABCD** ». La figure était déjà

@@ -34,6 +34,19 @@
  * 4. « Trace les triangles GHI et JHK » n'en traçait qu'un, et « la ligne
  *    polygonale EADOLMNPCBF » n'était pas comprise du tout.
  *
+ * LE CORRIGÉ DU PROFESSEUR A TRANCHÉ. Quinze pages, construites pas à pas :
+ * le rectangle, la médiatrice de [HM], le losange, les droites, puis la tête de
+ * Batman au feutre. La figure du logiciel lui correspond trait pour trait.
+ *
+ * MAIS UNE FIGURE PEUT « AVOIR L'AIR BIEN » ET ÊTRE FAUSSE DE DEUX MILLIMÈTRES,
+ * et une sonde qui se contente de regarder ne vaut pas mieux. Les vingt-quatre
+ * points sont donc RECALCULÉS À PART, dans cette sonde, sans le logiciel :
+ * A=(0,0), B=(8,0), C=(8,10), D=(0,10) en centimètres, l'énoncé suivi à la
+ * lettre, et une seule fonction d'intersection de vingt lignes. Les deux listes
+ * doivent coïncider. C'est la différence entre « la sonde est d'accord avec le
+ * logiciel » — ce qui ne prouve rien — et « le logiciel est d'accord avec la
+ * géométrie ». Écart maximal mesuré : 0,0009 cm, neuf micromètres.
+ *
  * CE QUE LA SONDE MESURE, ET POURQUOI C'EST BATMAN QUI SERT DE JUGE. Pas les
  * messages : les POINTS. Vingt-quatre lettres doivent exister, le losange doit
  * avoir quatre côtés égaux et ses deux diagonales aux bonnes mesures, et la
@@ -201,6 +214,70 @@ const ENONCE = [
        /JHK/.test(journal[15].msg) && /GHI/.test(journal[15].msg), journal[15].msg);
     ck('  la ligne polygonale fait ses dix segments',
        /10 segments/.test(journal[18].msg), journal[18].msg);
+
+    /* ============================================================
+       7. ET CHAQUE POINT TOMBE OÙ LE CALCUL LE MET
+       LA PREUVE, ET NON L'IMPRESSION. Le corrigé du professeur montre un
+       Batman ; une figure peut « avoir l'air bien » et être fausse de deux
+       millimètres. On refait donc les vingt-quatre points À PART, sans le
+       logiciel : A=(0,0), B=(8,0), C=(8,10), D=(0,10) en centimètres, et l'on
+       suit l'énoncé à la lettre, avec une seule fonction d'intersection de
+       vingt lignes. Les deux listes doivent coïncider.
+       C'est la différence entre « la sonde est d'accord avec le logiciel » —
+       ce qui ne prouve rien — et « le logiciel est d'accord avec la
+       géométrie ».
+       ============================================================ */
+    console.log('\n=== les vingt-quatre points, recalculés à part ===');
+    const inter = (P, Q, R2, S2) => {
+        const ax = Q.x - P.x, ay = Q.y - P.y, bx = S2.x - R2.x, by = S2.y - R2.y;
+        const den = ax * by - ay * bx;
+        if (Math.abs(den) < 1e-12) return null;
+        const t = ((R2.x - P.x) * by - (R2.y - P.y) * bx) / den;
+        return { x: P.x + ax * t, y: P.y + ay * t };
+    };
+    const mil2 = (P, Q) => ({ x: (P.x + Q.x) / 2, y: (P.y + Q.y) / 2 });
+    const V = {};
+    V.A = { x: 0, y: 0 }; V.B = { x: 8, y: 0 }; V.C = { x: 8, y: 10 }; V.D = { x: 0, y: 10 };
+    V.H = mil2(V.A, V.C);
+    V.E = mil2(V.A, V.H); V.F = mil2(V.B, V.H);
+    V.M = mil2(V.D, V.C);
+    /* HXMY losange : [HM] et [XY] sont ses diagonales — perpendiculaires, de
+       même milieu. [HM] est vertical, donc [XY] est horizontal. */
+    const oHM = mil2(V.H, V.M);
+    V.X = { x: oHM.x - 5.5, y: oHM.y };
+    V.Y = { x: oHM.x + 5.5, y: oHM.y };
+    V.N = inter(V.E, V.C, V.M, V.Y);
+    V.L = inter(V.F, V.D, V.M, V.X);
+    const d1 = V.H, d2 = { x: V.H.x + 1, y: V.H.y };          // la droite (d)
+    const vL = [V.L, { x: V.L.x, y: V.L.y + 1 }];             // perpendiculaire par L
+    V.I = inter(vL[0], vL[1], V.H, V.X);
+    V.O = inter(vL[0], vL[1], V.M, V.Y);
+    V.G = inter(vL[0], vL[1], d1, d2);
+    const vN = [V.N, { x: V.N.x, y: V.N.y + 1 }];             // parallèle à (BC) par N
+    V.K = inter(vN[0], vN[1], V.H, V.Y);
+    V.P = inter(vN[0], vN[1], V.M, V.X);
+    V.J = inter(vN[0], vN[1], d1, d2);
+    V.T = inter(V.K, V.M, V.O, V.P);
+    V.V = inter(V.K, V.M, V.D, V.O);
+    V.U = inter(V.I, V.M, V.O, V.P);
+    V.W = inter(V.I, V.M, V.C, V.P);
+    V.R = inter(V.M, V.N, V.L, V.T);
+    V.S = inter(V.L, V.M, V.N, V.U);
+
+    /* La figure du logiciel est en PIXELS et posée où il y avait de la place :
+       on la ramène dans le repère du calcul par A et B, qui suffisent. */
+    const pxParCm = Math.hypot(figure.N.B.x - figure.N.A.x, figure.N.B.y - figure.N.A.y) / 8;
+    const O0 = figure.N.A;
+    let ecartMax = 0, lequel = '';
+    for (const k of Object.keys(V)) {
+        const vu = figure.N[k];
+        if (!vu) { ecartMax = 1e9; lequel = k + ' (absent)'; break; }
+        const e = Math.hypot((vu.x - O0.x) / pxParCm - V[k].x, (vu.y - O0.y) / pxParCm - V[k].y);
+        if (e > ecartMax) { ecartMax = e; lequel = k; }
+    }
+    ck('les vingt-quatre points sont ceux du calcul', ecartMax < 0.01,
+       ecartMax > 1e8 ? lequel
+           : `écart maximal ${Math.round(ecartMax * 10000) / 10000} cm, sur ${lequel}`);
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));
 
