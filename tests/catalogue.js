@@ -58,6 +58,12 @@ const GROUPES = [
     'Place les milieux I de [AB] et J de [AC]',
     'Place le point I intersection de (AB) et (CD)',
     'Place le point D tel que ABCD soit un parallélogramme',
+    ['Place le centre H du rectangle ABCD',
+      { pts: VIDE, prep: ['Trace un rectangle ABCD de 8 cm sur 5 cm'] }],
+    ['Place X et Y tels que HXMY soit un losange, XY = 11 cm',
+      { pts: VIDE, prep: ['Place les points H et M tels que HM = 5 cm'] }],
+    ['Placer E le milieu de [AB], F le milieu de [BC] et M le milieu de [CD]',
+      { pts: VIDE, prep: ['Trace un rectangle ABCD de 8 cm sur 5 cm'] }],
   ]],
   /* LE REPÈRE. Il n'a pas de bouton — la barre en compte déjà vingt-trois, dont
      quinze hors écran sur un téléphone — et se pose une fois par exercice : c'est
@@ -171,6 +177,10 @@ const GROUPES = [
     'Trace un carré inscrit dans un cercle de rayon 3 cm',
     'Trace un triangle équilatéral inscrit dans un cercle de rayon 3 cm',
     'Trace le polygone ABCDE',
+    ['Trace un rectangle ABCD tel que AB = 8 cm et BC = 10 cm', { pts: VIDE }],
+    ['Trace un rectangle ABCD de centre H de 6 cm sur 4 cm', { pts: VIDE }],
+    ['Trace la ligne polygonale ABCDE',
+      { pts: VIDE, prep: ['Place les points A, B, C, D et E'] }],
     ['Trace un carré ABCD et ses diagonales', { pts: VIDE }],
   ]],
   ['Droites remarquables', [

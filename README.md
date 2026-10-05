@@ -1250,6 +1250,87 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### Un énoncé entier, et il doit donner Batman
+
+*« Ça ne fonctionne pas. C'est pas terrible, c'est censé donner Batman. »*
+
+Vingt-quatre lignes collées dans le panneau des consignes. Quinze passaient — et
+les autres ne refusaient pas : **elles répondaient « ok » en faisant autre
+chose.** C'est la seule façon dont un logiciel de construction peut vraiment
+tromper : la figure est fausse, et rien ne le dit.
+
+Quatre silences, mesurés un par un sur ce qui se posait *vraiment* sur la
+feuille, jamais sur ce que la réponse annonçait.
+
+**1. Une phrase coupée en trois, dont deux morceaux partaient ailleurs.**
+« Elle coupe la droite (HX) en I, la droite (MY) en O et la droite (d) en G » ne
+posait que **I**. Les deux autres morceaux ne tombaient pas dans le vide : le
+découpeur de phrases les prenait pour des consignes neuves — « la droite » en
+commence une, d'ordinaire — et ils repartaient vers le traceur de droites, qui
+**traçait (MY) et (d) par-dessus elles-mêmes**. Réponse : « I — croisement ·
+Droite (MY) · Droite (d) », `ok`.
+
+Le pire vient après. O et G n'existaient pas ; les lignes suivantes les citaient,
+et « la droite (OP) » les faisait alors **naître comme points libres posés
+n'importe où**. Toute la figure se bâtissait sur des points inventés, sans un
+seul refus. Le verbe « coupe » régit toute la phrase : elle ne se coupe plus, et
+chaque « cible en NOM » est traitée.
+
+Un garde-fou : **un seul verbe**. « La droite (EC) coupe (MY) en N **et** la
+droite (FD) coupe (MX) en L » est bien faite de deux consignes, chacune avec son
+objet coupant. Le nombre de « coupe » départage les deux phrases — et j'ai cassé
+ce cas-là une première fois avant de le mesurer.
+
+**2. Les lettres étaient lues dans l'ordre du texte.**
+« Placer X et Y tels que **HXMY** soit un losange » rendait un losange **XYHM** :
+les lettres se ramassaient au fil de la phrase — X, Y, H, M —, et H et M
+sortaient **voisins** alors que l'énoncé les veut **opposés**. Un quadrilatère
+s'écrit en juxtaposant ses sommets dans l'ordre du contour : ce groupe-là est la
+figure, et il est le seul à dire quel sommet touche quel autre.
+
+**3. Deux sommets opposés connus, c'est une autre construction.**
+Le bâtisseur général pose la forme idéale sur les points existants **par
+similitude** — ce qui suppose qu'ils sont voisins. Résultat mesuré : côtés de
+8,67 et 5,01 cm, diagonale 5 au lieu de 11, annoncé « Losange XYHM », `ok`.
+
+Les diagonales d'un losange se coupent **en leur milieu et à angle droit** : X et
+Y sont donc sur la perpendiculaire à [HM] en son milieu, à la moitié de l'autre
+diagonale. La seconde donnée s'écrit de trois façons, et les trois sont dans les
+manuels — l'autre diagonale (`XY = 11 cm`), un côté (`HX = 7 cm`, d'où la
+demi-diagonale par Pythagore), ou rien du tout si la figure est un **carré**, où
+les deux diagonales sont égales. Hors de ces trois cas, la figure n'est pas
+déterminée et c'est refusé. Il ne reste alors qu'une liberté — de quel côté tombe
+le premier nommé —, et l'énoncé la donne : *« placer X du côté gauche »*.
+
+**4. Deux figures et une ligne ouverte.**
+« Trace les triangles GHI **et** JHK » n'en traçait qu'un : le découpage ne coupe
+que devant ce qui commence une consigne, et « JHK » ne commence rien. Et « la
+ligne polygonale EADOLMNPCBF » n'était pas comprise du tout — une ligne
+polygonale n'est pas un polygone : **elle ne se referme pas**, onze sommets font
+dix segments.
+
+| | avant | après |
+| --- | --- | --- |
+| lignes de l'énoncé qui passent | 15 / 24 | **24 / 24** |
+| points construits | 12 — dont 5 inventés | **24, tous calculés** |
+| côtés du losange HXMY | 8,67 et 5,01 cm | **6,04 cm, les quatre** |
+| sa diagonale XY | 5 cm | **11 cm** |
+
+**Et c'est la symétrie qui juge.** `probe-batman.js` ne lit pas les messages : il
+relève les vingt-quatre points, vérifie les mesures écrites dans l'énoncé, puis
+exige que les **onze paires** de lettres se répondent de part et d'autre de la
+verticale par H. Écart maximal mesuré : **0 px**. Une seule erreur en amont fait
+basculer tout un côté, et un logo symétrique ne s'obtient pas par hasard sur
+vingt-quatre points construits les uns sur les autres.
+
+Les deux arcs sont le même juge, en plus sévère : l'arc de centre M par V et W
+n'existe que si MV = MW. Avant, c'était **3,2 cm contre 38,22**.
+
+**Un effet de bord assumé.** « Place le point D tel que ABCD soit un
+parallélogramme » répondait « Parallélogramme **DABC** » — l'ordre du texte, là
+encore. Il répond maintenant « Parallélogramme **ABCD** ». La figure était déjà
+juste ; c'est son nom qui ne l'était pas, et `CONSIGNES.md` a été régénéré.
+
 ### « De centre H » : la lettre était lue, puis jetée
 
 *« Tracer un rectangle ABCD de centre H tel que : AB = 8 cm, BC = 10 cm… »*

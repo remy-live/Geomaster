@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**218 phrases**, dont 218 passent.
+**224 phrases**, dont 224 passent.
 
 Quelques principes qui valent partout :
 
@@ -42,7 +42,10 @@ Quelques principes qui valent partout :
 | Place le milieu I de [AB] | I est le milieu de [AB] |
 | Place les milieux I de [AB] et J de [AC] | Milieux : I, J |
 | Place le point I intersection de (AB) et (CD) | I — intersection de (AB) et (CD) |
-| Place le point D tel que ABCD soit un parallélogramme | Parallélogramme DABC |
+| Place le point D tel que ABCD soit un parallélogramme | Parallélogramme ABCD |
+| Place le centre H du rectangle ABCD | H — centre de ABCD, au croisement des diagonales |
+| Place X et Y tels que HXMY soit un losange, XY = 11 cm | Losange HXMY — sur la diagonale [HM] |
+| Placer E le milieu de [AB], F le milieu de [BC] et M le milieu de [CD] | Milieux : E, F, M |
 
 ## Repère et coordonnées
 
@@ -176,6 +179,9 @@ Quelques principes qui valent partout :
 | Trace un carré inscrit dans un cercle de rayon 3 cm | Carré EFGH inscrit dans le cercle de centre I et de rayon 3 cm |
 | Trace un triangle équilatéral inscrit dans un cercle de rayon 3 cm | Triangle EFG inscrit dans le cercle de centre H et de rayon 3 cm |
 | Trace le polygone ABCDE | Polygone ABCD |
+| Trace un rectangle ABCD tel que AB = 8 cm et BC = 10 cm | Rectangle ABCD |
+| Trace un rectangle ABCD de centre H de 6 cm sur 4 cm | Rectangle ABCD de centre H |
+| Trace la ligne polygonale ABCDE | Ligne polygonale ABCDE — 4 segments |
 | Trace un carré ABCD et ses diagonales | Carré ABCD · 2 diagonales de ABCD |
 
 ## Droites remarquables
