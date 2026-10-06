@@ -1250,6 +1250,52 @@ la droite et la demi-droite donnent désormais :
 avant le trait : ils existaient vraiment avant, et les faire paraître après
 serait le mensonge inverse.
 
+### La barre de style cachait les lignes qu'on venait d'écrire
+
+*« Quand on écrit plusieurs lignes et que la barre de style du texte va en bas —
+car normalement elle va en haut, mais comme on est en haut du canevas elle va en
+bas —, elle cache les lignes en dessous. »*
+
+La barre se pose au-dessus de la ligne de saisie. Quand il n'y a pas la place —
+une écriture près du **haut** du canevas —, elle passe dessous. Or elle n'était
+placée **qu'à l'ouverture**, sur un champ d'**une seule ligne** : chaque ligne
+tapée ensuite poussait le champ *sous* elle.
+
+| lignes écrites | ce qui disparaissait |
+| --- | --- |
+| 2 | 0,6 ligne |
+| 3 | 1,6 ligne |
+| 5 | **2,6 lignes** |
+
+On écrit sans voir ce qu'on écrit. La barre suit maintenant le champ, qui est
+mesuré à chaque fois qu'il change de taille — zéro pixel caché, de une à six
+lignes.
+
+**Un `ResizeObserver` plutôt qu'un écouteur de frappe.** La hauteur du champ ne
+change pas qu'en tapant : elle change aussi quand on **grossit la police**, qu'on
+met en **gras**, qu'on change de police, ou qu'une ligne se replie toute seule.
+Une seule prise les couvre toutes, là où il aurait fallu se brancher sur cinq
+commandes — et en oublier une. Mesuré : passer de 14 à 60 px cachait **11 044 px²**
+de texte, et aucun écouteur de clavier ne l'aurait vu.
+
+**Et quand le texte est plus haut que l'écran**, la barre ne tient nulle part. Le
+pincement final la ramenait alors tout en bas, c'est-à-dire **sur la dernière
+ligne — là où est le curseur**. Elle se pose désormais en haut de la bande
+visible : on écrit par le bas, c'est le haut qu'on peut couvrir.
+
+`probe-barre.js` tenait déjà le **débord** — la barre reste dans l'écran, le
+panneau d'aide ne la recouvre pas. Personne ne regardait si elle restait hors du
+**champ**, et elle n'était éprouvée que sur des textes d'une ligne. Les quatre
+nouvelles épreuves mesurent l'**aire commune** des deux rectangles, qui est
+exactement ce que l'utilisateur ne voit plus. Elles échouent **3 fois sur 4** sur
+la version d'avant.
+
+**Une de mes épreuves mesurait le vide.** La dernière — « un texte plus haut que
+l'écran renvoie la barre en haut » — passait aussi sur l'ancienne version, où la
+barre tombait à **−1 204 px** : entièrement hors de la fenêtre. « Plus haut que »
+était vrai, et ne voulait rien dire. Elle exige maintenant les deux : dans
+l'écran, **et** dans son tiers supérieur.
+
 ### Un énoncé entier, et il doit donner Batman
 
 *« Ça ne fonctionne pas. C'est pas terrible, c'est censé donner Batman. »*

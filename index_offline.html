@@ -28439,6 +28439,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ghost.addEventListener('focus', () => {
                         ghost.dataset.session = String(this.jetonTexte || 0);
                     });
+                    /* LA BARRE SUIT LE CHAMP QUI GRANDIT. Elle est posée au-dessus
+                       de la ligne de saisie ; quand il n'y a pas la place — une
+                       écriture près du HAUT du canevas —, elle passe dessous. Or
+                       elle n'était placée qu'à l'ouverture, sur un champ d'UNE
+                       ligne : chaque ligne tapée ensuite poussait le champ SOUS
+                       elle. Mesuré, texte posé à 30 px du bord haut : deux lignes
+                       en cachent 0,6, cinq lignes en cachent 2,6. On écrit sans
+                       voir ce qu'on écrit.
+                       UN ResizeObserver PLUTÔT QU'UN ÉCOUTEUR DE FRAPPE : la
+                       hauteur du champ change aussi quand on grossit la police,
+                       qu'on met en gras, qu'on change de police ou qu'une ligne
+                       se replie toute seule. Une seule prise les couvre toutes,
+                       là où il aurait fallu se brancher sur cinq commandes — et
+                       en oublier une. */
+                    if (window.ResizeObserver) {
+                        let hPrec = 0;
+                        new ResizeObserver(() => {
+                            if (ghost.style.display !== 'block') return;
+                            const h = ghost.offsetHeight;
+                            if (h === hPrec) return;
+                            hPrec = h;
+                            this.placerBarreTexte();
+                        }).observe(ghost);
+                    }
                     /* Les boutons suivent le curseur : entrer dans un mot gras doit
                        allumer « B », en sortir l'éteindre. selectionchange est le seul
                        événement qui couvre à la fois la souris, le clavier et la
@@ -46876,9 +46900,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const w = barre.offsetWidth || 340;
                 const h = barre.offsetHeight || 44;
                 let ty = y - h - 6;
-                // rien au-dessus : on passe sous la ligne de saisie plutôt que
+                // rien au-dessus : on passe sous TOUT le champ plutôt que
                 // de recouvrir le texte qu'on est en train d'écrire
-                if (ty < vue.t) ty = y + (champ.offsetHeight || 20) + 6;
+                if (ty < vue.t) {
+                    const bas = y + (champ.offsetHeight || 20) + 6;
+                    /* ET SI LE CHAMP EST PLUS HAUT QUE L'ÉCRAN, elle ne tient
+                       nulle part : on la pose EN HAUT de la bande visible. Le
+                       pincement final la ramenait sinon en bas, c'est-à-dire
+                       sur la dernière ligne — là où est le curseur. On écrit
+                       par le bas : c'est le haut qu'on peut couvrir. */
+                    ty = (bas + h <= vue.b) ? bas : vue.t;
+                }
                 barre.style.left = Math.round(Math.max(vue.l, Math.min(x, vue.r - w))) + 'px';
                 barre.style.top = Math.round(Math.max(vue.t, Math.min(ty, vue.b - h))) + 'px';
             }
@@ -47382,7 +47414,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-05 · 22h';
+        window.GM_VERSION = '2026-10-06 · 10h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
