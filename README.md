@@ -1108,8 +1108,82 @@ Trois règles ne se négocient pas, et la sonde les tient toutes les trois :
 
 Le serveur, lui, n'accumule pas : les compteurs étant cumulatifs, le dernier
 relevé d'une installation *est* toute son histoire. Une clé par installation,
-écrasée à chaque envoi — la base grossit avec le nombre d'utilisateurs, jamais
-avec le temps, et **le nombre de clés est le nombre d'utilisateurs**.
+écrasée à chaque envoi — la base grossit avec le nombre d'installations, jamais
+avec le temps. **Une clé n'est pas une personne**, et la section « 323
+utilisateurs » plus bas dit pourquoi, mesures à l'appui.
+
+### « 323 utilisateurs » n'était pas 323 personnes
+
+*« 323 utilisateur(s), dont 284 actif(s) ces 30 derniers jours — ça veut dire que
+des utilisateurs différents ? »*
+
+Non. Et le relevé l'affirmait pourtant, en toutes lettres, exactement comme ce
+fichier : **« le nombre de clés est le nombre d'utilisateurs »**. C'était faux
+**dans les deux sens à la fois**.
+
+| | |
+| --- | --- |
+| une personne, **plusieurs** clés | poste de classe + ordinateur de maison + téléphone = 3 ; Chrome et Firefox sur la même machine = 2 ; vider les données du site en fabrique une neuve ; le navigateur peut l'effacer tout seul |
+| **plusieurs** personnes, une clé | un tableau de salle partagé par six professeurs = 1 ; un ordinateur de classe = 1 ; et quand le navigateur refuse le stockage, **toutes** les installations se rangent sous la même clé `anonyme` |
+
+L'identité tient dans un `localStorage`, cloisonné par navigateur, par profil et
+par adresse — et **rien ne recoupe deux clés**. C'est voulu : le relevé ne
+transporte ni adresse IP, ni empreinte, ni compte. La discrétion est tenue ; la
+précision du chiffre en est le prix, et c'est un échange qu'il faut dire.
+
+**Mesuré plutôt que supposé**, dans un vrai navigateur :
+
+| ce qu'on fait | ce que compte le relevé |
+| --- | --- |
+| deux onglets, deux fenêtres | **1** installation |
+| deux profils de navigateur | **2** |
+| vider les données du site | **+1**, la même personne compte deux fois |
+| stockage refusé (navigation privée stricte) | identifiant `anonyme` — **toutes** fondues en une |
+| le lien de partage, côté élève | **0** — ni installation, ni chargement, ni consigne |
+| un fichier ouvert en local (clé USB) | **0** — l'identifiant n'est même pas créé |
+| fermer avant **8 secondes** | **0** — le relevé part après ce délai |
+
+**Et le total ne peut que monter** : aucune clé n'expire ni n'est supprimée. Les
+323 sont un cumul depuis la mise en service — le 9 septembre 2026, soit 33 jours
+—, pas une population. C'est aussi ce qui explique le ratio : **284 sur 323,
+c'est 88 %**, et il ne mesure pas la fidélité. Presque toute l'histoire du
+compteur tient dans la fenêtre de 30 jours ; pour en sortir, il aurait fallu
+s'arrêter dans les trois premiers jours.
+
+**« Ces 30 derniers jours » en comptait 31.** La borne est obtenue en retranchant
+30 jours puis en tronquant au jour, et la comparaison est un `>=` : J-30 était
+inclus, ce qui fait 31 dates distinctes. On retranche maintenant 29 — aujourd'hui
+plus les 29 jours précédents —, et `probe-usages-serveur.js` pose un relevé par
+jour de J-0 à J-31 puis exige d'en voir **exactement 30** tomber dans la fenêtre.
+
+**Le relevé dit maintenant ce qu'il compte**, et ce qu'il ne compte pas :
+
+```
+323 installation(s) — un navigateur sur un appareil, pas une personne
+dont 284 ayant servi ces 30 derniers jours
+911 chargement(s) de page
+…
+CE QUE CES CHIFFRES NE COMPTENT PAS
+  · l'usage hors connexion : clé USB, fichier local, salle sans réseau
+  · les élèves qui ouvrent le lien de partage — zéro, par construction
+  · le logiciel affiché dans un cadre (ENT, Moodle, aperçu)
+  · une visite de moins de huit secondes
+  · ce qu'une installation fait le jour où elle sert pour la dernière
+    fois : le relevé part au début de la journée, pas à la fin
+ET UNE INSTALLATION NE DISPARAÎT JAMAIS : le total ne peut que monter.
+```
+
+La note est écrite **dans le relevé** plutôt que dans un fichier d'à côté, parce
+que c'est là qu'on le lit. Une mise en garde qu'il faut aller chercher ne sert à
+rien.
+
+**Et le serveur n'avait jamais été exécuté par personne.** `probe-usages.js`
+tenait le côté logiciel — ce qui se compte sur la machine, et surtout ce qui n'en
+part pas. Les quarante lignes du Worker, elles, n'étaient couvertes par aucune
+sonde : la phrase que lit le professeur était la seule du projet que rien ne
+vérifiait. `probe-usages-serveur.js` le charge maintenant pour de vrai, dans un
+bac à sable, avec un faux espace clé-valeur, et exerce ses deux routes. Elle
+**échoue 12 fois** sur la version d'avant.
 
 ### Une statistique qui n'arrive pas ressemble à une absence d'utilisateurs
 

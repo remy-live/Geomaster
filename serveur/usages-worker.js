@@ -14,8 +14,28 @@
  * POURQUOI ÉCRASER ? Parce que les compteurs du logiciel sont CUMULATIFS : le
  * dernier relevé d'une installation contient toute son histoire. Il n'y a donc
  * rien à accumuler ici, rien à dédupliquer, et la base ne grossit qu'avec le
- * nombre d'utilisateurs — pas avec le temps. Une clé par installation, et le
- * nombre de clés EST le nombre d'utilisateurs.
+ * nombre d'installations — pas avec le temps.
+ *
+ * UNE CLÉ N'EST PAS UNE PERSONNE, et ce fichier a longtemps écrit le contraire :
+ * « le nombre de clés EST le nombre d'utilisateurs ». C'était faux dans les deux
+ * sens, et le relevé le répétait en toutes lettres à qui le lisait.
+ *
+ *   UNE PERSONNE, PLUSIEURS CLÉS. L'identité tient dans un localStorage, cloisonné
+ *   par navigateur, par profil et par adresse. Le poste de classe, l'ordinateur de
+ *   la maison et le téléphone font trois clés ; Chrome et Firefox sur la même
+ *   machine en font deux ; vider les données du site en fabrique une neuve, et le
+ *   navigateur peut l'effacer tout seul. Rien ne les recoupe — et c'est voulu :
+ *   le relevé ne transporte ni adresse IP, ni empreinte, ni compte.
+ *
+ *   PLUSIEURS PERSONNES, UNE CLÉ. Un tableau blanc de salle utilisé par six
+ *   professeurs, un ordinateur de classe, une session partagée : une seule clé.
+ *   Et quand le navigateur refuse le stockage, le logiciel se rabat sur
+ *   l'identifiant « anonyme » — toutes ces installations se rangent alors sous
+ *   la MÊME clé, et seuls les compteurs de la dernière arrivée survivent.
+ *
+ * ET LA BASE NE DÉCROÎT JAMAIS : aucune clé n'expire ni n'est supprimée. Le
+ * total est un cumul depuis la mise en service, pas une population. Seule la
+ * ligne « ayant servi ces 30 derniers jours » est bornée dans le temps.
  *
  * ------------------------------------------------------------------
  * POSE
@@ -78,13 +98,18 @@ export default {
                 return rep('non', 403);
             }
             const total = {
-                utilisateurs: 0, ouvertures: 0, visites: 0,
+                installations: 0, ouvertures: 0, visites: 0,
                 consignes: { ok: 0, rate: 0 },
                 versions: {}, ecrans: {}, outils: {}, magies: {},
                 instruments: {}, exports: {}, incomprises: {},
                 actifs30j: 0,
             };
-            const limite = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+            /* TRENTE DATES, PAS TRENTE ET UNE. En retranchant 30 jours puis en
+               tronquant au jour, la borne tombe sur J-30 ; et la comparaison étant
+               un « >= », elle INCLUT ce jour-là. Cela faisait 31 dates distinctes
+               sous une phrase qui en annonce 30. On retranche donc 29 : aujourd'hui
+               plus les 29 jours précédents, c'est exactement ce que dit la phrase. */
+            const limite = new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
             let curseur;
             do {
                 const lot = await env.USAGES.list({ prefix: 'u:', cursor: curseur });
@@ -92,7 +117,7 @@ export default {
                     const brut = await env.USAGES.get(c.name);
                     if (!brut) continue;
                     let d; try { d = JSON.parse(brut); } catch (e) { continue; }
-                    total.utilisateurs++;
+                    total.installations++;
                     if ((d.dernier || '') >= limite) total.actifs30j++;
                     total.ouvertures += d.ouvertures || 0;
                     total.visites += d.visite || 0;
@@ -138,8 +163,9 @@ const enClair = (t) => {
         return r.length ? `\n${titre}\n` + r.map(([k, v]) => `  ${v}× ${k}`).join('\n') + '\n' : '';
     };
     let s = 'GÉOMASTER — usages\n\n';
-    s += `${t.utilisateurs} utilisateur(s), dont ${t.actifs30j} actif(s) ces 30 derniers jours\n`;
-    s += `${t.ouvertures} ouverture(s)\n`;
+    s += `${t.installations} installation(s) — un navigateur sur un appareil, pas une personne\n`;
+    s += `dont ${t.actifs30j} ayant servi ces 30 derniers jours\n`;
+    s += `${t.ouvertures} chargement(s) de page\n`;
     s += `consignes : ${t.consignes.ok} faites, ${t.consignes.rate} refusées\n`;
     s += `visite guidée : ${t.visites} fois\n`;
     s += bloc('VERSIONS', t.versions);
@@ -149,5 +175,17 @@ const enClair = (t) => {
     s += bloc('INSTRUMENTS', t.instruments);
     s += bloc('EXPORTS', t.exports);
     s += bloc('PHRASES NON COMPRISES', t.incomprises, 80);
+    /* CE QUE CES CHIFFRES NE COMPTENT PAS. Sans cette note, « 323 » se cite comme
+       « 323 professeurs », et c'est faux des deux côtés à la fois. Elle est écrite
+       ici plutôt que dans un fichier d'à côté parce que c'est ICI qu'on lit le
+       relevé — une mise en garde qu'il faut aller chercher ne sert à rien. */
+    s += '\nCE QUE CES CHIFFRES NE COMPTENT PAS\n'
+       + "  · l'usage hors connexion : clé USB, fichier local, salle sans réseau\n"
+       + '  · les élèves qui ouvrent le lien de partage — zéro, par construction\n'
+       + "  · le logiciel affiché dans un cadre (ENT, Moodle, aperçu)\n"
+       + '  · une visite de moins de huit secondes\n'
+       + "  · ce qu'une installation fait le jour où elle sert pour la dernière\n"
+       + '    fois : le relevé part au début de la journée, pas à la fin\n'
+       + 'ET UNE INSTALLATION NE DISPARAÎT JAMAIS : le total ne peut que monter.\n';
     return s;
 };

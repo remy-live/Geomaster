@@ -163,8 +163,9 @@ Un texte, en clair :
 ```
 GÉOMASTER — usages
 
-37 utilisateur(s), dont 21 actif(s) ces 30 derniers jours
-1 284 ouverture(s)
+37 installation(s) — un navigateur sur un appareil, pas une personne
+dont 21 ayant servi ces 30 derniers jours
+1 284 chargement(s) de page
 consignes : 903 faites, 217 refusées
 visite guidée : 44 fois
 
@@ -186,8 +187,21 @@ Ajoutez `&format=json` pour l'obtenir en JSON.
 Les compteurs du logiciel sont **cumulatifs** : le dernier relevé d'une
 installation contient toute son histoire. Le serveur écrase donc simplement
 l'entrée précédente — une clé par installation. Rien à dédupliquer, rien à
-purger, et la base ne grossit qu'avec le nombre d'utilisateurs, jamais avec le
-temps. Le **nombre de clés est le nombre d'utilisateurs**.
+purger, et la base ne grossit qu'avec le nombre d'installations, jamais avec le
+temps.
+
+**Mais une clé n'est pas une personne**, et ce fichier écrivait longtemps le
+contraire. Une personne a souvent plusieurs clés — poste de classe, ordinateur de
+maison, téléphone, deux navigateurs, un stockage vidé — et une clé recouvre
+parfois plusieurs personnes : un tableau de salle, un ordinateur de classe, ou le
+repli `anonyme` quand le navigateur refuse le stockage. Rien ne les recoupe, et
+c'est voulu : aucune adresse IP, aucune empreinte, aucun compte. Le relevé le dit
+maintenant lui-même, en tête et en pied de page.
+
+Et **aucune clé n'expire** : le total est un cumul depuis la mise en service, pas
+une population. Seule la ligne « ayant servi ces 30 derniers jours » est bornée
+dans le temps — trente dates exactement, ce que `tests/probe-usages-serveur.js`
+vérifie en posant un relevé par jour de J-0 à J-31.
 
 ## Sans serveur du tout
 

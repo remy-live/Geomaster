@@ -17248,9 +17248,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                 }
             }
+            /* « TOUT REMETTRE À ZÉRO » N'EN REMETTAIT QU'UNE PARTIE. Le lien
+               n'effaçait que gm_usage : le compteur d'ouvertures, rangé à part
+               dans gm_ouvertures, survivait intact. Le relevé repartait donc à
+               zéro consigne et zéro outil, mais gardait ses 42 ouvertures — un
+               état que rien ne peut produire par un usage réel, et que le
+               serveur recopie tel quel.
+               L'IDENTIFIANT, LUI, RESTE, ET C'EST VOULU : le remettre à zéro
+               fabriquerait une installation de plus pour la même personne, et
+               ferait compter deux fois quelqu'un qui voulait justement ne plus
+               compter du tout. Une exception assumée vaut mieux qu'un mot qui
+               ment : le lien dit maintenant ce qu'il garde. */
             usageOublier(lien) {
                 try { localStorage.removeItem('gm_usage'); } catch (e) { void e; }
-                if (lien) lien.textContent = 'Remis à zéro';
+                try { localStorage.removeItem('gm_ouvertures'); } catch (e) { void e; }
+                if (lien) lien.textContent = 'Remis à zéro (l\u2019identifiant reste)';
                 const pre = document.querySelector('.secret-releve');
                 if (pre) pre.textContent = this.usageTexte();
             }
@@ -47414,7 +47426,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-06 · 10h';
+        window.GM_VERSION = '2026-10-12 · 16h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
