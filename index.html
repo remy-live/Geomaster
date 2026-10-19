@@ -8692,6 +8692,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                    onchange="app.reglerDecor(this.checked)">
                             Montrer le décor de saison sur la feuille vide
                         </label>
+                        <p style="margin-top:8px;">Pour <strong>voir un décor avant sa
+                            date</strong>, ajoutez-le à l'adresse :
+                            <code>?decor=noel</code> pour une fête nommée,
+                            <code>?decor=12-10</code> pour un jour précis,
+                            <code>?decor=non</code> pour aucun. Un nom inconnu vous
+                            répond la liste.</p>
                     </div>
                 </div>
                 <div id="tab-header" style="display:none; display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -29388,15 +29394,59 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.reglerDecor(false);
                 this.showToast('Décor de saison masqué — pour le remettre : ? puis onglet Général.');
             }
+            /* VOIR NOËL EN OCTOBRE. « Comment je fais pour tester de façon
+               future ? » — sans réponse, il fallait changer l'horloge de la
+               machine pour vérifier un décor qui ne paraîtra que dans deux
+               mois. On le dit donc dans l'URL, là où ce logiciel dit déjà le
+               mode lecture et la figure partagée, et sans rien ajouter à
+               l'interface :
+
+                 index.html?decor=noel     — la fête nommée, quel que soit le jour
+                 index.html?decor=12-10    — comme si l'on était le 10 décembre
+                 index.html?decor=non      — aucun décor
+
+               Un nom inconnu ne se tait pas : il dit ce qu'il attendait. Un
+               décor forcé passe aussi par-dessus l'extinction, parce qu'on ne
+               force un décor que pour le regarder. */
+            decorForce() {
+                if (this._decorForce !== undefined) return this._decorForce;
+                let v = null;
+                try {
+                    const p = new URLSearchParams(location.search);
+                    const h = new URLSearchParams(location.hash.substring(1));
+                    v = p.get('decor') || h.get('decor');
+                } catch (e) { v = null; }
+                this._decorForce = v ? String(v).trim().toLowerCase() : null;
+                return this._decorForce;
+            }
             /* La fête du jour, s'il y en a une. Les bornes s'écrivent « MM-JJ »,
                ce qui se compare comme du texte ; une période qui enjambe le
                Nouvel An (Noël → Épiphanie) a son début APRÈS sa fin, et c'est
                ce cas-là que le « ou » attrape. */
             decorDuJour(quand) {
-                const d = quand || new Date();
-                const jour = String(d.getMonth() + 1).padStart(2, '0') + '-'
-                           + String(d.getDate()).padStart(2, '0');
                 const liste = window.GM_DECORS || [];
+                const forcee = this.decorForce();
+                let jour = null;
+                if (forcee) {
+                    if (forcee === 'non' || forcee === 'aucun' || forcee === '0') return null;
+                    const voulue = liste.find(t => t.cle === forcee);
+                    if (voulue) return voulue;
+                    if (/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(forcee)) jour = forcee;
+                    else if (!this._decorForceDit) {
+                        /* UN PARAMÈTRE QU'ON NE COMPREND PAS NE S'IGNORE PAS EN
+                           SILENCE : celui qui l'a écrit attend quelque chose, et
+                           ne pas répondre lui fait croire que le décor est cassé. */
+                        this._decorForceDit = true;
+                        const noms = liste.map(t => t.cle).join(', ');
+                        setTimeout(() => this.showToast(
+                            `Décor « ${forcee} » inconnu — essayez ${noms}, une date MM-JJ, ou non.`), 1000);
+                    }
+                }
+                if (!jour) {
+                    const d = quand || new Date();
+                    jour = String(d.getMonth() + 1).padStart(2, '0') + '-'
+                         + String(d.getDate()).padStart(2, '0');
+                }
                 for (const t of liste) {
                     const dedans = (t.du <= t.au) ? (jour >= t.du && jour <= t.au)
                                                   : (jour >= t.du || jour <= t.au);
@@ -29440,8 +29490,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const montre = !!(inv && inv.style.display !== 'none');
                 let cadre = false;
                 try { cadre = window.top !== window.self; } catch (e) { cadre = true; }
-                const theme = (montre && !cadre && !this.decorMasque())
-                    ? this.decorDuJour() : null;
+                /* Un décor demandé dans l'URL passe par-dessus l'interrupteur :
+                   on ne force un décor que pour le regarder. « non », lui, reste
+                   un refus — decorDuJour s'en charge. */
+                const force = this.decorForce();
+                const eteint = this.decorMasque() && !(force && force !== 'non');
+                const theme = (montre && !cadre && !eteint) ? this.decorDuJour() : null;
                 if (!theme) { if (hote) hote.remove(); return; }
                 if (hote && hote.dataset.cle === theme.cle) { this.calerDecor(hote); return; }
                 if (hote) hote.remove();
@@ -47807,7 +47861,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-19 · 17h';
+        window.GM_VERSION = '2026-10-19 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

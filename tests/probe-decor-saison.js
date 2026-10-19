@@ -55,7 +55,7 @@ const propre = async (page) => page.evaluate(() => {
     const page = await ctx.newPage();
     const errs = []; page.on('pageerror', e => errs.push(e.message));
     if (opts.date) await page.addInitScript(FEINDRE(opts.date[0], opts.date[1]));
-    await page.goto(PAGE);
+    await page.goto(PAGE + (opts.q ? '?' + opts.q : ''));
     await page.waitForFunction(() => window.app);
     await page.waitForTimeout(500);
     await propre(page);
@@ -376,6 +376,73 @@ const propre = async (page) => page.evaluate(() => {
     ck('pas de décor dans un cadre', dedans === false, String(dedans));
     await ctx.close();
     await b2.close();
+  }
+
+  console.log('\n=== VOIR UN DÉCOR AVANT SA DATE ===');
+  // « Comment je fais pour tester de façon future ? » Sans réponse, il fallait
+  // changer l'horloge de la machine pour vérifier un décor qui ne paraîtra que
+  // dans deux mois. Le paramètre ?decor= répond — encore faut-il qu'il marche,
+  // et qu'il PARLE quand on lui donne n'importe quoi.
+  {
+    const T = await (async () => {
+      const { page, ctx } = await neuf2({ date: [6, 15] });
+      const t = await page.evaluate(() => (window.GM_DECORS || []).map(x => x.cle));
+      await ctx.close();
+      return t;
+    })();
+
+    // en juin, aucune fête : tout ce qui paraît ci-dessous vient du paramètre
+    for (const cle of T) {
+      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=' + cle });
+      const r = await page.evaluate(() => {
+        const h = document.getElementById('gmDecor');
+        return h ? h.dataset.cle : null;
+      });
+      ck(`?decor=${cle} montre ${cle} en plein mois de juin`, r === cle, String(r));
+      await ctx.close();
+    }
+    {
+      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=10-31' });
+      const r = await page.evaluate(() => {
+        const h = document.getElementById('gmDecor'); return h ? h.dataset.cle : null; });
+      ck('?decor=10-31 fait comme si l\'on était le 31 octobre', r === 'halloween', String(r));
+      await ctx.close();
+    }
+    {
+      const { page, ctx } = await neuf2({ date: [10, 19], q: 'decor=non' });
+      ck('?decor=non éteint le décor un jour où il paraîtrait',
+         await page.evaluate(() => !document.getElementById('gmDecor')));
+      await ctx.close();
+    }
+    {
+      // UN DÉCOR FORCÉ PASSE PAR-DESSUS L'EXTINCTION : on ne force un décor
+      // que pour le regarder.
+      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=' + T[0] });
+      const r = await page.evaluate((cle) => {
+        window.app.reglerDecor(false);          // comme si l'on avait cliqué la croix
+        window.app.render();
+        const h = document.getElementById('gmDecor');
+        return { eteint: localStorage.getItem('gm_decor') === 'non',
+                 la: h ? h.dataset.cle : null };
+      }, T[0]);
+      ck('le décor forcé reste visible même après extinction',
+         r.eteint === true && r.la === T[0], JSON.stringify(r));
+      await ctx.close();
+    }
+    {
+      // UN NOM INCONNU NE SE TAIT PAS. Sans ce message, celui qui a mal
+      // orthographié la fête croit le décor cassé.
+      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=paques' });
+      await page.waitForTimeout(1600);
+      const t = await page.evaluate(() => {
+        const el = document.getElementById('toast-notification');
+        return el ? { vu: /show/.test(el.className), txt: el.innerText } : null;
+      });
+      ck('un nom inconnu répond la liste des fêtes',
+         !!t && t.vu && /inconnu/.test(t.txt) && t.txt.includes(T[0]),
+         t ? t.txt.slice(0, 90) : 'pas de message');
+      await ctx.close();
+    }
   }
 
   console.log('\n=== AU TÉLÉPHONE ===');

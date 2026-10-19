@@ -4319,6 +4319,23 @@ l'écran — on cliquait sur une chauve-souris, on recevait un bout d'aile. La v
 se cale donc sur la figure, mais seulement si la feuille était vide : on ne
 déplace pas la vue de quelqu'un qui travaillait déjà.
 
+**Voir Noël en octobre.** *« Comment je fais pour tester de façon future ? »*
+Sans réponse, il fallait changer l'horloge de la machine pour vérifier un décor
+qui ne paraîtra que dans deux mois. Cela se dit maintenant dans l'adresse, là
+où ce logiciel dit déjà le mode lecture et la figure partagée — et sans rien
+ajouter à l'interface :
+
+| | |
+| --- | --- |
+| `?decor=noel` | la fête nommée, quel que soit le jour |
+| `?decor=12-10` | comme si l'on était le 10 décembre |
+| `?decor=non` | aucun décor |
+
+Un nom inconnu **ne se tait pas** : il répond la liste des fêtes connues. Celui
+qui écrit `?decor=paque` au lieu de `?decor=paques` doit l'apprendre tout de
+suite, pas croire le décor cassé. Et un décor demandé dans l'adresse passe
+par-dessus la croix d'extinction : on ne force un décor que pour le regarder.
+
 Les trois dessins pèsent **2,6 ko de SVG**, écrits dans la page, sans image ni
 requête.
 
