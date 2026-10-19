@@ -36,7 +36,7 @@ const propre = async (page) => page.evaluate(() => {
   const b = await chromium.launch({ executablePath: NAVIGATEUR });
   let fail = 0;
   const ck = (l, ok, d) => { console.log(`  ${ok ? '✓' : '✗'} ${l}${d ? ' — ' + d : ''}`); if (!ok) fail++; };
-  const neuf = async (opts = {}) => {
+  const neuf2 = async (opts = {}) => {
     const ctx = await b.newContext({ viewport: opts.vp || { width: 1366, height: 768 },
                                      hasTouch: !!opts.touch, isMobile: !!opts.touch });
     const page = await ctx.newPage();
@@ -59,7 +59,7 @@ const propre = async (page) => page.evaluate(() => {
     [11, 1, false, 'le lendemain'],
     [6, 15, false, 'en juin, aucune fête'],
   ]) {
-    const { page, ctx, errs } = await neuf({ date: [mois, jour] });
+    const { page, ctx, errs } = await neuf2({ date: [mois, jour] });
     const la = await page.evaluate(() => !!document.getElementById('gmDecor'));
     ck(`${String(mois).padStart(2, '0')}-${String(jour).padStart(2, '0')} : `
        + (attendu ? 'décor présent' : 'pas de décor') + ` (${quoi})`,
@@ -70,7 +70,7 @@ const propre = async (page) => page.evaluate(() => {
 
   console.log('\n=== CE QUE LE DÉCOR NE DOIT JAMAIS MANGER ===');
   {
-    const { page, ctx, errs } = await neuf({ date: [10, 19] });
+    const { page, ctx, errs } = await neuf2({ date: [10, 19] });
     const m = await page.evaluate(() => {
       const h = document.getElementById('gmDecor');
       if (!h) return { absent: true };
@@ -137,7 +137,7 @@ const propre = async (page) => page.evaluate(() => {
 
   console.log('\n=== UN CLIC SUR UN MOTIF TRACE VRAIMENT ===');
   {
-    const { page, ctx, errs } = await neuf({ date: [10, 19] });
+    const { page, ctx, errs } = await neuf2({ date: [10, 19] });
     const avant = await page.evaluate(() => window.app.entities.length);
     const cliquables = await page.locator('button.gm-decor-piece').count();
     ck('au moins un motif est cliquable', cliquables > 0, cliquables + ' cliquable(s)');
@@ -160,13 +160,43 @@ const propre = async (page) => page.evaluate(() => {
       ck('aucune ligne refusée', apres.rates === 0, apres.rates + ' refus');
       ck('le décor s\'efface dès qu\'il y a une figure', apres.decor === false);
     }
+    /* LA FIGURE DOIT ÊTRE SOUS LES YEUX, pas quelque part plus bas. Mesuré
+       sans recadrage sur 1366 × 768 : la chauve-souris ne tenait qu'à 76 %
+       dans l'écran. On exige la figure ENTIÈRE, pour chacun des trois motifs.
+       L'emprise est demandée au logiciel (getSceneBounds), qui échantillonne
+       chaque arc sur sa portion réellement tracée : prendre la boîte du cercle
+       entier faisait crier au débordement sur une toile qui tenait déjà. */
+    for (let i = 0; i < 3; i++) {
+      const { page: p2, ctx: c2 } = await neuf2({ date: [10, 19] });
+      const nom = await p2.evaluate((i) => {
+        const b = document.querySelectorAll('button.gm-decor-piece')[i];
+        return b ? b.getAttribute('aria-label').replace('Tracer ', '') : null; }, i);
+      await p2.locator('button.gm-decor-piece').nth(i).click();
+      await p2.waitForTimeout(1200);
+      const v = await p2.evaluate(() => {
+        const app = window.app;
+        const sb = app.getSceneBounds(false);
+        if (!sb || !isFinite(sb.minX)) return null;
+        const r = app.canvas.getBoundingClientRect(), vv = app.view;
+        const ec = (x, y) => ({ x: x * vv.zoom + vv.x + r.left, y: y * vv.zoom + vv.y + r.top });
+        const a = ec(sb.minX, sb.minY), b = ec(sb.maxX, sb.maxY);
+        const vis = { l: Math.max(0, r.left), t: Math.max(0, r.top),
+                      r: Math.min(innerWidth, r.right), b: Math.min(innerHeight, r.bottom) };
+        const dedans = Math.max(0, Math.min(b.x, vis.r) - Math.max(a.x, vis.l))
+                     * Math.max(0, Math.min(b.y, vis.b) - Math.max(a.y, vis.t));
+        return { part: Math.round(100 * dedans / Math.max(1, (b.x - a.x) * (b.y - a.y))) };
+      });
+      ck(`${nom} : la figure entière est dans l'écran`, v && v.part >= 99,
+         v ? v.part + '%' : 'aucune emprise');
+      await c2.close();
+    }
     if (errs.length) ck('pas d\'erreur JS', false, errs[0].slice(0, 90));
     await ctx.close();
   }
 
   console.log('\n=== ON PEUT L\'ÉTEINDRE, ET ÇA TIENT ===');
   {
-    const { page, ctx, errs } = await neuf({ date: [10, 19] });
+    const { page, ctx, errs } = await neuf2({ date: [10, 19] });
     ck('présent au départ', await page.evaluate(() => !!document.getElementById('gmDecor')));
     await page.evaluate(() => document.querySelector('.gm-decor-fermer').click());
     await page.waitForTimeout(250);
@@ -197,7 +227,7 @@ const propre = async (page) => page.evaluate(() => {
 
   console.log('\n=== LÀ OÙ IL NE DOIT JAMAIS PARAÎTRE ===');
   {
-    const { page, ctx } = await neuf({ date: [10, 19] });
+    const { page, ctx } = await neuf2({ date: [10, 19] });
     const r = await page.evaluate(() => {
       const out = {};
       document.body.classList.add('mode-lecture');
@@ -264,7 +294,7 @@ const propre = async (page) => page.evaluate(() => {
 
   console.log('\n=== AU TÉLÉPHONE ===');
   {
-    const { page, ctx } = await neuf({ date: [10, 19], touch: true,
+    const { page, ctx } = await neuf2({ date: [10, 19], touch: true,
                                        vp: { width: 390, height: 844 } });
     const m = await page.evaluate(() => {
       const h = document.getElementById('gmDecor');

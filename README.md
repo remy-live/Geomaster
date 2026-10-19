@@ -4266,6 +4266,31 @@ et c'est l'emblème qu'on garde, pas le plus discret, puisque chaque motif est
 une porte et qu'en fermer deux sur trois reviendrait à réserver les
 constructions aux grands écrans.
 
+**Les trois portes.** La citrouille ouvre une construction au compas : trois
+cercles de même rayon aux centres alignés, l'intersection de deux d'entre eux,
+un report de longueur, une symétrie axiale — 12 lignes, 20 objets. La toile
+d'araignée est la plus belle géométrie des trois : on pose un rayon, on le fait
+tourner de 22,5° puis de 45°, 90°, 180° pour obtenir les huit rayons, deux
+homothéties donnent les anneaux, et seize arcs de cercle font retomber les fils
+en festons — 14 lignes, 68 objets. La chauve-souris est la plus faible : dix
+points placés par leurs distances à deux points connus (c'est une vraie
+construction au compas, mais répétitive), puis **huit symétriques d'un coup par
+rapport à l'axe** et un polygone de vingt sommets — 14 lignes, 42 objets. Les
+trois tracent **toutes leurs lignes, sans un seul refus**.
+
+Elles ont été choisies par comparaison : trois tentatives indépendantes par
+motif, exécutées pour de bon, puis départagées par un juge qui avait les images
+sous les yeux — et qui a superposé les silhouettes au dessin de départ,
+**95,3 % de recouvrement** pour la chauve-souris retenue contre 93,2 et 89,8
+pour les deux autres. Les trois auteurs s'étaient notés 7,5 ou 8 sur 10 ; le
+juge a jugé ces notes trop généreuses, pour les six.
+
+**La figure est amenée sous les yeux.** Mesuré sur un portable de classe
+(1366 × 768), sans recadrage : la chauve-souris ne tenait qu'à **76 %** dans
+l'écran — on cliquait sur une chauve-souris, on recevait un bout d'aile. La vue
+se cale donc sur la figure, mais seulement si la feuille était vide : on ne
+déplace pas la vue de quelqu'un qui travaillait déjà.
+
 Les trois dessins pèsent **2,6 ko de SVG**, écrits dans la page, sans image ni
 requête.
 
@@ -4277,6 +4302,14 @@ paraître. Et au téléphone, une croix de 32 px se plantait dans une citrouille
 45. La sonde ne comparait le décor qu'aux **commandes du logiciel**, jamais à
 lui-même ; deux éléments du décor qui se marchent dessus sont pourtant un défaut
 comme un autre — et c'est celui qu'on voit en premier.
+
+Et un troisième, plus instructif : **j'ai failli corriger un défaut qui n'existait
+pas.** La sonde du cadrage prenait, pour chaque arc, la boîte du **cercle
+entier** — alors qu'on n'en trace qu'un morceau. Elle annonçait « la toile ne
+tient qu'à 57 % dans l'écran » pour une toile qui y tenait tout entière. Le
+logiciel, lui, échantillonne chaque arc sur sa portion réelle depuis toujours
+(`getSceneBounds`) ; c'est à lui qu'on demande désormais l'emprise. Le vrai
+défaut était ailleurs, plus petit et bien réel : la chauve-souris à 76 %.
 
 ### Et aussi
 
