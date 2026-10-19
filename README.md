@@ -4197,6 +4197,87 @@ L'index n'est écrit nulle part : il est récolté dans la page à chaque ouvert
 Une commande ajoutée à l'interface est donc trouvable le jour même, et une
 commande retirée disparaît d'elle-même.
 
+### Le décor de saison, et ce qu'il y a derrière
+
+*« Quand on s'approche d'une fête, on peut rajouter un élément de décor sur
+l'accueil : une citrouille, une chauve-souris, une toile d'araignée. »*
+Puis, aussitôt : *« Mais quand on clique dessus, il faut pouvoir avoir la
+construction, on est d'accord. »* Et enfin : *« Il faut pouvoir aussi cacher ce
+décor. »*
+
+Trois phrases, et la deuxième change tout : ce n'est plus un ornement, c'est une
+**porte d'entrée**. À l'approche d'une fête, trois petits dessins paraissent sur
+la feuille vide ; un clic sur l'un d'eux écrit l'énoncé dans le panneau des
+consignes et le trace.
+
+**La rangée centrée était un piège, et ce sont les chiffres qui l'ont dit.**
+Quatre traitements graphiques ont été dessinés, puis montrés à des lecteurs à
+qui l'on n'avait rien dit, avec une seule question : *nommez ces trois dessins.*
+Les quatre jeux ont été reconnus **3 sur 3** — citrouille et toile avec 10 de
+sûreté sur 10, la chauve-souris avec 8, qui reste le motif fragile. Mais sur la
+POSE, le verdict a été unanime et contraire : **quatre juges sur quatre** ont
+condamné la rangée centrée au-dessus de l'invitation. L'un l'a chiffrée : le
+décor pesait **35 431 pixels d'encre contre 2 831** pour « Écrivez ce que vous
+voulez tracer » — douze fois et demie —, avec un contraste de **Δ54 à Δ62**
+contre le fond, quand le quadrillage lui-même n'est qu'à **Δ10**. Une décoration
+doit se tenir au niveau de la grille ; celle-là était six fois au-dessus, et
+elle précédait l'invitation dans l'ordre de lecture.
+
+Pire que le poids : la **forme**. Trois motifs de masse égale, régulièrement
+espacés, centrés juste au-dessus d'un champ de saisie, c'est la géométrie exacte
+d'une rangée de boutons de suggestion — et dans un logiciel dont toutes les
+autres surfaces sont des grilles d'icônes, cela faisait un quatrième amas de
+commandes. Au tableau numérique, un élève serait allé taper sur la citrouille.
+
+Ils sont donc partis aux bords, à trois tailles franchement inégales et sans axe
+commun : **la toile dans l'angle, coupée par le bord** — c'est là que vivent les
+vraies toiles —, la chauve-souris petite et haute, la citrouille posée en bas.
+Le milieu de l'écran appartient à la feuille et à la phrase. Et puisqu'on peut
+cliquer dessus, la fausse affordance que craignaient les juges est devenue une
+vraie : au survol, le motif reprend sa pleine encre, grandit d'un rien et
+annonce ce qu'il fera.
+
+**Le bloc ne prend pas les clics ; les motifs seuls en prennent.** C'est la même
+règle que l'invitation, et pour la même raison : un décor posé sur une feuille
+vide mangerait sinon le premier clic de qui veut dessiner à la main. La sonde ne
+le croit pas sur parole, elle interroge le point le plus dangereux — le centre
+du bloc — et exige que `elementFromPoint` y réponde `geoCanvas`.
+
+**Un clic écrit avant de tracer.** Les douze lignes de la citrouille vont se
+ranger **une par une** dans le panneau des consignes, qui s'ouvre, puis sont
+exécutées : on voit le texte qui a produit la figure, on peut le modifier, le
+rejouer aux instruments, le donner aux élèves. Rien n'est fait en douce. Et si
+une ligne échoue, le logiciel le dit : *« 10 lignes sur 12 — voyez le panneau
+des consignes »*. Une figure incomplète sans un mot, ce serait le logiciel
+laissant croire qu'il a fait ce qu'on lui demandait.
+
+**On peut l'éteindre, et ça tient.** Une croix paraît au survol, à côté du
+motif ; elle éteint le décor pour de bon, et le réglage survit au rechargement.
+Le chemin du retour est dit au moment même où l'on éteint : l'aide, onglet
+Général, où une seule ligne a été ajoutée — il n'y a pas de panneau de réglages
+dans GéoMaster, et ce n'était pas une raison pour en créer un.
+
+Le décor suit la vie de l'invitation, exactement : feuille vide, pas de mode
+lecture, pas d'outil en main, pas écarté d'un clic. Il y ajoute deux refus
+propres : **jamais dans un cadre** — un GéoMaster encastré dans un cahier en
+ligne n'a pas à fêter Halloween chez l'hôte — et jamais s'il a été éteint. Au
+téléphone, où la zone utile tombe à **278 px de large**, il n'en reste qu'un :
+et c'est l'emblème qu'on garde, pas le plus discret, puisque chaque motif est
+une porte et qu'en fermer deux sur trois reviendrait à réserver les
+constructions aux grands écrans.
+
+Les trois dessins pèsent **2,6 ko de SVG**, écrits dans la page, sans image ni
+requête.
+
+**Deux défauts ont été attrapés en chemin, et ils étaient tous deux dans l'outil
+de mesure.** L'infobulle « Tracer une citrouille » s'ouvre par le haut et
+recouvrait la croix, qui était posée au-dessus du motif : on proposait d'éteindre
+le décor avec un bouton masqué au moment précis où l'on venait de le faire
+paraître. Et au téléphone, une croix de 32 px se plantait dans une citrouille de
+45. La sonde ne comparait le décor qu'aux **commandes du logiciel**, jamais à
+lui-même ; deux éléments du décor qui se marchent dessus sont pourtant un défaut
+comme un autre — et c'est celui qu'on voit en premier.
+
 ### Et aussi
 
 Cinq quadrillages, symétries axiale et centrale, médiatrices, bissectrices,
