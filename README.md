@@ -4266,17 +4266,45 @@ et c'est l'emblème qu'on garde, pas le plus discret, puisque chaque motif est
 une porte et qu'en fermer deux sur trois reviendrait à réserver les
 constructions aux grands écrans.
 
-**Les trois portes.** La citrouille ouvre une construction au compas : trois
-cercles de même rayon aux centres alignés, l'intersection de deux d'entre eux,
-un report de longueur, une symétrie axiale — 12 lignes, 20 objets. La toile
-d'araignée est la plus belle géométrie des trois : on pose un rayon, on le fait
-tourner de 22,5° puis de 45°, 90°, 180° pour obtenir les huit rayons, deux
-homothéties donnent les anneaux, et seize arcs de cercle font retomber les fils
-en festons — 14 lignes, 68 objets. La chauve-souris est la plus faible : dix
-points placés par leurs distances à deux points connus (c'est une vraie
-construction au compas, mais répétitive), puis **huit symétriques d'un coup par
-rapport à l'axe** et un polygone de vingt sommets — 14 lignes, 42 objets. Les
-trois tracent **toutes leurs lignes, sans un seul refus**.
+**Les trois portes, au programme de 6e.** *« Les constructions sont au collège
+et donnables à des 6e — tu t'embarrasses peut-être un peu niveau difficulté,
+non ? Garde la toile, que l'on peut faire sans homothétie. »* C'était juste, et
+net : la première toile employait des **rotations de 22,5°** et des
+**homothéties de rapport 1,4**, qui sont des notions de **troisième**. Tout a
+été refait avec les seules notions de sixième.
+
+La citrouille était déjà au bon niveau — 12 lignes : trois cercles de même
+rayon aux centres alignés, milieu d'un segment, intersection de deux cercles,
+report d'une longueur, symétrie axiale, disque, demi-cercle.
+
+La toile tient en **9 lignes et ne mesure rien** : un octogone régulier inscrit
+dans un cercle, ses huit rayons, puis trois séries de **milieux** qui donnent
+les trois anneaux intérieurs. Pas une seule longueur à la règle graduée — un
+élève la refait au compas et à la règle non graduée.
+
+La chauve-souris tient en **19 lignes** et c'est une leçon de symétrie axiale.
+Un rectangle de 12 × 7 sert de **cadre** : tout s'y accroche. Deux milieux
+donnent l'axe, des longueurs **rondes** (1 ; 1,5 ; 2,5 ; 3,5 ; 4,5 cm) placent
+les points de l'aile, trois milieux affinent le bord, on trace **une
+demi-chauve-souris**, et une seule ligne renvoie **les cinq symétriques d'un
+coup**.
+
+**Le déroulé est devenu un critère.** *« Je n'ai pas vu ta construction,
+j'aimerais bien voir le déroulé avant de valider. »* Une planche d'une vignette
+par ligne, à cadre constant, a donc été fabriquée — et elle a condamné la
+première chauve-souris mieux qu'aucun raisonnement : **treize vignettes sur
+quatorze ne montraient que des croix rouges éparpillées**. L'élève plaçait
+douze points en recopiant des décimales (7,3 cm, 2,1 cm, 8,4 cm…) sans rien
+voir apparaître, puis la figure entière surgissait d'un coup à la ligne 14.
+C'est l'inverse d'un exercice de construction. Une construction dont onze
+vignettes sur douze sont identiques est un mauvais exercice, et cela se voit
+d'un coup d'œil quand on les pose côte à côte.
+
+Un juge a aussi vu que les quatre demi-cercles censés festonner le bord des
+ailes **pendaient hors de la silhouette** : le polygone s'arrêtait sur la
+droite, et les arcs flottaient en dessous en trait seul, comme des boucles
+décoratives. Ils ont été retirés ; le bord festonné passe par les points
+eux-mêmes.
 
 Elles ont été choisies par comparaison : trois tentatives indépendantes par
 motif, exécutées pour de bon, puis départagées par un juge qui avait les images
@@ -4303,8 +4331,35 @@ paraître. Et au téléphone, une croix de 32 px se plantait dans une citrouille
 lui-même ; deux éléments du décor qui se marchent dessus sont pourtant un défaut
 comme un autre — et c'est celui qu'on voit en premier.
 
-Et un troisième, plus instructif : **j'ai failli corriger un défaut qui n'existait
-pas.** La sonde du cadrage prenait, pour chaque arc, la boîte du **cercle
+### Le nom demandé n'était pas le nom posé
+
+Le quatrième anneau de la toile refusait de se tracer : *« Je ne connais pas
+H' »*. Mesuré sur un cas minimal, la cause était ailleurs que là où l'erreur
+s'affichait :
+
+| ce qu'on écrit | ce que le logiciel pose |
+| --- | --- |
+| `Place le milieu M' de [AB]` | **M'** — le nom est tenu |
+| `Place les milieux P' de [AB] et Q' de [AC]` | **P, Q** — les apostrophes ont disparu |
+
+Et le message disait « Milieux : P, Q » : la vérité sur ce qu'il avait **fait**,
+jamais qu'il avait **ignoré les noms demandés**. La ligne qui parlait de P'
+échouait trois lignes plus bas, loin de la cause. Le singulier tenait son nom ;
+seul le pluriel mentait.
+
+La cause tient en une frontière de mot. La règle qui cherche le nom écrit
+devant le crochet était `/\b[A-Z]'{0,2}\b/` : le `\b` **final** exige une
+frontière après l'apostrophe, or ni `'` ni l'espace ne sont des caractères de
+mot — il n'y en a donc jamais, et `A'` ne pouvait matcher que `A`. Les deux
+`\b` sont remplacés par des gardes qui regardent les lettres : rien avant,
+rien après, ce qui laisse passer l'apostrophe et refuse toujours de couper
+`AB` en deux.
+
+C'est le défaut type de ce logiciel, et le plus coûteux : **faire quelque chose
+de plausible sans dire qu'on a ignoré la demande.**
+
+Et un troisième défaut de sonde, plus instructif : **j'ai failli corriger un
+défaut qui n'existait pas.** La sonde du cadrage prenait, pour chaque arc, la boîte du **cercle
 entier** — alors qu'on n'en trace qu'un morceau. Elle annonçait « la toile ne
 tient qu'à 57 % dans l'écran » pour une toile qui y tenait tout entière. Le
 logiciel, lui, échantillonne chaque arc sur sa portion réelle depuis toujours
