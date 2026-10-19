@@ -4345,6 +4345,16 @@ Et la sonde a validé Noël **sans qu'une seule ligne de contrôle soit écrite*
 elle parcourt la table, donc toute fête ajoutée est éprouvée le jour où elle
 entre.
 
+**Pâques, la troisième fête.** Quinze jours avant le dimanche de Pâques
+jusqu'au lundi férié : un **lapin** dans l'angle, une **cloche** en haut — dans
+la tradition française ce sont les cloches qui apportent les œufs, et c'est un
+motif au moins aussi juste que le lapin — et un **œuf décoré** en bas, qui est
+l'emblème et reste donc seul sur téléphone. Deux jeux ont été dessinés, tous
+deux reconnus **3/3** par un lecteur à qui l'on n'avait rien dit ; le retenu est
+le plus léger (1 173 octets contre 1 780, cinq tours de correction contre
+douze) et son lapin est mieux nommé — du second, le juge dit que le bas du
+corps « se lit tout aussi bien comme un bonnet à pompon ».
+
 ### La date de Pâques se calcule, elle ne s'écrit pas dans une table
 
 Les autres fêtes tombent le même jour chaque année : deux bornes `MM-JJ`

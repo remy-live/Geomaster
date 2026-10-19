@@ -14,9 +14,14 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
 
 // On ne dépend pas de la date du jour : on la FEINT. Une sonde qui ne passe
 // qu'au mois d'octobre n'est pas une sonde, c'est un hasard.
-const FEINDRE = (mois, jour) => `(() => {
+// L'ANNÉE COMPTE, DEPUIS QU'UNE FÊTE EST MOBILE. La sonde calculait les bornes
+// de Pâques pour 2027 (du 14 mars) puis ouvrait une page en feignant le 14 mars
+// 2026 — année où Pâques tombe le 5 avril, donc hors fenêtre. Elle accusait le
+// logiciel de ne pas montrer un décor qu'il avait raison de cacher. C'est
+// exactement le piège qu'une date mobile tend à qui raisonne par quantième.
+const FEINDRE = (mois, jour, annee = 2026) => `(() => {
   const V = Date;
-  const faux = new V(2026, ${mois - 1}, ${jour}, 10, 0, 0);
+  const faux = new V(${annee}, ${mois - 1}, ${jour}, 10, 0, 0);
   class D extends V {
     constructor(...a) { if (!a.length) { super(faux.getTime()); } else { super(...a); } }
     static now() { return faux.getTime(); }
@@ -54,7 +59,7 @@ const propre = async (page) => page.evaluate(() => {
                                      hasTouch: !!opts.touch, isMobile: !!opts.touch });
     const page = await ctx.newPage();
     const errs = []; page.on('pageerror', e => errs.push(e.message));
-    if (opts.date) await page.addInitScript(FEINDRE(opts.date[0], opts.date[1]));
+    if (opts.date) await page.addInitScript(FEINDRE(opts.date[0], opts.date[1], opts.date[2]));
     await page.goto(PAGE + (opts.q ? '?' + opts.q : ''));
     await page.waitForFunction(() => window.app);
     await page.waitForTimeout(500);
@@ -180,21 +185,21 @@ const propre = async (page) => page.evaluate(() => {
       const { page: pb, ctx: cb } = await neuf2({ date: [6, 15] });
       const r = await pb.evaluate(() => (window.GM_DECORS || []).map(t => {
         const b = window.app.decorBornes(t, new Date(2027, 5, 1));
-        return { cle: t.cle, du: b.du, n: (t.motifs || []).length };
+        return { cle: t.cle, du: b.du, n: (t.motifs || []).length, an: 2027 };
       }));
       await cb.close();
       return r;
     })();
     for (const t of bornes) {
       const [mo, jo] = String(t.du).split('-').map(Number);
-      const { page: p3, ctx: c3 } = await neuf2({ date: [mo, jo] });
+      const { page: p3, ctx: c3 } = await neuf2({ date: [mo, jo, t.an] });
       const r = await p3.evaluate(() => {
         const h = document.getElementById('gmDecor');
         return h ? { cle: h.dataset.cle,
                      motifs: h.querySelectorAll('.gm-decor-piece').length,
                      portes: h.querySelectorAll('button.gm-decor-piece').length } : null;
       });
-      ck(`${t.cle} : paraît bien le ${t.du}, avec ses ${t.n} motifs`,
+      ck(`${t.cle} : paraît bien le ${t.du} ${t.an}, avec ses ${t.n} motifs`,
          !!r && r.cle === t.cle && r.motifs === t.n,
          r ? `${r.cle}, ${r.motifs} motifs dont ${r.portes} cliquables` : 'aucun décor');
       await c3.close();
@@ -481,7 +486,12 @@ const propre = async (page) => page.evaluate(() => {
     {
       // UN NOM INCONNU NE SE TAIT PAS. Sans ce message, celui qui a mal
       // orthographié la fête croit le décor cassé.
-      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=paques' });
+      /* LE NOM D'ESSAI NE DOIT JAMAIS POUVOIR DEVENIR UNE FÊTE. Il valait
+         « paques » : le jour où Pâques est entrée dans la table, le contrôle a
+         cessé de mesurer quoi que ce soit — un nom inconnu devenu connu ne
+         déclenche plus rien, et la sonde l'a signalé en échouant, ce qui est
+         la bonne façon de mourir. */
+      const { page, ctx } = await neuf2({ date: [6, 15], q: 'decor=courgette' });
       await page.waitForTimeout(1600);
       const t = await page.evaluate(() => {
         const el = document.getElementById('toast-notification');
