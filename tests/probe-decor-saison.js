@@ -95,9 +95,18 @@ const propre = async (page) => page.evaluate(() => {
     const places = ['coin', 'haut', 'bas'];
     T.forEach(t => {
       const nom = t && t.cle ? t.cle : '(sans clé)';
+      /* UNE FÊTE MOBILE N'A PAS DE BORNES ÉCRITES : elles se calculent à
+         partir du dimanche de Pâques de l'année en cours. Sans ce cas, le
+         contrôle réclamait un « MM-JJ » que Pâques n'a pas — et pire, la
+         vérification des collisions plus bas comparait des bornes
+         INDÉFINIES, donc ne trouvait jamais rien. Elle mesurait le vide. */
+      const mobile = !!t.mobile;
       ck(`${nom} : clé, nom et bornes bien formées`,
-         !!(t.cle && t.nom && jour.test(t.du || '') && jour.test(t.au || '')),
-         `du ${t.du} au ${t.au}`);
+         !!(t.cle && t.nom && (mobile
+              ? (t.mobile === 'paques' && Number.isFinite(t.avant) && Number.isFinite(t.apres))
+              : (jour.test(t.du || '') && jour.test(t.au || '')))),
+         mobile ? `mobile : ${t.avant} jours avant Pâques à ${t.apres} après`
+                : `du ${t.du} au ${t.au}`);
       const m = t.motifs || [];
       ck(`${nom} : au moins un motif`, m.length > 0, m.length + ' motif(s)');
       const vus = new Set();
@@ -122,21 +131,61 @@ const propre = async (page) => page.evaluate(() => {
     });
     // DEUX FÊTES LE MÊME JOUR SERAIENT UNE AMBIGUÏTÉ SILENCIEUSE : la première
     // de la table gagnerait, sans que rien ne le dise.
-    const dedans = (t, j) => (t.du <= t.au) ? (j >= t.du && j <= t.au) : (j >= t.du || j <= t.au);
-    let collisions = [];
-    for (let mo = 1; mo <= 12; mo++) {
-      for (let jo = 1; jo <= 31; jo++) {
-        const j = String(mo).padStart(2, '0') + '-' + String(jo).padStart(2, '0');
-        const q = T.filter(t => dedans(t, j));
-        if (q.length > 1) collisions.push(j + ' : ' + q.map(t => t.cle).join(' et '));
+    /* LES COLLISIONS SE CHERCHENT ANNÉE PAR ANNÉE. Une fête mobile n'occupe
+       pas les mêmes jours d'une année à l'autre : deux fenêtres qui ne se
+       touchent pas en 2027 peuvent se chevaucher en 2030. On balaie donc
+       vingt ans, bornes CALCULÉES par le logiciel lui-même. */
+    const { page: pc, ctx: cc } = await neuf2({ date: [6, 15] });
+    const collisions = await pc.evaluate(() => {
+      const app = window.app, T = window.GM_DECORS || [], out = [];
+      for (let y = 2026; y <= 2045; y++) {
+        for (let mo = 1; mo <= 12; mo++) {
+          for (let jo = 1; jo <= 31; jo++) {
+            const d = new Date(y, mo - 1, jo);
+            if (d.getMonth() !== mo - 1) continue;      // 31 février n'existe pas
+            const j = String(mo).padStart(2, '0') + '-' + String(jo).padStart(2, '0');
+            const q = T.filter(t => {
+              const b = app.decorBornes(t, d);
+              if (!b.du || !b.au) return false;
+              return (b.du <= b.au) ? (j >= b.du && j <= b.au) : (j >= b.du || j <= b.au);
+            });
+            if (q.length > 1) out.push(`${y}-${j} : ${q.map(t => t.cle).join(' et ')}`);
+          }
+        }
       }
-    }
-    ck('aucune date ne tombe dans deux fêtes à la fois', collisions.length === 0,
-       collisions.slice(0, 3).join(' ; '));
+      return out;
+    });
+    ck('aucune date ne tombe dans deux fêtes à la fois, sur vingt ans',
+       collisions.length === 0, collisions.slice(0, 3).join(' ; '));
+    /* ET AUCUNE FÊTE NE DOIT AVOIR DE BORNES VIDES : sans ce contrôle, une
+       fête mal déclarée échapperait à TOUTES les vérifications ci-dessus sans
+       qu'une seule ne crie. */
+    const vides = await pc.evaluate(() => {
+      const app = window.app;
+      return (window.GM_DECORS || []).filter(t => {
+        const b = app.decorBornes(t, new Date(2027, 5, 1));
+        return !b.du || !b.au;
+      }).map(t => t.cle);
+    });
+    ck('aucune fête n\'a de bornes vides', vides.length === 0, vides.join(', '));
+    await cc.close();
     await ctx.close();
 
     // ET CHAQUE FÊTE DOIT VRAIMENT PARAÎTRE DANS SA FENÊTRE.
-    for (const t of T) {
+    // Les bornes sont DEMANDÉES AU LOGICIEL et non lues dans la table : une
+    // fête mobile n'a pas de « du » écrit, et String(undefined).split('-')
+    // aurait donné une date NaN — la sonde aurait ouvert une page au hasard
+    // et conclu n'importe quoi.
+    const bornes = await (async () => {
+      const { page: pb, ctx: cb } = await neuf2({ date: [6, 15] });
+      const r = await pb.evaluate(() => (window.GM_DECORS || []).map(t => {
+        const b = window.app.decorBornes(t, new Date(2027, 5, 1));
+        return { cle: t.cle, du: b.du, n: (t.motifs || []).length };
+      }));
+      await cb.close();
+      return r;
+    })();
+    for (const t of bornes) {
       const [mo, jo] = String(t.du).split('-').map(Number);
       const { page: p3, ctx: c3 } = await neuf2({ date: [mo, jo] });
       const r = await p3.evaluate(() => {
@@ -145,8 +194,8 @@ const propre = async (page) => page.evaluate(() => {
                      motifs: h.querySelectorAll('.gm-decor-piece').length,
                      portes: h.querySelectorAll('button.gm-decor-piece').length } : null;
       });
-      ck(`${t.cle} : paraît bien le ${t.du}, avec ses ${(t.motifs || []).length} motifs`,
-         !!r && r.cle === t.cle && r.motifs === (t.motifs || []).length,
+      ck(`${t.cle} : paraît bien le ${t.du}, avec ses ${t.n} motifs`,
+         !!r && r.cle === t.cle && r.motifs === t.n,
          r ? `${r.cle}, ${r.motifs} motifs dont ${r.portes} cliquables` : 'aucun décor');
       await c3.close();
     }

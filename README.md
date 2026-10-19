@@ -4345,6 +4345,36 @@ Et la sonde a validé Noël **sans qu'une seule ligne de contrôle soit écrite*
 elle parcourt la table, donc toute fête ajoutée est éprouvée le jour où elle
 entre.
 
+### La date de Pâques se calcule, elle ne s'écrit pas dans une table
+
+Les autres fêtes tombent le même jour chaque année : deux bornes `MM-JJ`
+suffisent. Pâques, non. C'est le dimanche qui suit la première pleine lune
+après l'équinoxe de printemps, et d'une année à l'autre l'écart atteint cinq
+semaines — le **28 mars en 2027**, le **16 avril en 2028**. Une table figée
+ferait paraître le décor au mauvais moment une année sur deux, et personne ne
+s'en apercevrait avant le jour même.
+
+Le comput grégorien (Meeus / Jones / Butcher) est de l'arithmétique pure, sans
+astronomie ni table. Une fête peut donc déclarer, au lieu de ses bornes, qu'elle
+se compte **à partir de Pâques** : tant de jours avant, tant de jours après. Le
+même mécanisme servira au Carnaval (47 jours avant), à l'Ascension (39 jours
+après) et à la Pentecôte (49 après).
+
+**La sonde ne compare pas le calcul à une liste de dates recopiées** — une
+liste fausse et un code faux se valideraient l'un l'autre. Elle vérifie
+d'abord **deux théorèmes**, qui ne dépendent d'aucune mémoire et valent pour
+toute année : Pâques est **toujours un dimanche**, et tombe **toujours entre le
+22 mars et le 25 avril**. Éprouvé sur **501 années**, de 1700 à 2200. Les seize
+dimanches de Pâques connus ne viennent qu'ensuite, en confirmation — et ils
+concordent.
+
+Et la table, elle, a dû apprendre à compter : **les collisions de dates se
+cherchent maintenant année par année, sur vingt ans**, avec des bornes
+calculées. Une fenêtre mobile n'occupe pas les mêmes jours d'une année à
+l'autre : deux fêtes qui ne se touchent pas en 2027 peuvent se chevaucher en
+2030. Le contrôle précédent comparait des bornes **indéfinies** pour une fête
+mobile — il ne trouvait donc jamais rien. Il mesurait le vide.
+
 **Voir Noël en octobre.** *« Comment je fais pour tester de façon future ? »*
 Sans réponse, il fallait changer l'horloge de la machine pour vérifier un décor
 qui ne paraîtra que dans deux mois. Cela se dit maintenant dans l'adresse, là
