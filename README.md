@@ -4319,6 +4319,32 @@ l'écran — on cliquait sur une chauve-souris, on recevait un bout d'aile. La v
 se cale donc sur la figure, mais seulement si la feuille était vide : on ne
 déplace pas la vue de quelqu'un qui travaillait déjà.
 
+**Noël, la deuxième fête.** Du 1er au 25 décembre : un **flocon** dans
+l'angle, un **paquet cadeau** en haut, un **sapin** en bas — c'est lui
+l'emblème, donc celui qui reste seul sur téléphone. Mêmes aplats sourds que la
+citrouille, même traitement.
+
+Les trois constructions sont au programme de 6e, comme celles d'Halloween. Le
+**sapin** (10 lignes) est bâti sur un triangle isocèle construit au compas :
+comme SA = SB et que I est le milieu de [AB], la droite (IS) est la médiatrice
+de [AB] — donc l'axe de symétrie de toute la figure, obtenu sans équerre. Les
+largeurs des étages se reportent sur les côtés, les hauteurs sur l'axe, et une
+seule ligne de symétrie axiale donne les sommets de gauche. Le **cadeau**
+(16 lignes) fait travailler les parallèles et le partage symétrique d'un
+segment : les deux rubans sont des bandes posées de part et d'autre du milieu.
+Le **flocon** (17 lignes) part de l'hexagone régulier au compas — où le côté
+égale le rayon, qui est *le* fait à faire découvrir en 6e — et ses six branches
+reçoivent leurs barbes par reports égaux.
+
+Pour le flocon, une solution a été explicitement écartée : deux triangles
+équilatéraux superposés donnent une **étoile de David**, qui n'a rien à faire
+sur l'écran d'accueil d'un logiciel d'école publique. Ce sont de vraies
+branches barbelées.
+
+Et la sonde a validé Noël **sans qu'une seule ligne de contrôle soit écrite** :
+elle parcourt la table, donc toute fête ajoutée est éprouvée le jour où elle
+entre.
+
 **Voir Noël en octobre.** *« Comment je fais pour tester de façon future ? »*
 Sans réponse, il fallait changer l'horloge de la machine pour vérifier un décor
 qui ne paraîtra que dans deux mois. Cela se dit maintenant dans l'adresse, là

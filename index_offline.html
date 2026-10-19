@@ -47861,7 +47861,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-19 · 18h';
+        window.GM_VERSION = '2026-10-19 · 19h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
@@ -47972,6 +47972,75 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             "Trace un disque de centre E et de rayon 0,8 cm rempli en noir",
                             "Trace un disque de centre E' et de rayon 0,8 cm rempli en noir",
                             "Trace un demi-cercle de diamètre [DG] en noir",
+                        ],
+                    },
+                ],
+            },
+            {
+                cle: 'noel', nom: 'Noël',
+                /* Le 25 décembre. On ouvre le 1er : décembre entier appartient
+                   à Noël dans une école, et les vacances tombent au milieu. */
+                du: '12-01', au: '12-25',
+                motifs: [
+                    {
+                        nom: "flocon", place: "coin", titre: "un flocon de neige",
+                        svg: "<svg viewBox='0 0 100 100'><defs><path id='nf' d='M47.2 42V10L50 4L52.8 10V42ZM52.8 38.6L52.8 33.3L67.2 25L69.5 29ZM47.2 38.6L47.2 33.3L32.8 25L30.5 29ZM52.8 16.4L52.8 11.6L57.3 7.1L59.7 9.5ZM47.2 16.4L47.2 11.6L42.7 7.1L40.3 9.5ZM50 19L56 25L50 31L44 25Z'/></defs><g fill='#5e7892' opacity='.52'><use href='#nf'/><use href='#nf' transform='rotate(60 50 50)'/><use href='#nf' transform='rotate(120 50 50)'/><use href='#nf' transform='rotate(180 50 50)'/><use href='#nf' transform='rotate(240 50 50)'/><use href='#nf' transform='rotate(300 50 50)'/><path fill-rule='evenodd' d='M61 50L55.5 40.47L44.5 40.47L39 50L44.5 59.53L55.5 59.53ZM56 50L53 44.8L47 44.8L44 50L47 55.2L53 55.2Z'/></g></svg>",
+                        lignes: [
+                            "Place les points A, C et G tels que AC = 10,4 cm, AG = 6 cm et CG = 6 cm",
+                            "Trace le cercle de centre G et de rayon 6 cm en pointillés",
+                            "Place un point F sur le cercle de centre G tel que AF = 6 cm",
+                            "Place un point D sur [AG) tel que AD = 12 cm",
+                            "Trace [AD] et [CF] en bleu",
+                            "Place le point E symétrique de A par rapport à (CF)",
+                            "Place un point B sur [EG) tel que EB = 12 cm",
+                            "Trace [BE] en bleu",
+                            "Place un point H sur [AG] tel que AH = 2,5 cm",
+                            "Place un point I sur [AB] tel que AI = 2,5 cm",
+                            "Trace le symétrique de I par rapport à (AD)",
+                            "Trace la ligne polygonale IHI' en bleu",
+                            "Place un point J sur [BG] tel que BJ = 2,5 cm puis place un point K sur [BC] tel que BK = 2,5 cm puis trace le symétrique de K par rapport à (BE) puis trace la ligne polygonale KJK' en bleu",
+                            "Place un point L sur [CG] tel que CL = 2,5 cm puis place un point M sur [CD] tel que CM = 2,5 cm puis trace le symétrique de M par rapport à (CF) puis trace la ligne polygonale MLM' en bleu",
+                            "Place un point N sur [DG] tel que DN = 2,5 cm puis place un point P sur [DE] tel que DP = 2,5 cm puis trace le symétrique de P par rapport à (AD) puis trace la ligne polygonale PNP' en bleu",
+                            "Place un point Q sur [EG] tel que EQ = 2,5 cm puis place un point R sur [EF] tel que ER = 2,5 cm puis trace le symétrique de R par rapport à (BE) puis trace la ligne polygonale RQR' en bleu",
+                            "Place un point S sur [FG] tel que FS = 2,5 cm puis place un point T sur [FA] tel que FT = 2,5 cm puis trace le symétrique de T par rapport à (CF) puis trace la ligne polygonale TST' en bleu",
+                        ],
+                    },
+                    {
+                        nom: "cadeau", place: "haut", titre: "un paquet cadeau",
+                        svg: "<svg viewBox='0 0 100 100'><g fill='#7a3630' opacity='.48'><path d='M13 31H43.2V43H13ZM45 31H55V43H45ZM56.8 31H87V43H56.8ZM19 45H43.2V88H19ZM45 43H55V88H45ZM56.8 45H81V88H56.8Z'/><path d='M44.5 32Q43.5 25 45.5 21H54.5Q56.5 25 55.5 32Z'/><path d='M47 20C45 11 38 6 32 9C25 12.5 31 26.5 46 28Z'/><path d='M53 20C55 11 62 6 68 9C75 12.5 69 26.5 54 28Z'/></g></svg>",
+                        lignes: [
+                            "Trace un rectangle ABCD de 8 cm sur 6 cm rempli en rouge",
+                            "Place les milieux I de [AB] et J de [DC]",
+                            "Trace [IJ] en pointillés",
+                            "Place un point M sur [IA] tel que IM = 0,5 cm puis place un point P sur [JD] tel que JP = 0,5 cm",
+                            "Trace [MP]",
+                            "Trace M' et P' symétriques de M et P par rapport à (IJ)",
+                            "Trace le polygone MM'P'P rempli en jaune",
+                            "Place un point G sur [AD] tel que AG = 1,5 cm puis place un point H sur [AD] tel que AH = 2,5 cm",
+                            "Trace G' et H' symétriques de G et H par rapport à (IJ)",
+                            "Trace [GG'] puis trace [HH']",
+                            "Trace le polygone GG'H'H rempli en jaune",
+                            "Place les points A, I et L tels que AI = 4 cm, AL = 3 cm et IL = 2,5 cm",
+                            "Trace le symétrique de L par rapport à (IJ)",
+                            "Place un point Q sur [IA] tel que IQ = 2,5 cm puis trace le symétrique de Q par rapport à (IJ)",
+                            "Trace un disque de centre L et de rayon 1 cm rempli en jaune puis trace un disque de centre L' et de rayon 1 cm rempli en jaune",
+                            "Trace le polygone QLIL'Q' rempli en jaune",
+                        ],
+                    },
+                    {
+                        nom: "sapin", place: "bas", titre: "un sapin de Noël",
+                        svg: "<svg viewBox='0 0 100 100'><g fill='#4e6b53' opacity='.48'><path d='M50 2L52.47 8.6L59.51 8.91L53.99 13.3L55.88 20.09L50 16.2L44.12 20.09L46.01 13.3L40.49 8.91L47.53 8.6Z'/><path d='M50 15Q52 21.5 54.5 23Q55.5 29 58 30.5Q59 36.5 62 38L53 36Q55.5 43 59 44.5Q62 51 65.5 53Q68.5 59.5 72 61L62 58.5Q65 65.5 69 67.5Q72.5 74 76.5 76Q79.5 82 84 84L56 84L56 94L44 94L44 84L16 84Q20.5 82 23.5 76Q27.5 74 31 67.5Q35 65.5 38 58.5L28 61Q31.5 59.5 34.5 53Q38 51 41 44.5Q44.5 43 47 36L38 38Q41 36.5 42 30.5Q44.5 29 45.5 23Q48 21.5 50 15Z'/></g></svg>",
+                        lignes: [
+                            "Place les points A et B tels que AB = 9 cm puis place le milieu I de [AB]",
+                            "Place les points A, B et S tels que AB = 9 cm, AS = 10,6 cm et BS = 10,6 cm",
+                            "Trace [AS] et [BS] en pointillés",
+                            "Place un point C sur [BS] tel que BC = 3,5 cm puis place un point D sur [BS] tel que BD = 7 cm",
+                            "Trace C' et D' symétriques de C et D par rapport à (IS)",
+                            "Place un point M sur [IS] tel que IM = 5 cm puis place un point N sur [IS] tel que IN = 7,5 cm",
+                            "Trace le polygone ABM rempli en vert",
+                            "Trace le polygone C'CN rempli en vert",
+                            "Trace le polygone D'DS rempli en vert",
+                            "Place un point U sur [IA] tel que IU = 0,8 cm puis place un point V sur [IB] tel que IV = 0,8 cm puis trace un rectangle UVKL de 1,6 cm sur 1,2 cm rempli en marron",
                         ],
                     },
                 ],
