@@ -36,6 +36,19 @@ const propre = async (page) => page.evaluate(() => {
   const b = await chromium.launch({ executablePath: NAVIGATEUR });
   let fail = 0;
   const ck = (l, ok, d) => { console.log(`  ${ok ? '✓' : '✗'} ${l}${d ? ' — ' + d : ''}`); if (!ok) fail++; };
+  /* UNE SONDE DOIT ÉCHOUER, PAS PLANTER. En sabotant la table exprès — deux
+     motifs posés à la même place —, les deux dessins se sont recouverts, le
+     clic n'est plus passé, et la sonde est morte sur une exception non
+     rattrapée AVANT d'avoir rendu le moindre verdict. Elle ne disait donc rien
+     du défaut qu'elle venait pourtant de provoquer. Un clic qui ne passe pas
+     est un résultat, et il se raconte. */
+  const cliquer = async (loc, quoi) => {
+    try { await loc.click({ timeout: 6000 }); return true; }
+    catch (e) {
+      ck(quoi, false, 'le clic ne passe pas : ' + String(e.message).split('\n')[0].slice(0, 90));
+      return false;
+    }
+  };
   const neuf2 = async (opts = {}) => {
     const ctx = await b.newContext({ viewport: opts.vp || { width: 1366, height: 768 },
                                      hasTouch: !!opts.touch, isMobile: !!opts.touch });
@@ -66,6 +79,77 @@ const propre = async (page) => page.evaluate(() => {
        la === attendu, la === attendu ? '' : (la ? 'il est là' : 'il manque'));
     if (errs.length) ck(`  pas d'erreur JS le ${mois}-${jour}`, false, errs[0].slice(0, 90));
     await ctx.close();
+  }
+
+  console.log('\n=== LA TABLE SE TIENT, QUELLE QUE SOIT LA FÊTE ===');
+  // CES CONTRÔLES NE CONNAISSENT PAS HALLOWEEN : ils parcourent window.GM_DECORS
+  // et valent donc pour toute fête qu'on ajoutera. La version précédente était
+  // câblée sur une seule fête et sur trois motifs — la deuxième serait entrée
+  // sans le moindre contrôle.
+  {
+    const { page, ctx } = await neuf2({ date: [10, 19] });
+    const T = await page.evaluate(() => window.GM_DECORS || []);
+    ck('la table existe et n\'est pas vide', Array.isArray(T) && T.length > 0,
+       (T || []).length + ' fête(s)');
+    const jour = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+    const places = ['coin', 'haut', 'bas'];
+    T.forEach(t => {
+      const nom = t && t.cle ? t.cle : '(sans clé)';
+      ck(`${nom} : clé, nom et bornes bien formées`,
+         !!(t.cle && t.nom && jour.test(t.du || '') && jour.test(t.au || '')),
+         `du ${t.du} au ${t.au}`);
+      const m = t.motifs || [];
+      ck(`${nom} : au moins un motif`, m.length > 0, m.length + ' motif(s)');
+      const vus = new Set();
+      let dbl = 0, malPlace = 0, malSvg = 0, sansTitre = 0;
+      m.forEach(x => {
+        if (vus.has(x.place)) dbl++; else vus.add(x.place);
+        if (!places.includes(x.place)) malPlace++;
+        if (!x.titre) sansTitre++;
+        const g = String(x.svg || '');
+        // UN SVG QUI PORTE SA PROPRE TAILLE IGNORE CELLE QU'ON LUI DONNE : il
+        // sortirait de sa case, par-dessus les commandes.
+        if (!/viewBox/.test(g) || /<svg[^>]*\s(width|height)=/.test(g)
+            || (g.match(/<svg/g) || []).length !== 1) malSvg++;
+      });
+      ck(`${nom} : deux motifs ne se disputent pas la même place`, dbl === 0, dbl + ' doublon(s)');
+      ck(`${nom} : toutes les places sont connues (coin, haut, bas)`, malPlace === 0,
+         malPlace + ' inconnue(s)');
+      ck(`${nom} : chaque motif a un titre (il devient l'étiquette du bouton)`,
+         sansTitre === 0, sansTitre + ' sans titre');
+      ck(`${nom} : chaque SVG a un viewBox et aucune taille en dur`, malSvg === 0,
+         malSvg + ' fautif(s)');
+    });
+    // DEUX FÊTES LE MÊME JOUR SERAIENT UNE AMBIGUÏTÉ SILENCIEUSE : la première
+    // de la table gagnerait, sans que rien ne le dise.
+    const dedans = (t, j) => (t.du <= t.au) ? (j >= t.du && j <= t.au) : (j >= t.du || j <= t.au);
+    let collisions = [];
+    for (let mo = 1; mo <= 12; mo++) {
+      for (let jo = 1; jo <= 31; jo++) {
+        const j = String(mo).padStart(2, '0') + '-' + String(jo).padStart(2, '0');
+        const q = T.filter(t => dedans(t, j));
+        if (q.length > 1) collisions.push(j + ' : ' + q.map(t => t.cle).join(' et '));
+      }
+    }
+    ck('aucune date ne tombe dans deux fêtes à la fois', collisions.length === 0,
+       collisions.slice(0, 3).join(' ; '));
+    await ctx.close();
+
+    // ET CHAQUE FÊTE DOIT VRAIMENT PARAÎTRE DANS SA FENÊTRE.
+    for (const t of T) {
+      const [mo, jo] = String(t.du).split('-').map(Number);
+      const { page: p3, ctx: c3 } = await neuf2({ date: [mo, jo] });
+      const r = await p3.evaluate(() => {
+        const h = document.getElementById('gmDecor');
+        return h ? { cle: h.dataset.cle,
+                     motifs: h.querySelectorAll('.gm-decor-piece').length,
+                     portes: h.querySelectorAll('button.gm-decor-piece').length } : null;
+      });
+      ck(`${t.cle} : paraît bien le ${t.du}, avec ses ${(t.motifs || []).length} motifs`,
+         !!r && r.cle === t.cle && r.motifs === (t.motifs || []).length,
+         r ? `${r.cle}, ${r.motifs} motifs dont ${r.portes} cliquables` : 'aucun décor');
+      await c3.close();
+    }
   }
 
   console.log('\n=== CE QUE LE DÉCOR NE DOIT JAMAIS MANGER ===');
@@ -142,8 +226,9 @@ const propre = async (page) => page.evaluate(() => {
     const cliquables = await page.locator('button.gm-decor-piece').count();
     ck('au moins un motif est cliquable', cliquables > 0, cliquables + ' cliquable(s)');
     if (cliquables > 0) {
-      await page.locator('button.gm-decor-piece').first().click();
-      await page.waitForTimeout(900);
+      const passe = await cliquer(page.locator('button.gm-decor-piece').first(),
+                                  'le premier motif se laisse cliquer');
+      await page.waitForTimeout(passe ? 900 : 50);
       const apres = await page.evaluate(() => {
         const b = document.getElementById('instructionBox');
         const liste = (window.app.consignesListe && window.app.consignesListe()) || [];
@@ -171,7 +256,8 @@ const propre = async (page) => page.evaluate(() => {
       const nom = await p2.evaluate((i) => {
         const b = document.querySelectorAll('button.gm-decor-piece')[i];
         return b ? b.getAttribute('aria-label').replace('Tracer ', '') : null; }, i);
-      await p2.locator('button.gm-decor-piece').nth(i).click();
+      if (!await cliquer(p2.locator('button.gm-decor-piece').nth(i),
+                         `${nom} : le motif se laisse cliquer`)) { await c2.close(); continue; }
       await p2.waitForTimeout(1200);
       const v = await p2.evaluate(() => {
         const app = window.app;

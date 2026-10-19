@@ -3670,9 +3670,14 @@
             .gm-decor-piece { opacity: .78; }
         }
 
-        /* Les trois places. Les valeurs sont en « cran », la taille de
-           référence calculée en JS d'après la largeur disponible. */
-        .gm-dc-toile { left: calc(var(--gm-cran) * -.16); top: calc(var(--gm-cran) * -.14);
+        /* LES TROIS PLACES, NOMMÉES PAR LEUR POSITION ET NON PAR LEUR
+           CONTENU. La première s'appelait « toile », du nom du premier motif
+           qui s'y est posé — ce qui n'aurait eu aucun sens le jour où un sapin
+           de Noël viendrait l'occuper. Une place se nomme par où elle est :
+           le coin, le haut, le bas.
+           Les valeurs sont en « cran », la taille de référence calculée en JS
+           d'après la largeur disponible. */
+        .gm-dc-coin { left: calc(var(--gm-cran) * -.16); top: calc(var(--gm-cran) * -.14);
                        width: var(--gm-cran); height: var(--gm-cran); }
         .gm-dc-haut  { right: calc(var(--gm-cran) * 1.45); top: calc(var(--gm-cran) * .52);
                        width: calc(var(--gm-cran) * .5); height: calc(var(--gm-cran) * .5); }
@@ -3692,7 +3697,7 @@
            yeux. Le motif restant est donc celui qui porte la construction la
            plus solide. */
         @media (max-width: 560px) {
-            .gm-dc-toile, .gm-dc-haut { display: none; }
+            .gm-dc-coin, .gm-dc-haut { display: none; }
             .gm-dc-bas { right: calc(var(--gm-cran) * .22); bottom: calc(var(--gm-cran) * .22); }
             /* Au téléphone le cran tombe à son plancher de 52 px et le motif
                occupe la moitié du coin : une croix posée dans l'angle lui
@@ -47784,7 +47789,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-19 · 14h';
+        window.GM_VERSION = '2026-10-19 · 16h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
@@ -47840,7 +47845,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 du: '10-17', au: '10-31',
                 motifs: [
                     {
-                        nom: "toile", place: "toile", titre: "une toile d'araignée",
+                        nom: "toile", place: "coin", titre: "une toile d'araignée",
                         svg: "<svg viewBox='0 0 100 100'><g fill='#6f6456' opacity='.5'><path fill-rule='evenodd' d='M50 3Q63.3 17.9 83.2 16.8Q82.1 36.7 97 50Q82.1 63.3 83.2 83.2Q63.3 82.1 50 97Q36.7 82.1 16.8 83.2Q17.9 63.3 3 50Q17.9 36.7 16.8 16.8Q36.7 17.9 50 3zM50 6.5Q62.3 20.3 80.8 19.2Q79.7 37.7 93.5 50Q79.7 62.3 80.8 80.8Q62.3 79.7 50 93.5Q37.7 79.7 19.2 80.8Q20.3 62.3 6.5 50Q20.3 37.7 19.2 19.2Q37.7 20.3 50 6.5zM50 15.8Q59.7 26.6 74.2 25.8Q73.4 40.3 84.2 50Q73.4 59.7 74.2 74.2Q59.7 73.4 50 84.2Q40.3 73.4 25.8 74.2Q26.6 59.7 15.8 50Q26.6 40.3 25.8 25.8Q40.3 26.6 50 15.8zM50 19.3Q58.7 29 71.7 28.3Q71 41.3 80.7 50Q71 58.7 71.7 71.7Q58.7 71 50 80.7Q41.3 71 28.3 71.7Q29 58.7 19.3 50Q29 41.3 28.3 28.3Q41.3 29 50 19.3zM50 28Q56.2 35 65.6 34.4Q65 43.8 72 50Q65 56.2 65.6 65.6Q56.2 65 50 72Q43.8 65 34.4 65.6Q35 56.2 28 50Q35 43.8 34.4 34.4Q43.8 35 50 28zM50 31.5Q55.2 37.4 63.1 36.9Q62.6 44.8 68.5 50Q62.6 55.2 63.1 63.1Q55.2 62.6 50 68.5Q44.8 62.6 36.9 63.1Q37.4 55.2 31.5 50Q37.4 44.8 36.9 36.9Q44.8 37.4 50 31.5zM50 43Q52 45.2 54.9 45.1Q54.8 48 57 50Q54.8 52 54.9 54.9Q52 54.8 50 57Q48 54.8 45.1 54.9Q45.2 52 43 50Q45.2 48 45.1 45.1Q48 45.2 50 43z'/><path d='M48.3 3h3.4v94h-3.4z'/><path d='M48.3 3h3.4v94h-3.4z' transform='rotate(45 50 50)'/><path d='M48.3 3h3.4v94h-3.4z' transform='rotate(90 50 50)'/><path d='M48.3 3h3.4v94h-3.4z' transform='rotate(135 50 50)'/></g></svg>",
                         lignes: [
                             "Place les points I et A tels que IA = 5 cm",
