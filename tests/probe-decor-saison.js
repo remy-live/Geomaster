@@ -305,8 +305,23 @@ const propre = async (page) => page.evaluate(() => {
        L'emprise est demandée au logiciel (getSceneBounds), qui échantillonne
        chaque arc sur sa portion réellement tracée : prendre la boîte du cercle
        entier faisait crier au débordement sur une toile qui tenait déjà. */
-    for (let i = 0; i < 3; i++) {
-      const { page: p2, ctx: c2 } = await neuf2({ date: [10, 19] });
+    /* TOUTES LES FÊTES, PAS SEULEMENT CELLE DU JOUR. La première version ne
+       cadrait que les trois motifs d'Halloween — or le lapin de Pâques se
+       construit dans un rectangle de 12 sur 22 cm, bien plus grand que la
+       citrouille. Une fête ajoutée en hiver n'aurait jamais été cadrée. */
+    const FETES = await (async () => {
+      const { page: pf, ctx: cf } = await neuf2({ date: [6, 15] });
+      const r = await pf.evaluate(() => (window.GM_DECORS || []).map(t => {
+        const b = window.app.decorBornes(t, new Date(2027, 5, 1));
+        return { cle: t.cle, du: b.du, an: 2027,
+                 n: (t.motifs || []).filter(m => (m.lignes || []).length).length };
+      }));
+      await cf.close();
+      return r;
+    })();
+    for (const F of FETES) for (let i = 0; i < F.n; i++) {
+      const [fmo, fjo] = String(F.du).split('-').map(Number);
+      const { page: p2, ctx: c2 } = await neuf2({ date: [fmo, fjo, F.an] });
       const nom = await p2.evaluate((i) => {
         const b = document.querySelectorAll('button.gm-decor-piece')[i];
         return b ? b.getAttribute('aria-label').replace('Tracer ', '') : null; }, i);
@@ -326,7 +341,7 @@ const propre = async (page) => page.evaluate(() => {
                      * Math.max(0, Math.min(b.y, vis.b) - Math.max(a.y, vis.t));
         return { part: Math.round(100 * dedans / Math.max(1, (b.x - a.x) * (b.y - a.y))) };
       });
-      ck(`${nom} : la figure entière est dans l'écran`, v && v.part >= 99,
+      ck(`${F.cle} · ${nom} : la figure entière est dans l'écran`, v && v.part >= 99,
          v ? v.part + '%' : 'aucune emprise');
       await c2.close();
     }

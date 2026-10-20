@@ -1692,7 +1692,7 @@ et la trace**. Ce n'est pas un ornement : c'est une porte d'entrée.
 | fête | fenêtre | motifs |
 | --- | --- | --- |
 | Halloween | 17 → 31 octobre | toile d'araignée, chauve-souris, citrouille |
-| Noël | 1er → 25 décembre | flocon, cadeau, sapin |
+| Noël | 1er → 25 décembre | flocon, bonhomme de neige, sapin |
 | Pâques | 15 jours avant le dimanche de Pâques → lundi férié | lapin, cloche, œuf |
 
 La date de Pâques **se calcule** : c'est le dimanche qui suit la première
@@ -1703,6 +1703,20 @@ donc déclarer, au lieu de bornes fixes, qu'elle se compte à partir de Pâques.
 Les constructions sont **au programme de 6e** : cercle, rayon, milieu,
 médiatrice, report de longueur, symétrie axiale, polygone régulier inscrit. Ni
 rotation, ni homothétie — ce sont des notions de 3e.
+
+**Les neuf constructions sont au programme de 6e**, et chacune porte une leçon.
+Le **bonhomme de neige** tient en dix lignes et fait découvrir la tangence :
+rayons 4, 3 et 2 cm, AB = 7 = 4 + 3, BC = 5 = 3 + 2, et les points de contact
+sont posés **avant** les cercles — les boules s'embrassent exactement au lieu
+de se chevaucher au hasard. L'**œuf de Pâques** tient en huit lignes et ne
+contient aucun nombre arbitraire : un triangle isocèle 8/6/6 au compas, et
+quatre arcs qui se raccordent sans cassure parce que chaque nouveau centre est
+**aligné** avec le point de raccord — les rayons tombent sur 4, 8, 8 et 2 cm.
+
+Une limite du moteur, trouvée en lisant le code : **un contour fait d'arcs ne
+peut pas être rempli**. La classe `Arc` n'a ni `fillMode` ni `fillColor`, et le
+coloriage ne sait traiter que les polygones et les cercles. L'œuf reste donc un
+contour, là où le sapin et le lapin sont des surfaces pleines.
 
 Le décor suit la vie de l'invitation : il s'efface au premier objet tracé, au
 premier outil pris, et ne paraît jamais dans un lien élève ni dans un cadre.
