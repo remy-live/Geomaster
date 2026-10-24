@@ -15517,6 +15517,65 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.dessinerNomDroite(ctx, s.color, p2);
             }
         }
+        /* UN COIN NE SE CODE QU'UNE FOIS, ET C'EST L'ANGLE QUI LE CODE.
+           « J'ai deux angles droits !!!! » — deux petits carrés au même
+           croisement, décalés de quelques pixels, l'un noir et l'autre vert. Le
+           diagnostic était déjà écrit dans le cahier de bord : « l'angle droit
+           est un dessin particulier de l'angle ». La garde d'alors (addEntity)
+           n'a été posée qu'entre DEUX OBJETS Angle ; or le carré noir n'est pas
+           un objet — la perpendiculaire le peignait elle-même, à chaque image,
+           sans que rien ne puisse le voir. Le défaut est donc revenu intact.
+
+           La perpendiculaire cède maintenant son carré, mais à une seule
+           condition : qu'un Angle en dessine VRAIMENT un, au même sommet et le
+           long des deux mêmes droites. Trois conséquences voulues :
+
+           — si l'élève tire la figure et que l'angle cesse d'être droit, il ne
+             dessine plus de carré, et la perpendiculaire reprend le sien : le
+             coin n'est jamais nu, et jamais codé deux fois ;
+           — on ne balaie que les objets RÉELLEMENT dessinés (la liste du rendu),
+             donc pendant un rejeu pas à pas la marque suit l'étape, et une
+             perpendiculaire dessinée hors de l'application garde la sienne ;
+           — les directions se comparent MODULO 180°, car les côtés d'un angle
+             droit sont deux DROITES : la tangente pose son angle en pointant
+             VERS le centre, à 180° du rayon sortant, et une comparaison de
+             demi-droites l'aurait manquée — mesuré, elle gardait ses deux
+             carrés. Le même test écarte le faux voisin : sur un triangle
+             presque isocèle (7 / 6,9 / 5) le pied d'une hauteur tombe à 6,9 px
+             du milieu d'un côté, et sans les directions la hauteur perdait sa
+             SEULE marque d'angle droit. */
+        function gmCoinDejaCode(H, angleRef, voisins) {
+            const liste = voisins || (window.app && window.app.entities);
+            if (!H || !liste) return false;
+            /* 2 px, et pas la distance d'accrochage de la main : les deux
+               équerres en cause ne sont jamais posées à la main. Elles sont
+               calculées par la MÊME construction, au même point exact — le
+               sommet de l'Angle EST le pied de la perpendiculaire, distance
+               nulle. Une tolérance large souffle des marques légitimes : sur un
+               triangle presque isocèle (7 / 6,9 / 5), le pied de la hauteur
+               issue de A tombe à 6,9 px du milieu de [BC], et comme une hauteur
+               et une médiatrice d'un même côté sont PARALLÈLES, la comparaison
+               des directions ne les sépare pas — mesuré, la hauteur perdait sa
+               seule marque. C'est la distance, et elle seule, qui tranche. */
+            const SOMMET = 2, ECART = 6 * Math.PI / 180;
+            const memeDroite = (u, v) => {
+                let d = Math.abs(u - v) % Math.PI;
+                if (d > Math.PI / 2) d = Math.PI - d;
+                return d <= ECART;
+            };
+            const perp = angleRef + Math.PI / 2;
+            return liste.some((e) => {
+                if (!(e instanceof Angle) || !e.p1 || !e.p2 || !e.p3) return false;
+                if (e.visible === false || e.hidden === true) return false;
+                // un angle qui n'est plus droit ne dessine pas de carré
+                if (Math.abs(e.getAngleValue() - 90) >= 0.5) return false;
+                if (Math.hypot(e.p2.x - H.x, e.p2.y - H.y) > SOMMET) return false;
+                const a1 = Math.atan2(e.p1.y - e.p2.y, e.p1.x - e.p2.x);
+                const a2 = Math.atan2(e.p3.y - e.p2.y, e.p3.x - e.p2.x);
+                return (memeDroite(a1, angleRef) && memeDroite(a2, perp))
+                    || (memeDroite(a1, perp) && memeDroite(a2, angleRef));
+            });
+        }
         class PerpendicularLine extends GeometryObject {
             constructor(p1, refLine, id = null) {
                 super(p1, null, id);
@@ -15554,6 +15613,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const localY = -dx * Math.sin(angle) + dy * Math.cos(angle);
                     const sign = localY >= 0 ? 1 : -1;
                     const size = 12;
+                    if (gmCoinDejaCode(H, angle, o && o.voisins)) { ctx.restore(); }
+                    else {
                     ctx.beginPath();
                     ctx.lineWidth = 1.5;
                     ctx.strokeStyle = s.color;
@@ -15563,6 +15624,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.lineTo(0, sign * size);
                     ctx.stroke();
                     ctx.restore();
+                    }
                 }
                 this.dessinerNomDroite(ctx, s.color, p2);
             }
@@ -23082,7 +23144,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const toDraw = this.entities.slice().sort((a, b) => (zIndex[a.constructor.name] || 0) - (zIndex[b.constructor.name] || 0));
                 toDraw.forEach(e => {
                     if (e instanceof ToolAnimation) return;
-                    e.draw(ctx, { isHovered: false, isSelected: false });
+                    e.draw(ctx, { isHovered: false, isSelected: false, voisins: toDraw });
                 });
                 tempCanvas.toBlob(blob => {
                     try {
@@ -23273,7 +23335,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.translate(-bounds.minX + padding, -bounds.minY + padding);
                 const zIndex = { 'Polygon': 0, 'Angle': 0, 'CompassArc': 1, 'Arc': 1, 'Circle': 1, 'Line': 1, 'Ray': 1, 'Segment': 1, 'ParallelLine': 1, 'PerpendicularLine': 1, 'Point': 2, 'TextLabel': 2 };
                 const toDraw = this.entities.slice().sort((a, b) => (zIndex[a.constructor.name] || 0) - (zIndex[b.constructor.name] || 0));
-                toDraw.forEach(e => { if (!(e instanceof ToolAnimation)) e.draw(ctx, { isHovered: false, isSelected: false }); });
+                toDraw.forEach(e => { if (!(e instanceof ToolAnimation)) e.draw(ctx, { isHovered: false, isSelected: false, voisins: toDraw }); });
                 if (includeTools) {
                     this.isExporting = true;
                     this.exportNumbersMode = numbersMode;
@@ -29772,7 +29834,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     entity.draw(this.ctx, {
                         isSelected,
                         isHovered: isGhostMode ? false : isHovered,
-                        isToDelete
+                        isToDelete,
+                        /* La liste de CE qui est dessiné, pas de ce qui existe :
+                           c'est elle qui dit à la perpendiculaire si son coin est
+                           déjà codé à l'image en cours. */
+                        voisins: toDraw,
                     });
                     this.ctx.restore();
                 }
@@ -37786,10 +37852,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.addEntity(m);
                 const d = this.cslPoserStyle(new PerpendicularLine(m, { p1: a, p2: b }));
                 this.addEntity(d);
-                // un repère sur la médiatrice, pour poser l'équerre de l'angle droit
-                const dir = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
-                const haut = new Point(m.x + Math.cos(dir) * 60, m.y + Math.sin(dir) * 60, '', [m]);
+                /* UN REPÈRE SUR LA MÉDIATRICE, PAS À CÔTÉ D'ELLE. Ce point
+                   avait pour parent le MILIEU : or on ne projette pas sur un
+                   point, donc il ne bougeait jamais. Le milieu suivait le
+                   segment, lui restait cloué — et l'angle cessait d'être droit
+                   au premier geste de l'élève. Mesuré sur un triangle 7/6/5 et
+                   ses trois médiatrices, en tirant le sommet B : les trois
+                   angles passaient de 90°, 90°, 90° à 116,6°, 195° et 90°. Un
+                   angle droit qui affiche « 195° » n'est plus un codage, c'est
+                   une erreur affichée en grand.
+                   C'est maintenant b TOURNÉ D'UN QUART DE TOUR autour du
+                   milieu : la relation que l'élève connaît, celle que Point.update
+                   rejoue à chaque geste. Le glissement sur la perpendiculaire ne
+                   suffisait pas — en tirant un sommet, le repère se reprojetait
+                   de l'AUTRE côté du milieu et l'angle annonçait 270°, donc plus
+                   de carré mais un arc portant « 270° ». Une rotation de sens
+                   fixe donne 90°, toujours, quelle que soit la figure. */
+                const haut = new Point(m.x, m.y, '', [b, m]);
+                haut.subType = 'rotation';
+                haut.transParam = -Math.PI / 2;
                 haut.visible = false;
+                haut.update();
                 this.addEntity(haut);
                 this.addEntity(new Angle(b, m, haut));
             }
@@ -39566,7 +39649,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (!surLeCercle(A)) return rate(`${A.label} n'est pas sur le cercle.`);
                     const d = this.cslPoserStyle(new PerpendicularLine(A, { p1: O, p2: A }));
                     this.addEntity(d);
-                    this.addEntity(new Angle(O, A, { x: A.x - (A.y - O.y), y: A.y + (A.x - O.x) }));
+                    /* Le troisième côté était un couple de coordonnées calculé
+                       une fois — pas même un point de la figure. Il ne suivait
+                       donc rien : on déplaçait le centre, et l'angle droit de la
+                       tangente annonçait 142°. C'est le centre TOURNÉ D'UN QUART
+                       DE TOUR autour du point de contact : perpendiculaire au
+                       rayon par construction, donc droit quoi qu'on déplace. */
+                    const surT = new Point(A.x, A.y, '', [O, A]);
+                    surT.subType = 'rotation';
+                    surT.transParam = -Math.PI / 2;
+                    surT.visible = false;
+                    surT.update();
+                    this.addEntity(surT);
+                    this.addEntity(new Angle(O, A, surT));
                     return fait(`Tangente au cercle en ${A.label}`);
                 }
                 /* Le rayon, le diamètre, la corde : on pose les points qui
@@ -47916,7 +48011,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-24 · 06h';
+        window.GM_VERSION = '2026-10-24 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
