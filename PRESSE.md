@@ -82,6 +82,48 @@ Tout ce qui suit est à recopier tel quel. L'adresse est toujours la même :
 
 ---
 
+## Des clips tout faits
+
+Trois vidéos, une par pilier, dans `vitrine/`. Elles sont filmées **sur le
+logiciel lui-même** : rien n'est reconstitué, pas un plan n'est monté. La
+pastille bleue marque le pointeur : elle est là pour qu'on voie où la main
+agit.
+
+| Clip | Durée | Ce qu'on y voit |
+|---|---|---|
+| `consigne.mp4` | 12 s | On tape *« Trace un triangle ABC tel que AB = 7 cm, AC = 6 cm et BC = 5 cm »*, puis deux consignes de plus : les médiatrices, le cercle circonscrit. |
+| `instruments.mp4` | 17 s | Le compas arrive, se plante sur A, s'écarte, pivote, trace ; se replante sur B, retrace. Les deux arcs se coupent : la médiatrice. |
+| `animation.mp4` | 21 s | La figure finie se rembobine et se refait toute seule, à la règle et au compas, jusqu'au cercle circonscrit. |
+
+Chacune existe en **16/9** (1280 × 720, pour une page ou une chaîne) et en
+**carré** (1080 × 1080, suffixe `-carre`, pour un fil). `compas.gif` est les dix
+secondes du compas, en boucle, pour un message où la vidéo ne passe pas.
+
+**Pour les refaire** quand l'interface aura changé — sans quoi ces clips
+vieilliraient en silence — `vitrine/film.js` les retourne :
+
+```
+GM_FFMPEG=/chemin/vers/ffmpeg node vitrine/film.js instruments
+```
+
+Il pilote la vraie page, rejoue les mêmes gestes, et **refuse de filmer un geste
+dans le vide** : avant chaque prise il vérifie que le point visé tombe bien sur
+la toile, et s'arrête en le disant si ce n'est pas le cas. Il lui faut un vrai
+`ffmpeg` : celui qu'embarque Playwright ne sait faire que du WebM.
+
+**Pour accompagner un clip**, la légende la plus courte est la meilleure :
+
+> Le compas se plante, s'écarte, pivote et trace. Pas une animation : l'outil.
+> https://remy-live.github.io/Geomaster/
+
+> On écrit l'énoncé en français. La figure se construit.
+> https://remy-live.github.io/Geomaster/
+
+> Appuyez sur ▶ : la figure se refait toute seule, étape par étape, aux
+> instruments. https://remy-live.github.io/Geomaster/
+
+---
+
 ## Ce qu'il faut montrer en premier
 
 Dans l'ordre, ce sont les trois choses qui font comprendre le logiciel en vingt
@@ -102,7 +144,8 @@ feuille.
 
 ## À ne pas oublier
 
-- Les images de `vitrine/` sont libres de reprise pour en parler.
+- Les images **et les vidéos** de `vitrine/` sont libres de reprise pour en
+  parler.
 - `vitrine/partage.png` est l'image d'aperçu du lien ; c'est aussi la bonne
   image à déposer en **aperçu social** du dépôt GitHub
   (Settings → General → Social preview).

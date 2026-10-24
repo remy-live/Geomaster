@@ -11,6 +11,11 @@ Pas d'installation, pas de compte, pas de serveur, et ça marche hors connexion.
 
 **→ [remy-live.github.io/Geomaster](https://remy-live.github.io/Geomaster/)**
 
+![Le compas se plante sur A, s'écarte, pivote et trace un arc ; puis se replante sur B et trace le second : les deux arcs se coupent au-dessus et au-dessous du segment AB](vitrine/compas.gif)
+
+*Le compas se prend par la branche, s'écarte à la molette, pivote et trace. Dix
+secondes, sans montage : c'est la figure de la médiatrice, au geste.*
+
 ![Cinq consignes écrites en français, et le triangle, ses médiatrices et son cercle circonscrit tracés à côté](vitrine/consigne.png)
 
 *On écrit l'énoncé, le logiciel le construit — et la phrase reste dans le
@@ -20,6 +25,12 @@ panneau, modifiable, rejouable, partageable.*
 |---|---|
 | ![Un hexagone régulier inscrit dans un cercle, et une rosace](vitrine/compas.png) | ![Un cube en perspective cavalière et le patron d'un cube](vitrine/solides.png) |
 | **Tout se construit au compas** — l'hexagone, la rosace, les étoiles. | **Les solides et leurs patrons**, en perspective cavalière. |
+
+**Trois clips d'une vingtaine de secondes**, un par pilier, filmés sur le
+logiciel lui-même et libres de reprise : [la
+consigne](vitrine/consigne.mp4) · [les instruments](vitrine/instruments.mp4) ·
+[l'animation](vitrine/animation.mp4). Les mêmes au format carré, pour les fils
+qui n'aiment pas le 16/9 : [`-carre.mp4`](vitrine/).
 
 ---
 
