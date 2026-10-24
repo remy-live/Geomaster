@@ -1,11 +1,25 @@
 # GéoMaster
 
-Un logiciel de géométrie pour la classe, dans un seul fichier HTML.
+Un logiciel de géométrie pour le collège, dans un seul fichier HTML.
 
-Pas d'installation, pas de compte, pas de serveur : on ouvre la page, on
-construit avec de vrais instruments, et on partage la figure par un lien.
+**Les instruments** — règle, équerre, compas et rapporteur qu'on prend en main
+et qu'on fait tourner. **L'animation** — chaque construction se rejoue pas à
+pas, comme au tableau. **La consigne** — on écrit l'énoncé en français, et la
+figure se construit.
+
+Pas d'installation, pas de compte, pas de serveur, et ça marche hors connexion.
 
 **→ [remy-live.github.io/Geomaster](https://remy-live.github.io/Geomaster/)**
+
+![Cinq consignes écrites en français, et le triangle, ses médiatrices et son cercle circonscrit tracés à côté](vitrine/consigne.png)
+
+*On écrit l'énoncé, le logiciel le construit — et la phrase reste dans le
+panneau, modifiable, rejouable, partageable.*
+
+| | |
+|---|---|
+| ![Un hexagone régulier inscrit dans un cercle, et une rosace](vitrine/compas.png) | ![Un cube en perspective cavalière et le patron d'un cube](vitrine/solides.png) |
+| **Tout se construit au compas** — l'hexagone, la rosace, les étoiles. | **Les solides et leurs patrons**, en perspective cavalière. |
 
 ---
 

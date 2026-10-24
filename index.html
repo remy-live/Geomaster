@@ -15,7 +15,43 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#ffffff">
-    <title>GéoMaster</title>
+    <!-- ================================================================
+         CE QUI PARAÎT QUAND ON PARTAGE LE LIEN
+
+         Il n'y avait RIEN ici : ni description, ni image, ni titre parlant.
+         Un collègue qui collait l'adresse dans un groupe de profs, dans un
+         ENT ou dans WhatsApp n'obtenait qu'un lien nu — pas de titre, pas
+         d'aperçu, rien qui dise ce que c'est. Pour un logiciel dont toute la
+         diffusion passe de professeur à professeur, c'était la perte la plus
+         silencieuse du projet.
+
+         L'image est en 1200 × 630, le format qu'attendent Facebook, X,
+         LinkedIn, WhatsApp et la plupart des ENT. Son adresse doit être
+         ABSOLUE : les robots qui la cherchent ne savent pas d'où vient la
+         page. C'est la seule ressource externe de tout le fichier, et elle
+         n'est jamais chargée par le logiciel lui-même — seulement par ceux
+         qui lisent l'en-tête. Hors connexion, rien ne la réclame.
+         ================================================================ -->
+    <title>GéoMaster — les instruments, l'animation, la consigne</title>
+    <meta name="description" content="Les instruments : règle, équerre, compas et rapporteur qu'on prend en main et qu'on fait tourner. L'animation : chaque construction se rejoue pas à pas, comme au tableau. La consigne : on écrit l'énoncé en français, la figure se construit. Un seul fichier HTML, sans installation, sans compte, hors connexion.">
+    <meta name="author" content="Rémy Devoddere">
+    <link rel="canonical" href="https://remy-live.github.io/Geomaster/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="GéoMaster">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:url" content="https://remy-live.github.io/Geomaster/">
+    <meta property="og:title" content="GéoMaster — les instruments, l'animation, la consigne">
+    <meta property="og:description" content="Les instruments qu'on manipule, l'animation pas à pas, et la consigne écrite en français qui se construit toute seule.">
+    <meta property="og:image" content="https://remy-live.github.io/Geomaster/vitrine/partage.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Un triangle équilatéral et sa médiatrice, avec les arcs de compas de la construction laissés sur la feuille.">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GéoMaster — les instruments, l'animation, la consigne">
+    <meta name="twitter:description" content="Les instruments qu'on manipule, l'animation pas à pas, et la consigne écrite en français qui se construit toute seule.">
+    <meta name="twitter:image" content="https://remy-live.github.io/Geomaster/vitrine/partage.png">
     <style>
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
@@ -47880,7 +47916,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-20 · 06h';
+        window.GM_VERSION = '2026-10-24 · 06h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
