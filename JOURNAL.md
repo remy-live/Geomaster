@@ -2791,3 +2791,103 @@ tient qu'à 57 % dans l'écran » pour une toile qui y tenait tout entière. Le
 logiciel, lui, échantillonne chaque arc sur sa portion réelle depuis toujours
 (`getSceneBounds`) ; c'est à lui qu'on demande désormais l'emprise. Le vrai
 défaut était ailleurs, plus petit et bien réel : la chauve-souris à 76 %.
+
+### « J'ai deux angles droits !!!! » — la deuxième fois
+
+Le défaut était revenu, et il se montrait en grand : l'image d'accueil du dépôt
+portait trois coins codés **deux fois**, un petit carré vert de 16 px et un noir
+de 12 px emboîtés, décalés de 4 px.
+
+Ce qui rend cette entrée instructive, c'est que le cahier de bord gardait déjà
+la plainte, le diagnostic — *« l'angle droit est un dessin particulier de
+l'angle »* — et une correction. Elle avait été posée sur la **mauvaise paire** :
+`addEntity` fusionne deux objets `Angle` entre eux, or le carré noir n'est pas
+un objet. La perpendiculaire le peignait elle-même, à chaque image, et rien ne
+pouvait le voir. Une garde qui ne regarde que les objets ne protège de rien
+contre un dessin.
+
+La correction évidente — « supprimer le carré de la perpendiculaire » — a été
+réfutée par la mesure, et c'est le plus intéressant :
+
+| | peint par | taille | recalculé ? |
+| --- | --- | --- | --- |
+| le noir | `PerpendicularLine.draw` | 12 px | **à chaque image**, depuis la droite de référence |
+| le vert | `Angle.draw` | 16 px | jamais : trois points mémorisés |
+
+L'`Angle` de la médiatrice avait pour troisième point un repère dont le parent
+était le **milieu** — or on ne projette pas sur un point, donc il ne bougeait
+jamais. En tirant un sommet d'un triangle 7/6/5, les trois angles passaient de
+`90, 90, 90` à `130,7 ; 317,1 ; 90`. Un angle droit qui affiche « 317° » n'est
+plus un codage, c'est une erreur affichée en grand. Supprimer le carré noir,
+c'était garder le menteur et jeter celui qui dit vrai.
+
+Trois corrections, donc. La perpendiculaire ne peint son carré que si **aucun
+angle n'en dessine un** au même coin, le long des deux mêmes droites — et la
+garde s'auto-corrige : un angle qui cesse d'être droit ne dessine plus de carré,
+la perpendiculaire reprend le sien, le coin n'est jamais nu. Le repère de la
+médiatrice est maintenant un sommet **tourné d'un quart de tour** autour du
+milieu : la relation que `Point.update` rejoue à chaque geste. Et la tangente,
+dont le troisième côté n'était même pas un point de la figure — deux coordonnées
+calculées une fois —, reçoit le même traitement.
+
+**La tolérance a été corrigée par la sonde, contre moi.** J'avais pris 12 px,
+la distance d'accrochage de la main. Faux : sur un triangle presque isocèle
+(7 / 6,9 / 5), le pied d'une hauteur tombe à 6,9 px du milieu d'un côté, et
+comme une hauteur et une médiatrice d'un même côté sont **parallèles**, la
+comparaison des directions ne les sépare pas. Six équerres tombaient à cinq —
+la hauteur perdait sa seule marque. Elle est à 2 px : ces deux équerres-là sont
+calculées par la même construction, au même point exact, jamais posées à la
+main.
+
+La sonde qui manquait au dépôt **tire sur la figure**. Elle espionne le pinceau
+plutôt que les entités : tout chemin de trois points à bras égaux et
+perpendiculaires est une équerre, d'où qu'elle vienne, ramenée en coordonnées
+écran par la matrice du contexte. A/B contre la version d'avant : 13 rouges,
+dont le détail dit exactement la capture d'écran — `{"bras":[16,12],
+"couleurs":["#008000","#000000"]}`.
+
+### Le cercle des neuf points, et le générateur qui mangeait le code
+
+Question d'un professeur sur les réseaux : *« Ça marcherait avec le cercle des
+neuf points ? »* Mesuré avant de répondre — et la réponse était **pire qu'un
+refus** :
+
+| ce qu'on écrit | ce que le logiciel répond | ce qu'il fait |
+| --- | --- | --- |
+| `Trace le cercle des neuf points du triangle ABC` | *Triangle ABC* | il retrace le triangle |
+| `Trace le cercle d'Euler du triangle ABC` | *Droite d'Euler de ABC* | la **droite** ; le mot « cercle » est ignoré |
+| `Trace le cercle de Feuerbach du triangle ABC` | *Triangle ABC* | rien |
+
+Trois façons de poser la même question, trois réponses rassurantes et fausses.
+C'est la faute que ce dépôt traque depuis le début, et elle ne se voit que si
+l'on essaie.
+
+Le cercle existe maintenant, et il porte bien **neuf** points : les trois
+milieux des côtés, les trois pieds des hauteurs, les trois milieux de [AH],
+[BH] et [CH]. Un cercle « des neuf points » qui n'en montrerait que trois ne
+tiendrait pas sa promesse. La sonde calcule les neuf **elle-même**, à partir des
+seuls sommets, et vérifie trois choses distinctes : que ces neuf points
+théoriques tombent sur le cercle tracé, que le logiciel ait posé un point à
+chacun des neuf endroits, et qu'exactement neuf des points posés soient sur le
+cercle. Puis le théorème deux fois de plus : le rayon vaut la moitié de celui du
+cercle circonscrit, le centre est le milieu de [OH]. Écart mesuré : **0 px** sur
+un rayon de 89,3 px.
+
+**Et une de mes lignes mentait** : `ck('le rayon vaut la moitié', true, …)` — un
+vert qui ne mesure rien. Le rayon circonscrit est maintenant calculé.
+
+Mais le plus gros était ailleurs, et c'est la suite de sondes qui l'a dit :
+*« window.GM_PAQUES is not a function »*. En ajoutant la phrase au catalogue,
+j'ai relancé `tests/catalogue.js` — et il a **effacé 239 lignes** d'`index.html`,
+le calcul de la date de Pâques et toute la table des décors de saison. Le
+générateur remplace tout ce qui se trouve entre ses deux bornes ; son propre
+commentaire le dit. Quelqu'un avait écrit ce bloc **à l'intérieur** de la zone
+engendrée, et il y a dormi jusqu'à la première régénération.
+
+Rien n'a signalé la perte : le fichier restait du JavaScript valide, la page se
+chargeait, les consignes marchaient. Seules deux sondes sur cent quarante-six
+sont tombées. Un générateur qui efface du code qu'il n'a pas écrit doit
+**s'arrêter**, pas obéir : il vérifie désormais que la région ne contient que
+son préambule et la ligne du tableau, et refuse en nommant ce qu'il allait
+détruire. Éprouvé en y glissant une fonction : refus, et la fonction est
+toujours là.

@@ -205,6 +205,7 @@ const GROUPES = [
     'Trace un triangle ABC et ses médiatrices',
     ['Trace la droite des milieux du triangle ABC', { prep: ['Trace un triangle ABC'] }],
     ["Trace la droite d'Euler du triangle ABC", { prep: ['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm'] }],
+    ["Trace le cercle des neuf points du triangle ABC", { prep: ['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm'] }],
   ]],
   ['Angles', [
     'Trace un angle de 60°',
@@ -425,7 +426,31 @@ if (require.main !== module) return;
     console.log('Les bornes GM_CATALOGUE sont absentes de index.html — tableau non écrit');
     rates++;
   } else {
-    htmlNeuf = html.slice(0, i) + tableau + html.slice(j + BORNE_B.length);
+    /* ON NE REMPLACE QUE CE QU'ON A ÉCRIT. Les bornes rendent l'écriture
+       idempotente — mais elles la rendent aussi DESTRUCTRICE : tout ce qui se
+       glisse entre elles disparaît à la régénération suivante, sans un mot.
+       C'est arrivé. Le calcul de la date de Pâques et toute la table des décors
+       de saison — 239 lignes — avaient été écrits là ; la première régénération
+       les a effacés, le fichier restait valide, la page se chargeait, et c'est
+       la suite de sondes qui l'a dit : « window.GM_PAQUES is not a function ».
+       Un générateur qui efface du code qu'il n'a pas écrit doit s'arrêter, pas
+       obéir. On vérifie donc que la région ne contient QUE le préambule et la
+       ligne du tableau. */
+    const dedans = html.slice(i + BORNE_A.length, j);
+    const restant = dedans
+      .replace(/\/\*[^]*?NE PAS ÉDITER À LA MAIN[^]*?\*\//, '')
+      .replace(/window\.GM_CATALOGUE\s*=[^]*?;\s*$/, '')
+      .trim();
+    if (restant) {
+      console.log('REFUS D\'ÉCRIRE : la région entre les bornes GM_CATALOGUE contient\n'
+        + '  du code qui n\'a pas été engendré ici — ' + restant.split('\n').length
+        + ' ligne(s). Le réécrire l\'effacerait.\n'
+        + '  Premiers caractères : ' + restant.slice(0, 120).replace(/\s+/g, ' ')
+        + '\n  Déplacez ce code AVANT la borne de début, puis relancez.');
+      rates++;
+    } else {
+      htmlNeuf = html.slice(0, i) + tableau + html.slice(j + BORNE_B.length);
+    }
   }
 
   if (verifie) {

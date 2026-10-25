@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**224 phrases**, dont 224 passent.
+**225 phrases**, dont 225 passent.
 
 Quelques principes qui valent partout :
 
@@ -212,6 +212,7 @@ Quelques principes qui valent partout :
 | Trace un triangle ABC et ses médiatrices | Triangle ABC · Les 3 médiatrices de ABC |
 | Trace la droite des milieux du triangle ABC | Droite des milieux (EF) du triangle ABC — parallèle à (BC) |
 | Trace la droite d'Euler du triangle ABC | Droite d'Euler de ABC — E, F, G alignés |
+| Trace le cercle des neuf points du triangle ABC | Cercle des neuf points de ABC — F, G, H, I, J, K, L, M, N |
 
 ## Angles
 
