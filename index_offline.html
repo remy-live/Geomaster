@@ -35859,6 +35859,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        qui lisait « par rapport au point O » comme « place le
                        point O » — et répondait « Point O placé », sans faire la
                        symétrie et sans refuser. Le pire des trois. */
+                    /* « SON PIED » DOIT DÉSIGNER QUELQUE CHOSE. « Trace la
+                       hauteur issue de A ET place son pied » est découpée en
+                       deux consignes : le fragment « place son pied » n'a plus
+                       de hauteur sous la main, tombait sur le poseur de points,
+                       inventait un point au hasard et répondait « Point D
+                       placé » — sans dire une seconde qu'il n'avait pas compris
+                       « son pied ». Les hauteurs du coup précédent sont
+                       mémorisées ; le singulier prend la dernière, le pluriel
+                       les prend toutes. Et quand il n'y en a aucune, on refuse
+                       en disant comment écrire la phrase. */
+                    if (/\bpieds?\b/.test(t)
+                        && !/hauteur|perpendiculaire|m[ée]diatrice/.test(t)
+                        && /^(?:place|placer|pose|poser|marque|marquer|appelle|nomme|on\s+note)\b/.test(t)) {
+                        /* Une mémoire ne vaut que si la figure est encore là :
+                           après un effacement, les sommets retenus ne sont plus
+                           sur la feuille, et poser leur pied ferait surgir un
+                           point venu d'une figure morte. */
+                        const lot = (this._cslHauteurs || []).filter(h =>
+                            this.entities.indexOf(h.s) >= 0
+                            && this.entities.indexOf(h.a) >= 0
+                            && this.entities.indexOf(h.b) >= 0);
+                        if (!lot.length) {
+                            return rate("Le pied de quoi ? Tracez d'abord une hauteur, "
+                                + "ou écrivez « Place le pied de la hauteur issue de A ».");
+                        }
+                        const pluriel = /\bpieds\b|\bleurs?\b/.test(t);
+                        const vises = pluriel ? lot : [lot[lot.length - 1]];
+                        const voulus = this.cslNoms(brut).filter(x => !this.cslPointNomme(x));
+                        const poses = vises.map((h, k) => this.cslPoserPied(h.s, h.a, h.b,
+                            voulus[k] || this.cslNomLibre([])).label);
+                        return fait(poses.length > 1
+                            ? `Pieds des hauteurs : ${poses.join(', ')}`
+                            : `${poses[0]} — pied de la hauteur issue de ${vises[0].s.label}`);
+                    }
                     if (/sym[ée]trique|sym[ée]trie|image\s+d[eu]\b|image\s+des\b|\btranslation\b|\brotation\b/.test(t)
                         /* AGRANDIR ET RÉDUIRE sont des transformations, et les mots
                            du collège avant « homothétie ». Sans ce passage ici,
@@ -36735,11 +36769,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        celle du catalogue est celle-ci. Ne corriger qu'une des
                        deux laisserait tomber l'autre. */
                     const veutPied = this.cslVeutPied(t);
+                    const veutTrait = !veutPied || /\btrac|\bconstrui|\bdessin/.test(t);
+                    this._cslHauteurs = [];
                     const pieds = [];
                     choisis.forEach(([s, p, q]) => {
                         const rh = this.cslPoserHauteur(s, p, q, veutPied
                             ? ((nomLibre && !this.cslPointNomme(nomLibre)) ? nomLibre : this.cslNomLibre([]))
-                            : null);
+                            : null, veutTrait);
                         if (rh.pied) pieds.push(rh.pied.label);
                     });
                     if (veutPied && pieds.length) {
@@ -39496,7 +39532,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                animation, case cochée comme décochée. Les deux chemins se
                rejoignent ici. Sans instruments et sans pied demandé, la branche
                « sinon » est mot pour mot ce que les trois appelants écrivaient. */
-            cslPoserHauteur(s, a, b, nomPied) {
+            /* « PLACE » N'EST PAS « TRACE ». La première version posait le
+               pied ET traçait la hauteur : une droite infinie que personne
+               n'avait demandée, qui forçait le cadrage à dézoomer au point de
+               rendre le triangle minuscule. Faire plus que ce qu'on demande est
+               le miroir exact du défaut qu'on venait de corriger.
+               AUX INSTRUMENTS, en revanche, l'équerre descend : c'est le geste
+               qui TROUVE le pied, et le montrer est tout l'enseignement. On ne
+               peut pas poser le pied à l'équerre sans tracer la perpendiculaire
+               le long de laquelle elle descend. */
+            cslPoserHauteur(s, a, b, nomPied, tracerDroite = true) {
+                /* On retient ce qu'on vient de poser : « et place son pied »,
+                   découpé en consigne à part, n'a plus de hauteur sous la main. */
+                (this._cslHauteurs = this._cslHauteurs || []).push({ s, a, b });
                 const ref = { p1: a, p2: b };
                 let d = null, pied = null;
                 if (this.cslDetaille()) {
@@ -39507,8 +39555,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     pied = this._cslDernierPied;
                     if (pied && !pied.label) pied = null;
                 } else {
-                    d = this.cslPoserStyle(new PerpendicularLine(s, ref));
-                    this.addEntity(d);
+                    if (tracerDroite) {
+                        d = this.cslPoserStyle(new PerpendicularLine(s, ref));
+                        this.addEntity(d);
+                    }
                     if (nomPied) pied = this.cslPoserPied(s, a, b, nomPied);
                 }
                 return { d, pied };
@@ -39589,8 +39639,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const a = this.cslPointNomme(noms[0]), b = this.cslPointNomme(noms[1]);
                     if (!s || !a || !b) return rate("Je ne connais pas tous ces points.");
                     const veutPied = this.cslVeutPied(t);
+                    /* « Trace la hauteur … et place son pied » veut les deux ;
+                       « Place le pied … » ne veut que le point. */
+                    const veutTrait = !veutPied || /\btrac|\bconstrui|\bdessin/.test(t);
+                    this._cslHauteurs = [];
                     const rh = this.cslPoserHauteur(s, a, b,
-                        veutPied ? (nomVoulu || this.cslNomLibre([])) : null);
+                        veutPied ? (nomVoulu || this.cslNomLibre([])) : null, veutTrait);
                     if (veutPied && rh.pied) {
                         return fait(`${rh.pied.label} — pied de la hauteur issue de ${issue}`);
                     }
@@ -40136,7 +40190,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!this._cslMemoire.droites) this._cslMemoire.droites = {};
                 return this._cslMemoire;
             }
-            cslOublier() { this._cslMemoire = { cercles: {}, droites: {} }; }
+            cslOublier() { this._cslMemoire = { cercles: {}, droites: {} }; this._cslHauteurs = []; }
             /* LE PAPIER SE CHOISIT AUSSI À LA PHRASE. « Efface le quadrillage »
                tombait sur la gomme — « je sais effacer TOUT » —, ce qui n'a aucun
                rapport : le quadrillage n'est pas un objet de la figure, c'est le
@@ -48225,7 +48279,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-26 · 09h';
+        window.GM_VERSION = '2026-10-26 · 12h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

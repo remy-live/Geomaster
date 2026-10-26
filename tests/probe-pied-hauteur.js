@@ -100,6 +100,39 @@ const OBTUS = 'Trace un triangle ABC tel que AB = 2 cm, AC = 7 cm et BC = 6 cm';
            `${r.avantTirage.dessus.length} point(s) ${JSON.stringify(r.avantTirage.dessus)} — ${r.err || r.msg}`);
         ck('   et la réponse le nomme', /pied de la hauteur/.test(r.msg), r.msg);
     }
+    console.log('\n=== « Place » n\'est pas « Trace » ===');
+    const rp = await jouer({ tri: TRI, phrase: 'Place le pied de la hauteur issue de A' });
+    ck('« Place le pied » pose le point ET RIEN D\'AUTRE', rp.nouvelles === 1,
+       `+${rp.nouvelles} entité(s) — une droite infinie non demandée dézoome toute la figure`);
+    /* « et place son pied » est DÉCOUPÉ en consigne à part : le fragment n'a
+       plus de hauteur sous la main. Il inventait un point au hasard et
+       répondait « Point D placé » — sans dire qu'il n'avait pas compris. */
+    const rpt = await jouer({ tri: TRI, phrase: 'Trace la hauteur issue de A et place son pied' });
+    ck('mais « Trace la hauteur et place son pied » fait les deux',
+       rpt.nouvelles === 2 && rpt.avantTirage.dessus.length === 1,
+       `+${rpt.nouvelles} entité(s), ${rpt.avantTirage.dessus.length} point(s) au pied`);
+    const rp3 = await jouer({ tri: TRI, phrase: 'Trace les hauteurs du triangle ABC et place leurs pieds' });
+    ck('« les hauteurs … et place leurs pieds » : trois droites et trois pieds',
+       rp3.nouvelles === 6 && /Pieds des hauteurs/.test(rp3.msg),
+       `+${rp3.nouvelles} — ${rp3.msg}`);
+    /* Et sur une feuille où aucune hauteur n'a été tracée, « son pied » ne
+       désigne rien : il faut le DIRE, pas inventer un point. */
+    const rvide = await page.evaluate(() => {
+        const app = window.app;
+        app.entities = []; app.historyPast = [];
+        if (app.cslOublier) app.cslOublier();
+        app.executerConsigneAvec('Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm', false);
+        const av = app.entities.length;
+        let r = null; try { r = app.executerConsigneAvec('Place son pied', false); } catch (e) { void e; }
+        return { ok: !!(r && r.ok), msg: (r && r.message) || '', n: app.entities.length - av };
+    });
+    ck('« Place son pied » sans hauteur est REFUSÉ, et il le dit',
+       rvide.ok === false && rvide.n === 0 && /pied de quoi/i.test(rvide.msg),
+       `+${rvide.n} — « ${rvide.msg.slice(0, 60)} »`);
+    const rpi = await jouer({ tri: TRI, phrase: 'Place le pied de la hauteur issue de A', instruments: true });
+    ck("aux instruments, l'équerre descend quand même : c'est elle qui trouve le pied",
+       rpi.animations >= 5, `${rpi.animations} animation(s)`);
+
     const rn = await jouer({ tri: TRI, phrase: 'Place le pied H de la hauteur issue de A' });
     ck('le nom écrit est gardé', rn.avantTirage.dessus[0] === 'H' && /^H /.test(rn.msg),
        JSON.stringify(rn.avantTirage.dessus) + ' — ' + rn.msg);
