@@ -207,6 +207,41 @@ const NET = () => {
     ck('aucune étape du rejeu ne montre deux équerres', rejeu.pires.length === 0,
        `${rejeu.n} étapes parcourues` + (rejeu.pires.length ? ' — ' + JSON.stringify(rejeu.pires[0]) : ''));
 
+    /* ---- ET ELLE A LA COULEUR DU CRAYON, À L'ÉCRAN COMME À L'IMPRESSION ----
+       L'écran retombait sur le littéral « green », l'export sur « black » : la
+       même équerre était verte sur la feuille et noire sur le papier. Et une
+       médiatrice tracée « en rouge » portait un codage vert — la couleur
+       demandée ne se voyait nulle part sur la marque. */
+    console.log("\n=== l'équerre a la couleur du crayon, écran et impression ===");
+    const couleurs = await page.evaluate(() => {
+        const app = window.app;
+        const essai = (prep, ph) => {
+            app.entities = []; app.historyPast = [];
+            if (app.cslOublier) app.cslOublier();
+            app.executerConsigneAvec(prep, false);
+            app.executerConsigneAvec(ph, false);
+            const ang = app.entities.filter(e => e.constructor.name === 'Angle');
+            const svg = app.generateSVGString(false, 'text');
+            const carres = (String(svg).match(/<path[^>]*>/g) || [])
+                .filter(t => /d="M [^"]*Z"/.test(t))
+                .map(t => (t.match(/stroke="([^"]+)"/) || [])[1]);
+            return { ecran: ang.map(a => a.couleurTrait()), svg: carres };
+        };
+        return {
+            noir: essai('Trace un segment [AB] de longueur 7 cm',
+                        'Trace la médiatrice du segment [AB]'),
+            rouge: essai('Trace un segment [AB] de longueur 7 cm',
+                         'Trace la médiatrice du segment [AB] en rouge'),
+        };
+    });
+    ck("au crayon par défaut, l'écran et le SVG disent la MÊME couleur",
+       couleurs.noir.ecran.length === 1 && couleurs.noir.svg.length === 1
+       && couleurs.noir.ecran[0].toLowerCase() === couleurs.noir.svg[0].toLowerCase(),
+       `écran ${JSON.stringify(couleurs.noir.ecran)} / svg ${JSON.stringify(couleurs.noir.svg)}`);
+    ck("et « en rouge » donne une équerre ROUGE, des deux côtés",
+       couleurs.rouge.ecran[0] === '#e53935' && couleurs.rouge.svg[0] === '#e53935',
+       `écran ${JSON.stringify(couleurs.rouge.ecran)} / svg ${JSON.stringify(couleurs.rouge.svg)}`);
+
     ck('aucune erreur JS', errs.length === 0, errs.slice(0, 2).join(' | '));
     await nav.close();
     console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

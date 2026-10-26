@@ -15414,12 +15414,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (!b) return false;
                 return Math.abs(x - b.x) <= b.demiL && Math.abs(y - b.y) <= b.demiH;
             }
+            /* LA COULEUR D'UN ANGLE SE DIT À UN SEUL ENDROIT. L'écran
+               retombait sur le littéral « green », l'export sur « black » : la
+               même équerre d'angle droit était verte à l'écran et noire à
+               l'impression. Deux fonds de repli pour une seule marque finissent
+               toujours par diverger — ils avaient déjà divergé. */
+            couleurTrait() { return this.color || 'green'; }
             draw(ctx, { isHovered, isToDelete }) {
                 if (!this.p1 || !this.p2 || !this.p3) return;
                 const val = this.getAngleValue();
                 const isRightAngle = Math.abs(val - 90) < 0.5;
                 const baseRadius = 25;
-                let baseColor = this.color || "green";
+                let baseColor = this.couleurTrait();
                 const isSelected = arguments[1] ? arguments[1].isSelected : false;
                 const s = isToDelete ? "#d32f2f" : (isHovered ? baseColor : (isSelected ? "orange" : baseColor));
                 const width = (isHovered || isSelected || isToDelete) ? 4 : 2;
@@ -18236,7 +18242,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ptMid.codageMilieu = marqueVoulue
                     || this.marqueCodage(MathUtils.dist(pA.x, pA.y, pB.x, pB.y) / 2).marque;
                 this.addEntity(ptMid);
-                let angMark = new Angle(pB, ptMid, pC); this.addEntity(angMark);
+                let angMark = new Angle(pB, ptMid, pC);
+                angMark.color = this.encreCourante(); this.addEntity(angMark);
                 
                 this.addEntity(new ToolAnimation('rulerHide', {}, {}));
                 
@@ -19224,7 +19231,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     animPerp.widgetType = 'setsquare';
                     this.addEntity(animPerp); this.addEntity(sPerp); this.addEntity(new ToolAnimation('setsquareHide', {}, {}));
                     
-                    let angMark = new Angle(pA, currentPt, nextPt); angMark.isRightAngle = true; this.addEntity(angMark);
+                    let angMark = new Angle(pA, currentPt, nextPt); angMark.isRightAngle = true;
+                    angMark.color = segAB.color || this.encreCourante(); this.addEntity(angMark);
                     
                     let hypAngle = Math.atan2(nextPt.y - pA.y, nextPt.x - pA.x);
                     let sHyp = new Segment(pA, nextPt, {color: "#999999", width: 1});
@@ -19936,6 +19944,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.addEntity(new ToolAnimation('compassHide', {}, {}));
                     
                     let angMark = new Angle(segAxis.p1, proj, pTarget); angMark.isRightAngle = true;
+                    angMark.color = segAxis.color || this.encreCourante();
                     this.addEntity(angMark);
                     
                     this.addEntity(pNew);
@@ -30373,7 +30382,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                     if (!e.visible && e instanceof Point) return;
-                    const color = getHex(e.color || 'black');
+                    const color = getHex(e.couleurTrait ? e.couleurTrait() : (e.color || 'black'));
                     const strokeW = e.lineWidth || 2;
                     const dash = e.dash && e.dash.length > 0 ? `stroke-dasharray="${e.dash.join(',')}"` : "";
 
@@ -38034,7 +38043,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 haut.visible = false;
                 haut.update();
                 this.addEntity(haut);
-                this.addEntity(new Angle(b, m, haut));
+                /* L'ÉQUERRE SE TRACE AVEC LE CRAYON QUI A TRACÉ LA DROITE.
+                   « Trace la médiatrice de [AB] en rouge » donnait une
+                   médiatrice rouge et un angle droit VERT : la couleur demandée
+                   ne se voyait nulle part sur le codage. Sur le papier, on code
+                   l'angle avec le crayon qu'on a en main. */
+                const angM = new Angle(b, m, haut);
+                if (d && d.color) angM.color = d.color;
+                this.addEntity(angM);
             }
             /* ON DEMANDE DEUX MÉDIATRICES, ON EN A DEUX. « Trace les médiatrices
                de [AB] et [AC] » en traçait TROIS — celles du triangle — et le
@@ -39513,7 +39529,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     surD.parents = [bout, a, b]; surD.subType = 'pied';
                 }
                 surD.visible = false; this.addEntity(surD);
-                const mk = new Angle(surD, pF, C); mk.isRightAngle = true; this.addEntity(mk);
+                const mk = new Angle(surD, pF, C); mk.isRightAngle = true;
+                if (d && d.color) mk.color = d.color;
+                this.addEntity(mk);
                 return d;
             }
             /* LE PIED D'UNE HAUTEUR, POSÉ COMME UNE RELATION. */
@@ -39905,7 +39923,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     surT.visible = false;
                     surT.update();
                     this.addEntity(surT);
-                    this.addEntity(new Angle(O, A, surT));
+                    const angT = new Angle(O, A, surT);
+                    if (d && d.color) angT.color = d.color;
+                    this.addEntity(angT);
                     return fait(`Tangente au cercle en ${A.label}`);
                 }
                 /* Le rayon, le diamètre, la corde : on pose les points qui
@@ -40191,6 +40211,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 return this._cslMemoire;
             }
             cslOublier() { this._cslMemoire = { cercles: {}, droites: {} }; this._cslHauteurs = []; }
+            /* L'ENCRE EN COURS, pour les codages que les bâtisseurs posent.
+               Les constructions lancées par une consigne prennent la couleur de
+               la droite qu'elles viennent de tracer ; celles lancées par la
+               palette n'ont pas de droite sous la main — elles prennent le
+               crayon. Dans les deux cas, l'équerre est tracée avec ce qui a
+               tracé la figure, et non avec un vert tombé d'un littéral. */
+            encreCourante() {
+                return (this.globalStyle && this.globalStyle.color) || null;
+            }
             /* LE PAPIER SE CHOISIT AUSSI À LA PHRASE. « Efface le quadrillage »
                tombait sur la gomme — « je sais effacer TOUT » —, ce qui n'a aucun
                rapport : le quadrillage n'est pas un objet de la figure, c'est le
@@ -48279,7 +48308,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-26 · 12h';
+        window.GM_VERSION = '2026-10-26 · 15h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
