@@ -86,6 +86,76 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   });
   console.log('  ' + JSON.stringify(h));
   ck('toujours entièrement dans l\'écran', h.dansEcran === true);
+  /* ---- ALLUMÉE AU BOUTON, PUIS LE DOIGT ARRIVE ----
+     montrer() demandait « suis-je visible ? » pour décider « faut-il
+     m'ancrer ? ». Si le professeur avait allumé la loupe lui-même, elle était
+     visible mais GARÉE en bas à droite : l'ancrage était sauté et le
+     translate3d du suivi s'ajoutait à la position garée. Mesuré avant : doigt
+     en (407 ; 291), bulle en (1174 ; 693) sur un écran de 1024 × 768 — hors
+     de l'écran, donc invisible exactement quand on venait de la demander. */
+  console.log('\n=== allumée au bouton, elle rejoint quand même le doigt ===');
+  const gBouton = await page.evaluate(async () => {
+    const app = window.app, cv = app.canvas, r = cv.getBoundingClientRect();
+    const bulle = document.getElementById('zoomBubble');
+    const btn = document.getElementById('zoomToggleBtn');
+    btn.click(); await new Promise(k => setTimeout(k, 60)); btn.click();
+    await new Promise(k => setTimeout(k, 120));
+    const garee = bulle.getBoundingClientRect();
+    const ev = (t, x, y, bt) => (t === 'pointerup' ? window : cv).dispatchEvent(
+      new PointerEvent(t, { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0,
+        buttons: bt, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+    app.setTool('segment');
+    const dx = r.left + 120, dy = Math.max(r.top + 300, 320);
+    ev('pointerdown', dx, dy, 1);
+    await new Promise(k => setTimeout(k, 330));
+    ev('pointermove', dx, dy, 1);
+    await new Promise(k => setTimeout(k, 160));
+    const q = bulle.getBoundingClientRect();
+    ev('pointerup', dx, dy, 0);
+    return { garee: [Math.round(garee.left), Math.round(garee.top)],
+             doigt: [Math.round(dx), Math.round(dy)],
+             suivie: [Math.round(q.left), Math.round(q.top)],
+             dansEcran: q.left >= 0 && q.top >= 0 && q.right <= innerWidth && q.bottom <= innerHeight,
+             pres: Math.round(Math.hypot(q.left + q.width / 2 - dx, q.top + q.height / 2 - dy)) };
+  });
+  console.log('  ' + JSON.stringify(gBouton));
+  ck('elle quitte sa place garée', gBouton.suivie[0] !== gBouton.garee[0] || gBouton.suivie[1] !== gBouton.garee[1],
+     `garée ${JSON.stringify(gBouton.garee)} → ${JSON.stringify(gBouton.suivie)}`);
+  ck("elle reste dans l'écran", gBouton.dansEcran === true, JSON.stringify(gBouton.suivie));
+  ck('et elle est près du doigt, pas à l\'autre bout', gBouton.pres < 260, gBouton.pres + ' px du doigt');
+
+  /* ---- LE CADRE DE LA LOUPE N'AVALE PLUS LA FEUILLE ----
+     Loupe allumée, un disque de 158 × 158 px en bas à droite ne répondait plus :
+     elementFromPoint y rendait « zoomWidget ». La loupe ne pouvait donc pas
+     montrer ce qu'elle cachait, et un clic dans ce coin n'arrivait nulle part.
+     Cela se mesure sur un ÉCRAN D'ORDINATEUR, là où la bulle reste garée en bas
+     à droite : au téléphone elle suit le doigt, et se trouve ailleurs. */
+  console.log('\n=== et son cadre laisse passer la feuille (écran d\'ordinateur) ===');
+  const bureau = await b.newContext({ viewport: { width: 1366, height: 768 } });
+  const pageB = await bureau.newPage();
+  await pageB.goto(PAGE); await pageB.waitForFunction(() => window.app);
+  await pageB.waitForTimeout(700);
+  await pageB.evaluate(() => { const m = document.getElementById('customModal'); if (m) m.style.display = 'none';
+    window.app.checkAutoSave = () => {}; });
+  await pageB.locator('#zoomToggleBtn').click();
+  await pageB.waitForTimeout(250);
+  const sous = await pageB.evaluate(() => {
+    const b2 = document.getElementById('zoomBubble').getBoundingClientRect();
+    const lire = (x, y) => { const e = document.elementFromPoint(x, y); return e ? (e.id || e.tagName) : 'rien'; };
+    const btn = document.getElementById('zoomToggleBtn').getBoundingClientRect();
+    return { visible: getComputedStyle(document.getElementById('zoomBubble')).display,
+             centre: lire(b2.left + b2.width / 2, b2.top + b2.height / 2),
+             coin: lire(b2.left + 8, b2.top + 8),
+             /* elementFromPoint rend le <line> du dessin, pas le bouton :
+                c'est l'ancêtre qu'il faut regarder. */
+             bouton: (() => { const e = document.elementFromPoint(btn.left + btn.width / 2, btn.top + btn.height / 2);
+                 return e && e.closest && e.closest('#zoomToggleBtn') ? 'zoomToggleBtn' : (e ? (e.id || e.tagName) : 'rien'); })() };
+  });
+  ck('la feuille répond sous la bulle', /canvas/i.test(sous.centre) && /canvas/i.test(sous.coin),
+     JSON.stringify(sous));
+  ck('mais le bouton garde sa prise', /zoomToggleBtn/.test(sous.bouton), sous.bouton);
+  await bureau.close();
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

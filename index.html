@@ -7974,8 +7974,20 @@
            interceptait le second doigt d'un pincement — qui n'atteignait donc
            plus le canvas, si bien que activePointers ne montait jamais à 2 et
            que le zoom à deux doigts ne se déclenchait plus.
-           Cible restreinte à #zoomBubble : le bouton d'activation, voisin dans
-           #zoomWidget, doit rester cliquable. */
+           La cible était restreinte à #zoomBubble pour que le bouton
+           d'activation reste cliquable — mais #zoomWidget, le cadre qui les
+           tient tous les deux, continuait d'avaler le pointeur : loupe
+           allumée, un disque de 158 × 158 px en bas à droite ne répondait plus
+           à la feuille. Mesuré : elementFromPoint y rendait « zoomWidget » et
+           non « geoCanvas », donc la loupe ne pouvait pas montrer ce qu'elle
+           cachait, et un clic dans ce coin n'arrivait nulle part. On laisse
+           passer tout le cadre, et l'on rend sa prise au seul bouton. */
+        #zoomWidget {
+            pointer-events: none;
+        }
+        #zoomToggleBtn {
+            pointer-events: auto;
+        }
         #zoomBubble {
             pointer-events: none;
         }
@@ -36594,7 +36606,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Le nom qu'on veut donner au point — « le centre de gravité G » —
                    est celui de la phrase qui n'existe pas encore, où qu'il soit :
                    il est écrit avant les sommets aussi souvent qu'après. */
-                const nomLibre = noms.find(n => !this.cslPointNomme(n));
+                /* AU PLURIEL, ON N'EN LISAIT QU'UN. « Place les milieux des
+                   côtés du triangle ABC : I, J et K » posait D, E, F — les
+                   premières lettres libres — et répondait « Milieux des côtés de
+                   ABC : D, E, F » sans dire une seconde que les trois noms
+                   demandés avaient été jetés. Pire : « Place les pieds I, J, K
+                   des hauteurs » honorait le premier et jetait les deux autres.
+                   On lit maintenant la LISTE, et on la sert dans l'ordre : un nom
+                   par objet construit, et quand elle est vide le nommage
+                   automatique reprend la main. C'est la convention que le fichier
+                   s'est déjà donnée pour le pied de la hauteur. */
+                const nomsEcrits = noms.filter(n => !this.cslPointNomme(n));
+                const nomLibre = nomsEcrits[0];
+                const resteMilieux = nomsEcrits.slice();
+                const restePieds = nomsEcrits.slice();
+                const servir = (reste) => reste.shift() || this.cslNomLibre([]);
+                /* Un nom écrit qu'on n'a pas pu servir ne disparaît pas en
+                   silence : la figure dit lequel, et pourquoi. */
+                const direRestants = (reste, quoi) => {
+                    if (!reste.length) return;
+                    this.cslDire(reste.length > 1
+                        ? `Les noms ${reste.join(', ')} n'ont pas été employés : il n'y a que ${quoi} à nommer.`
+                        : `Le nom ${reste[0]} n'a pas été employé : il n'y a que ${quoi} à nommer.`);
+                };
 
                 /* LE CERCLE DES NEUF POINTS. Question d'un professeur, sur les
                    réseaux : « Ça marcherait avec le cercle des neuf points ? »
@@ -36782,11 +36816,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this._cslHauteurs = [];
                     const pieds = [];
                     choisis.forEach(([s, p, q]) => {
-                        const rh = this.cslPoserHauteur(s, p, q, veutPied
-                            ? ((nomLibre && !this.cslPointNomme(nomLibre)) ? nomLibre : this.cslNomLibre([]))
-                            : null, veutTrait);
+                        const rh = this.cslPoserHauteur(s, p, q,
+                            veutPied ? servir(restePieds) : null, veutTrait);
                         if (rh.pied) pieds.push(rh.pied.label);
                     });
+                    if (veutPied) direRestants(restePieds, choisis.length > 1 ? 'trois pieds' : 'un pied');
                     if (veutPied && pieds.length) {
                         return fait(choisis.length > 1
                             ? `Pieds des hauteurs de ${nom3} : ${pieds.join(', ')}`
@@ -36797,7 +36831,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/milieux/.test(t)) {
                     const pris = [];
                     const poses = [[A, B], [B, C], [C, A]].map(([p, q]) => {
-                        const nom = this.cslNomLibre([]);
+                        const nom = servir(resteMilieux);
                         const m = new Point((p.x + q.x) / 2, (p.y + q.y) / 2, nom, [p, q]);
                         // un trait sur chaque moitié, et une marque par côté
                         if (this.cslTraitEntre(p, q)) {
@@ -36808,6 +36842,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.addEntity(m);
                         return nom;
                     });
+                    direRestants(resteMilieux, 'trois côtés');
                     return fait(`Milieux des côtés de ${nom3} : ${poses.join(', ')}`);
                 }
                 if (/m[ée]diane/.test(t)) {
@@ -48308,7 +48343,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-26 · 15h';
+        window.GM_VERSION = '2026-10-26 · 18h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
@@ -52128,7 +52163,16 @@ var qrcode = function() {
 
                     var montrer = function (x, y) {
                         annulerAttente();
-                        if (bubble.style.display !== 'block') {
+                        /* ON DEMANDAIT « SUIS-JE VISIBLE ? » POUR DÉCIDER
+                           « FAUT-IL M'ANCRER ? ». Deux questions confondues :
+                           si la loupe était déjà allumée au bouton — donc
+                           visible, mais GARÉE en bas à droite — l'ancrage était
+                           sauté, et le translate3d du suivi s'ajoutait à sa
+                           position garée. Mesuré : le doigt en (377 ; 291) et la
+                           bulle en (1144 ; 693) sur un écran de 1024 × 768,
+                           c'est-à-dire hors de l'écran. La bonne question est
+                           « est-ce que je suis DÉJÀ en train de suivre ? ». */
+                        if (!window.gmLoupeTactile) {
                             bubble.style.display = 'block';
                             ancrer();
                             // seul moment où l'on mesure : la bulle vient d'apparaître
