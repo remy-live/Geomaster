@@ -189,6 +189,8 @@ const GROUPES = [
     'Trace la parallèle à (AB) passant par C',
     'Trace la bissectrice de l\'angle ABC',
     'Trace la hauteur issue de A dans le triangle ABC',
+    'Place le pied de la hauteur issue de A dans le triangle ABC',
+    'Place les pieds des hauteurs du triangle ABC',
     'Trace la médiane issue de A dans le triangle ABC',
     'Trace les médiatrices du triangle ABC',
     'Trace les bissectrices du triangle ABC',

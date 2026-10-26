@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**225 phrases**, dont 225 passent.
+**227 phrases**, dont 227 passent.
 
 Quelques principes qui valent partout :
 
@@ -193,6 +193,8 @@ Quelques principes qui valent partout :
 | Trace la parallèle à (AB) passant par C | Parallèle à (AB) passant par C |
 | Trace la bissectrice de l'angle ABC | Bissectrice de l'angle ABC |
 | Trace la hauteur issue de A dans le triangle ABC | Hauteur issue de A |
+| Place le pied de la hauteur issue de A dans le triangle ABC | E — pied de la hauteur issue de A |
+| Place les pieds des hauteurs du triangle ABC | Pieds des hauteurs de ABC : E, F, G |
 | Trace la médiane issue de A dans le triangle ABC | Médiane issue de A |
 | Trace les médiatrices du triangle ABC | Les 3 médiatrices de ABC |
 | Trace les bissectrices du triangle ABC | Les 3 bissectrices de ABC |
