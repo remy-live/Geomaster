@@ -98,7 +98,13 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     const app = window.app, cv = app.canvas, r = cv.getBoundingClientRect();
     const bulle = document.getElementById('zoomBubble');
     const btn = document.getElementById('zoomToggleBtn');
-    btn.click(); await new Promise(k => setTimeout(k, 60)); btn.click();
+    /* Le bouton fait le tour de trois états : on clique jusqu'à « reste en
+       bas », qui est l'état où la bulle est VISIBLE et GARÉE — celui où
+       l'ancrage était sauté. « Éteindre puis rallumer » ne revient plus au
+       même point depuis que le bouton a trois états. */
+    for (let k = 0; k < 4 && window.app.zoomMode !== 2; k++) {
+        btn.click(); await new Promise(r2 => setTimeout(r2, 60));
+    }
     await new Promise(k => setTimeout(k, 120));
     const garee = bulle.getBoundingClientRect();
     const ev = (t, x, y, bt) => (t === 'pointerup' ? window : cv).dispatchEvent(
@@ -154,6 +160,73 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('la feuille répond sous la bulle', /canvas/i.test(sous.centre) && /canvas/i.test(sous.coin),
      JSON.stringify(sous));
   ck('mais le bouton garde sa prise', /zoomToggleBtn/.test(sous.bouton), sous.bouton);
+
+  /* ---- ELLE SUIT LE CURSEUR, PAR LE HAUT OU PAR LE BAS ----
+     « Je n'ai toujours pas la loupe qui peut suivre le curseur par le haut ou
+     bas. » La loupe ne savait qu'être éteinte ou allumée-et-garée en bas à
+     droite : il fallait faire l'aller-retour de l'œil entre le point visé et
+     le coin — jusqu'à 1075 px, mesuré en 1366 × 768. Elle se pose maintenant
+     AU-DESSUS du curseur, et PASSE DESSOUS quand le haut manque : jamais sur
+     le point qu'on regarde. « Mais qui peut aussi rester en bas » : le bouton
+     fait le tour des trois états, sans commande nouvelle. */
+  console.log('\n=== elle suit le curseur, par le haut ou par le bas ===');
+  const etat = () => pageB.evaluate(() => {
+    const r = document.getElementById('zoomBubble').getBoundingClientRect();
+    const btn = document.getElementById('zoomToggleBtn');
+    return { mode: window.app.zoomMode, actif: !!window.app.isZoomActive,
+             garee: btn.classList.contains('loupe-garee'),
+             info: btn.dataset.tooltip,
+             vue: getComputedStyle(document.getElementById('zoomBubble')).display,
+             x: Math.round(r.left), y: Math.round(r.top),
+             w: Math.round(r.width), h: Math.round(r.height) };
+  });
+  /* On est déjà au 1er clic (mode 1) : la loupe suit. */
+  const m1 = await etat();
+  ck('le premier clic met la loupe en mode « suit le curseur »',
+     m1.mode === 1 && m1.actif === true && m1.garee === false, JSON.stringify(m1));
+  const suivis = [];
+  for (const [x, y] of [[600, 500], [400, 120], [900, 650]]) {
+    await pageB.mouse.move(x, y);
+    await pageB.waitForTimeout(170);
+    const e = await etat();
+    suivis.push({ x, y, bulle: [e.x, e.y],
+                  dessus: e.y + e.h < y, dessous: e.y > y,
+                  pres: Math.round(Math.hypot(e.x + e.w / 2 - x, e.y + e.h / 2 - y)),
+                  dansEcran: e.x >= 0 && e.y >= 0 && e.x + e.w <= 1366 && e.y + e.h <= 768 });
+  }
+  console.log('  ' + JSON.stringify(suivis));
+  ck('elle suit vraiment le curseur', new Set(suivis.map(s => s.bulle.join(','))).size === 3,
+     suivis.map(s => s.bulle.join(',')).join(' | '));
+  ck('elle se pose au-dessus quand il y a la place',
+     suivis[0].dessus === true && suivis[2].dessus === true,
+     JSON.stringify(suivis.map(s => s.dessus)));
+  ck('et PASSE DESSOUS près du haut de l\'écran', suivis[1].dessous === true,
+     `curseur en y=120, bulle en y=${suivis[1].bulle[1]}`);
+  ck('elle reste toujours entière dans l\'écran', suivis.every(s => s.dansEcran),
+     JSON.stringify(suivis.map(s => s.dansEcran)));
+  ck('et jamais loin du point visé', suivis.every(s => s.pres < 200),
+     suivis.map(s => s.pres + ' px').join(', '));
+
+  /* ---- MAIS ELLE PEUT AUSSI RESTER EN BAS ---- */
+  console.log('\n=== mais elle peut aussi rester en bas ===');
+  await pageB.locator('#zoomToggleBtn').click();
+  await pageB.waitForTimeout(180);
+  const m2 = await etat();
+  ck('le deuxième clic la laisse en bas', m2.mode === 2 && m2.actif === true && m2.garee === true,
+     JSON.stringify(m2));
+  await pageB.mouse.move(500, 400);
+  await pageB.waitForTimeout(180);
+  const m2b = await etat();
+  ck('et elle ne bouge plus quand le curseur bouge',
+     m2b.x === m2.x && m2b.y === m2.y, `${m2.x},${m2.y} → ${m2b.x},${m2b.y}`);
+  await pageB.locator('#zoomToggleBtn').click();
+  await pageB.waitForTimeout(180);
+  const m0 = await etat();
+  ck('le troisième clic éteint', m0.mode === 0 && m0.actif === false && m0.vue === 'none',
+     JSON.stringify(m0));
+  ck("et l'infobulle annonce à chaque fois le clic suivant",
+     new Set([m1.info, m2.info, m0.info]).size === 3,
+     JSON.stringify([m1.info, m2.info, m0.info]));
   await bureau.close();
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));

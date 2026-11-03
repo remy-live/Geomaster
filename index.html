@@ -5462,6 +5462,14 @@
             transform: scale(1.1);
         }
 
+        /* Deux états allumés : « suit le curseur » en bleu plein, « reste en
+           bas » en bleu cerclé. On ne lit pas une infobulle en plein cours. */
+        #zoomToggleBtn.active.loupe-garee {
+            background: white;
+            color: #2980b9;
+            border: 2px solid #2980b9;
+            box-shadow: 0 4px 10px rgba(41, 128, 185, 0.25);
+        }
         #zoomToggleBtn.active {
             background: #2980b9;
             color: white;
@@ -24773,19 +24781,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.initAnimationState();
                 this.isShift = false;
                 this.isZoomActive = false;
-                document.getElementById('zoomToggleBtn').onclick = () => {
-                    this.isZoomActive = !this.isZoomActive;
-                    const bubble = document.getElementById('zoomBubble');
+                /* TROIS ÉTATS, UN SEUL BOUTON. La loupe ne savait qu'être
+                   éteinte ou allumée-et-garée en bas à droite : il fallait
+                   alors faire l'aller-retour de l'œil entre le point visé et
+                   le coin de l'écran — jusqu'à 1075 px, mesuré en 1366 × 768.
+                   Elle sait maintenant SUIVRE LE CURSEUR. Mais garée a ses
+                   usages — au vidéoprojecteur, la classe regarde un endroit
+                   fixe pendant que le professeur promène le curseur —, et ce
+                   n'est pas à nous de choisir pour lui.
+                   Plutôt qu'un réglage caché dans un panneau, le bouton qui
+                   existe déjà fait le tour : suit le curseur, puis reste en
+                   bas, puis éteinte. Aucune commande de plus, et l'infobulle
+                   annonce à chaque fois ce que le clic suivant donnera. */
+                this.zoomMode = 0;   // 0 éteinte · 1 suit le curseur · 2 reste en bas
+                this.majBoutonLoupe = () => {
+                    const bulle = document.getElementById('zoomBubble');
                     const btn = document.getElementById('zoomToggleBtn');
-                    if (this.isZoomActive) {
-                        bubble.style.display = 'block';
-                        btn.classList.add('active');
-                        if (this.mousePos) this.updateZoomBubble(this.mousePos.x, this.mousePos.y);
-                    } else {
-                        bubble.style.display = 'none';
-                        btn.classList.remove('active');
-                    }
+                    if (!bulle || !btn) return;
+                    this.isZoomActive = this.zoomMode > 0;
+                    btn.classList.toggle('active', this.zoomMode > 0);
+                    btn.classList.toggle('loupe-garee', this.zoomMode === 2);
+                    btn.dataset.tooltip = this.zoomMode === 0
+                        ? 'Loupe : suit le curseur'
+                        : (this.zoomMode === 1 ? 'Loupe : la laisser en bas à droite'
+                                               : 'Éteindre la loupe');
+                    bulle.style.display = this.zoomMode > 0 ? 'block' : 'none';
+                    if (this.zoomMode === 0 && window.gmLoupeRendreAuCoin) window.gmLoupeRendreAuCoin();
+                    if (this.zoomMode === 2 && window.gmLoupeRendreAuCoin) window.gmLoupeRendreAuCoin();
+                    if (this.zoomMode > 0 && this.mousePos) this.updateZoomBubble(this.mousePos.x, this.mousePos.y);
                 };
+                document.getElementById('zoomToggleBtn').onclick = () => {
+                    this.zoomMode = (this.zoomMode + 1) % 3;
+                    this.majBoutonLoupe();
+                };
+                this.majBoutonLoupe();
                 this.initVirtualKeyboard();
 
                 this.canvas = document.getElementById(canvasId);
@@ -48343,7 +48372,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-10-26 · 18h';
+        window.GM_VERSION = '2026-11-03 · 10h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
@@ -52029,14 +52058,24 @@ var qrcode = function() {
                pendant le tracé — sinon une bulle de 150x150 occuperait l'écran en
                permanence. À la souris, rien ne change : le curseur ne masque rien
                et le comportement d'origine est conservé. */
-            if (window.matchMedia('(pointer: coarse)').matches) {
+            /* LE GARDE DÉCRIT LA MACHINE, PAS LE GESTE. Tout ce bloc était
+               enfermé sous « (pointer: coarse) » : sur un ordinateur, la loupe
+               restait GARÉE en bas à droite même quand le professeur l'avait
+               allumée, et il fallait faire l'aller-retour de l'œil entre le
+               point visé et le coin de l'écran — jusqu'à 1075 px de trajet,
+               mesuré en 1366 × 768. Les outils existent maintenant partout ;
+               c'est le TYPE DU GESTE qui décide, geste par geste. Seul
+               l'allumage d'office reste réservé aux écrans tactiles : sur une
+               machine à souris, il donnerait un bouton bleu sans loupe. */
+            var machineTactile = window.matchMedia('(pointer: coarse)').matches;
+            {
                 var zoomBtn = document.getElementById('zoomToggleBtn');
                 var bubble = document.getElementById('zoomBubble');
                 var geoCv = document.getElementById('geoCanvas');
 
                 // On passe par le bouton plutôt que par le drapeau, pour que son
                 // état visuel et celui de l'application restent cohérents.
-                if (zoomBtn && window.app && !window.app.isZoomActive) zoomBtn.click();
+                if (machineTactile && zoomBtn && window.app && !window.app.isZoomActive) zoomBtn.click();
 
                 if (bubble && geoCv) {
                     bubble.style.display = 'none'; // masquée au repos
@@ -52117,6 +52156,44 @@ var qrcode = function() {
                         return e.pointerType === 'touch' || e.pointerType === 'pen';
                     };
 
+                    /* ---- LA LOUPE SUIT LE CURSEUR, PAR LE HAUT OU PAR LE BAS ----
+                       Au doigt, la bulle se place AU-DESSUS et se décale sur le
+                       côté quand il n'y a pas la place : c'est la main qu'il faut
+                       éviter, et elle arrive par en bas. À la souris il n'y a pas
+                       de main sur l'écran — rien à contourner, et le va-et-vient
+                       de l'œil vers le coin est le seul vrai coût. La bulle se
+                       pose donc au-dessus du curseur, et PASSE DESSOUS quand le
+                       haut manque : jamais sur le point qu'on regarde.
+                       On ne lève pas gmLoupeTactile : c'est lui qui coupe le
+                       rafraîchissement que l'application fait déjà à la souris. */
+                    var ECART_SOURIS = 26;
+                    var suitSouris = false;
+                    var placerPresDuCurseur = function (clientX, clientY) {
+                        var bw = (tailleBulle && tailleBulle.w) || 150;
+                        var bh = (tailleBulle && tailleBulle.h) || 150;
+                        var left = clientX - bw / 2;
+                        var top = clientY - ECART_SOURIS - bh;
+                        if (top < 4) top = clientY + ECART_SOURIS;   // pas la place en haut : dessous
+                        left = Math.max(4, Math.min(left, window.innerWidth - bw - 4));
+                        top = Math.max(4, Math.min(top, window.innerHeight - bh - 4));
+                        bubble.style.transform = 'translate3d(' + Math.round(left) + 'px,'
+                            + Math.round(top) + 'px,0)';
+                    };
+                    /* Rendre la bulle à son coin : quand le curseur quitte la
+                       feuille, ou quand l'outil main fait glisser la vue — une
+                       loupe par-dessus masquerait justement ce qu'on déplace. */
+                    var rendreAuCoin = function () {
+                        if (!suitSouris) return;
+                        suitSouris = false;
+                        bubble.style.display = (window.app && window.app.zoomMode > 0) ? 'block' : 'none';
+                        bubble.style.position = '';
+                        bubble.style.left = '';
+                        bubble.style.top = '';
+                        bubble.style.margin = '';
+                        bubble.style.transform = '';
+                        bubble.style.willChange = '';
+                    };
+
                     // Deux doigts = navigation, pas visée. On masque la loupe
                     // pendant un pincement : elle n'a alors aucune utilité, et
                     // c'est aussi le moment où son contenu a été signalé comme
@@ -52183,6 +52260,34 @@ var qrcode = function() {
                         if (!tailleBulle || !rectCv) mesurerUneFois();
                         demander(x, y);
                     };
+
+                    /* ---- LE SUIVI À LA SOURIS ----
+                       Un seul écouteur, et trois gardes : c'est bien une souris,
+                       la loupe est en mode « suit le curseur », et l'outil en
+                       main n'est pas de ceux qui déplacent la vue. Le contenu de
+                       la bulle, lui, continue d'être rafraîchi par l'application
+                       comme avant : on ne fait que la DÉPLACER. */
+                    window.gmLoupeRendreAuCoin = rendreAuCoin;
+                    geoCv.addEventListener('pointermove', function (e) {
+                        if (e.pointerType !== 'mouse') return;
+                        if (!window.app || window.app.zoomMode !== 1) return;
+                        if (window.gmLoupeTactile) return;   // un doigt pilote déjà
+                        if (outilSansLoupe()) { rendreAuCoin(); return; }
+                        if (!suitSouris) {
+                            suitSouris = true;
+                            bubble.style.display = 'block';
+                            ancrer();
+                            mesurerUneFois();
+                        }
+                        if (!tailleBulle) mesurerUneFois();
+                        placerPresDuCurseur(e.clientX, e.clientY);
+                    }, { passive: true });
+                    /* Le curseur quitte la feuille : la bulle rentre dans son
+                       coin. Sans cela elle resterait plantée au bord, par-dessus
+                       la barre d'outils, à montrer le dernier point survolé. */
+                    geoCv.addEventListener('pointerleave', function (e) {
+                        if (e.pointerType === 'mouse') rendreAuCoin();
+                    }, { passive: true });
 
                     geoCv.addEventListener('pointerdown', function (e) {
                         if (!isFinger(e)) return;
