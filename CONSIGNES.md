@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**227 phrases**, dont 227 passent.
+**229 phrases**, dont 229 passent.
 
 Quelques principes qui valent partout :
 
@@ -334,6 +334,8 @@ Quelques principes qui valent partout :
 | Ce qu'on écrit | Ce que le logiciel répond |
 |---|---|
 | Mets le papier quadrillé | Papier : papier à carreaux |
+| Affiche l'horloge | Horloge affichée, en haut à droite — un clic dessus la range |
+| Cache l'horloge | Horloge rangée |
 | Mets le papier à petits carreaux | Papier : papier à carreaux |
 | Enlève le quadrillage | Papier : papier blanc |
 | Efface tout | Feuille effacée (5 objets) — annulable par Ctrl+Z |

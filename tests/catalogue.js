@@ -303,6 +303,8 @@ const GROUPES = [
   ]],
   ['Le papier, la feuille', [
     ['Mets le papier quadrillé', { genre: 'agit' }],
+    ["Affiche l'horloge", { genre: 'agit' }],
+    ["Cache l'horloge", { genre: 'agit' }],
     ['Mets le papier à petits carreaux', { genre: 'agit' }],
     ['Enlève le quadrillage', { genre: 'agit' }],
     ['Efface tout', { genre: 'agit' }],
