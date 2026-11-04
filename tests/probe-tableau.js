@@ -366,6 +366,87 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck('et l\'étiquette ne part pas à l\'export', (await mesures()).length === 0);
   await page.evaluate(() => { window.app.isExporting = false; });
 
+  /* ================================================================
+     LE COEFFICIENT SE RÈGLE, ET IL EST BORNÉ.
+     « On pourra pas gérer le coefficient de multiplication avec un slide par
+       un appui long sur le projecteur ? »
+     2,2 était un chiffre écrit dans le code. L'appui long veut déjà dire
+     « options de cet outil » pour la main, le segment, le croquis et le stylo :
+     même geste, même sens, aucun bouton de plus. Borné à 3,5, et la borne est
+     mesurée : l'écart entre la lettre d'un point et ce point suit le
+     coefficient (17 px à ×1, 37 à ×2,2, 68 à ×4), et sur un triangle avec
+     cercle inscrit, hauteurs et médianes, TROIS lettres sur quinze se posent
+     à ×4 plus près d'un autre point que du leur.
+     ================================================================ */
+  console.log('\n=== le coefficient se règle à l\'appui long ===');
+  /* UNE SONDE DOIT ÉCHOUER, PAS ÉCLATER. Sur une version qui n'a pas encore le
+     réglage, coefProjection n'existe pas : l'appeler jetait une exception et la
+     sonde mourait au lieu de dire ce qui manque. */
+  const lire = () => page.evaluate(() => {
+    const p = document.getElementById('projectionOptions');
+    const a = window.app;
+    return { ouvert: !!p && getComputedStyle(p).display !== 'none',
+             coef: (typeof a.coefProjection === 'function') ? a.coefProjection() : null,
+             facteur: a.facteurProjection || 1,
+             etiquette: (document.getElementById('projValeur') || {}).textContent };
+  });
+  await page.evaluate(() => { if ((window.app.facteurProjection || 1) > 1) window.app.basculerProjection(); });
+  const avant = await lire();
+  ck('au départ, pas de panneau et le coefficient d\'usine',
+     avant.ouvert === false && avant.coef === 2.2, JSON.stringify(avant));
+  const boite = await page.evaluate(() => {
+    const r = document.getElementById('btn-projection').getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  });
+  await page.mouse.move(boite.x, boite.y);
+  await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
+  await page.waitForTimeout(250);
+  const ouvert = await lire();
+  ck('l\'appui long ouvre le réglage', ouvert.ouvert === true, JSON.stringify(ouvert));
+  /* ET LE LÂCHER NE DOIT PAS TOUT ÉTEINDRE : un appui long finit par un clic,
+     et ce clic-là basculait le mode qu'on venait d'allumer pour régler. */
+  ck('  et on voit ce qu\'on règle : le mode est allumé', ouvert.facteur > 1,
+     'facteur ' + ouvert.facteur);
+  await page.evaluate(() => { const c = document.getElementById('projCurseur');
+    if (!c) return;
+    c.value = 3; c.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(200);
+  const pousse = await lire();
+  ck('le curseur change le grossissement pour de vrai',
+     pousse.coef === 3 && pousse.facteur === 3 && /3,0/.test(pousse.etiquette || ''),
+     JSON.stringify(pousse));
+  const bornes = await page.evaluate(() => {
+    const a = window.app;
+    if (typeof a.reglerCoefProjection !== 'function') return { h: null, b: null };
+    a.reglerCoefProjection(9); const h = a.coefProjection();
+    a.reglerCoefProjection(0.2); const b = a.coefProjection();
+    a.reglerCoefProjection(2.8);
+    return { h, b };
+  });
+  ck('et la borne tient des deux côtés', bornes.h === 3.5 && bornes.b === 1,
+     `×9 → ×${bornes.h}, ×0,2 → ×${bornes.b}`);
+  await page.evaluate(() => {
+    const p = document.getElementById('projectionOptions');
+    if (p) p.style.display = 'none';
+    window.app.basculerProjection(false);
+  });
+  await page.evaluate(() => window.app.basculerProjection());
+  await page.waitForTimeout(150);
+  const rallume = await lire();
+  ck('éteint puis rallumé, il garde LE coefficient choisi', rallume.facteur === 2.8,
+     'facteur ' + rallume.facteur);
+  /* Le grossissement reste un réglage d'ÉCRAN : rien n'a le droit d'en garder
+     trace, pas plus à ×2,8 qu'à ×2,2. */
+  const propre2 = await page.evaluate(() => {
+    const svg = window.app.generateSVGString(false, 'text') || '';
+    const larg = [...svg.matchAll(/stroke-width="([\d.]+)"/g)].map(m => +m[1]);
+    return larg.length ? Math.max(...larg) : null;
+  });
+  ck('  et le SVG exporté n\'en garde toujours pas trace', propre2 === null || propre2 <= 3,
+     String(propre2));
+  await page.evaluate(() => { if ((window.app.facteurProjection || 1) > 1) window.app.basculerProjection(false);
+    try { localStorage.removeItem('gm_projection'); } catch (e) { void e; } });
+
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
   console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

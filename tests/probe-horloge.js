@@ -35,12 +35,27 @@ const LIRE = () => {
     const r = el.getBoundingClientRect();
     const cad = el.querySelector('.gm-cadran');
     const heure = el.querySelector('.gm-heure');
-    const d = new Date(), deux = (n) => (n < 10 ? '0' : '') + n;
+    /* DEUX HEURES ATTENDUES, ET C'EST EXACT. L'horloge n'écrit QUE lorsque les
+       minutes changent ; si la minute tourne entre son écriture et notre
+       lecture, comparer à l'heure d'APRÈS la déclare fausse alors qu'elle est
+       juste. Mesuré une fois pour de vrai : « 20:08 contre 20:09 ». On relève
+       donc l'heure AVANT et APRÈS avoir lu le texte, et l'on accepte l'une ou
+       l'autre : si la minute n'a pas tourné, les deux sont égales et le
+       contrôle reste exact à la minute près. Une horloge arrêtée ou décalée
+       d'une heure échoue toujours. */
+    const deux = (n) => (n < 10 ? '0' : '') + n;
+    const quelleHeure = () => { const d = new Date();
+        return deux(d.getHours()) + ':' + deux(d.getMinutes()); };
+    const avantLecture = quelleHeure();
+    const texteLu = heure ? heure.textContent : el.textContent;
+    const apresLecture = quelleHeure();
     return { bouton: getComputedStyle(el).display !== 'none',
              cadran: !!cad && getComputedStyle(cad).display !== 'none',
              vue: el.classList.contains('vue'),
-             texte: heure ? heure.textContent : el.textContent,
-             attendu: deux(d.getHours()) + ':' + deux(d.getMinutes()),
+             texte: texteLu,
+             juste: texteLu === avantLecture || texteLu === apresLecture,
+             attendu: avantLecture === apresLecture ? avantLecture
+                                                    : avantLecture + ' ou ' + apresLecture,
              x: Math.round(r.left), y: Math.round(r.top),
              w: Math.round(r.width), h: Math.round(r.height),
              memoire: (() => { try { return localStorage.getItem('gm_horloge'); } catch (e) { return null; } })() };
@@ -75,7 +90,7 @@ const LIRE = () => {
     ck("l'heure paraît", a.vue === true && a.texte !== '', JSON.stringify([a.x, a.y, a.w, a.h]));
     /* L'HEURE JUSTE, pas une heure plausible : on la compare à celle du
        navigateur, lue dans la même seconde. */
-    ck("et c'est l'heure JUSTE", a.texte === a.attendu, `${a.texte} contre ${a.attendu}`);
+    ck("et c'est l'heure JUSTE", a.juste === true, `${a.texte} contre ${a.attendu}`);
     ck('le cadran laisse la place à l\'heure', a.cadran === false, String(a.cadran));
     ck('elle reste discrète', a.w < 110 && a.h < 40, `${a.w} × ${a.h} px`);
 
@@ -103,7 +118,7 @@ const LIRE = () => {
     await page.waitForTimeout(900);
     const ap = await page.evaluate(LIRE);
     ck('après rechargement, l\'heure est toujours là', ap.vue === true, JSON.stringify(ap));
-    ck("et toujours à l'heure", ap.texte === ap.attendu, `${ap.texte} contre ${ap.attendu}`);
+    ck("et toujours à l'heure", ap.juste === true, `${ap.texte} contre ${ap.attendu}`);
 
     console.log('\n=== un second clic la range, une phrase aussi ===');
     await page.locator('#gmHorloge').click();

@@ -8795,6 +8795,26 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                          pour en créer un : la croix sur le décor l'éteint d'un
                          geste, et c'est ici qu'on vient le rallumer — le
                          message qui suit l'extinction dit où. -->
+                    <!-- LE MÊME RÉGLAGE QU'À L'APPUI LONG, ET POUR LA MÊME RAISON
+                         QUE L'INTERRUPTEUR DU DÉCOR : un geste qui n'existe nulle
+                         part ailleurs dans l'en-tête ne se devine pas. -->
+                    <div class="help-section">
+                        <h3>📽️ Mode projection</h3>
+                        <p>Le bouton 📽️ de la barre du haut épaissit traits, lettres et
+                            codages <strong>à l'affichage seulement</strong> : ni la figure, ni
+                            le lien, ni le PDF n'en gardent trace. Un <strong>appui long</strong>
+                            dessus ouvre le même réglage qu'ici.</p>
+                        <label style="display:block; margin:6px 0 4px; font-size:14px;">Combien
+                            grossir&nbsp;: <strong id="gmProjValeurAide" style="color:#0369a1;">× 2,2</strong></label>
+                        <input type="range" id="gmProjCurseurAide" min="1" max="3.5" step="0.1" value="2.2"
+                            style="width:100%; max-width:320px; accent-color:#0369a1; cursor:pointer;"
+                            oninput="app.reglerCoefProjection(this.value)">
+                        <p style="margin-top:8px; color:#64748b; font-size:13px;">Borné à 3,5, et
+                            la raison est mesurée : l'écart entre la lettre d'un point et ce
+                            point suit le coefficient — 17 px à × 1, 37 px à × 2,2, 68 px à
+                            × 4. Sur une figure chargée, trois lettres sur quinze se posaient
+                            alors plus près d'un <em>autre</em> point que du leur.</p>
+                    </div>
                     <div class="help-section">
                         <h3>🎃 Décor de saison</h3>
                         <p>À l'approche d'une fête, trois petits dessins paraissent sur la
@@ -10251,7 +10271,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                  n'existent pas. Ce bouton les épaissit à l'affichage seulement :
                  ni la figure, ni le lien, ni le PDF n'en gardent trace. -->
             <button class="top-btn" id="btn-projection" onclick="app.basculerProjection()"
-                aria-label="Mode projection" data-tooltip="Mode projection : traits et lettres épaissis"
+                aria-label="Mode projection" data-tooltip="Mode projection : traits et lettres épaissis — appui long : combien grossir"
                 style="margin-right: 10px; display:flex; align-items:center; justify-content:center;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -11745,6 +11765,29 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
          en pleine préparation de cours — il n'a le droit de rien faire qu'on ait
          à défaire. Un clic, une touche, il disparaît. -->
     <div id="secretVoile"><div id="secretBoite"></div></div>
+    <!-- LE COEFFICIENT DE PROJECTION, DERRIÈRE L'APPUI LONG.
+         « On pourra pas gérer le coefficient de multiplication avec un slide
+           par un appui long sur le projecteur ? »
+         2,2 était un chiffre écrit dans le code, pas une vérité : un grand
+         téléviseur au fond d'une petite salle et un vidéoprojecteur fatigué au
+         fond d'une grande n'ont pas les mêmes besoins. L'appui long veut déjà
+         dire « options de cet outil » pour la main, le segment, le croquis et le
+         stylo : même geste, même sens, et aucun bouton de plus. -->
+    <div id="projectionOptions"
+        style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:10px 12px; width:258px; font-family:'Segoe UI', sans-serif; font-size:13px;">
+        <div style="font-weight:700; color:#0369a1; padding:2px 2px 8px;">Mode projection</div>
+        <label style="display:block; margin-bottom:6px;">Combien grossir&nbsp;:
+            <strong id="projValeur" style="color:#0369a1;">× 2,2</strong></label>
+        <input type="range" id="projCurseur" min="1" max="3.5" step="0.1" value="2.2"
+            style="width:100%; accent-color:#0369a1; cursor:pointer;"
+            oninput="app.reglerCoefProjection(this.value)">
+        <div style="display:flex; justify-content:space-between; color:#64748b; font-size:11px;">
+            <span>× 1 — rien</span><span>× 3,5</span>
+        </div>
+        <p style="margin:8px 0 0; color:#64748b; font-size:12px; line-height:1.45;">
+            Au-delà de 3,5, mesuré sur une figure chargée&nbsp;: la lettre d'un point
+            se pose plus près d'un AUTRE point que du sien. Elle ne désigne plus rien.</p>
+    </div>
     <div id="segmentOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:238px; font-family:'Segoe UI', sans-serif; font-size:13px;">
         <div style="font-weight:700; color:#0369a1; padding:2px 6px 6px;">Segment</div>
@@ -23213,14 +23256,53 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                calculer autre chose ne voit rien passer, et rien ne se compose. Au
                retour, `delete` rend la propriété au prototype : il ne reste
                strictement rien. Aucun objet n'est touché. */
+            /* LE COEFFICIENT EST UN RÉGLAGE, PAS UNE CONSTANTE. Borné à 3,5 :
+               au-delà, mesuré sur un triangle avec cercle inscrit, hauteurs et
+               médianes, trois lettres sur quinze se posent plus près d'un AUTRE
+               point que du leur — l'écart de la lettre à son point suit le
+               coefficient, 17 px à 1, 37 à 2,2, 68 à 4. Une borne qu'on peut
+               dépasser n'est pas une borne : on la tient ici, au seul endroit où
+               le nombre entre dans le logiciel. */
+            coefProjection() {
+                let v = parseFloat(this._coefProjection);
+                if (!(v > 0)) {
+                    try { v = parseFloat(localStorage.getItem('gm_projection')); }
+                    catch (e) { v = NaN; }
+                }
+                if (!(v > 0)) v = 2.2;
+                return Math.min(3.5, Math.max(1, v));
+            }
+            /* Le curseur du panneau : on règle en VOYANT, donc la figure se
+               redessine à chaque cran, et le mode s'allume s'il était éteint —
+               régler un grossissement qu'on ne voit pas n'a aucun sens. */
+            reglerCoefProjection(valeur) {
+                const v = Math.min(3.5, Math.max(1, parseFloat(valeur) || 2.2));
+                this._coefProjection = v;
+                try { localStorage.setItem('gm_projection', String(v)); } catch (e) { void e; }
+                const et = document.getElementById('projValeur');
+                if (et) et.textContent = '× ' + v.toFixed(1).replace('.', ',');
+                const cur = document.getElementById('projCurseur');
+                if (cur && parseFloat(cur.value) !== v) cur.value = v;
+                const aide = document.getElementById('gmProjCurseurAide');
+                if (aide && parseFloat(aide.value) !== v) aide.value = v;
+                const etAide = document.getElementById('gmProjValeurAide');
+                if (etAide) etAide.textContent = '× ' + v.toFixed(1).replace('.', ',');
+                this.facteurProjection = v;
+                const btn = document.getElementById('btn-projection');
+                if (btn) btn.classList.add('active');
+                this.render();
+                return true;
+            }
             basculerProjection(forcer) {
+                const coef = this.coefProjection();
                 this.facteurProjection = (forcer === undefined
-                    ? (this.facteurProjection > 1 ? 1 : 2.2)
-                    : (forcer ? 2.2 : 1));
+                    ? (this.facteurProjection > 1 ? 1 : coef)
+                    : (forcer ? coef : 1));
                 const btn = document.getElementById('btn-projection');
                 if (btn) btn.classList.toggle('active', this.facteurProjection > 1);
                 this.showToast(this.facteurProjection > 1
-                    ? "📽️ Mode projection : traits et lettres épaissis"
+                    ? "📽️ Mode projection × " + coef.toFixed(1).replace('.', ',')
+                        + " — appui long sur le bouton pour régler"
                     : "Mode projection désactivé");
                 this.render();
             }
@@ -23413,6 +23495,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        qu'on a éteint le décor serait un mensonge d'interface. */
                     const cd = document.getElementById('gmDecorCase');
                     if (cd) cd.checked = !this.decorMasque();
+                    /* Le curseur du grossissement dit lui aussi l'état réel — mais
+                       on le POSE seulement : passer par reglerCoefProjection
+                       allumerait le mode projection à chaque ouverture de l'aide,
+                       ce que personne n'a demandé. */
+                    const cp = document.getElementById('gmProjCurseurAide');
+                    const vp = document.getElementById('gmProjValeurAide');
+                    const coef = this.coefProjection();
+                    if (cp) cp.value = coef;
+                    if (vp) vp.textContent = '\u00d7 ' + coef.toFixed(1).replace('.', ',');
                 }
             }
             getSafeFilename(extension) {
@@ -25094,6 +25185,61 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const pan = document.getElementById('styloOptions');
                         if (!pan || pan.style.display === 'none') return;
                         if (pan.contains(e.target) || btnSt.contains(e.target)) return;
+                        pan.style.display = 'none';
+                    }, true);
+                }
+                /* LE PROJECTEUR, MÊME GESTE — ET C'EST LE PREMIER DE L'EN-TÊTE.
+                   L'appui long ouvre les options partout dans la barre d'outils ;
+                   nulle part en haut. Il est donc introuvable sans son infobulle,
+                   exactement comme l'horloge l'était : le réglage vit AUSSI dans
+                   l'aide, onglet Général, pour exister à deux endroits. */
+                const btnPj = document.getElementById('btn-projection');
+                if (btnPj) {
+                    /* Les curseurs disent le réglage retenu dès l'ouverture de la
+                       page — on les POSE, sans allumer quoi que ce soit. */
+                    {
+                        const c0 = this.coefProjection(), txt = '\u00d7 ' + c0.toFixed(1).replace('.', ',');
+                        [['projCurseur', 'projValeur'], ['gmProjCurseurAide', 'gmProjValeurAide']]
+                            .forEach(([ic, it]) => {
+                                const c = document.getElementById(ic), t = document.getElementById(it);
+                                if (c) c.value = c0;
+                                if (t) t.textContent = txt;
+                            });
+                    }
+                    let minPj = null;
+                    const ouvrirPj = () => {
+                        const pan = document.getElementById('projectionOptions');
+                        if (!pan) return;
+                        this._projLongVient = true;
+                        this.reglerCoefProjection(this.coefProjection());
+                        pan.style.display = 'block';
+                        const b = btnPj.getBoundingClientRect(), p2 = pan.getBoundingClientRect();
+                        let x = b.left + b.width / 2 - p2.width / 2;
+                        x = Math.max(6, Math.min(x, window.innerWidth - p2.width - 6));
+                        let y = b.bottom + 8;
+                        if (y + p2.height > window.innerHeight - 6) y = Math.max(6, b.top - p2.height - 8);
+                        pan.style.left = Math.round(x) + 'px';
+                        pan.style.top = Math.round(y) + 'px';
+                    };
+                    const desPj = () => { clearTimeout(minPj); minPj = null; };
+                    btnPj.addEventListener('pointerdown', () => { desPj(); minPj = setTimeout(() => { minPj = null; ouvrirPj(); }, 500); });
+                    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btnPj.addEventListener(t, desPj));
+                    /* UN APPUI LONG FINIT PAR UN LÂCHER, ET UN LÂCHER EST UN CLIC.
+                       Sur les outils de la barre, le clic qui suit ne fait que
+                       resélectionner l'outil déjà choisi : il ne se voit pas. Ici il
+                       BASCULE — mesuré : on maintenait le bouton, le panneau s'ouvrait
+                       en allumant la projection, et le doigt qu'on lève l'éteignait
+                       aussitôt. Le clic qui suit l'ouverture est donc avalé. */
+                    btnPj.addEventListener('click', (e) => {
+                        if (!this._projLongVient) return;
+                        this._projLongVient = false;
+                        e.preventDefault(); e.stopPropagation();
+                    }, true);
+                    btnPj.addEventListener('contextmenu', (e) => { e.preventDefault(); desPj(); ouvrirPj(); });
+                    document.addEventListener('pointerdown', (e) => {
+                        const pan = document.getElementById('projectionOptions');
+                        if (!pan || pan.style.display === 'none') return;
+                        if (pan.contains(e.target) || btnPj.contains(e.target)) return;
                         pan.style.display = 'none';
                     }, true);
                 }
@@ -48652,7 +48798,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-04 · 14h';
+        window.GM_VERSION = '2026-11-04 · 16h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

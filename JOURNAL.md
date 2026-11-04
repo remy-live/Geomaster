@@ -3122,3 +3122,47 @@ qui grandit, juste assez pour que deux arcs restent deux.
 Le signe est mesuré **seul** : la scène est rendue sans lui, puis avec, et seuls
 les pixels qui ont changé comptent. Le trait qui le porte n'entre jamais dans le
 calcul — sans cette précaution, c'est lui qu'on mesure.
+
+### 2,2 était un chiffre écrit dans le code
+
+*« On pourra pas gérer le coefficient de multiplication avec un slide par un
+appui long sur le projecteur ? Ton avis »*
+
+Mon avis, mesuré avant de le donner : oui, et jusqu'à **3,5**, pas davantage.
+
+Le coefficient 2,2 n'était pas une vérité, c'était une valeur écrite une fois. Un
+grand téléviseur au fond d'une petite salle et un vidéoprojecteur fatigué au fond
+d'une grande n'ont pas les mêmes besoins. Et l'appui long **est déjà la grammaire
+du logiciel** : la main, le segment, le croquis et le stylo ouvrent tous leurs
+options par ce geste. Même geste, même sens, et aucun bouton de plus.
+
+**Pourquoi 3,5.** Ce n'est pas le recouvrement des lettres qui casse en premier —
+l'écart d'une lettre à son point suit le coefficient, donc les lettres s'écartent
+en grossissant et s'évitent. Ce qui casse, c'est l'**attache** :
+
+| coefficient | lettre à … de son point | lettres égarées |
+| --- | --- | --- |
+| 1 | 17 px | aucune |
+| 2,2 | 37 px | aucune |
+| 3,5 | 60 px | aucune |
+| **4** | 68 px | **3 sur 15** |
+
+« Égarée » veut dire : posée plus près d'un **autre** point que du sien. Elle ne
+désigne plus rien. Mesuré sur un triangle avec cercle inscrit, hauteurs et
+médianes — une figure comme on en fait vraiment. La borne est tenue dans le code,
+au seul endroit où le nombre entre dans le logiciel : une borne qu'on peut
+dépasser n'est pas une borne.
+
+**Un piège, trouvé en mesurant.** Un appui long finit par un lâcher, et un lâcher
+est un clic. Sur les outils de la barre, le clic qui suit ne fait que
+resélectionner l'outil déjà choisi : il ne se voit pas. Sur le projecteur il
+**bascule** — on maintenait le bouton, le panneau s'ouvrait en allumant la
+projection pour qu'on voie ce qu'on règle, et le doigt qu'on lève l'éteignait
+aussitôt. Le clic qui suit l'ouverture est donc avalé.
+
+**Et une réserve que je me suis faite à moi-même** : l'appui long existe partout
+dans la barre d'outils, **nulle part dans l'en-tête**. Celui-ci est le premier,
+donc introuvable sans son infobulle — exactement le problème de l'horloge, deux
+jours plus tôt. Le réglage vit donc aussi dans l'aide, onglet Général, avec la
+mesure qui justifie sa borne. Une porte qu'on ne trouve pas n'est pas une porte ;
+une seule porte, c'est déjà une de trop peu.
