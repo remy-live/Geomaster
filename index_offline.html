@@ -13779,31 +13779,44 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             ctx.fill();
             ctx.restore();
         }
-        function gmTracerMarque(ctx, coding, h) {
+        /* UN PETIT SIGNE GROSSIT TOUT ENTIER, OU IL SE REMPLIT.
+           « Peut-être que ça fait gros quand même, la projection — pas pour le
+             rapporteur mais pour le reste. »
+           Le mode projection épaissit le TRAIT et rien d'autre. Sur une droite
+           c'est exactement ce qu'il faut ; sur un signe de six pixels, le trait
+           mange le dessin. Mesuré sur la croix d'un point : la boîte passe de
+           14×15 à 16×16 — elle ne grandit pas — mais l'encre passe de 72 à
+           150 px et le remplissage de 37 % à 59 %. Ce n'est plus une croix,
+           c'est un carré. Le rond du codage, lui, devient un point plein.
+           Un signe se lit à sa FORME. On le dessine donc à l'échelle du mode
+           projection, trait ET géométrie : il grandit sans se remplir, et le
+           rapport entre les deux reste celui d'une feuille. */
+        function gmTracerMarque(ctx, coding, h, k = 1) {
+            const e = (v) => v * k;
             if (coding === 'mark-1') {
                 ctx.moveTo(0, -h); ctx.lineTo(0, h);
             } else if (coding === 'mark-2') {
-                ctx.moveTo(-2, -h); ctx.lineTo(-2, h);
-                ctx.moveTo(2, -h); ctx.lineTo(2, h);
+                ctx.moveTo(e(-2), -h); ctx.lineTo(e(-2), h);
+                ctx.moveTo(e(2), -h); ctx.lineTo(e(2), h);
             } else if (coding === 'mark-3') {
-                ctx.moveTo(-4, -h); ctx.lineTo(-4, h);
+                ctx.moveTo(e(-4), -h); ctx.lineTo(e(-4), h);
                 ctx.moveTo(0, -h); ctx.lineTo(0, h);
-                ctx.moveTo(4, -h); ctx.lineTo(4, h);
+                ctx.moveTo(e(4), -h); ctx.lineTo(e(4), h);
             } else if (coding === 'mark-x') {
-                ctx.moveTo(-4, -4); ctx.lineTo(4, 4);
-                ctx.moveTo(-4, 4); ctx.lineTo(4, -4);
+                ctx.moveTo(e(-4), e(-4)); ctx.lineTo(e(4), e(4));
+                ctx.moveTo(e(-4), e(4)); ctx.lineTo(e(4), e(-4));
             } else if (coding === 'mark-xx') {
-                ctx.translate(-5, 0);
-                ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
-                ctx.translate(10, 0);
-                ctx.moveTo(-3, -3); ctx.lineTo(3, 3);
-                ctx.moveTo(-3, 3); ctx.lineTo(3, -3);
+                ctx.translate(e(-5), 0);
+                ctx.moveTo(e(-3), e(-3)); ctx.lineTo(e(3), e(3));
+                ctx.moveTo(e(-3), e(3)); ctx.lineTo(e(3), e(-3));
+                ctx.translate(e(10), 0);
+                ctx.moveTo(e(-3), e(-3)); ctx.lineTo(e(3), e(3));
+                ctx.moveTo(e(-3), e(3)); ctx.lineTo(e(3), e(-3));
             } else if (coding === 'mark-o') {
-                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.arc(0, 0, e(4), 0, Math.PI * 2);
             } else if (coding === 'mark-oo') {
-                ctx.beginPath(); ctx.arc(-5, 0, 3, 0, Math.PI * 2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(5, 0, 3, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(e(-5), 0, e(3), 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(e(5), 0, e(3), 0, Math.PI * 2);
             }
         }
         /* Le même glyphe, en SVG — pour l'export et le PDF. Le segment et le
@@ -14060,7 +14073,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.lineWidth = 2;
                     ctx.setLineDash([]);
                     ctx.beginPath();
-                    gmTracerMarque(ctx, this.codageMilieu, 6);
+                    gmTracerMarque(ctx, this.codageMilieu, 6 * gmGros(), gmGros());
                     ctx.stroke();
                     ctx.restore();
                 });
@@ -14077,18 +14090,21 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.strokeStyle = style;
                 ctx.lineWidth = w;
                 ctx.setLineDash([]);
+                /* Le signe grandit avec le mode projection, trait ET dessin :
+                   une croix dont seul le trait épaissit devient un carré. */
+                const grosPt = gmGros();
                 if (this.pointStyle === 'dot') {
-                    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                    ctx.arc(this.x, this.y, 4 * grosPt, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
                 }
                 else if (this.pointStyle === 'pixel') {
-                    ctx.rect(this.x - 1, this.y - 1, 2, 2);
+                    ctx.rect(this.x - grosPt, this.y - grosPt, 2 * grosPt, 2 * grosPt);
                     ctx.fill();
                     ctx.stroke();
                 }
                 else {
-                    const s = this.blinkState ? this.size * 1.5 : this.size;
+                    const s = (this.blinkState ? this.size * 1.5 : this.size) * grosPt;
                     ctx.moveTo(this.x - s, this.y - s);
                     ctx.lineTo(this.x + s, this.y + s);
                     ctx.moveTo(this.x + s, this.y - s);
@@ -15244,7 +15260,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     ctx.strokeStyle = s.color;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    gmTracerMarque(ctx, this.coding, 6);
+                    gmTracerMarque(ctx, this.coding, 6 * gmGros(), gmGros());
                     ctx.stroke();
                     ctx.restore();
                 }
@@ -15504,7 +15520,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 else { if (diff > 0) diff -= 2 * Math.PI; }
                 const midAngle = a1 + diff / 2;
                 const gros = gmGros();
-                const dist = 25 + ((this.arcCount || 1) - 1) * 5 + 15 * gros;
+                const dist = 25 + ((this.arcCount || 1) - 1) * 5 * gros + 15 * gros;
                 let w = 26;
                 if (ctx) {
                     ctx.save();
@@ -15551,7 +15567,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const midAngle = a1 + diff / 2;
 
                 if (isRightAngle) {
-                    const size = 16;
+                    /* Le carré de l'angle droit grandit avec le trait, sinon il se
+                       remplit : mesuré à taille fixe, 22 % d'encre devenaient 52 %
+                       en projection — un carré à moitié noir n'est plus un codage. */
+                    const size = 16 * gmGros();
                     const d1 = MathUtils.dist(this.p2.x, this.p2.y, this.p1.x, this.p1.y);
                     const d2 = MathUtils.dist(this.p2.x, this.p2.y, this.p3.x, this.p3.y);
                     if (d1 > 0 && d2 > 0) {
@@ -15577,7 +15596,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
                     // Arcs supplémentaires (si > 1)
                     const numArcs = this.arcCount || 1;
-                    const spacing = 5;
+                    /* L'ÉCART SUIT LE TRAIT. Deux arcs distants de 5 px tracés à
+                       4,4 px d'épaisseur se rejoignent : il ne reste que 0,6 px de
+                       blanc, et deux arcs qui se touchent n'en font plus qu'un
+                       épais. Mesuré : 32 % d'encre à 48 % en projection. L'arc,
+                       lui, garde son rayon — un codage d'angle qui doublerait de
+                       taille irait se poser sur la figure. */
+                    const spacing = 5 * gmGros();
                     for (let i = 1; i < numArcs; i++) {
                         ctx.beginPath();
                         ctx.arc(this.p2.x, this.p2.y, baseRadius + i * spacing, a1, a2, !this.isCounterClockwise);
@@ -15598,7 +15623,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         ctx.lineWidth = 2;
                         ctx.beginPath();
 
-                        gmTracerMarque(ctx, this.coding, 5);
+                        gmTracerMarque(ctx, this.coding, 5 * gmGros(), gmGros());
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -15610,7 +15635,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     /* L'arc, lui, ne grossit pas : seul l'ÉCART grandit, juste assez
                        pour que le nombre agrandi ne vienne pas s'asseoir dessus. */
                     const grosAng = gmGros();
-                    const textDist = baseRadius + (numArcs - 1) * 5 + 15 * grosAng; // Pousser le texte s'il y a plusieurs arcs
+                    const textDist = baseRadius + (numArcs - 1) * 5 * grosAng + 15 * grosAng; // Pousser le texte s'il y a plusieurs arcs
                     const txtVal = Math.round(val) + "°";
                     const tx = this.p2.x + Math.cos(midAngle) * textDist;
                     const ty = this.p2.y + Math.sin(midAngle) * textDist;
@@ -48627,7 +48652,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-04 · 12h';
+        window.GM_VERSION = '2026-11-04 · 14h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

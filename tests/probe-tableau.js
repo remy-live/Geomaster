@@ -123,6 +123,151 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   await page.evaluate(() => window.app.basculerProjection()); await page.waitForTimeout(150);
   ck('on revient exactement à l\'épaisseur d\'avant', (await mesure()) === fin, `${await mesure()} vs ${fin}`);
 
+  /* ================================================================
+     UN PETIT SIGNE GROSSIT TOUT ENTIER, OU IL SE REMPLIT.
+     « Peut-être que ça fait gros quand même, la projection — pas pour le
+       rapporteur mais pour le reste. »
+     Épaissir le trait est exactement ce qu'il faut sur une droite : elle n'a
+     pas de voisin à toucher. Sur un signe de six pixels, le trait mange le
+     dessin. La sonde d'au-dessus mesurait l'ÉPAISSEUR et ne pouvait donc rien
+     voir — elle vérifiait même que ça grossissait. Ce qu'il faut mesurer,
+     c'est la FORME : la boîte du signe et son TAUX DE REMPLISSAGE. Une croix
+     à 37 % d'encre est une croix ; à 59 %, c'est un carré.
+     Relevé avant correction, en projection : la croix d'un point passait de
+     14×14 à 16×16 — elle ne grandissait pas — pendant que son encre passait
+     de 72 à 150 px ; le carré de l'angle droit de 22 % à 52 % ; deux arcs
+     distants de 5 px traçés à 4,4 px n'en faisaient plus qu'un.
+     On mesure le signe SEUL : la scène est rendue sans lui, puis avec, et
+     l'on ne garde que les pixels qui ont changé — le trait qui le porte ne
+     compte donc jamais.
+     ================================================================ */
+  console.log('\n=== un petit signe grossit tout entier ===');
+  const signes = await page.evaluate(() => {
+    const a = window.app;
+    a.checkAutoSave = () => {};
+    const encreDe = (poser, cx, cy, demi) => {
+      a.render();
+      const v = a.view, c = a.canvas.getContext('2d');
+      const x0 = Math.round(v.x + (cx - demi) * v.zoom), y0 = Math.round(v.y + (cy - demi) * v.zoom);
+      const L = 2 * demi;
+      const avant = c.getImageData(x0, y0, L, L).data;
+      poser();
+      a.render();
+      const apres = c.getImageData(x0, y0, L, L).data;
+      let n = 0, xmin = 1e9, xmax = -1, ymin = 1e9, ymax = -1;
+      for (let j = 0; j < L; j++) for (let i = 0; i < L; i++) {
+        const k = (j * L + i) * 4;
+        const d = Math.abs(apres[k] - avant[k]) + Math.abs(apres[k + 1] - avant[k + 1])
+                + Math.abs(apres[k + 2] - avant[k + 2]) + Math.abs(apres[k + 3] - avant[k + 3]);
+        if (d > 60) { n++; if (i < xmin) xmin = i; if (i > xmax) xmax = i;
+                      if (j < ymin) ymin = j; if (j > ymax) ymax = j; }
+      }
+      if (!n) return null;
+      const bl = xmax - xmin + 1, bh = ymax - ymin + 1;
+      return { l: bl, h: bh, encre: n, plein: Math.round(100 * n / (bl * bh)) };
+    };
+    const un = (projo) => {
+      a.facteurProjection = projo ? 2.2 : 1;
+      const out = {};
+      a.entities = [];
+      const A = new Point(300, 400); A.showLabel = false;
+      out.croix = encreDe(() => a.entities.push(A), 300, 400, 30);
+      a.entities = [];
+      const B = new Point(300, 400), C = new Point(700, 400);
+      B.showLabel = false; C.showLabel = false;
+      const sg = new Segment(B, C); a.entities.push(B, C, sg);
+      out.codage = encreDe(() => { sg.coding = 'mark-2'; }, 500, 400, 30);
+      /* DEUX BARRES DOIVENT RESTER DEUX. « mark-2 » pose ses barres à ±2 px :
+         tracées à 4,4 px d'épaisseur elles se recouvrent, et le codage « ‖ »
+         devient un « | » épais — c'est-à-dire un AUTRE codage. On balaie en
+         travers, 4 px au-dessus du trait : assez haut pour ne pas compter le
+         trait lui-même (épais de 2 px, 4,4 en projection), assez bas pour
+         rester dans la marque, qui ne monte qu'à 6 px sans projection. */
+      {
+        const v = a.view, c = a.canvas.getContext('2d');
+        let bandes = 0, dedans = false;
+        for (let dx = -14; dx <= 14; dx += 0.5) {
+          const x = Math.round(v.x + (500 + dx) * v.zoom);
+          const y = Math.round(v.y + (400 - 4) * v.zoom);
+          const d = c.getImageData(x, y, 1, 1).data;
+          const encre = d[3] > 60 && (d[0] + d[1] + d[2]) < 560;
+          if (encre && !dedans) bandes++;
+          dedans = encre;
+        }
+        out.barres = bandes;
+      }
+      a.entities = [];
+      const O = new Point(400, 500), P = new Point(600, 500), Q = new Point(400, 300);
+      [O, P, Q].forEach(p => p.showLabel = false);
+      a.entities.push(O, P, Q);
+      out.droit = encreDe(() => a.entities.push(new Angle(P, O, Q)), 420, 480, 45);
+      a.entities = [];
+      const O2 = new Point(400, 500), P2 = new Point(650, 500), Q2 = new Point(560, 300);
+      [O2, P2, Q2].forEach(p => p.showLabel = false);
+      a.entities.push(O2, P2, Q2);
+      const ang2 = new Angle(P2, O2, Q2); ang2.arcCount = 2; ang2.showValue = false;
+      out.arcs = encreDe(() => a.entities.push(ang2), 425, 480, 50);
+      /* DEUX ARCS DOIVENT RESTER DEUX. On part du sommet et l'on avance le
+         long de la bissectrice en comptant les bandes d'encre traversées :
+         il doit y en avoir DEUX. À 5 px d'écart et 4,4 px d'épaisseur, il
+         n'en restait qu'une, épaisse — et la mesure du remplissage, elle,
+         ne l'aurait pas dit. */
+      {
+        /* On ôte les points : en projection leur croix mesure 30 px et le rayon
+           la traverserait — une troisième bande d'encre qui n'est pas un arc. */
+        [O2, P2, Q2].forEach(p => { p.visible = false; });
+        a.render();
+        const v = a.view, c = a.canvas.getContext('2d');
+        const a1 = Math.atan2(P2.y - O2.y, P2.x - O2.x);
+        const a2 = Math.atan2(Q2.y - O2.y, Q2.x - O2.x);
+        const mid = (a1 + a2) / 2;
+        let bandes = 0, dedans = false;
+        /* On part à 14 px du sommet : les deux rayons qui ferment le secteur
+           s'y rejoignent, et leur encre — épaisse en projection — compterait
+           pour une bande qui n'est pas un arc. Relevé : sans projection, les
+           arcs sont à 24-26 et 29-31 px ; avec, à 22-27 et 34-38. */
+        for (let t = 14; t < 90; t += 0.5) {
+          const x = Math.round(v.x + (O2.x + Math.cos(mid) * t) * v.zoom);
+          const y = Math.round(v.y + (O2.y + Math.sin(mid) * t) * v.zoom);
+          const d = c.getImageData(x, y, 1, 1).data;
+          const encre = d[3] > 60 && (d[0] + d[1] + d[2]) < 560;
+          if (encre && !dedans) bandes++;
+          dedans = encre;
+        }
+        out.arcsSepares = bandes;
+        [O2, P2, Q2].forEach(p => { p.visible = true; });
+      }
+      return out;
+    };
+    const normal = un(false), projection = un(true);
+    a.facteurProjection = 1; a.entities = []; a.render();
+    return { normal, projection };
+  });
+  const NOMS = { croix: 'la croix d\'un point', codage: 'le codage ‖ d\'un segment',
+                 droit: 'le carré de l\'angle droit', arcs: 'deux arcs d\'angle' };
+  Object.keys(NOMS).forEach(k => {
+    const a = signes.normal[k], b = signes.projection[k];
+    if (!a || !b) { ck(NOMS[k], false, 'rien mesuré'); return; }
+    /* L'arc d'angle, LUI, garde son rayon : un codage d'angle qui doublerait
+       de taille irait se poser sur la figure. C'est son ÉCART qui grandit,
+       et c'est la séparation des arcs qu'on vérifie juste après. */
+    if (k !== 'arcs') {
+      ck(NOMS[k] + ' grandit vraiment', b.l >= a.l * 1.3 || b.h >= a.h * 1.3,
+         `${a.l}×${a.h} → ${b.l}×${b.h}`);
+    }
+    ck((k === 'arcs' ? NOMS[k] + ' :' : ' ') + ' il garde sa forme, il ne se remplit pas',
+       b.plein - a.plein <= 10,
+       `${a.plein} % d'encre sans projection, ${b.plein} % avec`);
+  });
+  ck('et le codage ‖ garde SES DEUX barres, projeté ou non',
+     signes.normal.barres === 2 && signes.projection.barres === 2,
+     `${signes.normal.barres} barre(s) sans projection, ${signes.projection.barres} avec`);
+  ck('et deux arcs restent DEUX arcs, projetés ou non',
+     signes.normal.arcs && signes.projection.arcsSepares === 2
+       && signes.normal.arcsSepares === 2,
+     `${signes.normal.arcsSepares} bande(s) d'encre sans projection, `
+       + `${signes.projection.arcsSepares} avec`);
+
   console.log('\n=== la lettre ne vient pas se coller sur la croix ===');
   /* La loupe grossit les traits et les polices à l'écriture, mais elle ne peut
      rien pour les distances calculées à l'avance : l'écart d'un nom à son point

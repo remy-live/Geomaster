@@ -3081,3 +3081,44 @@ l'on prendrait un vrai rapporteur pour l'étirer. On le tire de 180 à 320 px de
 rayon, sa gravure suit (11 → 19,6 px), les degrés ne se marchent toujours pas
 dessus parce que la place entre deux crans a grandi d'autant, et le rayon voyage
 dans le lien de partage comme celui du compas.
+
+### Un petit signe grossit tout entier, ou il se remplit
+
+*« Peut-être que ça fait gros quand même, la projection — pas pour le rapporteur
+mais pour le reste. »*
+
+Le mode projection épaissit le **trait**, et rien d'autre. Sur une droite c'est
+exactement ce qu'il faut : elle n'a pas de voisin à toucher, et il faut la voir
+du fond de la salle. Sur un signe de six pixels, le trait mange le dessin.
+
+Et la sonde du mode projection ne pouvait pas le voir : elle mesurait
+l'**épaisseur**, et vérifiait même qu'elle augmentait. Ce qu'il fallait mesurer,
+c'est la **forme** — la boîte du signe et son taux de remplissage. Une croix à
+37 % d'encre est une croix ; à 59 %, c'est un carré.
+
+| | sans projection | en projection |
+| --- | --- | --- |
+| croix d'un point | 14×14 | **16×16**, mais 72 px d'encre → 150 |
+| carré de l'angle droit | 22 % plein | **53 %** |
+| codage « ‖ » | deux barres | **une seule**, épaisse |
+| deux arcs d'angle | deux bandes | **une seule** |
+
+Les deux dernières lignes sont les pires, et un taux de remplissage ne les
+aurait pas dites : un codage double devenu simple n'est pas un codage abîmé,
+c'est un **autre codage**. Deux barres posées à ±2 px et tracées à 4,4 px
+d'épaisseur se recouvrent ; deux arcs distants de 5 px aussi. La sonde compte
+donc les **bandes d'encre** le long d'une traversée.
+
+La correction est la même règle que pour les instruments, appliquée au dessin :
+un signe se lit à sa forme, donc il est dessiné à l'échelle du mode projection —
+trait **et** géométrie. La croix passe de 14×14 à 30×30 en gardant son taux
+d'encre, le carré de l'angle droit de 17×17 à 38×38, les marques de codage
+doublent d'écart en même temps que d'épaisseur.
+
+Une exception, et elle est voulue : **l'arc d'angle garde son rayon**. Un codage
+d'angle qui doublerait de taille irait se poser sur la figure. C'est son écart
+qui grandit, juste assez pour que deux arcs restent deux.
+
+Le signe est mesuré **seul** : la scène est rendue sans lui, puis avec, et seuls
+les pixels qui ont changé comptent. Le trait qui le porte n'entre jamais dans le
+calcul — sans cette précaution, c'est lui qu'on mesure.
