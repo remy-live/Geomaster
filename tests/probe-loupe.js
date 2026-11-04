@@ -227,6 +227,80 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
   ck("et l'infobulle annonce à chaque fois le clic suivant",
      new Set([m1.info, m2.info, m0.info]).size === 3,
      JSON.stringify([m1.info, m2.info, m0.info]));
+
+  /* ================================================================
+     LE BOUTON NE DOIT JAMAIS BOUGER.
+     « Quand la loupe est en route et au-dessus, je ne peux plus l'enlever ou
+       la décrocher. »
+     Tout ce qui précède était vert, et pourtant le bouton était hors d'atteinte
+     à la main. La raison tient au GESTE DE LA SONDE : locator.click() remesure
+     la boîte de l'élément juste avant de frapper, donc il le suit où qu'il
+     aille. Une main, elle, vise d'abord, puis avance. Ici on vise d'abord.
+     Mesuré avant correction : bulle rangée dans le coin, elle occupait la boîte
+     et poussait le bouton à (1242, 525) ; bulle partie suivre le curseur, elle
+     quittait le flux et le bouton retombait à (1296, 698). Or elle part dès
+     qu'on bouge sur la feuille et revient dès qu'on en sort — à l'instant
+     précis où l'on tend la main vers le bouton. Il sautait de 173 px sous le
+     curseur qui arrivait, le clic tombait sur la feuille, et la loupe ne
+     s'éteignait plus.
+     ================================================================ */
+  console.log('\n=== le bouton reste où on l\'a vu ===');
+  const boite = () => pageB.evaluate(() => {
+    const r = document.getElementById('zoomToggleBtn').getBoundingClientRect();
+    return { x: Math.round(r.left), y: Math.round(r.top),
+             cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) };
+  });
+  /* ON COMPARE LES CENTRES, PAS LES COINS : le bouton grossit de 10 % au
+     survol (c'est voulu), ce qui déplace son coin de 2,5 px sans que le bouton
+     ait bougé d'un pouce. Le centre, lui, ne bouge pas sous une homothétie —
+     au pixel d'arrondi près. */
+  const memePlace = (a, b) => Math.abs(a.cx - b.cx) <= 1 && Math.abs(a.cy - b.cy) <= 1;
+  const eteinte = await boite();
+  await pageB.mouse.move(eteinte.cx, eteinte.cy, { steps: 8 });
+  await pageB.mouse.down(); await pageB.mouse.up();      /* à la main, pas au locator */
+  await pageB.waitForTimeout(200);
+  const allumee = await boite();
+  ck('allumer la loupe ne déplace pas son bouton',
+     memePlace(allumee, eteinte),
+     `${eteinte.cx},${eteinte.cy} → ${allumee.cx},${allumee.cy}`);
+  ck('  et le clic à la main l\'a bien allumée',
+     (await pageB.evaluate(() => window.app.zoomMode)) === 1);
+
+  /* On promet la souris sur la feuille, comme en classe : la bulle part suivre
+     le curseur, et c'est là que le bouton sautait. */
+  const vus = [];
+  for (const [x, y] of [[600, 400], [900, 250], [1100, 600], [1250, 700]]) {
+    await pageB.mouse.move(x, y, { steps: 5 });
+    await pageB.waitForTimeout(90);
+    vus.push(await boite());
+  }
+  ck('la bulle a beau suivre le curseur, le bouton ne bouge pas',
+     vus.length === 4 && vus.every(v => memePlace(v, allumee)),
+     JSON.stringify(vus.map(v => v.cx + ',' + v.cy)) + ' contre ' + allumee.cx + ',' + allumee.cy);
+
+  /* ET MAINTENANT ON LE REPREND, EN VISANT CE QU'ON VOYAIT. */
+  const vise = vus[vus.length - 1];
+  await pageB.mouse.move(vise.cx, vise.cy, { steps: 12 });
+  await pageB.waitForTimeout(220);
+  const enApprochant = await boite();
+  ck("il ne fuit pas non plus quand la main arrive",
+     memePlace(enApprochant, vise),
+     `visé ${vise.cx},${vise.cy} — trouvé ${enApprochant.cx},${enApprochant.cy}`);
+  const dessous = await pageB.evaluate((p) => {
+    const e = document.elementFromPoint(p.cx, p.cy);
+    const b = document.getElementById('zoomToggleBtn');
+    return e === b || b.contains(e) ? 'le bouton' : (e ? (e.id || e.tagName) : 'rien');
+  }, vise);
+  ck("c'est bien le bouton qui est sous le curseur", dessous === 'le bouton', dessous);
+  await pageB.mouse.down(); await pageB.mouse.up();
+  await pageB.waitForTimeout(220);
+  const apres1 = await pageB.evaluate(() => window.app.zoomMode);
+  ck('un clic à la main la décroche (elle reste en bas)', apres1 === 2, 'mode ' + apres1);
+  await pageB.mouse.down(); await pageB.mouse.up();
+  await pageB.waitForTimeout(220);
+  const apres2 = await pageB.evaluate(() => window.app.zoomMode);
+  ck('un second clic l\'éteint', apres2 === 0, 'mode ' + apres2);
+
   await bureau.close();
 
   ck('aucune erreur JS', errs.length === 0, errs.slice(0, 3).join(' | '));

@@ -2970,3 +2970,65 @@ ZÉRO écriture en quatre secondes. Juste neuf fois sur dix, faux la dixième �
 celle où la minute change pendant la mesure, et où une écriture est exactement
 ce qu'on demande à une horloge. Elle relève désormais la minute avant et après,
 et exige ce que le temps écoulé justifie.
+
+### La cible qui fuyait celui qui la vise
+
+*« Quand la loupe est en route et au-dessus, je ne peux plus l'enlever ou la
+décrocher. »*
+
+La sonde de la loupe était verte sur toute la ligne, et le bouton était hors
+d'atteinte à la main. Il faut dire pourquoi, parce que la leçon vaut pour toutes
+les autres : `locator.click()` de Playwright **remesure la boîte de l'élément
+juste avant de frapper**. Il le suit donc où qu'il aille. Une main, elle, vise
+d'abord et avance ensuite. Toute la différence entre un test qui passe et un
+logiciel qui marche tient dans ces deux ordres-là.
+
+En visant d'abord, le défaut saute aux yeux. Le bouton de la loupe vit dans une
+boîte flexible avec la bulle. Bulle rangée dans le coin, elle occupe la boîte et
+pousse le bouton à **(1242, 525)** ; bulle partie suivre le curseur, elle quitte
+le flux et le bouton retombe à **(1296, 698)**. Or elle part suivre le curseur
+dès qu'on bouge la souris sur la feuille, et elle revient se ranger dès qu'on en
+sort — c'est-à-dire **à l'instant précis où l'on tend la main vers le bouton**.
+Il sautait de 173 px vers le haut sous le curseur qui arrivait ; le clic tombait
+sur la feuille, et la loupe ne s'éteignait plus.
+
+La correction tient en deux mots de style. `flex-direction: column-reverse`
+mettait la bulle en bas et le bouton au-dessus — l'inverse de ce que disait son
+propre commentaire, *« Bouton en bas, bulle au dessus »*, depuis toujours. En
+`column`, la boîte grandit vers le haut depuis son coin et le bouton reste posé
+sur ce coin quoi qu'il arrive. Et `align-items: flex-end` plutôt que `center` :
+centré, le bouton se décalait encore de 54 px quand la bulle, large de 158,
+prenait ou quittait sa place.
+
+La sonde vise désormais à la souris nue, et compare les **centres** : le bouton
+grossit de 10 % au survol, ce qui déplace son coin de 2,5 px sans qu'il ait bougé
+d'un pouce. Éprouvée contre la version d'avant : six rouges, dont les deux qui
+disent la phrase du professeur — « un clic à la main la décroche » et « un second
+clic l'éteint ».
+
+### Un nombre qui flottait
+
+*« Je trouve que l'affichage des longueurs sur les segments est un peu éloigné
+du segment. »*
+
+Mesuré à l'encre, en comptant les pixels vides entre le trait et le bas du
+nombre : **15 px au-dessus, 10 px en dessous**. Les deux côtés ne disaient donc
+pas la même chose, et c'était le côté par défaut — celui qu'on voit — qui était
+le plus loin. L'impression était juste, et chiffrable.
+
+L'écart au-dessus passe de −15 à −11 : onze pixels de vide, autant qu'en
+dessous. Pourquoi pas moins ? Parce qu'au milieu du segment, là même où le
+nombre s'écrit, se trouve la **marque de codage** — le petit trait qui dit que
+deux côtés sont égaux. Elle monte à 6 px du trait. À −11 il reste 5 px entre
+elle et le bas du nombre ; à −9, il n'en resterait que 3, et le cache blanc du
+nombre commencerait à lui ronger la pointe. Approcher sans toucher : c'est toute
+la question, et c'est elle qui fixe la limite.
+
+La sonde ne vérifie pas que l'écart vaut −11 — un réglage recopié dans une sonde
+ne mesure rien, il répète le code. Elle tient ce qu'on voit : moins de 13 px de
+vide, les deux côtés égaux à 2 px près, le trait jamais effacé par le cache
+blanc, et la marque de codage aussi haute avec le nombre que sans lui.
+
+Une figure déjà enregistrée garde l'écart qu'elle porte : c'est sa mise en page à
+elle, et un lien de partage la restitue telle quelle. Le bouton « mesure
+au-dessus » la ramène à la nouvelle.

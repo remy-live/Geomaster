@@ -5434,9 +5434,26 @@
             bottom: 20px;
             right: 20px;
             display: flex;
-            flex-direction: column-reverse;
-            /* Bouton en bas, bulle au dessus */
-            align-items: center;
+            /* LE BOUTON NE DOIT JAMAIS BOUGER. « Quand la loupe est en route et
+               au-dessus, je ne peux plus l'enlever ou la décrocher. » Mesuré : le
+               bouton changeait de place QUATRE fois selon l'état de la bulle.
+               Bulle rangée dans le coin, elle occupait la boîte et poussait le
+               bouton à (1242, 525) ; bulle partie suivre le curseur, elle quittait
+               le flux et le bouton retombait à (1296, 698). Or elle part suivre le
+               curseur DÈS QU'ON BOUGE LA SOURIS SUR LA FEUILLE, et elle revient se
+               ranger dès qu'on en sort — c'est-à-dire à l'instant précis où l'on
+               tend la main vers le bouton. Il sautait de 173 px vers le haut sous
+               le curseur qui arrivait, le clic tombait sur la feuille, et la loupe
+               ne s'éteignait plus. La cible fuyait celui qui la vise.
+               « column-reverse » mettait la bulle en bas et le bouton au-dessus,
+               l'inverse de ce que disait son propre commentaire ; en « column » la
+               boîte grandit vers le HAUT depuis son coin, et le bouton reste posé
+               sur ce coin quoi qu'il arrive. Alignés à droite, et non centrés :
+               centré, le bouton se décalait encore de 54 px quand la bulle, large
+               de 158, prenait ou quittait sa place. */
+            flex-direction: column;
+            /* Bulle au-dessus, bouton en bas — et il n'en bouge plus */
+            align-items: flex-end;
             gap: 15px;
             /* Espace entre le bouton et la bulle */
             z-index: 10000;
@@ -15137,7 +15154,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             constructor(p1, p2, id) {
                 super(p1, p2, id);
                 this.showLength = false;
-                this.measureOffset = -15;
+                /* OÙ LE NOMBRE SE POSE, AU-DESSUS DU TRAIT.
+                   « Je trouve que l'affichage des longueurs sur les segments est
+                     un peu éloigné du segment. »
+                   Mesuré à l'encre, en comptant les pixels vides entre le trait et
+                   le bas du nombre : 15 px au-dessus, 10 px en dessous. Les deux
+                   côtés ne disaient donc pas la même chose, et c'est le côté par
+                   défaut qui était le plus loin. À −11, le vide fait 11 px :
+                   autant qu'en dessous, et il reste 5 px entre le nombre et le
+                   sommet d'une marque de codage, qui monte à 7 px du trait.
+                   Une figure déjà enregistrée garde l'écart qu'elle porte — c'est
+                   sa mise en page à elle ; le bouton « mesure au-dessus » la
+                   ramène à la nouvelle. */
+                this.measureOffset = -11;
                 this.coding = null;
                 this.lengthUnit = null;
             }
@@ -21860,7 +21889,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         arr.push(width, dash);
                         // L'unité s'ajoute EN FIN de groupe : les enregistrements
                         // antérieurs n'ont pas ce champ et se relisent inchangés.
-                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -15, e.coding || 0, e.lengthUnit || 0, e.fleche ? 1 : 0);
+                        if (e instanceof Segment) arr.push(e.showLength ? 1 : 0, e.measureOffset || -11, e.coding || 0, e.lengthUnit || 0, e.fleche ? 1 : 0);
                         /* Le nom d'une droite voyage aussi : « Trace une droite d »
                            partagée par lien revenait anonyme, et « la
                            perpendiculaire à d » ne trouvait plus rien. */
@@ -22121,7 +22150,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (typeId === 2) {
                             obj = new Segment(null, null); obj.color = idx2col(d[3]);
                             obj.lineWidth = parseInt(d[4] || 2); obj.dash = (d[5] == "1") ? [5, 5] : [];
-                            obj.showLength = (d[6] == "1"); obj.measureOffset = d[7] ? parseFloat(d[7]) : -15; obj.coding = (d[8] && d[8] !== "0") ? d[8] : null;
+                            obj.showLength = (d[6] == "1"); obj.measureOffset = d[7] ? parseFloat(d[7]) : -11; obj.coding = (d[8] && d[8] !== "0") ? d[8] : null;
                             obj.lengthUnit = (d[9] && d[9] !== "0" && GM_UNITES.indexOf(d[9]) !== -1) ? d[9] : null;
                             obj.fleche = (d[10] === "1");
                         }
@@ -26403,7 +26432,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         this.selectedObject.showLength = false;
                     } else if (action === 'measureUp') {
                         this.selectedObject.showLength = true;
-                        this.selectedObject.measureOffset = -15;
+                        this.selectedObject.measureOffset = -11;
                     } else if (action === 'measureDown') {
                         this.selectedObject.showLength = true;
                         this.selectedObject.measureOffset = 20;
@@ -26969,7 +26998,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                                  obj.motifMot = data.motifMot; }
                             if (obj instanceof Segment) {
                                 obj.showLength = data.showLength || false;
-                                obj.measureOffset = data.measureOffset || -15;
+                                obj.measureOffset = data.measureOffset || -11;
                                 obj.coding = data.coding || null;
                                 obj.lengthUnit = (data.lengthUnit && GM_UNITES.indexOf(data.lengthUnit) !== -1) ? data.lengthUnit : null;
                                 obj.fleche = !!data.fleche;
@@ -48523,7 +48552,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-04 · 09h';
+        window.GM_VERSION = '2026-11-04 · 11h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
