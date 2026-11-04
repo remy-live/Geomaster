@@ -3032,3 +3032,52 @@ blanc, et la marque de codage aussi haute avec le nombre que sans lui.
 Une figure déjà enregistrée garde l'écart qu'elle porte : c'est sa mise en page à
 elle, et un lien de partage la restitue telle quelle. Le bouton « mesure
 au-dessus » la ramène à la nouvelle.
+
+### La gravure qui enflait dans une place qui ne bougeait pas
+
+*« En mode projection, les chiffres des instruments de géométrie font de gros
+pâtés, j'aimerais bien aussi pouvoir agrandir le rapporteur comme on peut le
+faire avec la règle ou l'équerre. »*
+
+Les deux phrases n'en font qu'une, et c'est tout l'intérêt de la remarque.
+
+Le mode projection multiplie par 2,2 **toute** police et **toute** épaisseur
+posée sur la toile. C'est juste pour la figure : un trait qu'on dessine, une
+lettre qu'on écrit n'ont pas de voisins à toucher, et il faut les voir du fond
+de la classe. C'est faux pour un instrument, dont la géométrie, elle, ne grossit
+pas d'un pixel : la gravure enfle dans une place qui reste la même.
+
+Mesuré sur ce qui est **vraiment peint** :
+
+| | sans projection | en projection |
+| --- | --- | --- |
+| degrés du rapporteur | 11 px | **24,2 px** |
+| recouvrement « 100 » / « 110 » | aucun | **13,6 px** |
+| encre sur la ligne des graduations de la règle | 40 % | **80 %** |
+
+Quatre-vingts pour cent d'encre, c'est la définition d'un pâté : les traits du
+millimètre, larges de 3,3 px tous les 5 px, ne laissent plus que 1,7 px de blanc
+et se rejoignent en une bande noire.
+
+**Un piège, et il aurait suffi à rendre la sonde aveugle.** Le mode projection
+remplace l'accesseur `font` du contexte, et son getter rend la valeur
+**d'origine**, pas celle qui est posée sur la toile. Lire `ctx.font`, c'est lire
+ce que le code a demandé, jamais ce qui est peint : une sonde qui s'y fierait
+aurait vu « bold 11px » et conclu que tout allait bien. On passe par le
+descripteur du prototype.
+
+La correction est une règle, pas un réglage : **le corps de l'instrument garde
+son épaisseur de projection** — un contour n'a personne à toucher, et il faut
+bien le voir — **mais sa gravure est rendue à sa taille vraie**. Et pour lire les
+chiffres de loin, on fait ce qu'on ferait avec un vrai instrument : on en prend
+un plus grand.
+
+D'où la seconde phrase, qui était la vraie demande. La règle s'allonge par son
+bout, l'équerre par ses deux côtés ; le rapporteur n'avait aucune prise. Son
+demi-disque est pourtant entièrement pris — le centre déplace, la couronne
+tourne — mais la **semelle**, cette bande de 15 px sous le diamètre, ne servait à
+rien : la zone y rendait `null`. Ses deux extrémités tombent exactement là où
+l'on prendrait un vrai rapporteur pour l'étirer. On le tire de 180 à 320 px de
+rayon, sa gravure suit (11 → 19,6 px), les degrés ne se marchent toujours pas
+dessus parce que la place entre deux crans a grandi d'autant, et le rayon voyage
+dans le lien de partage comme celui du compas.

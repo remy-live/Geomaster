@@ -16769,6 +16769,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             const ech = (window.app && window.app.cmScale) || 1;
             return (px / UNIT) * ech;
         }
+        /* LA GRAVURE NE GROSSIT PAS AVEC LE VIDÉOPROJECTEUR.
+           « En mode projection, les chiffres des instruments de géométrie font de
+             gros pâtés. »
+           Le mode projection multiplie par 2,2 TOUTE police et TOUTE épaisseur
+           posée sur la toile. C'est juste pour la figure — les traits qu'on
+           dessine et les lettres qu'on écrit n'ont pas de voisins à toucher.
+           C'est faux pour un instrument, dont la géométrie, elle, ne grossit
+           pas : la gravure enfle dans une place qui ne bouge pas. Mesuré :
+             — rapporteur, « 120 » passe de 18,4 à 40,4 px pour 27,1 px entre
+               deux crans de 10° : il déborde de 13,3 px sur ses voisins ;
+             — règle, le trait de millimètre passe de 1,5 à 3,3 px tous les
+               5 px : il ne reste que 1,7 px de blanc, et les cent traits se
+               rejoignent en une bande noire.
+           On rend donc le contexte à sa taille vraie le temps de graver. Le
+           CORPS de l'instrument, lui, garde son épaisseur de projection : un
+           contour n'a personne à toucher, et il faut bien le voir du fond.
+           Pour lire les chiffres de loin, on AGRANDIT l'instrument — c'est ce
+           qu'on fait avec un vrai. */
+        function gmGravure(ctx, graver) {
+            const a = window.app;
+            /* On n'agit que si la loupe de projection est vraiment posée sur CE
+               contexte-là : l'export, lui, n'en a jamais. */
+            const posee = !!(a && ctx === a.ctx && Object.getOwnPropertyDescriptor(ctx, 'font'));
+            if (posee) a.fermerLoupeProjection();
+            try { graver(); }
+            finally { if (posee) a.ouvrirLoupeProjection(); }
+        }
+        /* « bold 11px sans-serif » à l'échelle k : seul le nombre change. */
+        function gmPoliceEchelle(police, k) {
+            return String(police).replace(/(\d*\.?\d+)px/,
+                (m, n2) => (parseFloat(n2) * k).toFixed(1) + 'px');
+        }
         function gmGraduations(longueur, marge) {
             const ech = (window.app && window.app.cmScale) || 1;
             const mm = UNIT / ech / 10;                 // pixels pour un millimètre
@@ -16828,6 +16860,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = `rgba(${style.background.color}, ${opa})`; ctx.fill();
                 ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.stroke();
                 const padding = 10;
+                gmGravure(ctx, () => {
                 ctx.fillStyle = style.graduations.color; ctx.strokeStyle = style.graduations.color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font; ctx.lineWidth = style.graduations.width;
                 for (const g of gmGraduations(this.width, padding)) {
                     const hAvailable = this.height * ((this.width - g.px) / this.width); if (hAvailable < 35) break;
@@ -16847,6 +16880,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                     }
                 }
+                });
                 if (!window.app || !window.app.isExporting) {
                     const btnColor = this.slideMode ? style.toggleBtn.active : style.toggleBtn.inactive;
                     ctx.save(); ctx.translate(50, 50); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-13, -13, 26, 26, 6); else ctx.rect(-13, -13, 26, 26);
@@ -16924,6 +16958,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = `rgba(${style.background.color}, ${style.background.opacity})`; ctx.beginPath(); ctx.rect(0, 0, this.width, this.height); ctx.fill();
                 ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.fillRect(0, 0, this.width, this.height / 2);
                 if (style.border.width > 0) { ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.strokeRect(0, 0, this.width, this.height); }
+                gmGravure(ctx, () => {
                 ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`; ctx.fillStyle = style.graduations.color; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font; ctx.lineWidth = style.graduations.width;
                 for (const g of gmGraduations(this.width, 5)) {
                     const len = g.cm ? 18 : (g.demi ? 12 : 6);
@@ -16932,6 +16967,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (!window.app || window.app.exportNumbersMode !== 'none') ctx.fillText(g.nombre, g.px, 28);
                     }
                 }
+                });
                 if (!window.app || !window.app.isExporting) {
                     drawRotateHandle(ctx, this.width + 15, this.height / 2);
                 }
@@ -16981,6 +17017,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return null;
                 }
                 
+                /* ON L'AGRANDIT PAR LES BOUTS DE SA SEMELLE.
+                   « J'aimerais bien aussi pouvoir agrandir le rapporteur comme on
+                     peut le faire avec la règle ou l'équerre. »
+                   La règle s'allonge par son bout, l'équerre par ses deux côtés ;
+                   le rapporteur n'avait aucune prise. Le demi-disque est entièrement
+                   pris — le centre déplace, la couronne tourne — mais la SEMELLE,
+                   cette bande de 15 px sous le diamètre, ne servait à rien : la
+                   zone y rendait null. Ses deux extrémités tombent pile où l'on
+                   prendrait un vrai rapporteur pour l'étirer. Avant les poignées de
+                   rotation, qui vivent à ±(r+20) sur la ligne y = 0 : en dessous
+                   d'elle, la semelle est libre. */
+                if (l.y >= 2 && l.y <= 22 && Math.abs(Math.abs(l.x) - this.radius) < 20) return 'resize';
                 if (Math.hypot(l.x - (-this.radius - 20), l.y) < 20) return 'rotate';
                 if (Math.hypot(l.x - (this.radius + 20), l.y) < 20) return 'rotate';
                 
@@ -16994,6 +17042,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 else { ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill(); }
                 ctx.fillStyle = `rgba(155, 89, 182, ${alpha})`; ctx.beginPath(); ctx.arc(0, 0, this.radius + 10, Math.PI, 0); ctx.arc(0, 0, this.radius - 30, 0, Math.PI, true); ctx.fill();
                 ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`; ctx.beginPath(); ctx.arc(0, 0, this.radius - 30, Math.PI, 0); ctx.fill();
+                /* vert, comme le bout de la règle qu'on allonge */
+                if (!this.isLocked) {
+                    ctx.fillStyle = `rgba(46, 204, 113, ${alpha})`;
+                    ctx.fillRect(-this.radius - 20, 2, 40, 20);
+                    ctx.fillRect(this.radius - 20, 2, 40, 20);
+                }
                 ctx.restore();
             }
             draw(ctx) {
@@ -17005,29 +17059,38 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 ctx.fillStyle = `rgba(${style.background.color}, 0.4)`; ctx.fill();
                 if (style.border.width > 0) { ctx.lineWidth = style.border.width; ctx.strokeStyle = `rgba(${style.border.color}, ${style.border.opacity})`; ctx.stroke(); }
                 const gap = 50; ctx.beginPath(); ctx.moveTo(-(r - gap), 0); ctx.lineTo((r - gap), 0); ctx.moveTo(0, -6); ctx.lineTo(0, 8); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineWidth = 1.5; ctx.strokeStyle = '#000000'; ctx.stroke();
-                ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = style.graduations.font;
+                /* LA GRAVURE SUIT L'INSTRUMENT. Un rapporteur deux fois plus
+                   grand a deux fois plus de place entre deux crans de 10° : ses
+                   chiffres grandissent d'autant, et pas plus. C'est ainsi qu'on
+                   les lit du fond de la classe — en agrandissant l'objet, comme
+                   on prendrait le grand rapporteur du tableau. */
+                const ech = r / 180;
+                gmGravure(ctx, () => {
+                const police = gmPoliceEchelle(style.graduations.font || "bold 12px sans-serif", ech);
+                ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = police;
                 for (let i = 0; i <= 180; i++) {
                     const ang = Math.PI + (i * Math.PI / 180); const cos = Math.cos(ang); const sin = Math.sin(ang);
-                    let len = 6; ctx.lineWidth = style.graduations.width; ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`;
-                    if (i % 5 === 0) len = 10; if (i % 10 === 0) { len = 15; ctx.lineWidth = style.graduations.widthMajor; }
+                    let len = 6 * ech; ctx.lineWidth = style.graduations.width * ech; ctx.strokeStyle = `rgba(0, 0, 0, ${style.graduations.strokeOpacity})`;
+                    if (i % 5 === 0) len = 10 * ech; if (i % 10 === 0) { len = 15 * ech; ctx.lineWidth = style.graduations.widthMajor * ech; }
                     ctx.beginPath(); ctx.moveTo(cos * (r - len), sin * (r - len)); ctx.lineTo(cos * r, sin * r); ctx.stroke();
                     if (i % 10 === 0) {
                         if (!window.app || window.app.exportNumbersMode !== 'none') {
                             const valStandard = i; const valReverse = 180 - i;
                             if (this.showDouble) {
-                                ctx.fillStyle = style.graduations.color; ctx.font = style.graduations.font || "bold 12px sans-serif";
-                                ctx.fillText(valStandard, cos * (r - 24), sin * (r - 24));
-                                ctx.font = "normal 9px sans-serif"; ctx.fillStyle = "#222222";
-                                ctx.fillText(valReverse, cos * (r - 40), sin * (r - 40));
+                                ctx.fillStyle = style.graduations.color; ctx.font = police;
+                                ctx.fillText(valStandard, cos * (r - 24 * ech), sin * (r - 24 * ech));
+                                ctx.font = gmPoliceEchelle("normal 9px sans-serif", ech); ctx.fillStyle = "#222222";
+                                ctx.fillText(valReverse, cos * (r - 40 * ech), sin * (r - 40 * ech));
                             } else {
                                 const val = this.isReversed ? valReverse : valStandard;
-                                ctx.font = style.graduations.font || "bold 12px sans-serif"; ctx.fillStyle = style.graduations.color;
-                                let ty = sin * (r - 25); if (i === 0 || i === 180) ty = 0;
-                                ctx.fillText(val, cos * (r - 25), ty);
+                                ctx.font = police; ctx.fillStyle = style.graduations.color;
+                                let ty = sin * (r - 25 * ech); if (i === 0 || i === 180) ty = 0;
+                                ctx.fillText(val, cos * (r - 25 * ech), ty);
                             }
                         }
                     }
                 }
+                });
                 if (!window.app || !window.app.isExporting) {
                     const drawIconBtn = (y, btnColor, type) => {
                         ctx.save(); ctx.translate(0, y); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-12, -12, 24, 24, 6); else ctx.rect(-12, -12, 24, 24);
@@ -17055,35 +17118,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const bgPath = `M ${-r} ${skirt} L ${r} ${skirt} L ${r} 0 A ${r} ${r} 0 0 0 ${-r} 0 Z`;
                 svg += `<path d="${bgPath}" fill="rgb(${style.background.color})" fill-opacity="0.4" stroke="rgba(${style.border.color}, ${style.border.opacity})" stroke-width="${style.border.width}" />`;
                 svg += `<path d="M ${-(r - 50)} 0 L ${r - 50} 0 M 0 -6 L 0 8 M -6 0 L 6 0" stroke="#000" stroke-width="1.5" fill="none" />`;
+                /* L'EXPORT SUIT L'INSTRUMENT, COMME LA TOILE. Un rapporteur
+                   agrandi à l'écran et rendu à sa taille d'origine dans le PDF
+                   ne serait plus le même objet. */
+                const ech = r / 180;
                 let pathMajor = ""; let pathMinor = "";
                 for (let i = 0; i <= 180; i++) {
                     const ang = Math.PI + (i * Math.PI / 180); const cos = Math.cos(ang); const sin = Math.sin(ang);
-                    let len = 6; let isMajor = false; if (i % 5 === 0) len = 10; if (i % 10 === 0) { len = 15; isMajor = true; }
+                    let len = 6 * ech; let isMajor = false; if (i % 5 === 0) len = 10 * ech; if (i % 10 === 0) { len = 15 * ech; isMajor = true; }
                     const line = `M ${cos * (r - len)} ${sin * (r - len)} L ${cos * r} ${sin * r} `;
                     if (isMajor) pathMajor += line; else pathMinor += line;
                     if (numbersMode !== 'none' && isMajor) {
                         const valStandard = i; const valReverse = 180 - i;
                         if (this.showDouble) {
                             if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
-                                svg += VectorFontUtils.getSVGGroup(valStandard, cos * (r - 24), sin * (r - 24), this.EXPORT_SCALES.vectorStandard, style.graduations.color, 0, "center");
-                                svg += VectorFontUtils.getSVGGroup(valReverse, cos * (r - 40), sin * (r - 40), this.EXPORT_SCALES.vectorSmall, "#222222", 0, "center");
+                                svg += VectorFontUtils.getSVGGroup(valStandard, cos * (r - 24 * ech), sin * (r - 24 * ech), this.EXPORT_SCALES.vectorStandard * ech, style.graduations.color, 0, "center");
+                                svg += VectorFontUtils.getSVGGroup(valReverse, cos * (r - 40 * ech), sin * (r - 40 * ech), this.EXPORT_SCALES.vectorSmall * ech, "#222222", 0, "center");
                             } else {
-                                svg += `<text x="${cos * (r - 24)}" y="${sin * (r - 24) + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${valStandard}</text>`;
-                                svg += `<text x="${cos * (r - 40)}" y="${sin * (r - 40) + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textSmall}" fill="#222" text-anchor="middle">${valReverse}</text>`;
+                                svg += `<text x="${cos * (r - 24 * ech)}" y="${sin * (r - 24 * ech) + GmBase.decalage(style.graduations.font, 'middle') * ech}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard * ech}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${valStandard}</text>`;
+                                svg += `<text x="${cos * (r - 40 * ech)}" y="${sin * (r - 40 * ech) + GmBase.decalage(style.graduations.font, 'middle') * ech}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textSmall * ech}" fill="#222" text-anchor="middle">${valReverse}</text>`;
                             }
                         } else {
                             const val = this.isReversed ? valReverse : valStandard;
-                            let ty = sin * (r - 25); if (i === 0 || i === 180) ty = 0;
+                            let ty = sin * (r - 25 * ech); if (i === 0 || i === 180) ty = 0;
                             if (numbersMode === 'vector' && typeof VectorFontUtils !== 'undefined') {
-                                svg += VectorFontUtils.getSVGGroup(val, cos * (r - 25), ty + 2, this.EXPORT_SCALES.vectorStandard, style.graduations.color, 0, "center");
+                                svg += VectorFontUtils.getSVGGroup(val, cos * (r - 25 * ech), ty + 2 * ech, this.EXPORT_SCALES.vectorStandard * ech, style.graduations.color, 0, "center");
                             } else {
-                                svg += `<text x="${cos * (r - 25)}" y="${ty + 2 + GmBase.decalage(style.graduations.font, 'middle')}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${val}</text>`;
+                                svg += `<text x="${cos * (r - 25 * ech)}" y="${ty + (2 + GmBase.decalage(style.graduations.font, 'middle')) * ech}" font-family="Segoe UI, Arial, sans-serif" font-size="${this.EXPORT_SCALES.textStandard * ech}" font-weight="bold" fill="${style.graduations.color}" text-anchor="middle">${val}</text>`;
                             }
                         }
                     }
                 }
-                svg += `<path d="${pathMinor}" stroke="rgba(0, 0, 0, ${style.graduations.strokeOpacity})" stroke-width="${style.graduations.width}" fill="none" />`;
-                svg += `<path d="${pathMajor}" stroke="rgba(0, 0, 0, ${style.graduations.strokeOpacity})" stroke-width="${style.graduations.widthMajor}" fill="none" />`;
+                svg += `<path d="${pathMinor}" stroke="rgba(0, 0, 0, ${style.graduations.strokeOpacity})" stroke-width="${style.graduations.width * ech}" fill="none" />`;
+                svg += `<path d="${pathMajor}" stroke="rgba(0, 0, 0, ${style.graduations.strokeOpacity})" stroke-width="${style.graduations.widthMajor * ech}" fill="none" />`;
                 svg += `</g>`; return svg;
             }
         }
@@ -22003,7 +22070,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const wData = [];
                 if (this.activeWidgets.ruler && this.rulerWidget) wData.push(`R;${f(this.rulerWidget.x)};${f(this.rulerWidget.y)};${f(this.rulerWidget.angle)}`);
                 if (this.activeWidgets.setsquare && this.setSquareWidget) wData.push(`S;${f(this.setSquareWidget.x)};${f(this.setSquareWidget.y)};${f(this.setSquareWidget.angle)}`);
-                if (this.activeWidgets.protractor && this.protractorWidget) wData.push(`P;${f(this.protractorWidget.x)};${f(this.protractorWidget.y)};${f(this.protractorWidget.angle)}`);
+                if (this.activeWidgets.protractor && this.protractorWidget) wData.push(`P;${f(this.protractorWidget.x)};${f(this.protractorWidget.y)};${f(this.protractorWidget.angle)};${f(this.protractorWidget.radius)}`);
                 if (this.activeWidgets.compass && this.compassWidget) wData.push(`C;${f(this.compassWidget.x)};${f(this.compassWidget.y)};${f(this.compassWidget.angle)};${f(this.compassWidget.radius)}`);
                 if (wData.length > 0) finalStr += "¦WIDGETS:" + wData.join("|");
                 const instrHtml = document.getElementById('instrContent') ? document.getElementById('instrContent').innerHTML : "";
@@ -22301,7 +22368,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const typeCode = w[0]; const x = parseFloat(w[1]); const y = parseFloat(w[2]); const ang = parseFloat(w[3]);
                             if (typeCode === 'R') { this.activeWidgets.ruler = true; this.rulerWidget = new RulerWidget(x, y); this.rulerWidget.angle = ang; document.getElementById('btn-ruler').classList.add('widget-active'); }
                             else if (typeCode === 'S') { this.activeWidgets.setsquare = true; this.setSquareWidget = new SetSquareWidget(x, y); this.setSquareWidget.angle = ang; document.getElementById('btn-setsquare').classList.add('widget-active'); }
-                            else if (typeCode === 'P') { this.activeWidgets.protractor = true; this.protractorWidget = new ProtractorWidget(x, y); this.protractorWidget.angle = ang; document.getElementById('btn-protractor').classList.add('widget-active'); }
+                            else if (typeCode === 'P') { this.activeWidgets.protractor = true; this.protractorWidget = new ProtractorWidget(x, y); this.protractorWidget.angle = ang; if (w[4]) this.protractorWidget.radius = parseFloat(w[4]); document.getElementById('btn-protractor').classList.add('widget-active'); }
                             else if (typeCode === 'C') { this.activeWidgets.compass = true; this.compassWidget = new CompassWidget(x, y); this.compassWidget.angle = ang; if (w[4]) this.compassWidget.radius = parseFloat(w[4]); document.getElementById('btn-compass').classList.add('widget-active'); }
                         });
                     }
@@ -33280,6 +33347,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (angleImpose !== null) w.angle = angleImpose;
                         else { w.angle = Math.atan2(my - w.y, mx - w.x); }
                         w.radius = newRadius;
+                    }
+                    else if (mode === 'resize' && w instanceof ProtractorWidget) {
+                        /* Entre 90 et 420 px de rayon : en deçà les crans de 1° se
+                           rejoignent (1,6 px d'écart à 90), au-delà le demi-disque
+                           ne tient plus dans une feuille projetée. */
+                        const local = w.toLocal(rx, ry);
+                        const nr = Math.abs(local.x);
+                        if (nr >= 90 && nr <= 420) w.radius = nr;
                     }
                     else if (mode === 'resize' && w instanceof RulerWidget) {
                         const local = w.toLocal(rx, ry);
@@ -48552,7 +48627,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-04 · 11h';
+        window.GM_VERSION = '2026-11-04 · 12h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
