@@ -5467,11 +5467,22 @@
            l'en-tête elle ne gêne rien, et le regard la trouve au même endroit
            que l'heure d'un tableau de classe. Grise et fine : on la lit quand
            on la cherche, elle ne tire pas l'œil pendant qu'on explique. */
+        /* UN SEUL BOUTON POUR DEUX ÉTATS. « Où est l'horloge ? » — elle ne
+           s'allumait que par une phrase, et une phrase qu'on ne connaît pas
+           n'existe pas. Elle a donc son icône ; mais pas un bouton de plus pour
+           autant : le même porte le petit cadran quand l'heure est rangée, et
+           l'heure quand elle est affichée. L'en-tête ne grandit que d'un cadran
+           de 17 px, et il reste discret : gris, sans fond, comme l'heure. */
         #gmHorloge {
-            display: none;
-            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            min-width: 34px;   /* une cible au doigt : jamais sous 32 px */
+            height: 34px;
+            border: 1px solid transparent;
             background: none;
-            padding: 0 10px;
+            padding: 0 7px;
             margin-left: 2px;
             font: 600 15px/1 ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
             letter-spacing: 0.5px;
@@ -5480,11 +5491,15 @@
             white-space: nowrap;
             transition: color .15s;
         }
-        #gmHorloge.vue { display: inline-block; }
+        #gmHorloge svg { width: 17px; height: 17px; }
+        #gmHorloge .gm-heure { display: none; }
+        #gmHorloge.vue .gm-cadran { display: none; }
+        #gmHorloge.vue .gm-heure { display: inline; }
         #gmHorloge:hover, #gmHorloge:focus-visible { color: #546e7a; }
         /* Au vidéoprojecteur, tout grossit : l'heure aussi. */
         body.projection #gmHorloge { font-size: 19px; }
-        @media (max-width: 700px) { #gmHorloge { padding: 0 6px; font-size: 13px; } }
+        body.projection #gmHorloge svg { width: 21px; height: 21px; }
+        @media (max-width: 700px) { #gmHorloge { padding: 0 5px; font-size: 13px; } }
 
         /* Deux états allumés : « suit le curseur » en bleu plein, « reste en
            bas » en bleu cerclé. On ne lit pas une infobulle en plein cours. */
@@ -10252,8 +10267,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                  Pas de bouton permanent de plus : une commande qui ne sert
                  qu'une fois par séance n'a pas sa place dans une bande déjà
                  longue de 1028 px. -->
-            <button id="gmHorloge" type="button" onclick="app.reglerHorloge(false)"
-                aria-label="Horloge" data-tooltip="Cliquer pour ranger l'horloge"></button>
+            <!-- L'HORLOGE : UNE ICÔNE, PUIS L'HEURE. Le cadran quand elle est
+                 rangée, l'heure quand elle est affichée, un clic pour passer de
+                 l'un à l'autre — et la classe top-btn la fait paraître dans
+                 « toutes les commandes », là où l'en-tête déborde au téléphone. -->
+            <button class="top-btn" id="gmHorloge" type="button"
+                onclick="app.reglerHorloge(!app.horlogeVue)"
+                aria-label="Horloge" data-tooltip="Afficher l'heure">
+                <svg class="gm-cadran" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7.2v5.2l3.6 2.1" />
+                </svg><span class="gm-heure"></span>
+            </button>
             <!-- TOUTES LES COMMANDES, EN UN APPUI. L'en-tête porte 1028 px de
                  commandes pour 390 visibles sur un téléphone : seize étaient hors
                  de l'écran, dont les consignes — qu'on ne pouvait donc pas ouvrir
@@ -25193,20 +25219,45 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 /* Tout se compte en abscisse le long du trait, depuis la pose. */
                 const absc = (p) => (p.x - O.x) * ux + (p.y - O.y) * uy;
                 const infinie = !(cible instanceof Segment);
-                let sA, sB;
+                /* LE CRAYON REFAIT LE GESTE, PAS LES GRADUATIONS.
+                   « J'ai dessiné un segment AB en utilisant la règle, j'ai
+                     commencé au 6 cm (point A) puis est allé au 0 (point B) et
+                     lors du rejeu, le crayon est allé du B au A donc de 0 à 6. »
+                   La mémoire était juste — relevé après le tracé : p1 = A en
+                   x=600 (graduation 6), p2 = B en x=300 (graduation 0). C'est
+                   ici que le sens se perdait : les deux abscisses étaient
+                   échangées pour que sA < sB, et tout l'escalier d'après
+                   (la pose, le chevauchement, le crayon) courait vers les
+                   abscisses croissantes. Espionné sur la toile au rejeu, le
+                   premier trait posé allait de x=300 vers x=320 : le crayon
+                   partait bien du 0 et montait vers le 6.
+                   On garde sA et sB (le plus petit, le plus grand : la pose de
+                   l'instrument et le chevauchement s'en servent, et ils ne
+                   connaissent qu'un sens), et l'on ajoute le sens du geste. */
+                let sA, sB, sens = 1;
                 if (infinie) {
                     /* Un coup de règle, et c'est tout : exactement sa portée. */
                     sA = 0; sB = portee;
+                    /* MAIS UNE DROITE CONSTRUITE N'A PAS DE SENS, ELLE A UN AXE.
+                       La perpendiculaire pose sa règle en C tournée d'un
+                       demi-tour : l'ordre de ses deux points est alors un résultat
+                       de calcul, pas un geste, et le lire comme un geste faisait
+                       repartir le crayon du bout de la règle (mesuré : 100 images
+                       à rebours sur 101). On ne suit donc la direction de l'objet
+                       que si l'animation garde la trace d'une vraie main. */
+                    if (anim.gestes && absc(bout) - absc(cible.p1) < 0) sens = -1;
                 } else {
                     sA = absc(cible.p1); sB = absc(cible.p2);
-                    if (sB < sA) { const k = sA; sA = sB; sB = k; }
+                    if (sB < sA) { const k = sA; sA = sB; sB = k; sens = -1; }
                 }
                 const L = sB - sA;
+                const sDebut = (sens > 0) ? sA : sB;
+                const sFin = (sens > 0) ? sB : sA;
                 const CHEVAUCHEMENT = 150;   /* 3 cm : un quart de la règle */
                 const avance = Math.max(40, portee - CHEVAUCHEMENT);
                 const passes = (L <= portee + 0.5) ? 1
                     : 1 + Math.ceil((L - portee) / avance);
-                return { O, ux, uy, sA, sB, L, portee, passes, infinie,
+                return { O, ux, uy, sA, sB, sens, sDebut, sFin, L, portee, passes, infinie,
                          point: (s) => ({ x: O.x + ux * s, y: O.y + uy * s }) };
             }
             /* Où en est-on à l'instant t : quelle pose pour l'instrument, et
@@ -25215,7 +25266,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                autres tracent. La première ne glisse pas : l'instrument vient
                d'être posé. */
             etapeRegle(plan, t) {
-                const { sA, sB, portee, passes } = plan;
+                const { portee, passes, L } = plan;
+                const sens = (plan.sens === -1) ? -1 : 1;
+                const sDebut = (plan.sDebut !== undefined) ? plan.sDebut : plan.sA;
+                /* TOUT SE COMPTE DEPUIS L'ENDROIT OÙ LE CRAYON SE POSE. r va de 0
+                   à L le long du geste, quel que soit son sens ; on ne revient en
+                   abscisse d'instrument qu'à la toute fin. L'escalier des passes
+                   reste donc écrit une seule fois, dans un seul sens. */
                 const part = 1 / passes;
                 let k = Math.min(passes - 1, Math.floor(t / part));
                 const u = (t - k * part) / part;          /* 0→1 dans la passe */
@@ -25223,9 +25280,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    pose se cale sur la fin du trait — c'est ce qu'on fait, on ne
                    laisse pas dépasser la règle dans le vide. */
                 const poseDe = (i) => {
-                    if (i === 0) return sA;
-                    const brut = sA + i * Math.max(40, portee - 150);
-                    return Math.min(brut, Math.max(sA, sB - portee));
+                    if (i === 0) return 0;
+                    const brut = i * Math.max(40, portee - 150);
+                    return Math.min(brut, Math.max(0, L - portee));
                 };
                 const avant = poseDe(Math.max(0, k - 1));
                 const ici = poseDe(k);
@@ -25233,12 +25290,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const pose = avant + (ici - avant) * glisse;
                 /* Le crayon ne repart pas en arrière : il reprend là où il s'est
                    arrêté, et va jusqu'au bout de ce que la règle couvre. */
-                const dejaFait = (k === 0) ? sA : Math.min(sB, poseDe(k - 1) + portee);
-                const atteint = Math.min(sB, ici + portee);
+                const dejaFait = (k === 0) ? 0 : Math.min(L, poseDe(k - 1) + portee);
+                const atteint = Math.min(L, ici + portee);
                 const trace = (k === 0)
-                    ? sA + (atteint - sA) * Math.min(1, u)
+                    ? atteint * Math.min(1, u)
                     : dejaFait + (atteint - dejaFait) * Math.max(0, (u - 0.25) / 0.75);
-                return { pose, crayon: Math.min(sB, Math.max(sA, trace)) };
+                const r = Math.min(L, Math.max(0, trace));
+                /* L'instrument, lui, se pose toujours par son origine, donc du
+                   côté des petites abscisses de la portion qu'il couvre : un
+                   geste à rebours la lui fait reculer d'une portée. */
+                const bordDepart = sDebut + sens * pose;
+                return { pose: (sens > 0) ? bordDepart : bordDepart - portee,
+                         crayon: sDebut + sens * r };
             }
             applyInterpolation(anim, t) {
                 const ease = t;
@@ -29599,13 +29662,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.horlogeVue = !!on;
                 try { localStorage.setItem('gm_horloge', on ? 'oui' : 'non'); } catch (e) { void e; }
                 el.classList.toggle('vue', !!on);
+                el.setAttribute('data-tooltip', on ? "Ranger l'heure" : "Afficher l'heure");
+                el.setAttribute('aria-label', on ? 'Horloge affichée' : "Horloge — afficher l'heure");
+                /* L'heure s'écrit dans son propre cadre : le cadran, lui, reste
+                   en place, sinon le bouton se viderait de son icône. */
+                const cadre = el.querySelector('.gm-heure') || el;
                 if (this._horlogeTic) { clearInterval(this._horlogeTic); this._horlogeTic = null; }
-                if (!on) { el.textContent = ''; return true; }
+                if (!on) { cadre.textContent = ''; return true; }
                 const battre = () => {
                     const d = new Date();
                     const deux = (n2) => (n2 < 10 ? '0' : '') + n2;
                     const t = deux(d.getHours()) + ':' + deux(d.getMinutes());
-                    if (el.textContent !== t) el.textContent = t;
+                    if (cadre.textContent !== t) cadre.textContent = t;
                 };
                 battre();
                 this._horlogeTic = setInterval(battre, 1000);
@@ -30135,8 +30203,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             let dejaFait = null;
                             if (plan && this.currentAnimProgress !== undefined) {
                                 const et = this.etapeRegle(plan, this.currentAnimProgress);
-                                p1 = plan.point(plan.sA);
-                                p2 = plan.point(plan.sB);
+                                p1 = plan.point(plan.sDebut);
+                                p2 = plan.point(plan.sFin);
                                 dejaFait = plan.point(et.crayon);
                             } else if (p1 && !p2 && nextEnt.getDynamicP2) {
                                 const q = nextEnt.getDynamicP2();
@@ -33589,6 +33657,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                             const state = { x: w.x, y: w.y, angle: w.angle };
                                             const animTrace = new ToolAnimation('trace', state, state);
                                             animTrace.widgetType = this.lastUsedWidgetForCreation;
+                                            /* UNE VRAIE MAIN EST PASSÉE LÀ : le rejeu a
+                                               donc le droit de lire le sens du geste
+                                               dans l'ordre des deux points. */
+                                            animTrace.gestes = true;
                                             this.addEntity(animTrace);
                                         }
                                     }
@@ -33757,6 +33829,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     let state = { x: w.x, y: w.y, angle: w.angle };
                                     let animTrace = new ToolAnimation('trace', state, state);
                                     animTrace.widgetType = this.lastUsedWidgetForCreation;
+                                    animTrace.gestes = true;   /* tracé à la main : le sens compte */
                                     this.addEntity(animTrace);
                                 }
                             }
@@ -48450,7 +48523,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-03 · 16h';
+        window.GM_VERSION = '2026-11-04 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

@@ -108,8 +108,13 @@ const ck = (nom, ok, detail) => {
             a.replayIndex = i; a.isToolAnimating = true; a.currentAnimProgress = t;
             a.applyInterpolation(anim, t);
             const et = a.etapeRegle(plan, t);
-            if (et.crayon < dernier - 0.5) recule++;
-            dernier = et.crayon;
+            /* NE PAS RECULER SE COMPTE DANS LE SENS DU GESTE. Un trait fait du
+               6 cm vers le 0 descend en abscisse d'instrument sans reculer
+               d'un millimètre : c'est le geste qui dit où est l'avant. */
+            const avance = (et.crayon - plan.sDebut) * plan.sens;
+            if (!Number.isFinite(avance)) return { erreur: 'le plan ne dit pas le sens du geste' };
+            if (avance < dernier - 0.5) recule++;
+            dernier = avance;
             const c = plan.point(et.crayon);
             const s = (c.x - w.x) * Math.cos(w.angle) + (c.y - w.y) * Math.sin(w.angle);
             if (s > plusLoin) plusLoin = s;

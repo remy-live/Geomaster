@@ -311,7 +311,11 @@ const ck = (nom, ok, detail) => {
             haut: document.querySelectorAll('.top-btn').length,
         }));
         ck('vingt-trois outils, comme avant le repère', n.outils === 23, String(n.outils));
-        ck('  et vingt-et-un boutons d\'en-tête', n.haut === 21, String(n.haut));
+        /* VINGT-DEUX depuis que l'horloge a son icône : « Où est l'horloge ? »
+           — elle ne s'allumait que par une phrase. Le compte est là pour qu'un
+           bouton de plus soit une DÉCISION et non une dérive ; celui-là a été
+           demandé, et il remplace la phrase au lieu de s'y ajouter. */
+        ck('  et vingt-deux boutons d\'en-tête', n.haut === 22, String(n.haut));
     }
 
     ck('aucune erreur JS', erreurs.length === 0, erreurs.slice(0, 2).join(' | '));

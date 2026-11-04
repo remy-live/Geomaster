@@ -2891,3 +2891,82 @@ sont tombées. Un générateur qui efface du code qu'il n'a pas écrit doit
 son préambule et la ligne du tableau, et refuse en nommant ce qu'il allait
 détruire. Éprouvé en y glissant une fonction : refus, et la fonction est
 toujours là.
+
+### Le crayon qui refaisait le trait à l'envers
+
+*« J'ai dessiné un segment AB en utilisant la règle, j'ai commencé au 6 cm
+(point A) puis est allé au 0 (point B) et lors du rejeu, le crayon est allé du B
+au A donc de 0 à 6. »*
+
+Mesuré avant de toucher au code. Règle posée bien horizontalement, graduation 0
+en x = 300, graduation 6 en x = 600 ; glissé du 6 vers le 0. La **mémoire était
+juste** — `p1` = A en x = 600, `p2` = B en x = 300, exactement l'ordre du geste.
+Le défaut était donc dans le rejeu, et pour le voir il fallait regarder non pas
+le plan mais l'**encre** : en enveloppant `moveTo` et `lineTo` de la toile
+pendant l'animation, le premier trait posé allait de x = 300 vers x = 320. Le
+crayon partait bien du 0 et montait vers le 6, sous les yeux de l'élève qui
+venait de faire l'inverse.
+
+La cause tenait en une ligne de `planRegle` :
+
+```js
+sA = absc(cible.p1); sB = absc(cible.p2);
+if (sB < sA) { const k = sA; sA = sB; sB = k; }
+```
+
+Le sens du geste était lu, puis jeté une ligne plus loin. Non par négligence :
+tout l'escalier d'après — la pose de l'instrument, le chevauchement de trois
+centimètres, l'avance du crayon qui ne recule pas — avait été écrit dans un seul
+sens, et l'échange était le prix payé pour n'avoir à l'écrire qu'une fois.
+
+Il n'y avait donc pas à choisir entre les deux. Tout se compte maintenant depuis
+l'endroit où le crayon se pose : `r` va de 0 à L **le long du geste**, l'escalier
+reste écrit une seule fois, et l'on ne revient en abscisse d'instrument qu'à la
+dernière ligne. La règle, elle, se pose toujours par son origine : un geste à
+rebours la lui fait reculer d'une portée. Vérifié sur un trait de 14 cm tiré du
+14 vers le 0 — plus long que la règle, donc **trois poses** : le crayon ne quitte
+l'instrument sur aucune des 101 images, et ne revient jamais sur ce qu'il a déjà
+tracé.
+
+**Mais une droite construite n'a pas de sens, elle a un axe.** En étendant la
+correction aux droites, la sonde du glissement est tombée : 100 images à rebours
+sur 101, pour la perpendiculaire. Elle pose sa règle en C **tournée d'un
+demi-tour** — l'ordre de ses deux points est alors un résultat de calcul, pas un
+geste, et le lire comme un geste renvoyait le crayon au bout de la règle. Le sens
+n'est donc suivi que si l'animation garde la trace d'une vraie main. Et la sonde
+du glissement comptait les reculs en abscisse d'instrument : un trait fait du 6
+vers le 0 descend sans reculer d'un millimètre, c'est le geste qui dit où est
+l'avant. Elle le compte maintenant dans le bon repère, et refuse de mesurer si le
+plan ne dit pas le sens — sans lui, `(crayon − départ) × sens` vaut `NaN`, et
+`NaN < x` est faux : la ligne serait passée au vert en n'ayant rien mesuré.
+
+### Où est l'horloge ?
+
+La question est la réponse. L'horloge de la séance précédente ne s'allumait que
+par une phrase — « Affiche l'horloge » — pour ne pas ajouter un bouton à une
+bande d'en-tête déjà longue de 1028 px pour 390 visibles au téléphone. Le
+raisonnement était bon et la porte introuvable : **une porte qu'on ne trouve pas
+n'est pas une porte.**
+
+Elle a donc son icône, et pas un bouton de plus pour autant : c'est le **même**
+qui porte le petit cadran quand l'heure est rangée et l'heure quand elle est
+affichée, un clic passant de l'un à l'autre. L'en-tête ne grandit que de 33 px au
+bureau et 34 au téléphone — la sonde des cibles au doigt refuse toute commande sous
+32 px, et elle l'a dit à 30 —, et la classe `top-btn` la fait paraître dans « toutes
+les commandes » — c'est par là qu'on la trouve quand la bande déborde. Mesuré :
+aucune commande de l'en-tête n'est recouverte, l'heure affichée est l'heure
+JUSTE, un second clic rend le cadran, et quatre secondes d'horloge n'écrivent
+toujours que ce qu'elles doivent.
+
+Deux sondes ont mordu au passage, et elles avaient raison toutes les deux.
+`probe-cibles-doigt.js` refuse toute commande de moins de 32 px au téléphone :
+mon icône en faisait **30 × 34**, et cela ne se voyait pas à l'œil. Elle fait
+maintenant 34 px de côté. Et `probe-repere.js` compte les boutons de l'en-tête
+pour qu'un bouton de plus soit une **décision** et non une dérive : il y en a
+vingt-deux, le compte est mis à jour en disant pourquoi.
+
+Enfin, c'est ma propre sonde de l'horloge qui mentait un peu : elle exigeait
+ZÉRO écriture en quatre secondes. Juste neuf fois sur dix, faux la dixième —
+celle où la minute change pendant la mesure, et où une écriture est exactement
+ce qu'on demande à une horloge. Elle relève désormais la minute avant et après,
+et exige ce que le temps écoulé justifie.
