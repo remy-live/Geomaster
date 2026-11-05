@@ -11781,12 +11781,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <input type="range" id="projCurseur" min="1" max="3.5" step="0.1" value="2.2"
             style="width:100%; accent-color:#0369a1; cursor:pointer;"
             oninput="app.reglerCoefProjection(this.value)">
+        <!-- PAS D'EXPLICATION SOUS LE CURSEUR. On règle en REGARDANT la figure,
+             pas en lisant : trois lignes de prose sous un curseur qu'on pousse
+             en plein cours ne se lisent pas, elles encombrent. La raison de la
+             borne est à sa place dans l'aide, onglet Général, pour qui la
+             cherche. -->
         <div style="display:flex; justify-content:space-between; color:#64748b; font-size:11px;">
             <span>× 1 — rien</span><span>× 3,5</span>
         </div>
-        <p style="margin:8px 0 0; color:#64748b; font-size:12px; line-height:1.45;">
-            Au-delà de 3,5, mesuré sur une figure chargée&nbsp;: la lettre d'un point
-            se pose plus près d'un AUTRE point que du sien. Elle ne désigne plus rien.</p>
     </div>
     <div id="segmentOptions"
         style="display:none; position:fixed; z-index:10300; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18); padding:8px; min-width:238px; font-family:'Segoe UI', sans-serif; font-size:13px;">
@@ -48798,7 +48800,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-04 · 16h';
+        window.GM_VERSION = '2026-11-05 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
