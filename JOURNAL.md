@@ -3166,3 +3166,52 @@ donc introuvable sans son infobulle — exactement le problème de l'horloge, de
 jours plus tôt. Le réglage vit donc aussi dans l'aide, onglet Général, avec la
 mesure qui justifie sa borne. Une porte qu'on ne trouve pas n'est pas une porte ;
 une seule porte, c'est déjà une de trop peu.
+
+### Une réponse exacte, et à côté de la question
+
+Deux phrases d'un énoncé réel, et deux refus qui disaient vrai sans rien dire
+d'utile. C'est une faute plus sournoise que le mensonge : le logiciel ne prétend
+pas avoir fait ce qu'il n'a pas fait — il répond juste à une **autre question**
+que celle posée.
+
+**1. Le côté écrit deux fois.**
+
+> Trace un triangle RST tel que ST = 7,5 cm, RT = 5 cm et RT = 3,5 cm
+
+RT est écrit deux fois ; c'est [RS] qu'on voulait écrire la seconde fois. La
+seconde valeur écrasait la première **sans un mot**, il ne restait plus que deux
+côtés, et la réponse était : *« Avec deux longueurs, il me faut un angle — celui
+entre elles, ou celui qui fait face à l'une d'elles. »* Tout est vrai dans cette
+phrase, et elle envoie chercher un angle au lieu de la faute de frappe.
+
+Le logiciel garde maintenant trace du doublon, et c'est lui qu'il raconte :
+*« Vous donnez deux fois [RT] : 5 cm, puis 3,5 cm. Et [RS] n'est pas donné — est-ce
+lui que vous vouliez nommer ? »* Le côté est répété **dans l'ordre où il a été
+écrit** : on relit sa propre phrase, pas une notation qui lui ressemble. Répéter
+la même longueur ne gêne personne ; se contredire est une faute.
+
+**2. Le milieu est donné, c'est un bout qui manque.**
+
+> Placer le point V tel que T soit le milieu de [UV]
+
+Réponse : *« Je ne connais pas V. »* Exact — et V est précisément le point qu'on
+demande de **placer**. C'est le défaut rapporté par un professeur sur les réseaux
+(« il ne connaît pas le point A ») : la phrase est lue comme un état de la figure
+au lieu d'un ordre. Toutes les autres tournures de ce lecteur posent le milieu à
+partir de ses deux bouts ; celle-ci fait l'inverse, et c'est la **symétrie
+centrale**.
+
+V est donc construit comme une relation, pas comme une position : on tire U de
+120 px, et T reste le milieu de [UV] — écart mesuré **0,00 px**. Un point juste
+une fois est un point faux dès le premier glissement.
+
+**3. Et une troisième, que la sonde a trouvée toute seule.** En vérifiant que je
+n'avais pas cassé les tournures voisines, *« Place les milieux de chaque côté »*
+répondait *« De quoi ? Écrivez "Place le milieu I de [AB]" »* — en renvoyant à la
+tournure qu'on venait précisément de ne pas vouloir écrire. Elle tombait dans le
+lecteur des milieux nommés, qui cherche des crochets. Le singulier distributif
+est la façon ordinaire de dire « tous » en français ; il dit la même chose que
+« des côtés ». Vérifié : le défaut existait déjà avant mes corrections — ce
+n'était pas une régression, c'était un trou.
+
+Catalogue régénéré : **231 phrases**, aucune en échec.

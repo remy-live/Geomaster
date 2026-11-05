@@ -64,6 +64,11 @@ const GROUPES = [
       { pts: VIDE, prep: ['Place les points H et M tels que HM = 5 cm'] }],
     ['Placer E le milieu de [AB], F le milieu de [BC] et M le milieu de [CD]',
       { pts: VIDE, prep: ['Trace un rectangle ABCD de 8 cm sur 5 cm'] }],
+    /* LE MILIEU DONNÉ, LE BOUT CHERCHé : c'est la symétrie centrale, écrite
+       comme un énoncé l'écrit. Toutes les autres tournures posent le milieu à
+       partir des deux bouts ; celle-ci fait l'inverse. */
+    ['Place le point V tel que T soit le milieu de [UV]',
+      { pts: VIDE, prep: ['Place les points U et T'] }],
   ]],
   /* LE REPÈRE. Il n'a pas de bouton — la barre en compte déjà vingt-trois, dont
      quinze hors écran sur un téléphone — et se pose une fois par exercice : c'est
@@ -204,6 +209,7 @@ const GROUPES = [
     'Place l\'orthocentre H du triangle ABC',
     'Place le centre du cercle circonscrit O au triangle ABC',
     'Place les milieux des côtés du triangle ABC',
+    'Place les milieux de chaque côté du triangle ABC',
     'Trace un triangle ABC et ses médiatrices',
     ['Trace la droite des milieux du triangle ABC', { prep: ['Trace un triangle ABC'] }],
     ["Trace la droite d'Euler du triangle ABC", { prep: ['Trace un triangle ABC tel que AB = 6 cm, AC = 5 cm et BC = 4 cm'] }],

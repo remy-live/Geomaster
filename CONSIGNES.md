@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**229 phrases**, dont 229 passent.
+**231 phrases**, dont 231 passent.
 
 Quelques principes qui valent partout :
 
@@ -46,6 +46,7 @@ Quelques principes qui valent partout :
 | Place le centre H du rectangle ABCD | H — centre de ABCD, au croisement des diagonales |
 | Place X et Y tels que HXMY soit un losange, XY = 11 cm | Losange HXMY — sur la diagonale [HM] |
 | Placer E le milieu de [AB], F le milieu de [BC] et M le milieu de [CD] | Milieux : E, F, M |
+| Place le point V tel que T soit le milieu de [UV] | V placé : c'est le symétrique de U par rapport à T, donc T est bien le milieu de [UV] |
 
 ## Repère et coordonnées
 
@@ -211,6 +212,7 @@ Quelques principes qui valent partout :
 | Place l'orthocentre H du triangle ABC | H — orthocentre de ABC |
 | Place le centre du cercle circonscrit O au triangle ABC | E — centre du cercle circonscrit de OAB |
 | Place les milieux des côtés du triangle ABC | Milieux des côtés de ABC : E, F, G |
+| Place les milieux de chaque côté du triangle ABC | Milieux des côtés de ABC : E, F, G |
 | Trace un triangle ABC et ses médiatrices | Triangle ABC · Les 3 médiatrices de ABC |
 | Trace la droite des milieux du triangle ABC | Droite des milieux (EF) du triangle ABC — parallèle à (BC) |
 | Trace la droite d'Euler du triangle ABC | Droite d'Euler de ABC — E, F, G alignés |
