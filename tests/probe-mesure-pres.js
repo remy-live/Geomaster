@@ -103,6 +103,99 @@ const ck = (n, ok, d) => { console.log(`  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31
        r.nombreAuDessusDeLaMarque < r.marqueSeuleHaut - 2,
        `bas du nombre y=${r.nombreAuDessusDeLaMarque}, haut de la marque y=${r.marqueSeuleHaut}`);
 
+    /* ================================================================
+       DESSUS VEUT DIRE DESSUS, QUEL QUE SOIT LE SENS DU TRACÉ.
+       « Quand je trace un segment [AB] en commençant par la droite et avec le B
+         à gauche et que je demande d'afficher la mesure en haut, ça s'affiche en
+         bas — et d'ailleurs c'est collé. »
+       Un trait tiré vers la gauche écrirait son nombre à l'envers : on retourne
+       le repère d'un demi-tour pour qu'il se lise. Mais ce demi-tour change
+       DÉJÀ le côté — l'axe des y tourne avec lui — et l'écart était retourné
+       une seconde fois par-dessus. Mesuré, même bouton « Dessus » : de gauche
+       à droite l'encre tombait entre −21 et −12 px, de droite à gauche entre
+       +2 et +10. Et comme le nombre est posé sur sa ligne de base, l'écart du
+       haut (−11) renvoyé en bas ne laisse qu'UN pixel de blanc : « collé »
+       est exactement le mot.
+       La sonde mesure l'encre des deux côtés, la boîte que le double-clic vise
+       — modifier une mesure ailleurs qu'où on la lit serait un autre défaut —
+       et compare les deux dessins PIXEL À PIXEL : un nombre à l'envers ne
+       donnerait pas la même image.
+       ================================================================ */
+    console.log('\n=== le sens du tracé ne change pas le côté du nombre ===');
+    const sens = await page.evaluate(() => {
+        const a = window.app;
+        const relever = (versLaDroite, action) => {
+            a.entities = [];
+            const A = new Point(versLaDroite ? 300 : 700, 400, 'A');
+            const B = new Point(versLaDroite ? 700 : 300, 400, 'B');
+            A.showLabel = false; B.showLabel = false;
+            const s = new Segment(A, B);
+            a.entities.push(A, B, s);
+            a.selectedObject = s; a.styleObject(action); a.selectedObject = null;
+            a.render();
+            const v = a.view, c = a.canvas.getContext('2d');
+            const x = Math.round(v.x + 500 * v.zoom), y0 = Math.round(v.y + 400 * v.zoom);
+            const L = 36, H = 120;
+            const d = c.getImageData(x - L / 2, y0 - 60, L, H).data;
+            const ys = []; const carte = [];
+            for (let j = 0; j < H; j++) {
+                let ligne = '';
+                for (let i = 0; i < L; i++) {
+                    const k = (j * L + i) * 4;
+                    const encre = d[k + 3] > 40 && (d[k] + d[k + 1] + d[k + 2]) < 560;
+                    ligne += encre ? '#' : '.';
+                    if (encre && !ys.includes(j - 60)) ys.push(j - 60);
+                }
+                carte.push(ligne);
+            }
+            const haut = ys.filter(y => y < -1), bas = ys.filter(y => y > 1);
+            const b = s.boiteMesure(a.ctx);
+            /* le dessin du nombre seul, sans le trait : les lignes hors du trait */
+            const dessin = carte.filter((_, j) => Math.abs(j - 60) > 1).join('|');
+            return {
+                cote: haut.length && !bas.length ? 'dessus'
+                    : (bas.length && !haut.length ? 'dessous' : 'les deux ou rien'),
+                vide: haut.length ? -Math.max(...haut) - 1
+                    : (bas.length ? Math.min(...bas) - 1 : null),
+                boiteDy: b ? Math.round(b.y - 400) : null,
+                /* l'angle du nombre, ramené dans [-180, 180] : il doit se lire */
+                boiteAngle: b ? Math.round(((b.angle * 180 / Math.PI) % 360 + 540) % 360 - 180) : null,
+                dessin,
+            };
+        };
+        const out = {
+            hautGD: relever(true, 'measureUp'), hautDG: relever(false, 'measureUp'),
+            basGD: relever(true, 'measureDown'), basDG: relever(false, 'measureDown'),
+        };
+        a.entities = []; a.render();
+        return out;
+    });
+    ck('tiré de gauche à droite, « Dessus » écrit au-dessus',
+       sens.hautGD.cote === 'dessus', sens.hautGD.cote);
+    ck('tiré de droite à gauche aussi', sens.hautDG.cote === 'dessus',
+       sens.hautDG.cote + ' (c\'était « dessous » avant)');
+    ck('  et au même écart du trait, au pixel près',
+       sens.hautGD.vide !== null && sens.hautGD.vide === sens.hautDG.vide,
+       `${sens.hautGD.vide} px contre ${sens.hautDG.vide} px (1 px avant)`);
+    ck('« Dessous » écrit en dessous, dans les deux sens',
+       sens.basGD.cote === 'dessous' && sens.basDG.cote === 'dessous',
+       `${sens.basGD.cote} / ${sens.basDG.cote}`);
+    ck('  au même écart là aussi', sens.basGD.vide === sens.basDG.vide,
+       `${sens.basGD.vide} px contre ${sens.basDG.vide} px`);
+    /* LE DOUBLE-CLIC VISE LÀ OÙ LE NOMBRE EST ÉCRIT. */
+    ck('la boîte que le double-clic vise suit le nombre',
+       sens.hautGD.boiteDy === sens.hautDG.boiteDy
+       && sens.basGD.boiteDy === sens.basDG.boiteDy,
+       `dessus ${sens.hautGD.boiteDy}/${sens.hautDG.boiteDy}, `
+       + `dessous ${sens.basGD.boiteDy}/${sens.basDG.boiteDy}`);
+    /* ET LE NOMBRE SE LIT : même image des deux côtés, donc même sens. */
+    ck('le nombre n\'est pas à l\'envers : même dessin dans les deux sens',
+       sens.hautGD.dessin.length > 0 && sens.hautGD.dessin === sens.hautDG.dessin,
+       sens.hautGD.dessin === sens.hautDG.dessin ? 'image identique au pixel'
+                                                 : 'les deux images diffèrent');
+    ck('  et le repère du nombre reste lisible (demi-tour unique)',
+       Math.abs(sens.hautDG.boiteAngle) < 1, sens.hautDG.boiteAngle + '°');
+
     ck('aucune erreur JS', errs.length === 0, errs[0] || '');
     await nav.close();
     console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

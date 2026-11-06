@@ -3215,3 +3215,37 @@ est la façon ordinaire de dire « tous » en français ; il dit la même chose 
 n'était pas une régression, c'était un trou.
 
 Catalogue régénéré : **231 phrases**, aucune en échec.
+
+### Deux demi-tours valent un tour complet
+
+*« Quand je trace un segment [AB] en commençant par la droite et avec le B à
+gauche et que je demande d'afficher la mesure en haut, ça s'affiche en bas — et
+d'ailleurs c'est collé. Quand je dessine de gauche à droite tout va bien. »*
+
+Une seule ligne causait les deux symptômes, et la raison est jolie.
+
+Un trait tiré vers la gauche écrirait son nombre à l'envers. On retourne donc le
+repère d'un demi-tour pour qu'il se lise. Seulement ce demi-tour **change déjà le
+côté** — l'axe des y tourne avec lui — et l'écart était retourné une **seconde**
+fois par-dessus, pour « compenser ». Deux retournements : le nombre revenait d'où
+il était parti, c'est-à-dire du mauvais côté.
+
+Mesuré, même segment, même bouton « Dessus » :
+
+| sens du tracé | où l'encre tombe |
+| --- | --- |
+| de gauche à droite | −21 à −12 px (au-dessus) |
+| de droite à gauche | **+2 à +10 px** (en dessous) |
+
+Et « collé » est le mot juste, pas une impression. Le nombre est posé sur sa
+**ligne de base** : −11 au-dessus et +20 en dessous laissent le même blanc, parce
+que les chiffres montent au-dessus de la base et ne descendent pas sous elle. Un
+écart prévu pour le haut, appliqué en bas, pose donc le nombre à **1 px** du
+trait.
+
+Trois endroits corrigés ensemble — le dessin, la boîte que le double-clic vise,
+et l'export SVG. Les séparer aurait donné un nombre qu'on modifie ailleurs qu'où
+on le lit, ou un écran et un PDF qui ne montrent pas la même figure.
+
+La sonde compare les deux dessins **pixel à pixel** : un nombre à l'envers ne
+donnerait pas la même image, et aucune mesure de position ne l'aurait dit.

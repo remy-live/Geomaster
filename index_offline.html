@@ -15253,7 +15253,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 let angle = Math.atan2(this.p2.y - this.p1.y, this.p2.x - this.p1.x);
                 const gros = gmGros();
                 let off = this.measureOffset * gros;
-                if (angle > Math.PI / 2 || angle < -Math.PI / 2) { angle += Math.PI; off = -off; }
+                /* DESSUS VEUT DIRE DESSUS, QUEL QUE SOIT LE SENS DU TRACÉ.
+                   « Quand je trace un segment [AB] en commençant par la droite et
+                     avec le B à gauche et que je demande d'afficher la mesure en
+                     haut, ça s'affiche en bas — et d'ailleurs c'est collé. »
+                   Un trait tiré vers la gauche écrirait son nombre à l'envers : on
+                   retourne donc le repère d'un demi-tour pour que le nombre se
+                   lise. Mais ce demi-tour change DÉJÀ le côté — l'axe des y
+                   tourne avec lui — et l'écart était retourné une seconde fois
+                   par-dessus : deux retournements, et le nombre revenait du
+                   mauvais côté. Mesuré, même segment, même bouton « Dessus » :
+                   de gauche à droite l'encre tombe entre −21 et −12 px, de droite
+                   à gauche entre +2 et +10. Et l'écart n'est pas symétrique — le
+                   nombre est posé sur sa ligne de base, donc −11 au-dessus et +20
+                   en dessous laissent le même blanc : le nombre renvoyé en bas
+                   avec l'écart du haut arrivait à 1 px du trait. « Collé » est
+                   exactement le mot. Un seul retournement suffit. */
+                if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
                 let w = 40;
                 if (ctx) {
                     ctx.save();
@@ -15319,10 +15335,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        elle — sinon le nombre se pose sur la ligne, sans rien derrière. */
                     const gros = gmGros();
                     let off = this.measureOffset * gros;
-                    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
-                        angle += Math.PI;
-                        off = -off;
-                    }
+                    /* Un seul demi-tour : voir boiteMesure, juste au-dessus — le
+                       dessin et la boîte que le double-clic vise doivent tomber
+                       au même endroit, sinon on modifie une mesure ailleurs
+                       qu'où on la lit. */
+                    if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
                     ctx.save();
                     ctx.translate(mx, my);
                     ctx.rotate(angle);
@@ -31080,7 +31097,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                                     const val = e.texteLongueur ? e.texteLongueur() : (MathUtils.dist(c.p1.x, c.p1.y, c.p2.x, c.p2.y) / UNIT).toFixed(1);
                                     let angleRad = Math.atan2(c.p2.y - c.p1.y, c.p2.x - c.p1.x);
                                     let off = e.measureOffset;
-                                    if (Math.abs(angleRad) > Math.PI / 2) { angleRad += Math.PI; off = -off; }
+                                    /* Le même demi-tour unique qu'au canevas : un nombre
+                                       qui change de côté entre l'écran et le PDF serait
+                                       une autre figure. */
+                                    if (Math.abs(angleRad) > Math.PI / 2) angleRad += Math.PI;
                                     const txtAngle = angleRad * 180 / Math.PI;
                                     // Le cache blanc était figé à 30px de large : avec
                                     // une unité (« 0.075 m »), le texte en sortait.
@@ -48877,7 +48897,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-05 · 11h';
+        window.GM_VERSION = '2026-11-06 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
