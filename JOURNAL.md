@@ -3454,6 +3454,32 @@ tout le reste : **lâché dans le vide, l'instrument reste libre.** Un aimant qu
 prend toujours ne se distingue pas d'un instrument coincé. Éprouvée contre la
 version d'avant : **9 rouges**.
 
+> **TOUT CECI A ÉTÉ RETIRÉ LE MÊME JOUR, À LA DEMANDE DE L'UTILISATEUR.**
+> *« Enlève le blocage automatique du rapporteur, il se place dans le mauvais
+> sens, enlève ces petits changements sur le rapporteur, ça ne me va pas du
+> tout. »* Puis : *« ce que tu as fait aujourd'hui pour le rapporteur, il faut
+> l'annuler. »*
+>
+> Les trois changements sont défaits — le degré entier, le second point posé sur
+> le rayon, et la pose automatique avec son cadenas — et la sonde qui les
+> gardait est supprimée. Le rapporteur se déplace, se bloque et trace comme
+> avant.
+>
+> **Ce que je n'avais pas mesuré, et qui décide de tout : le sens.** Mes mesures
+> portaient sur un seul cas — un sommet O, un côté [OA] à −20° — et dans ce
+> cas-là coucher le zéro sur le côté le plus proche tombait bien. Un rapporteur
+> ne se pose pas « sur un côté » : il se pose sur un côté **et d'un côté**, et
+> c'est l'élève qui choisit lequel, selon l'angle qu'il veut lire. En décidant
+> pour lui — par la plus petite rotation, ce qui n'est pas un critère de
+> géométrie mais un critère de paresse de calcul — l'instrument se retournait
+> une fois sur deux. J'avais mesuré la pose, pas le SENS de la pose ; une mesure
+> juste sur un seul cas n'est pas une mesure.
+>
+> Le reste de la leçon tient, et c'est pour cela que l'entrée reste ici :
+> l'écart entre le nombre annoncé et le nombre tracé était réel, mesuré à 0,4°,
+> et il n'est pas corrigé. Il le sera autrement — sans décider à la place de
+> celui qui tient l'instrument, et en mesurant les deux sens.
+
 ---
 
 ### Le centre qu'on calcule, et le centre qu'on construit

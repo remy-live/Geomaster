@@ -26076,83 +26076,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 const cm = (rayon / UNIT) * echelle;
                 return (Math.round(cm * 10) / 10).toFixed(1).replace(/\.0$/, '') + ' cm';
             }
-            /* LE RAPPORTEUR SE POSE, ET POSÉ IL SE BLOQUE.
-               « Il faudrait un peu que le cadenas soit automatique. »
-               Deux choses manquaient, mesurées l'une et l'autre. Le centre
-               s'aimantait déjà au sommet — lâché à 9 px de O, il tombait à
-               0,00 px — mais le ZÉRO restait où il était : relevé à 0° alors que
-               le côté [OA] était à −20°, donc à aligner à l'œil, ce qui est
-               précisément le geste qu'on rate. Et il fallait penser à armer le
-               cadenas avant de pouvoir tracer : la zone « tracer » n'existe que
-               bloquée. Quatre gestes, dont un invisible.
-               Maintenant : on lâche le rapporteur sur un point, il s'y pose, son
-               zéro se couche sur le côté le plus proche, et il se bloque — un
-               instrument posé ne se déplace plus, c'est ce qui le rend utile.
-               Le cadenas reste à sa place pour le libérer d'un clic, et il
-               MONTRE l'état : sans cela on aurait un instrument qui refuse de
-               bouger sans dire pourquoi. */
-            poserRapporteurSurSommet(w) {
-                if (!w || !(w instanceof ProtractorWidget)) return false;
-                /* Le sommet le PLUS PROCHE, et non le premier venu dans la
-                   liste. Et à 12 px, pas à 1,5 : l'aimant des instruments
-                   amenait bien le centre pile sur le point, mais il se coupe
-                   d'un bouton — poser le rapporteur sur un sommet ne doit pas
-                   dépendre de ce réglage-là. On l'y pose donc nous-mêmes. */
-                let sommet = null, pres = 12;
-                this.entities.forEach(e => {
-                    if (!(e instanceof Point)) return;
-                    if (e.visible === false && !this.showHidden) return;
-                    if (e.hidden === true) return;
-                    const d = MathUtils.dist(e.x, e.y, w.x, w.y);
-                    if (d < pres) { pres = d; sommet = e; }
-                });
-                if (!sommet) return false;
-                w.x = sommet.x; w.y = sommet.y;
-                /* Les côtés qui PARTENT de ce sommet. Un segment compte par ses
-                   deux bouts — [OA] vu de O pointe vers A ; une demi-droite ne
-                   compte que par son origine, elle ne part pas de son bout. */
-                const dirs = [];
-                this.entities.forEach(e => {
-                    if (e.hidden === true || e.visible === false) return;
-                    const seg = (e instanceof Segment) || (e instanceof Ray);
-                    if (!seg || !e.p1 || !e.p2) return;
-                    if (e.p1 === sommet) dirs.push(Math.atan2(e.p2.y - e.p1.y, e.p2.x - e.p1.x));
-                    else if (e.p2 === sommet && (e instanceof Segment)) {
-                        dirs.push(Math.atan2(e.p1.y - e.p2.y, e.p1.x - e.p2.x));
-                    }
-                });
-                if (dirs.length) {
-                    /* Le zéro du rapporteur est à GAUCHE : sa base pointe vers
-                       w.angle + π. Coucher le côté d sur le zéro demande donc
-                       w.angle = d − π. On choisit le côté qui demande la plus
-                       petite rotation : celui vers lequel on allait de toute
-                       façon. */
-                    const ecart = (a) => { let r = (a + Math.PI) % (2 * Math.PI); if (r < 0) r += 2 * Math.PI; return Math.abs(r - Math.PI); };
-                    let meilleur = null, mieux = Infinity;
-                    dirs.forEach(d => {
-                        const cible = d - Math.PI;
-                        const diff = ecart(cible - w.angle);
-                        if (diff < mieux) { mieux = diff; meilleur = cible; }
-                    });
-                    if (meilleur !== null) w.angle = meilleur;
-                }
-                w.isLocked = true;
-                return true;
-            }
-            /* LE DEGRÉ ANNONCÉ EST LE DEGRÉ TRACÉ.
-               Mesuré avant : rapporteur bloqué sur un sommet, on tire la
-               demi-droite, l'écran annonce « 121° / 59° » pendant le geste — et
-               la demi-droite posée est à 58,6°. Le logiciel affichait un entier
-               et en traçait un autre : un demi-degré, exactement l'erreur qu'on
-               apprend à l'élève à ne pas faire, et il la lui montrait.
-               La direction se cale donc sur le degré entier, lu DEPUIS LE ZÉRO DU
-               RAPPORTEUR : c'est le même nombre qui s'écrit et qui se trace. Le
-               fantôme et le trait définitif passent par ici tous les deux, sans
-               quoi l'un dirait encore autre chose que l'autre. */
-            angleRapporteurEntier(w, brut) {
-                const deg = (brut - w.angle) * 180 / Math.PI;
-                return w.angle + Math.round(deg) * Math.PI / 180;
-            }
             marquerGraduation(w, mx, my) {
                 const ang = Math.atan2(my - w.y, mx - w.x);
                 const t = this.traitDeGraduation(w, ang, w.radius);
@@ -30090,8 +30013,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         y: w.y
                     };
                     const end = this.mousePos;
-                    const rawAngle = this.angleRapporteurEntier(w,
-                        Math.atan2(end.y - start.y, end.x - start.x));
+                    const rawAngle = Math.atan2(end.y - start.y, end.x - start.x);
                     this.ctx.save();
                     this.ctx.beginPath();
                     this.ctx.strokeStyle = "#e74c3c";
@@ -34142,17 +34064,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const w = this.draggedWidget;
                     let p1 = this.entities.find(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, w.x, w.y) < 10);
                     if (!p1) { p1 = new Point(w.x, w.y, this.getNextLabel()); this.addEntity(p1); }
-                    /* LE SECOND POINT SE POSE SUR LE DEGRÉ, PAS SOUS LA SOURIS.
-                       Il était capturé par un point existant s'il passait à moins
-                       de 10 px : la demi-droite visait alors ce point, et l'angle
-                       n'était plus celui qu'on venait d'annoncer. Viser un point,
-                       c'est le travail de l'outil demi-droite ; le rapporteur,
-                       lui, fait un angle d'une mesure donnée. */
-                    const dir = this.angleRapporteurEntier(w,
-                        Math.atan2(this.mousePos.y - w.y, this.mousePos.x - w.x));
-                    const port = Math.max(40, MathUtils.dist(w.x, w.y, this.mousePos.x, this.mousePos.y));
-                    const p2 = new Point(w.x + Math.cos(dir) * port, w.y + Math.sin(dir) * port, "");
-                    p2.visible = false; this.addEntity(p2);
+                    let p2 = this.entities.find(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, this.mousePos.x, this.mousePos.y) < 10);
+                    if (!p2) { p2 = new Point(this.mousePos.x, this.mousePos.y, ""); p2.visible = false; this.addEntity(p2); }
                     const ray = new Ray(p1, p2);
                     ray.color = this.globalStyle.color; ray.lineWidth = this.globalStyle.width;
                     this.addEntity(ray); this.saveState();
@@ -34163,11 +34076,6 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const w = this.draggedWidget;
                     if (this.pendingSnap && this.draggedWidgetMode === 'move') {
                         w.x = this.pendingSnap.x; w.y = this.pendingSnap.y; this.pendingSnap = null;
-                    }
-                    /* Posé sur un sommet : le zéro se couche sur un côté, et le
-                       cadenas se ferme tout seul. */
-                    if (w instanceof ProtractorWidget && this.draggedWidgetMode === 'move') {
-                        this.poserRapporteurSurSommet(w);
                     }
                     w.highlightSide = null;
                     const endState = this.getWidgetState(w);
@@ -49316,7 +49224,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 22h';
+        window.GM_VERSION = '2026-11-09 · 23h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
