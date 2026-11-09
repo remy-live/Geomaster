@@ -14024,6 +14024,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     this.y = src.y + (e.y - d.y);
                     return;
                 }
+                /* UNE BISSECTRICE TRACÉE DOIT RESTER UNE BISSECTRICE.
+                   Mesuré : les trois bissectrices d'un triangle, puis on tire A
+                   de 150 px — le centre du cercle inscrit se retrouve à 13,7,
+                   39,5 et 73,8 px des trois droites qui devraient toutes passer
+                   par lui. Elles partaient d'un bout CALCULÉ une fois : le
+                   sommet suivait la main, le bout restait planté, et la demi-
+                   droite ne coupait plus l'angle en deux. Les hauteurs et les
+                   médiatrices, elles, suivaient déjà (0 px) : elles sont des
+                   perpendiculaires, et une perpendiculaire se recalcule.
+                   Le bout de la bissectrice devient donc une relation : il se
+                   place sur la demi-droite qui partage l'angle du premier parent
+                   au troisième, vu du sommet — le deuxième. */
+                if (this.subType === 'bissectrice' && this.parents.length === 3) {
+                    const p1 = this.parents[0], s = this.parents[1], q = this.parents[2];
+                    const a1 = Math.atan2(p1.y - s.y, p1.x - s.x);
+                    const a2 = Math.atan2(q.y - s.y, q.x - s.x);
+                    let d = a2 - a1;
+                    while (d > Math.PI) d -= 2 * Math.PI;
+                    while (d < -Math.PI) d += 2 * Math.PI;
+                    const m = a1 + d / 2;
+                    const r = (typeof this.transParam === 'number' && this.transParam) || 220;
+                    this.x = s.x + Math.cos(m) * r;
+                    this.y = s.y + Math.sin(m) * r;
+                    return;
+                }
                 /* LE PIED D'UNE HAUTEUR EST UNE RELATION, PAS UNE POSITION.
                    « Place le pied de la hauteur issue de A » ne posait aucun
                    point : elle traçait une hauteur. En en posant un, le piège
@@ -22000,8 +22025,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     7: { 4: 4, 5: 0, 7: 0, 8: 1, 9: 'mark-none', 10: 2 },
                     8: { 2: 0, 3: 0, 4: 2, 5: 0, 6: 0.2 },
                     9: { 4: 16, 5: 0, 6: (window.GM_POLICE_PILE || "GeoSans, 'Segoe UI', Arial, sans-serif"), 7: 0, 8: this.couleurCompacte('#fff9c4'), 9: '' },
-                    10: { 3: 0, 4: 2, 5: 0, 7: 1, 8: 14 },
-                    11: { 3: 0, 4: 2, 5: 0, 7: 1, 8: 14 },
+                    10: { 3: 0, 4: 2, 5: 0, 7: 1, 8: 14, 9: -1, 10: -1 },
+                    11: { 3: 0, 4: 2, 5: 0, 7: 1, 8: 14, 9: -1, 10: -1 },
                     12: { 5: 0, 6: 2, 7: 0 },
                     14: { 4: 0, 5: 1, 6: 0, 7: 2, 8: 100 },
                 };
@@ -22153,10 +22178,23 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         const dash = (e.dash && e.dash.length > 0) ? 1 : 0;
                         /* Même filet que pour le .json, dans le format du lien :
                            une référence sans identité s'écrit par ses deux points.
-                           Les deux champs ajoutés sont EN FIN de ligne, après ceux
-                           que les anciens codes portaient déjà — un code d'hier se
-                           relit donc sans rien changer, il n'a simplement pas ces
-                           deux cases-là. */
+                           LES DEUX CASES ÉTAIENT ÉCRITES AU MAUVAIS ENDROIT. « En
+                           fin de ligne » voulait dire après `nomDroite`, mais la
+                           ligne continue : le lecteur attend `nomT` en 7 et `nomD`
+                           en 8 — la position du nom le long de la droite et son
+                           écart — et la table des défauts le dit aussi (7 : 1,
+                           8 : 14). Les deux rangs tombaient donc dans ces cases, et
+                           le résolveur relisait `nomDroite` et le premier rang.
+                           Mesuré : les trois hauteurs d'un triangle partagées par
+                           lien revenaient perpendiculaires aux mauvais côtés —
+                           « A⊥(AB) », « B⊥(AC) », « C⊥(AA) » au lieu de
+                           « A⊥(BC) », « B⊥(CA) », « C⊥(AB) » — la première faisant
+                           164° avec [BC] au lieu de 90°, et la troisième
+                           perpendiculaire à une droite réduite à un point. Le
+                           rognage de queue menaçait en outre d'avaler un rang
+                           valant 1 ou 14, les défauts de ces deux cases.
+                           Les deux rangs sont maintenant en 9 et 10, derrière les
+                           champs que le lecteur réclame. */
                         const refId = e.refLine && e.refLine.id !== undefined
                             ? idMap.get(e.refLine.id) : undefined;
                         const r1 = (refId === undefined && e.refLine && e.refLine.p1)
@@ -22165,6 +22203,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             ? idMap.get(e.refLine.p2.id) : undefined;
                         arr.push(idMap.get(e.p1.id), refId === undefined ? -1 : refId,
                                  this.couleurCompacte(e.color), width, dash, e.nomDroite || 0,
+                                 e.nomT !== undefined ? f(e.nomT) : 1,
+                                 e.nomD !== undefined ? f(e.nomD) : 14,
                                  r1 === undefined ? -1 : r1, r2 === undefined ? -1 : r2);
                     }
                     else if (e instanceof Arc) {
@@ -22506,7 +22546,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         else if (typeId === 6 && obj._tempCenterIdx !== -1) { const c = tempObjects[obj._tempCenterIdx]; if (!c) brokenObjects.add(obj); else obj.center = c; delete obj._tempCenterIdx; }
                         else if (typeId === 7) { const p1 = tempObjects[parseInt(d[1])], p2 = tempObjects[parseInt(d[2])], p3 = tempObjects[parseInt(d[3])]; if (!p1 || !p2 || !p3) brokenObjects.add(obj); else { obj.p1 = p1; obj.p2 = p2; obj.p3 = p3; } }
                         else if (typeId === 8) { if (obj._tempPtsStr) { obj.points = obj._tempPtsStr.split(',').map(i => tempObjects[parseInt(i)]).filter(x => x); if (obj.points.length < 3) brokenObjects.add(obj); } delete obj._tempPtsStr; }
-                        else if (typeId === 10 || typeId === 11) { const p1 = tempObjects[parseInt(d[1])]; let ref = tempObjects[parseInt(d[2])]; if (!ref && d[6] !== undefined && d[7] !== undefined) { const r1 = tempObjects[parseInt(d[6])], r2 = tempObjects[parseInt(d[7])]; if (r1 && r2) ref = { p1: r1, p2: r2 }; } if (!p1 || !ref) brokenObjects.add(obj); else { obj.p1 = p1; obj.refLine = ref; } }
+                        else if (typeId === 10 || typeId === 11) {
+                            const p1 = tempObjects[parseInt(d[1])];
+                            let ref = tempObjects[parseInt(d[2])];
+                            const rang = (v) => (v !== undefined && v !== '' && /^\d+$/.test(String(v)))
+                                ? tempObjects[parseInt(v)] : null;
+                            if (!ref) {
+                                let r1 = rang(d[9]), r2 = rang(d[10]);
+                                /* REPÊCHAGE DES LIENS DE L'ENTRE-DEUX. Pendant un
+                                   temps, l'écrivain a posé ces deux rangs en 7 et 8,
+                                   dans les cases de `nomT` et `nomD` : ces liens-là
+                                   existent, et sans ce repêchage leur perpendiculaire
+                                   disparaîtrait. On ne s'en sert que si les cases 9 et
+                                   10 sont absentes et que 7 et 8 désignent vraiment
+                                   deux objets — un `nomT` est un rapport, pas un rang. */
+                                if (!r1 && !r2 && d[9] === undefined) { r1 = rang(d[7]); r2 = rang(d[8]); }
+                                if (r1 && r2) ref = { p1: r1, p2: r2 };
+                            }
+                            if (!p1 || !ref) brokenObjects.add(obj); else { obj.p1 = p1; obj.refLine = ref; }
+                        }
                         else if (typeId === 12) { const c = tempObjects[obj._tempCenter]; if (!c) brokenObjects.add(obj); else obj.center = c; delete obj._tempCenter; }
                         else if (typeId === 13 && obj.targetId !== -1 && tempObjects[obj.targetId]) { obj.targetId = tempObjects[obj.targetId].id; }
                         else if (typeId === 14) {
@@ -37242,14 +37300,16 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     return m;
                 };
                 const bissectrice = (p, s, q) => {   // sommet s
-                    const a1 = Math.atan2(p.y - s.y, p.x - s.x), a2 = Math.atan2(q.y - s.y, q.x - s.x);
-                    let d = a2 - a1;
-                    while (d > Math.PI) d -= 2 * Math.PI;
-                    while (d < -Math.PI) d += 2 * Math.PI;
-                    const m = a1 + d / 2, r = 220;
-                    const bout = new Point(s.x + Math.cos(m) * r, s.y + Math.sin(m) * r, '');
+                    /* Le bout porte la relation : il refait le partage de l'angle
+                       à chaque geste, au lieu de garder la place qu'il avait le
+                       jour où on l'a posé. */
+                    const bout = new Point(0, 0, '', [p, s, q], null, 'bissectrice');
+                    bout.transParam = 220;
+                    bout.update();
                     bout.visible = false; this.addEntity(bout);
-                    this.addEntity(new Ray(s, bout, this.cslStyle()));
+                    const ray = new Ray(s, bout, this.cslStyle());
+                    this.addEntity(ray);
+                    return ray;
                 };
                 const trio = [[A, B, C], [B, C, A], [C, A, B]];   // [sommet, autre, autre]
                 /* Les trois droites dont un centre est le point commun. Tracées
@@ -37306,20 +37366,64 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    trace les trois droites dont il est le point commun, et le point
                    naît de leur croisement. C'est la construction du manuel — et
                    c'est elle qui montre POURQUOI les trois se coupent au même
-                   endroit, ce qu'un point posé tout fait n'apprend à personne. */
+                   endroit, ce qu'un point posé tout fait n'apprend à personne.
+
+                   ET C'EST AUSSI CE QUI LE FAIT SUIVRE QUAND ON TIRE UN SOMMET.
+                   « Normalement tu ne dois pas les perdre si tu construis
+                   l'orthocentre avec les perpendiculaires, car les points
+                   d'intersection suivent les mouvements. » C'était exact, et le
+                   logiciel ne s'en servait pas : `poserCentre` finissait sur un
+                   `new Point(o.x, o.y, nom)` SANS PARENTS — une position, pas une
+                   relation. Mesuré sur un triangle ABC, A tiré de 150 px :
+                   l'orthocentre finissait à 331,49 px de sa vraie place, et à
+                   115,68 px et 65,15 px de deux des trois hauteurs dont la figure
+                   affirmait pourtant qu'il était le croisement.
+
+                   Or tout était déjà là. Mesuré aussi : les hauteurs et les
+                   médiatrices suivent le sommet qu'on tire (0 px d'écart), les
+                   médianes également, `getIntersections` croise les
+                   perpendiculaires comme les segments, et `Point.update`
+                   recalcule un point dont les deux parents sont des OBJETS.
+                   Même après un enregistrement et une relecture, le croisement se
+                   retrouve et suit encore : mesuré, 0 px.
+
+                   Le centre naît donc du croisement de deux de ces droites. En
+                   mode détaillé elles sont tracées et on prend les siennes ; sinon
+                   on les construit INVISIBLES — la figure ne change pas, mais le
+                   point est tenu par la géométrie et non par une coordonnée. */
+                const gardes = {
+                    hauteurs: (e) => e instanceof PerpendicularLine,
+                    mediatrices: (e) => e instanceof PerpendicularLine,
+                    medianes: (e) => e instanceof Segment,
+                    bissectrices: (e) => e instanceof Ray,
+                };
+                const cleAppui = (dequoi) => dequoi.replace(/[ée]/g, 'e');
                 const poserCentre = (o, nomVoulu, quoi, tracer, dequoi) => {
                     if (!o) return rate("Ce triangle est aplati : ce point n'existe pas.");
                     const nom = nomVoulu || this.cslNomLibre([]);
                     let dit = '';
+                    let lignes = null;
+                    const cle = cleAppui(dequoi);
                     if (tracer && this.cslDetaille()) {
                         /* Le nom du centre est réservé avant de tracer : sans cela
                            les milieux des médianes, qui se nomment tout seuls,
                            prendraient la lettre destinée au point cherché. */
                         this._cslNomsReserves = [nom];
+                        const avant = this.entities.length;
                         try { tracer(); } finally { this._cslNomsReserves = []; }
+                        /* On reprend les droites qu'on vient de tracer : deux
+                           suffisent à tenir le point, et ce sont celles que l'élève
+                           voit. Rien de caché ne vient les doubler. */
+                        if (gardes[cle]) lignes = this.entities.slice(avant).filter(gardes[cle]);
                         dit = ` — au croisement des ${dequoi}`;
                     }
-                    this.addEntity(new Point(o.x, o.y, nom));
+                    /* Deux parents OBJETS, et c'est un croisement : il se recalcule
+                       à chaque geste. */
+                    if (lignes && lignes.length >= 2) {
+                        this.addEntity(new Point(o.x, o.y, nom, lignes.slice(0, 2)));
+                    } else {
+                        this.gmCentreConstruit(cle, A, B, C, o, nom);
+                    }
                     return fait(`${nom} — ${quoi} de ${nom3}${dit}`);
                 };
                 /* Le nom qu'on veut donner au point — « le centre de gravité G » —
@@ -37375,28 +37479,33 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const nom = () => { const n = this.cslNomLibre(pris); pris.push(n); return n; };
                     /* L'orthocentre d'abord : trois des neuf points en dépendent,
                        et il doit porter un nom pour qu'on puisse les désigner. */
-                    const pH = new Point(H.x, H.y, nom()); this.addEntity(pH);
+                    const pH = this.gmCentreConstruit('hauteurs', A, B, C, H, nom());
                     /* Les milieux et les points d'Euler sont CONSTRUITS — parents
                        [p, q] — donc ils suivent le triangle qu'on déplace. */
                     const milieux = [[A, B], [B, C], [C, A]].map(([u, v]) => {
                         const m = new Point((u.x + v.x) / 2, (u.y + v.y) / 2, nom(), [u, v]);
                         this.addEntity(m); return m;
                     });
-                    const pied = (P, U, V) => {
-                        const dx = V.x - U.x, dy = V.y - U.y;
-                        const k = ((P.x - U.x) * dx + (P.y - U.y) * dy) / (dx * dx + dy * dy);
-                        return { x: U.x + k * dx, y: U.y + k * dy };
-                    };
+                    /* Les pieds des hauteurs sont une RELATION que le logiciel
+                       possède déjà — le sous-type « pied », projeté du premier
+                       parent sur la droite des deux autres. Ils étaient calculés
+                       ici une fois pour toutes, et trois des neuf points
+                       quittaient le cercle au premier geste. */
                     const pieds = [[A, B, C], [B, C, A], [C, A, B]].map(([sm, u, v]) => {
-                        const f = pied(sm, u, v);
-                        const q = new Point(f.x, f.y, nom()); this.addEntity(q); return q;
+                        const q = new Point(0, 0, nom(), [sm, u, v], null, 'pied');
+                        q.update(); this.addEntity(q); return q;
                     });
                     const eulers = [A, B, C].map((sm) => {
                         const m = new Point((sm.x + pH.x) / 2, (sm.y + pH.y) / 2, nom(), [sm, pH]);
                         this.addEntity(m); return m;
                     });
-                    const c9 = { x: (O.x + H.x) / 2, y: (O.y + H.y) / 2 };
-                    const centre9 = new Point(c9.x, c9.y, nom()); this.addEntity(centre9);
+                    /* Le centre est le MILIEU de [OH] : on construit donc le
+                       centre du cercle circonscrit — invisible, il n'a pas été
+                       demandé — et le milieu suit ses deux parents. */
+                    const pO9 = this.gmCentreConstruit('mediatrices', A, B, C, O, '');
+                    pO9.visible = false;
+                    const centre9 = new Point((O.x + H.x) / 2, (O.y + H.y) / 2, nom(), [pO9, pH]);
+                    this.addEntity(centre9);
                     /* Le point du bord EST l'un des neuf : le rayon ne peut donc
                        pas mentir, il est la distance du centre à un vrai milieu. */
                     const cer = new Circle(centre9, milieux[0]);
@@ -37436,9 +37545,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     const nO = libres[0] || this.cslNomLibre([]);
                     const nG = libres[1] || this.cslNomLibre([nO]);
                     const nH = libres[2] || this.cslNomLibre([nO, nG]);
-                    const pO = new Point(O.x, O.y, nO); this.addEntity(pO);
-                    const pG = new Point(G.x, G.y, nG); this.addEntity(pG);
-                    const pH = new Point(H.x, H.y, nH); this.addEntity(pH);
+                    /* Mesuré avant : A tiré de 150 px, et la droite passait à
+                       30,6 px, 28,5 px et 146,8 px des trois centres qu'elle
+                       prétend aligner. Les trois points sont donc construits —
+                       croisement de deux médiatrices, de deux médianes, de deux
+                       hauteurs — et la droite les suit par construction. */
+                    const pO = this.gmCentreConstruit('mediatrices', A, B, C, O, nO);
+                    const pG = this.gmCentreConstruit('medianes', A, B, C, G, nG);
+                    const pH = this.gmCentreConstruit('hauteurs', A, B, C, H, nH);
                     this.addEntity(this.cslPoserStyle(new Line(pO, pH, this.cslStyle())));
                     /* La vérification est la propriété elle-même : OH = 3 × OG. */
                     const og = MathUtils.dist(O.x, O.y, G.x, G.y);
@@ -37468,12 +37582,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 if (/cercle\s+inscrit|inscrit/.test(t) && /cercle/.test(t)) {
                     const o = centres.inscrit();
                     if (!o) return rate("Ce triangle est aplati.");
-                    const centre = new Point(o.x, o.y, nomLibre || '');
+                    /* Mesuré avant : A tiré de 150 px, le centre restait à 74,3 px
+                       de sa place et le rayon se trompait de 33,2 px — un cercle
+                       « inscrit » qui coupait deux côtés et ne touchait plus le
+                       troisième. Le centre est le croisement de deux bissectrices,
+                       et le point du bord est le PIED de la perpendiculaire menée
+                       du centre à un côté : c'est la définition du rayon, et c'est
+                       une relation que le logiciel sait déjà tenir. */
+                    const centre = this.gmCentreConstruit('bissectrices', A, B, C, o, nomLibre || '');
                     if (!nomLibre) centre.visible = false;
-                    this.addEntity(centre);
-                    // le rayon : la distance du centre à un côté
-                    const d = MathUtils.distanceToLineVector(o.x, o.y, A.x, A.y, B.x - A.x, B.y - A.y);
-                    const bord = new Point(o.x + d, o.y, '');
+                    const bord = new Point(0, 0, '', [centre, A, B], null, 'pied');
+                    bord.update();
                     bord.visible = false; this.addEntity(bord);
                     const cer = new Circle(centre, bord);
                     const stc = this.cslStyle();
@@ -40743,6 +40862,44 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.cslSegment(A, B);
                 return fait(`Corde [${A.label}${B.label}]`);
             }
+            /* LES DEUX DROITES QUI TIENNENT UN CENTRE.
+               Un centre de triangle n'est pas une coordonnée : c'est le point
+               commun de trois droites. Construit comme tel, il suit le triangle
+               sans qu'on ait rien d'autre à écrire — « les points d'intersection
+               suivent les mouvements », et `Point.update` le fait déjà pour tout
+               point dont les deux parents sont des objets.
+               Ces droites-là sont posées INVISIBLES : la figure reste celle qu'on
+               a demandée, mais le point est tenu par la géométrie. En mode
+               détaillé, les vraies droites sont tracées et ce sont elles qu'on
+               prend — rien de caché ne vient les doubler. */
+            gmAppuisCentre(cle, A, B, C) {
+                if (!A || !B || !C) return [];
+                const cacher = (e) => { e.visible = false; this.addEntity(e); return e; };
+                const milieu = (p, q) => cacher(new Point((p.x + q.x) / 2, (p.y + q.y) / 2, '', [p, q]));
+                const perp = (p, q, r) => cacher(new PerpendicularLine(p, { p1: q, p2: r }));
+                const bis = (p, s, q) => {
+                    const bout = new Point(0, 0, '', [p, s, q], null, 'bissectrice');
+                    bout.transParam = 220; bout.update(); cacher(bout);
+                    return cacher(new Ray(s, bout));
+                };
+                if (cle === 'hauteurs') return [perp(A, B, C), perp(B, C, A)];
+                if (cle === 'mediatrices') return [perp(milieu(A, B), A, B), perp(milieu(B, C), B, C)];
+                if (cle === 'medianes') return [cacher(new Segment(A, milieu(B, C))),
+                                                cacher(new Segment(B, milieu(C, A)))];
+                if (cle === 'bissectrices') return [bis(B, A, C), bis(C, B, A)];
+                return [];
+            }
+            /* Le centre comme POINT CONSTRUIT. Faute d'appuis — un triangle plat,
+               un cas qu'on n'a pas prévu — on retombe sur un point libre : mieux
+               vaut un point qui ne suit pas qu'une figure sans point. */
+            gmCentreConstruit(cle, A, B, C, pos, nom) {
+                const l = this.gmAppuisCentre(cle, A, B, C);
+                const pt = (l.length >= 2)
+                    ? new Point(pos.x, pos.y, nom || '', l.slice(0, 2))
+                    : new Point(pos.x, pos.y, nom || '');
+                this.addEntity(pt);
+                return pt;
+            }
             /* LE CERCLE CIRCONSCRIT, AVEC OU SANS LES INSTRUMENTS. Il passait
                toujours par le bâtisseur au compas : deux médiatrices tracées à
                l'arc, vingt-trois animations d'outil et neuf arcs, même quand la
@@ -40761,12 +40918,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     + (pC.x ** 2 + pC.y ** 2) * (pA.y - pB.y)) / D;
                 const uy = ((pA.x ** 2 + pA.y ** 2) * (pC.x - pB.x) + (pB.x ** 2 + pB.y ** 2) * (pA.x - pC.x)
                     + (pC.x ** 2 + pC.y ** 2) * (pB.x - pA.x)) / D;
-                const O = new Point(ux, uy, this.cslNomLibre([]));
-                this.addEntity(O);
-                const bord = new Point(pA.x, pA.y, '');
-                bord.visible = false;
-                this.addEntity(bord);
-                this.addEntity(this.cslPoserStyle(new Circle(O, bord)));
+                /* Mesuré avant : A tiré de 150 px, le centre restait à 85,7 px
+                   de sa place et le rayon se trompait de 42,9 px — un cercle
+                   « circonscrit » qui ne passait plus par aucun sommet. Le centre
+                   est le croisement de deux médiatrices, et le bord EST le sommet
+                   lui-même : le rayon ne peut donc plus mentir. */
+                const O = this.gmCentreConstruit('mediatrices', pA, pB, pC,
+                    { x: ux, y: uy }, this.cslNomLibre([]));
+                this.addEntity(this.cslPoserStyle(new Circle(O, pA)));
                 return null;
             }
             cslCercle(brut, t, fait, rate) {
@@ -49132,7 +49291,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 19h';
+        window.GM_VERSION = '2026-11-09 · 21h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

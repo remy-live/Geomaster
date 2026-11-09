@@ -1,7 +1,8 @@
 # Le journal de bord
 
-Quatre-vingts entrées, et presque autant de plaintes réelles. Chacune part
-d'une phrase dite par quelqu'un qui se servait du logiciel — *« Il n'arrive pas
+Près de cent entrées — quatre-vingt-dix-huit à ce jour —, et presque autant de
+plaintes réelles. Chacune part d'une phrase dite par quelqu'un qui se servait du
+logiciel — *« Il n'arrive pas
 à faire de centre H »*, *« Quand on écrit plusieurs lignes, la barre cache les
 lignes en dessous »* — puis suit la cause jusqu'au bout et dit ce qui a été
 corrigé, avec les mesures.
@@ -3452,3 +3453,99 @@ Elle refait enfin tout le geste **aimant éteint**, et elle tient le symétrique
 tout le reste : **lâché dans le vide, l'instrument reste libre.** Un aimant qui
 prend toujours ne se distingue pas d'un instrument coincé. Éprouvée contre la
 version d'avant : **9 rouges**.
+
+---
+
+### Le centre qu'on calcule, et le centre qu'on construit
+
+*« Normalement tu ne dois pas les perdre si tu construis l'orthocentre avec les
+perpendiculaires, car les points d'intersection suivent les mouvements. »*
+
+C'était exact, et le logiciel ne s'en servait pas. Tout le mécanisme existait :
+`Point.update` recalcule n'importe quel point dont les **deux parents sont des
+objets** — c'est le croisement — et `getIntersections` croise les
+perpendiculaires comme les segments. Le bâtisseur de centres, lui, finissait sur
+un `new Point(o.x, o.y, nom)` **sans parents**. Il posait une coordonnée là où il
+fallait une relation, puis répondait « au croisement des hauteurs ».
+
+**Ce que cela coûtait, mesuré, le sommet A tiré de 150 px à la souris :**
+
+| ce qui était promis | ce qu'on mesurait après le geste |
+|---|---|
+| l'orthocentre, au croisement des trois hauteurs | à 155,89 / 43,95 / 129,31 px des trois hauteurs |
+| le centre de gravité, sur les trois médianes | à 52,14 / 10,76 / 35,81 px |
+| le centre du cercle circonscrit, à égale distance des sommets | 278,59 / 285,72 / 285,72 px |
+| le centre du cercle inscrit, à égale distance des côtés | 72,18 / 127,71 / 221,13 px |
+| le cercle circonscrit, passant par les trois sommets | un sommet à 7,13 px du cercle |
+| le cercle inscrit, tangent aux trois côtés | débordant de −55,53 à +93,41 px |
+| le cercle des neuf points | **un** des neuf points dessus |
+
+**Une seule famille de droites ne suivait pas, et il fallait la réparer
+d'abord : les bissectrices.** Les hauteurs, les médiatrices et les médianes
+suivaient déjà parfaitement (0 px) — une perpendiculaire se recalcule, un milieu
+aussi. La bissectrice, elle, partait vers un bout **calculé une fois pour
+toutes** : le sommet suivait la main, le bout restait planté, et la demi-droite
+ne partageait plus l'angle en deux. Mesuré, 40,65° / 17,10° / 16,16° d'écart
+après le geste. Son bout porte maintenant une relation, comme le pied d'une
+hauteur.
+
+**Les centres naissent donc d'un croisement.** En mode détaillé, les trois
+droites sont tracées et le point prend deux des siennes : c'est la construction
+du manuel, et c'est elle qui montre pourquoi les trois concourent. Sinon on
+construit deux droites **invisibles** : la figure reste celle qu'on a demandée —
+mesuré, poser l'orthocentre n'ajoute que **137 pixels d'encre**, un point et sa
+lettre — mais le point est tenu par la géométrie et non par une coordonnée.
+
+**Trois leçons de sonde, dans la même journée.**
+
+D'abord, elle doit mesurer la **propriété**, pas la position. Comparer un point à
+une cible calculée comme le logiciel la calcule, c'est se demander si deux
+copies du même calcul sont d'accord. « À égale distance des trois sommets » ne
+tombe pas juste par hasard.
+
+Ensuite, elle s'est trompée de droite. Ma distance à la hauteur était un produit
+en croix — qui mesure la distance à la **parallèle** au côté passant par le
+sommet. Elle a crié au défaut (219, 310, 318 px) sur un orthocentre pile au
+croisement des trois hauteurs, et elle m'a fait écrire de faux chiffres sur la
+version d'avant avant que je ne m'en aperçoive. Une sonde qui se trompe de droite
+accuse le juste.
+
+Enfin, deux de ses mesures **passaient au vert sur la version fautive** : les
+trois centres de la droite d'Euler étaient alignés et OH valait bien 3 × OG. Pour
+la pire des raisons — les trois points ne bougeaient pas du tout. Une figure
+gelée reste cohérente avec elle-même ; elle a seulement cessé d'être celle du
+triangle. On exige donc de chacun des trois qu'il soit **encore** le centre qu'il
+prétend être.
+
+### Et par le lien de partage, les hauteurs changeaient de côté
+
+En vérifiant que la nouvelle relation survivait au partage, l'orthocentre est
+revenu à 164 px d'une de ses hauteurs. Ce n'était pas la relation : c'était le
+lien, et le défaut l'attendait depuis longtemps.
+
+Une hauteur s'appuie sur une droite de référence **sans identité** — un couple de
+points, pas un objet de la feuille. Le lien compact l'écrit donc par les deux
+rangs de ces points, et un commentaire affirmait les avoir mis « en fin de
+ligne ». Ils étaient en 7 et 8, c'est-à-dire **dans les cases de `nomT` et
+`nomD`** : la position du nom le long de la droite et son écart, que le lecteur
+réclame à ces places et que la table des défauts documente (7 : 1, 8 : 14). Le
+résolveur relisait donc `nomDroite` et le premier rang.
+
+Mesuré : les trois hauteurs d'un triangle partagées par lien revenaient
+**« A⊥(AB) », « B⊥(AC) », « C⊥(AA) »** au lieu de « A⊥(BC) », « B⊥(CA) »,
+« C⊥(AB) ». La première faisait **164°** avec [BC] au lieu de 90° ; la troisième
+était perpendiculaire à une droite réduite à un point. Et le rognage de queue de
+ligne menaçait en plus d'avaler un rang valant 1 ou 14 — précisément les défauts
+de ces deux cases.
+
+Les deux rangs sont passés en 9 et 10, derrière les champs que le lecteur
+attend. **Les liens de l'entre-deux sont repêchés** : si les cases 9 et 10 sont
+absentes et que 7 et 8 désignent vraiment deux objets de la figure, on les lit
+comme des rangs — un `nomT` est un rapport, pas un rang. Sans ce repêchage,
+corriger le format aurait fait disparaître les perpendiculaires des liens déjà
+partagés. La sonde garde un de ces liens **en dur** et exige qu'il s'ouvre.
+
+Là encore, mesurer l'angle droit ne suffisait pas : une perpendiculaire relue
+avec la mauvaise référence fait quand même 90° **avec cette référence**, et deux
+des trois passaient au vert. La sonde exige le bon côté — la hauteur issue de A
+perpendiculaire à (BC), et pas à autre chose.
