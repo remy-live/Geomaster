@@ -3380,3 +3380,75 @@ faisait cela, et donnait « rien n'a changé » après la correction. Et elle ou
 le panneau avant de chercher la ligne, parce que la liste ne se remplit que
 lorsqu'il est ouvert : sur un panneau fermé, elle cherchait un œil dans une liste
 vide, ne cliquait rien, et le disait vert.
+
+---
+
+### Le rapporteur annonçait 59 et traçait 58,6
+
+*« Comment améliorer le rapporteur et le tracé et le blocage une idée ? »*
+
+La question était ouverte, alors j'ai mesuré au lieu de répondre. Trois choses
+sont sorties, et aucune ne se voyait en lisant le code.
+
+**1. Le logiciel écrivait un nombre et en traçait un autre.** Rapporteur bloqué
+sur un sommet, on tire la demi-droite : l'écran annonce « 121° / 59° » pendant
+tout le geste, on lâche, et l'angle de l'objet créé mesure **58,6°**. Un demi-
+degré. C'est exactement l'erreur qu'on passe une année à apprendre à l'élève à
+ne pas faire — lire 59 et tracer autre chose — et le logiciel la commettait en
+lui affichant le contraire. L'affichage arrondissait pour être lisible ; le tracé
+gardait la direction de la souris au radian près. Les deux pris séparément
+avaient l'air justes.
+
+Et un second défaut doublait le premier : l'extrémité de la demi-droite était
+**capturée par tout point passant à moins de 10 px**. La demi-droite visait alors
+ce point au lieu de la graduation lue. Viser un point, c'est le travail de
+l'outil demi-droite ; le rapporteur, lui, fait un angle d'une mesure donnée.
+
+La direction se cale donc sur le **degré entier lu depuis le zéro du
+rapporteur** — pas depuis l'horizontale, sans quoi le nombre dépendrait de
+l'inclinaison de l'instrument — et le fantôme et le trait définitif passent tous
+les deux par là. Le second point se pose sur ce degré, à la distance où l'on a
+tiré.
+
+**2. Le centre s'aimantait au sommet, mais le zéro restait où il était.** Lâché à
+9 px de O, le centre tombait à **0,00 px** : cela marchait déjà. Mais la
+graduation 0 était relevée à 0° alors que le côté [OA] était à **−20°**. Il
+fallait donc coucher le zéro sur le côté à l'œil, en faisant tourner
+l'instrument — c'est-à-dire rater la mesure avant d'avoir commencé à tracer.
+
+Maintenant, posé sur un sommet, le rapporteur **couche son zéro sur un côté qui
+part de ce sommet**, celui qui demande la plus petite rotation : celui vers
+lequel on allait de toute façon. Un segment compte par ses deux bouts — [OA] vu
+de O pointe vers A — une demi-droite seulement par son origine, puisqu'elle ne
+part pas de son bout.
+
+**3. Le cadenas était un préalable invisible.** La zone « tracer » n'existe que
+rapporteur bloqué. Sans l'avoir armé, tirer depuis le centre déplaçait
+l'instrument : on croyait tracer un angle, on promenait le rapporteur. Quatre
+gestes pour un angle, dont un qu'aucun élève ne pouvait deviner.
+
+*« Il faudrait un peu que le cadenas soit automatique, qu'en penses-tu ? »* —
+oui, et pas comme un mode de plus : **comme une conséquence**. On lâche
+l'instrument sur un sommet, il s'y pose, son zéro se couche, et il se bloque. Le
+cadenas reste à sa place pour le libérer d'un clic, et il montre l'état : sans
+cela on aurait un instrument qui refuse de bouger sans dire pourquoi.
+
+**La pose ne dépend plus de l'aimant.** C'était lui qui amenait le centre pile
+sur le point, et il se coupe d'un bouton. Poser un rapporteur sur un sommet est
+le fait de l'instrument, non d'un réglage : il cherche donc lui-même le sommet le
+**plus proche** dans un rayon de 12 px — le plus proche, et non le premier venu
+dans la liste des objets — et s'y installe.
+
+**Ce que la sonde a dû apprendre à faire.** Elle ne regarde pas le trait fantôme :
+elle **lit le nombre écrit à l'écran** pendant le geste, puis mesure l'angle de
+l'objet créé, et exige que ce soit le même. Deux fois elle a failli ne rien
+prouver. En comparant l'annonce à l'**arrondi** du tracé, elle refaisait
+elle-même la correction qu'on venait d'écrire : verte sur la version fautive, où
+58,6 arrondi donne bien 59. Puis, en ne lisant que la première occurrence de
+« ° », elle manquait la seconde lecture — les deux graduations tiennent dans
+**une seule chaîne**, « 121° / 59° » — et criait au défaut sur un logiciel juste.
+
+Elle refait enfin tout le geste **aimant éteint**, et elle tient le symétrique de
+tout le reste : **lâché dans le vide, l'instrument reste libre.** Un aimant qui
+prend toujours ne se distingue pas d'un instrument coincé. Éprouvée contre la
+version d'avant : **9 rouges**.
