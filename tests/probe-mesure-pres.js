@@ -196,6 +196,107 @@ const ck = (n, ok, d) => { console.log(`  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31
     ck('  et le repère du nombre reste lisible (demi-tour unique)',
        Math.abs(sens.hautDG.boiteAngle) < 1, sens.hautDG.boiteAngle + '°');
 
+    /* ================================================================
+       L'UNITÉ CHOISIE RESTE CHOISIE.
+       « Quand on met l'unité cm avec le clic droit, ce serait cool que si
+         j'utilise encore le menu contextuel pour mettre la longueur sur un
+         segment, la même unité d'avant s'affiche. »
+       Mesuré avant : « cm » sur [AB] donne « 10 cm » ; afficher la longueur de
+       [CD] juste après donne « 10.0 ». Chaque segment repartait de rien, et il
+       fallait refaire le tour des unités à chaque trait.
+       On ne lit pas le champ lengthUnit mais le TEXTE ÉCRIT sur la feuille :
+       c'est lui qu'on voit, et c'est lui qui a menti.
+       ================================================================ */
+    console.log('\n=== l\'unité choisie sert au segment suivant ===');
+    const unites = await page.evaluate(async () => {
+        const a = window.app;
+        /* ce qui est VRAIMENT écrit : on espionne la toile */
+        const ecrits = () => {
+            const ctx = a.ctx, vrai = ctx.fillText.bind(ctx), vus = [];
+            ctx.fillText = function (t, x, y) { vus.push(String(t)); return vrai(t, x, y); };
+            a.render();
+            ctx.fillText = vrai;
+            return vus.filter(t => /\d/.test(t) && !/^[A-Z]/.test(t));
+        };
+        const neuf = () => {
+            a.entities = []; a.historyPast = [];
+            const A = new Point(200, 300, 'A'), B = new Point(700, 300, 'B');
+            const C = new Point(200, 500, 'C'), D = new Point(700, 500, 'D');
+            const s1 = new Segment(A, B), s2 = new Segment(C, D);
+            a.entities.push(A, B, C, D, s1, s2);
+            return [s1, s2];
+        };
+        const out = {};
+        let [s1, s2] = neuf();
+        a.selectedObject = s1; a.styleObject('measureUp');
+        out.premierNu = ecrits().join(' ');
+        for (let k = 0; k < 6 && s1.lengthUnit !== 'cm'; k++) { a.selectedObject = s1; a.styleObject('cycleUnit'); }
+        out.premierCm = ecrits().join(' ');
+        a.selectedObject = s2; a.styleObject('measureUp');
+        out.secondApres = ecrits().join(' ');
+        /* rappuyer sur « Dessus » n'ajoute pas d'unité à un nombre qui n'en a pas.
+           On repart d'une séance SANS unité choisie, sinon c'est l'héritage
+           qu'on mesure — et il vient d'être vérifié deux lignes plus haut. */
+        [s1, s2] = neuf();
+        a._uniteChoisie = null;
+        a.selectedObject = s1; a.styleObject('measureUp');
+        a.selectedObject = s1; a.styleObject('measureDown');
+        a.selectedObject = s1; a.styleObject('measureUp');
+        out.rappuye = ecrits().join(' ');
+        /* un segment qui porte déjà son unité la garde */
+        [s1, s2] = neuf();
+        s2.lengthUnit = 'mm';
+        for (let k = 0; k < 6 && s1.lengthUnit !== 'cm'; k++) { a.selectedObject = s1; a.styleObject('cycleUnit'); }
+        a.selectedObject = s2; a.styleObject('measureUp');
+        out.dejaSienne = s2.lengthUnit;
+        /* revenir à « aucune » est AUSSI un choix. Un tour complet des unités
+           ramène à null : on en fait exactement un, depuis un segment neuf. */
+        [s1, s2] = neuf();
+        a._uniteChoisie = 'cm';
+        for (let k = 0; k < GM_UNITES.length; k++) { a.selectedObject = s1; a.styleObject('cycleUnit'); }
+        out.tourComplet = s1.lengthUnit;
+        a.selectedObject = s2; a.styleObject('measureUp');
+        out.apresAucune = s2.lengthUnit;
+        a.entities = []; a.render();
+        return out;
+    });
+    ck('le premier segment s\'affiche d\'abord sans unité',
+       /10\.0/.test(unites.premierNu) && !/cm/.test(unites.premierNu), unites.premierNu);
+    ck('on lui met « cm », il l\'écrit', /10 cm/.test(unites.premierCm), unites.premierCm);
+    ck('et le segment suivant hérite de « cm »',
+       (unites.secondApres.match(/10 cm/g) || []).length === 2,
+       unites.secondApres + '  (« 10.0 » avant)');
+    ck('mais rappuyer sur « Dessus » n\'invente pas d\'unité',
+       !/cm|mm/.test(unites.rappuye), unites.rappuye);
+    ck('et un segment qui porte déjà la sienne la garde',
+       unites.dejaSienne === 'mm', String(unites.dejaSienne));
+    ck('un tour complet des unités revient à « aucune »',
+       unites.tourComplet === null, String(unites.tourComplet));
+    /* CETTE LIGNE EST UNE GARDE, PAS UNE PREUVE : « aucune unité » et « rien
+       n'est transmis » donnent le même null, donc elle passait déjà avant. Elle
+       sert à ce que le choix « aucune » ne se mette pas un jour à hériter du
+       « cm » d'avant — ce que la mémoire rend désormais possible. */
+    ck('  et ce choix-là se transmet aussi', unites.apresAucune === null,
+       String(unites.apresAucune) + ' (le souvenir valait « cm » juste avant)');
+    /* LE SOUVENIR NE VIT QUE LA SÉANCE : une figure partagée ne doit pas
+       hériter d'une unité que son auteur n'a jamais écrite. */
+    await page.reload(); await page.waitForFunction(() => window.app);
+    await page.waitForTimeout(700);
+    const apresRechargement = await page.evaluate(() => {
+        const a = window.app;
+        const m = document.getElementById('customModal'); if (m) m.style.display = 'none';
+        a.checkAutoSave = () => {};
+        a.entities = []; a.historyPast = [];
+        const A = new Point(200, 300, 'A'), B = new Point(700, 300, 'B');
+        const s = new Segment(A, B);
+        a.entities.push(A, B, s);
+        a.selectedObject = s; a.styleObject('measureUp');
+        return s.lengthUnit;
+    });
+    ck('et le souvenir ne traverse pas un rechargement',
+       apresRechargement === null || apresRechargement === undefined,
+       String(apresRechargement));
+
     ck('aucune erreur JS', errs.length === 0, errs[0] || '');
     await nav.close();
     console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

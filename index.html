@@ -21435,12 +21435,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 };
                 input.onblur = () => valider();
             }
+            /* L'UNITÉ CHOISIE RESTE CHOISIE.
+               « Quand on met l'unité cm avec le clic droit, ce serait cool que si
+                 j'utilise encore le menu contextuel pour mettre la longueur sur un
+                 segment, la même unité d'avant s'affiche. »
+               Mesuré : on met « cm » sur [AB], il affiche « 10 cm » ; on affiche
+               la longueur de [CD] juste après, il affiche « 10.0 ». Chaque
+               segment repartait de rien, et il fallait refaire le tour des
+               unités — mm, cm, dm, m — à chaque trait d'une figure qui en compte
+               douze. Choisir une unité, c'est choisir une façon d'écrire, pas
+               décorer un segment.
+               TROIS RÈGLES, et elles comptent autant que la mémoire elle-même.
+               On ne pose l'unité retenue QUE si la longueur vient de paraître :
+               rappuyer sur « Dessus » ne doit pas ajouter une unité à un nombre
+               qui n'en avait pas. On ne touche JAMAIS à un segment qui porte
+               déjà la sienne. Et le souvenir ne vit que le temps de la séance :
+               rouvrir une figure partagée ne doit pas lui coller une unité que
+               son auteur n'a pas écrite. */
+            montrerLongueur(seg) {
+                if (!seg || !(seg instanceof Segment)) return;
+                const vientDeParaitre = !seg.showLength;
+                seg.showLength = true;
+                if (vientDeParaitre && !seg.lengthUnit && this._uniteChoisie) {
+                    seg.lengthUnit = this._uniteChoisie;
+                }
+            }
             /* Le bouton du menu de l'objet : même chose, sur l'objet sélectionné. */
             fixerMesure() {
                 const ent = this.selectedObject;
                 if (!ent || typeof ent.boiteMesure !== 'function') return;
                 if (!(ent instanceof Angle) && !ent.showLength) {
-                    ent.showLength = true;
+                    this.montrerLongueur(ent);
                     this.render();
                 }
                 if (!ent.boiteMesure(this.ctx)) {
@@ -26719,15 +26744,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (action === 'toggleLength-off') {
                         this.selectedObject.showLength = false;
                     } else if (action === 'measureUp') {
-                        this.selectedObject.showLength = true;
+                        this.montrerLongueur(this.selectedObject);
                         this.selectedObject.measureOffset = -11;
                     } else if (action === 'measureDown') {
-                        this.selectedObject.showLength = true;
+                        this.montrerLongueur(this.selectedObject);
                         this.selectedObject.measureOffset = 20;
                     } else if (action === 'cycleUnit') {
                         // Cycle mm → cm → dm → m → aucune, et l'on repart.
                         const i = GM_UNITES.indexOf(this.selectedObject.lengthUnit || null);
                         this.selectedObject.lengthUnit = GM_UNITES[(i + 1) % GM_UNITES.length];
+                        /* Ce tour-là est un choix : le prochain segment en hérite. */
+                        this._uniteChoisie = this.selectedObject.lengthUnit;
                         // Choisir une unité, c'est vouloir la voir : si la mesure
                         // était masquée, on l'affiche.
                         if (this.selectedObject.lengthUnit) this.selectedObject.showLength = true;
@@ -42288,7 +42315,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (!vises.length) return rate(`Le segment [${s[1]}${s[2]}] n'est pas tracé.`);
                 }
                 if (!vises.length) return rate("Aucun segment à mesurer.");
-                vises.forEach(e => { e.showLength = true; });
+                vises.forEach(e => this.montrerLongueur(e));
                 this.saveState(); this.render();
                 return { ok: true, message: `${vises.length} longueur${vises.length > 1 ? 's' : ''} affichée${vises.length > 1 ? 's' : ''}`, cree: 0 };
             }
@@ -48932,7 +48959,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 09h';
+        window.GM_VERSION = '2026-11-09 · 11h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

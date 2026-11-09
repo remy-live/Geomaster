@@ -3283,3 +3283,36 @@ son résultat, laissait une feuille vide, et concluait « aucun objet caché » 
 vrai, et vide de sens. Elle relit maintenant comme le fait l'ouverture d'un
 fichier, et exige de retrouver les trois segments avant de conclure sur l'un
 d'eux.
+
+### L'unité choisie reste choisie
+
+*« Quand on met l'unité cm avec le clic droit, ce serait cool que si j'utilise
+encore le menu contextuel pour mettre la longueur sur un segment, la même unité
+d'avant s'affiche. »*
+
+Mesuré : on met « cm » sur [AB], il écrit **10 cm** ; on affiche la longueur de
+[CD] juste après, il écrit **10.0**. Chaque segment repartait de rien, et il
+fallait refaire le tour des unités — mm, cm, dm, m — à chaque trait d'une figure
+qui en compte douze. Choisir une unité, c'est choisir une façon d'écrire, pas
+décorer un segment.
+
+Le logiciel retient donc le dernier tour d'unité, et le pose sur la longueur
+suivante. **Trois règles l'encadrent, et elles comptent autant que la mémoire :**
+
+- on ne pose l'unité retenue **que si la longueur vient de paraître** — rappuyer
+  sur « Dessus » ne doit pas ajouter une unité à un nombre qui n'en avait pas ;
+- on ne touche **jamais** à un segment qui porte déjà la sienne ;
+- le souvenir **ne vit que le temps de la séance** : rouvrir une figure partagée
+  ne doit pas lui coller une unité que son auteur n'a jamais écrite.
+
+La sonde ne lit pas le champ `lengthUnit` : elle espionne `fillText` et lit le
+**texte vraiment écrit sur la toile**. C'est lui qu'on voit, et c'est lui qui a
+menti.
+
+Et elle dit ce qu'elle vaut. Sur ses huit lignes, **une seule** distingue l'avant
+de l'après — celle de la demande. Les autres sont des gardes : elles passaient
+déjà, et leur travail est d'empêcher que la mémoire, une fois là, ne déborde sur
+ce qu'elle n'a pas à toucher. Une ligne en particulier — « revenir à *aucune* se
+transmet aussi » — donne le même `null` dans les deux versions, pour deux raisons
+opposées ; la sonde le dit en toutes lettres plutôt que de laisser croire qu'elle
+prouve quelque chose.
