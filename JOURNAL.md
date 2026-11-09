@@ -3349,3 +3349,34 @@ trois, mais les versions d'avant écrivaient « oui » : un réglage « oui » r
 donc sur l'heure seule plutôt que de se perdre, et la sonde l'exige. Et la date
 se lit comme l'heure — relevée avant et après la lecture — parce qu'une séance
 qui traverse minuit n'est pas une raison de déclarer l'horloge fausse.
+
+### Deux drapeaux pour une même chose
+
+*« Dans la lecture ça n'enregistre pas non plus quand on passe de visible à
+invisible. »*
+
+Le « non plus » était juste, et plus littéralement que je ne l'avais vu. Le
+logiciel a **deux façons de faire disparaître un objet** : `hidden`, posé par le
+« masquer » du menu contextuel — réparé la semaine dernière — et `visible`, posé
+par **l'œil de la liste des objets**, celle qu'ouvre le tiroir de la barre de
+lecture. Le second portait exactement les deux mêmes défauts :
+
+- l'œil ne passait pas par `saveState` : mesuré, l'historique restait à **un seul
+  état** après l'avoir fermé ;
+- et `visible` n'était écrit **que pour les points**. Un point invisible
+  survivait donc au Ctrl+Z et au lien ; un segment, non. La médiatrice gardait
+  ses deux points d'appui cachés, et l'on perdait le trait qu'on venait de
+  masquer — deux comportements opposés pour le même geste, sur la même figure.
+
+Même correction que pour `hidden` : l'œil enregistre, l'état porte le drapeau
+pour **tous** les genres d'objets, et le lien compact gagne un bloc `¦INVIS:`
+jumeau de `¦CACHES:`. Un lien d'avant n'a ni l'un ni l'autre : il se relit comme
+avant, et la sonde l'exige pour les deux.
+
+**Deux précautions, dans la sonde, qui ont changé le résultat.** Elle **clique
+sur l'œil** au lieu d'écrire `visible = false` : écrire le champ à la main
+contourne précisément le `saveState` qu'on veut mesurer — ma première mesure
+faisait cela, et donnait « rien n'a changé » après la correction. Et elle ouvre
+le panneau avant de chercher la ligne, parce que la liste ne se remplit que
+lorsqu'il est ouvert : sur un panneau fermé, elle cherchait un œil dans une liste
+vide, ne cliquait rien, et le disait vert.

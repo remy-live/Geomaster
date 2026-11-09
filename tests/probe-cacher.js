@@ -152,6 +152,74 @@ const ck = (n, ok, d) => { console.log(`  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31
        vieux.segments === 3 && vieux.caches === 0,
        `${vieux.segments} segments, ${vieux.caches} caché(s)`);
 
+    /* ================================================================
+       L'ŒIL DE LA LISTE, MÊME HISTOIRE SUR L'AUTRE DRAPEAU.
+       « Dans la lecture ça n'enregistre pas non plus quand on passe de visible
+         à invisible. »
+       Le logiciel a DEUX façons de faire disparaître un objet : « hidden »,
+       posé par le menu contextuel, et « visible », posé par l'œil de la liste
+       des objets — celle du tiroir de la barre de lecture. Le second avait
+       exactement les mêmes deux défauts que le premier : l'œil n'appelait pas
+       saveState (historique à UN état après avoir fermé l'œil), et « visible »
+       n'était écrit que pour les POINTS — un segment rendu invisible
+       reparaissait au Ctrl+Z, dans le lien et dans le fichier.
+       ON CLIQUE SUR L'ŒIL, on n'écrit pas le champ : écrire `visible = false`
+       à la main contournerait justement le saveState qu'on veut mesurer. Et la
+       liste ne se remplit que si le panneau est OUVERT : sur un panneau fermé,
+       on mesurerait une liste vide.
+       ================================================================ */
+    console.log('\n=== l\'œil de la liste enregistre, lui aussi ===');
+    const oeil = await page.evaluate(() => {
+        const a = window.app;
+        a.entities = []; a.historyPast = []; a.historyFuture = [];
+        const A = new Point(300, 600, 'A'), B = new Point(800, 600, 'B'), C = new Point(520, 280, 'C');
+        a.entities.push(A, B, C, new Segment(A, B), new Segment(B, C), new Segment(C, A));
+        a.saveState();
+        document.getElementById('rightPanel').classList.add('open');
+        a.updateObjectList();
+        const invisibles = () => a.entities.filter(e => e.visible === false).length;
+        let clique = false;
+        [...document.querySelectorAll('#objectList > *')].forEach(l => {
+            if (clique) return;
+            const b = l.querySelector && l.querySelector('button');
+            if (!b || !(l.textContent || '').replace(/\s/g, '').includes('AB')) return;
+            b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+            clique = true;
+        });
+        const out = { clique, apres: invisibles(), historique: a.historyPast.length };
+        a.addEntity(new Point(1100, 400, 'M')); a.saveState();
+        a.undo();
+        out.apresUndo = invisibles();
+        const code = a.getCompressedString();
+        const brut = LZString.decompressFromEncodedURIComponent(code);
+        a.entities = []; a.loadFromCompressedString(code);
+        out.apresLien = invisibles();
+        out.blocInvis = /INVIS:/.test(brut);
+        a.entities = a.deserialize(a.serialize());
+        out.apresFichier = invisibles();
+        out.segments = a.entities.filter(e => e.constructor.name === 'Segment').length;
+        /* un lien d'avant n'a pas le bloc : il ne doit rien rendre invisible */
+        const sansBloc = brut.split('\u00a6').filter(p2 => !p2.startsWith('INVIS:')).join('\u00a6');
+        a.entities = [];
+        a.loadFromCompressedString(LZString.compressToEncodedURIComponent(sansBloc));
+        out.sansBloc = invisibles();
+        out.segmentsSansBloc = a.entities.filter(e => e.constructor.name === 'Segment').length;
+        return out;
+    });
+    ck('l\'œil a bien été trouvé et cliqué', oeil.clique === true);
+    ck('il rend le segment invisible', oeil.apres === 1, oeil.apres + ' invisible(s)');
+    ck('  et le geste entre dans l\'historique', oeil.historique === 2,
+       oeil.historique + ' état(s) (1 avant)');
+    ck('annuler autre chose ne le fait pas réapparaître', oeil.apresUndo === 1,
+       oeil.apresUndo + ' invisible(s)');
+    ck('le lien de partage le retient', oeil.blocInvis === true && oeil.apresLien === 1,
+       `bloc ${oeil.blocInvis}, ${oeil.apresLien} invisible(s)`);
+    ck('le fichier enregistré aussi', oeil.apresFichier === 1 && oeil.segments === 3,
+       `${oeil.apresFichier} invisible(s) sur ${oeil.segments} segments relus`);
+    ck('et un lien d\'avant se relit comme avant : rien d\'invisible',
+       oeil.sansBloc === 0 && oeil.segmentsSansBloc === 3,
+       `${oeil.sansBloc} invisible(s), ${oeil.segmentsSansBloc} segments`);
+
     ck('aucune erreur JS', errs.length === 0, errs.slice(0, 2).join(' | '));
     await nav.close();
     console.log(`\n${fail ? `=== ${fail} échec(s) ===` : '=== tout passe ==='}`);

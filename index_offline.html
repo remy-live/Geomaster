@@ -21771,7 +21771,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     btnEye.onpointerdown = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        /* MONTRER ET CACHER EST UN GESTE, DONC IL S'ENREGISTRE.
+                           « Dans la lecture ça n'enregistre pas non plus quand on
+                             passe de visible à invisible. »
+                           Même défaut que le « masquer » du menu contextuel, sur
+                           l'autre drapeau : mesuré, l'historique restait à UN seul
+                           état après avoir fermé l'œil, et le Ctrl+Z suivant
+                           rouvrait l'objet. */
                         ent.visible = (ent.visible === false) ? true : false;
+                        this.saveState();
                         this.render();
                         this.updateObjectList();
                     };
@@ -22043,11 +22051,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    ÉMISES, et non celui des objets : un objet sans type n'écrit
                    pas de ligne, et c'est sur les lignes que la relecture compte. */
                 const rangsCaches = [];
+                const rangsInvisibles = [];
                 let rangEmis = 0;
                 this.entities.forEach(e => {
                     const typeId = this.getTypeId(e);
                     if (typeId === 0) return;
                     if (e.hidden === true) rangsCaches.push(rangEmis);
+                    /* Le point porte déjà son « visible » dans sa propre ligne ;
+                       le segment et les autres n'avaient nulle part où le dire. */
+                    if (e.visible === false) rangsInvisibles.push(rangEmis);
                     rangEmis++;
                     let arr = [typeId];
                     if (e instanceof ToolAnimation) {
@@ -22206,6 +22218,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     finalStr += "¦" + arr.join(";");
                 });
                 if (rangsCaches.length) finalStr += "¦CACHES:" + rangsCaches.join(',');
+                if (rangsInvisibles.length) finalStr += "¦INVIS:" + rangsInvisibles.join(',');
                 const wData = [];
                 if (this.activeWidgets.ruler && this.rulerWidget) wData.push(`R;${f(this.rulerWidget.x)};${f(this.rulerWidget.y)};${f(this.rulerWidget.angle)}`);
                 if (this.activeWidgets.setsquare && this.setSquareWidget) wData.push(`S;${f(this.setSquareWidget.x)};${f(this.setSquareWidget.y)};${f(this.setSquareWidget.angle)}`);
@@ -22464,6 +22477,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         blocCaches.replace("CACHES:", "").split(',').forEach(n2 => {
                             const o = tempObjects[parseInt(n2, 10)];
                             if (o) o.hidden = true;
+                        });
+                    }
+                    const blocInvis = parts.find(p2 => p2.startsWith("INVIS:"));
+                    if (blocInvis) {
+                        blocInvis.replace("INVIS:", "").split(',').forEach(n2 => {
+                            const o = tempObjects[parseInt(n2, 10)];
+                            if (o) o.visible = false;
                         });
                     }
                     const brokenObjects = new Set();
@@ -27119,8 +27139,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        à l'écran. */
                     if (e.estConstruction) data.estConstruction = true;
                     /* Un objet caché reste caché : l'historique et le fichier
-                       passent tous les deux par ici. */
+                       passent tous les deux par ici. Et « invisible » de même :
+                       le point l'écrivait déjà dans sa propre branche, le
+                       segment et les autres ne l'écrivaient nulle part. */
                     if (e.hidden === true) data.hidden = true;
+                    if (e.visible === false) data.visible = false;
                     if (e.roleDroite) data.roleDroite = e.roleDroite;
                     if (e.motifCle) data.motifCle = e.motifCle;
                     if (e.motifNom) { data.motifNom = e.motifNom; data.motifCm = e.motifCm;
@@ -27329,6 +27352,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (data.roleDroite) obj.roleDroite = data.roleDroite;
                             if (data.estConstruction) obj.estConstruction = true;
                             if (data.hidden) obj.hidden = true;
+                            if (data.visible === false) obj.visible = false;
                             if (data.motifCle) obj.motifCle = data.motifCle;
                             if (data.motifNom) { obj.motifNom = data.motifNom; obj.motifCm = data.motifCm;
                                                  obj.motifMot = data.motifMot; }
@@ -49016,7 +49040,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 14h';
+        window.GM_VERSION = '2026-11-09 · 17h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
