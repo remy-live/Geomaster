@@ -5,7 +5,7 @@ et la colonne de droite est la réponse du logiciel, recopiée telle quelle.
 Le fichier est écrit par `node tests/catalogue.js` : il ne peut donc pas
 promettre ce qui ne marche pas.
 
-**231 phrases**, dont 231 passent.
+**232 phrases**, dont 232 passent.
 
 Quelques principes qui valent partout :
 
@@ -337,6 +337,7 @@ Quelques principes qui valent partout :
 |---|---|
 | Mets le papier quadrillé | Papier : papier à carreaux |
 | Affiche l'horloge | Horloge affichée, en haut à droite — un clic dessus la range |
+| Affiche la date | Horloge et date affichées, en haut à droite |
 | Cache l'horloge | Horloge rangée |
 | Mets le papier à petits carreaux | Papier : papier à carreaux |
 | Enlève le quadrillage | Papier : papier blanc |

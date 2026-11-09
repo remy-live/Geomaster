@@ -49,9 +49,22 @@ const LIRE = () => {
     const avantLecture = quelleHeure();
     const texteLu = heure ? heure.textContent : el.textContent;
     const apresLecture = quelleHeure();
+    /* La date se lit de la même façon : relevée avant et après, parce qu'une
+       séance qui traverse minuit n'est pas une raison de rougir. */
+    const cadreDate = el.querySelector('.gm-date');
+    const quelJour = () => { const d = new Date();
+        return deux(d.getDate()) + '/' + deux(d.getMonth() + 1) + '/' + deux(d.getFullYear() % 100); };
+    const jourAvant = quelJour();
+    const dateLue = cadreDate ? cadreDate.textContent : '';
+    const jourApres = quelJour();
     return { bouton: getComputedStyle(el).display !== 'none',
              cadran: !!cad && getComputedStyle(cad).display !== 'none',
              vue: el.classList.contains('vue'),
+             mode: window.app.horlogeMode,
+             dateVue: !!cadreDate && getComputedStyle(cadreDate).display !== 'none',
+             date: dateLue,
+             dateJuste: dateLue === jourAvant || dateLue === jourApres,
+             dateAttendue: jourAvant,
              texte: texteLu,
              juste: texteLu === avantLecture || texteLu === apresLecture,
              attendu: avantLecture === apresLecture ? avantLecture
@@ -113,19 +126,46 @@ const LIRE = () => {
        JSON.stringify(voisins.volees.slice(0, 3)));
 
     console.log('\n=== elle revient comme on l\'avait laissée ===');
-    ck('le choix est retenu', a.memoire === 'oui', String(a.memoire));
+    /* Le réglage compte désormais jusqu'à trois : « 1 », c'est l'heure seule.
+       (Les versions d'avant écrivaient « oui » ; ce cas est vérifié plus bas.) */
+    ck('le choix est retenu', a.memoire === '1', String(a.memoire));
     await page.reload(); await page.waitForFunction(() => window.app);
     await page.waitForTimeout(900);
     const ap = await page.evaluate(LIRE);
     ck('après rechargement, l\'heure est toujours là', ap.vue === true, JSON.stringify(ap));
     ck("et toujours à l'heure", ap.juste === true, `${ap.texte} contre ${ap.attendu}`);
 
-    console.log('\n=== un second clic la range, une phrase aussi ===');
+    /* ================================================================
+       TROIS ÉTATS, ET LA LARGEUR QUI NE BOUGE PAS.
+       « Pour l'horloge rajoute la possibilité d'avoir la date (en dessous),
+         fais-le en cycle. On conserve le design et la longueur. »
+       « On conserve la longueur » est une contrainte, pas un goût : la sonde
+       la mesure. Le bouton fait 64 px avec l'heure ; il doit faire 64 px avec
+       la date. C'est ce qui a décidé de la forme de la date : relevé dans la
+       police du bouton, « 09/11/26 » en 10 px tient en 48 px sur les 50
+       disponibles, et tient TOUJOURS, la police étant à chasse fixe et la
+       date faisant huit signes quel que soit le jour ; « lun 09/11 » en
+       demandait 54.
+       ================================================================ */
+    console.log('\n=== le second clic ajoute la date, sous l\'heure ===');
+    await page.locator('#gmHorloge').click();
+    await page.waitForTimeout(200);
+    const d2 = await page.evaluate(LIRE);
+    ck('la date paraît sous l\'heure', d2.mode === 2 && d2.dateVue === true && d2.texte !== '',
+       JSON.stringify([d2.texte, d2.date]));
+    ck('  et c\'est la date JUSTE', d2.dateJuste === true, `${d2.date} contre ${d2.dateAttendue}`);
+    ck('  le bouton n\'a pas grandi d\'un pixel en largeur', d2.w === a.w,
+       `${a.w} px avec l'heure, ${d2.w} px avec la date`);
+    ck('  ni d\'un pixel en hauteur', d2.h === a.h, `${a.h} px → ${d2.h} px`);
+    ck('  et le choix est retenu', d2.memoire === '2', String(d2.memoire));
+
+    console.log('\n=== un troisième clic la range, une phrase aussi ===');
     await page.locator('#gmHorloge').click();
     await page.waitForTimeout(200);
     const c = await page.evaluate(LIRE);
-    ck('le clic range l\'heure et rend le cadran',
-       c.vue === false && c.texte === '' && c.cadran === true && c.memoire === 'non', JSON.stringify(c));
+    ck('le clic range tout et rend le cadran',
+       c.vue === false && c.texte === '' && c.date === '' && c.cadran === true && c.memoire === '0',
+       JSON.stringify(c));
     const r2 = await page.evaluate(() => { const r = window.app.executerConsigneAvec("Affiche l'horloge", false);
         return { ok: !!(r && r.ok), msg: (r && r.message) || '' }; });
     ck("« Affiche l'horloge » marche encore", r2.ok && /horloge/i.test(r2.msg)
@@ -134,6 +174,21 @@ const LIRE = () => {
         return { ok: !!(r && r.ok), msg: (r && r.message) || '' }; });
     ck("« Cache l'horloge » la range aussi", r3.ok && !(await page.evaluate(LIRE)).vue,
        JSON.stringify(r3));
+    const r4 = await page.evaluate(() => { const r = window.app.executerConsigneAvec("Affiche la date", false);
+        return { ok: !!(r && r.ok), msg: (r && r.message) || '' }; });
+    const apresDate = await page.evaluate(LIRE);
+    ck("« Affiche la date » donne l'heure ET la date",
+       r4.ok && apresDate.mode === 2 && apresDate.dateVue === true && apresDate.dateJuste === true,
+       JSON.stringify(r4) + ' — ' + apresDate.date);
+    /* UN RÉGLAGE D'AVANT NE CONNAÎT QUE DEUX ÉTATS : il doit se relire, pas se
+       perdre. Les versions précédentes écrivaient « oui » / « non ». */
+    await page.evaluate(() => { try { localStorage.setItem('gm_horloge', 'oui'); } catch (e) { void e; } });
+    await page.reload(); await page.waitForFunction(() => window.app);
+    await page.waitForTimeout(900);
+    const vieux = await page.evaluate(LIRE);
+    ck("un réglage « oui » d'avant rouvre sur l'heure seule",
+       vieux.mode === 1 && vieux.dateVue === false && vieux.juste === true,
+       JSON.stringify([vieux.mode, vieux.texte, vieux.date]));
 
     console.log("\n=== elle n'écrit pas soixante fois par minute ===");
     /* ON COMPTE LES ÉCRITURES, PAS LES SECONDES. La borne juste n'est pas

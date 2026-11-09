@@ -3316,3 +3316,36 @@ ce qu'elle n'a pas à toucher. Une ligne en particulier — « revenir à *aucun
 transmet aussi » — donne le même `null` dans les deux versions, pour deux raisons
 opposées ; la sonde le dit en toutes lettres plutôt que de laisser croire qu'elle
 prouve quelque chose.
+
+### La date tient dans la largeur de l'heure, et pas autrement
+
+*« Pour l'horloge rajoute la possibilité d'avoir la date (en dessous), fais-le en
+cycle. On conserve le design et la longueur. »*
+
+Trois états sous un seul bouton : le cadran, l'heure, l'heure et la date — puis
+l'on range. C'est le cycle de la loupe, qui en a déjà trois : on ne lit pas une
+infobulle en plein cours, on appuie jusqu'à voir ce qu'on veut.
+
+**« On conserve la longueur » est une contrainte, pas un goût** — et c'est elle
+qui a décidé de la forme de la date. Mesuré dans la police du bouton : l'heure
+« 09:11 » occupe 45 px pour 50 px de place utile.
+
+| ce qu'on pourrait écrire dessous | largeur |
+| --- | --- |
+| `09/11/26` en 10 px | **48 px** — tient |
+| `9 nov.` en 11 px | 40 px — tient, mais sans le jour ni l'année |
+| `lun 9/11` en 10 px | 48 px — tient le 9, plus le 19 |
+| `lun 09/11` en 10 px | 54 px — déborde |
+
+Le jour de la semaine est ce qu'on écrirait au tableau, et c'est précisément ce
+qui ne passe pas : `lun 09/11` demande 54 px, et le réduire à 9 px l'aurait rendu
+illisible pour gagner quatre pixels. `09/11/26` tient — et tient **toujours** :
+la police est à chasse fixe et la date fait huit signes quel que soit le jour.
+Relevé après coup : 64 px de large avec l'heure, 64 px avec la date, 34 px de
+haut dans les deux cas. La bande d'en-tête ne bouge pas d'un pixel.
+
+Deux détails qui n'en sont pas. Le réglage retenu compte maintenant jusqu'à
+trois, mais les versions d'avant écrivaient « oui » : un réglage « oui » rouvre
+donc sur l'heure seule plutôt que de se perdre, et la sonde l'exige. Et la date
+se lit comme l'heure — relevée avant et après la lecture — parce qu'une séance
+qui traverse minuit n'est pas une raison de déclarer l'horloge fausse.

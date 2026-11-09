@@ -310,6 +310,9 @@ const GROUPES = [
   ['Le papier, la feuille', [
     ['Mets le papier quadrillé', { genre: 'agit' }],
     ["Affiche l'horloge", { genre: 'agit' }],
+    /* Le troisième état du même bouton : l'heure ET la date, l'une sous
+       l'autre, dans la même largeur. */
+    ["Affiche la date", { genre: 'agit' }],
     ["Cache l'horloge", { genre: 'agit' }],
     ['Mets le papier à petits carreaux', { genre: 'agit' }],
     ['Enlève le quadrillage', { genre: 'agit' }],
