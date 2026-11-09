@@ -21995,9 +21995,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                    BC = 5,7 cm, CD = 5,6 cm, DE = 5,7 cm… ». Ce n'est plus la
                    figure qu'on a partagée. */
                 const fa = (n) => parseFloat(Number(n).toFixed(6));
+                /* LES OBJETS CACHÉS VOYAGENT AVEC LA FIGURE. Le lien ne portait
+                   rien de « caché » : une figure partagée rouvrait avec tous ses
+                   traits d'aide rendus à la vue. On compte le rang des lignes
+                   ÉMISES, et non celui des objets : un objet sans type n'écrit
+                   pas de ligne, et c'est sur les lignes que la relecture compte. */
+                const rangsCaches = [];
+                let rangEmis = 0;
                 this.entities.forEach(e => {
                     const typeId = this.getTypeId(e);
                     if (typeId === 0) return;
+                    if (e.hidden === true) rangsCaches.push(rangEmis);
+                    rangEmis++;
                     let arr = [typeId];
                     if (e instanceof ToolAnimation) {
                         const s = e.startState || {}; const end = e.endState || {};
@@ -22154,6 +22163,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     }
                     finalStr += "¦" + arr.join(";");
                 });
+                if (rangsCaches.length) finalStr += "¦CACHES:" + rangsCaches.join(',');
                 const wData = [];
                 if (this.activeWidgets.ruler && this.rulerWidget) wData.push(`R;${f(this.rulerWidget.x)};${f(this.rulerWidget.y)};${f(this.rulerWidget.angle)}`);
                 if (this.activeWidgets.setsquare && this.setSquareWidget) wData.push(`S;${f(this.setSquareWidget.x)};${f(this.setSquareWidget.y)};${f(this.setSquareWidget.angle)}`);
@@ -22405,6 +22415,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         }
                         if (obj) { this.addEntity(obj); tempObjects.push(obj); } else tempObjects.push(null);
                     });
+                    /* Les objets cachés, rendus à leur rang. Le bloc est absent
+                       des liens d'avant : alors rien n'est caché, comme avant. */
+                    const blocCaches = parts.find(p2 => p2.startsWith("CACHES:"));
+                    if (blocCaches) {
+                        blocCaches.replace("CACHES:", "").split(',').forEach(n2 => {
+                            const o = tempObjects[parseInt(n2, 10)];
+                            if (o) o.hidden = true;
+                        });
+                    }
                     const brokenObjects = new Set();
                     entitiesData.forEach((str, index) => {
                         const obj = tempObjects[index]; if (!obj) return;
@@ -22858,12 +22877,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 }
                 this.render();
             }
+            /* CACHER EST UN GESTE, DONC IL S'ANNULE — ET IL SE RETIENT.
+               « Quand on fait un undo, les traits que j'avais mis cachés
+                 réapparaissent. »
+               Deux causes, et il fallait les deux. (1) Cacher ne passait PAS par
+               saveState : mesuré, l'historique restait à un seul état après
+               avoir caché un côté — le geste n'existait pas pour l'historique,
+               donc le Ctrl+Z suivant sautait par-dessus. (2) Et quand bien même :
+               « hidden » n'était écrit nulle part dans l'état enregistré, si
+               bien que REVENIR à un état, quel qu'il soit, rendait tout visible.
+               Mesuré sur les trois allers-retours : Ctrl+Z, lien de partage,
+               fichier enregistré — un trait caché reparaissait à chaque fois. */
             toggleVisibilityFromMenu() {
                 if (this.selectedObject) {
                     if (this.selectedObject.hidden === undefined) this.selectedObject.hidden = false;
                     this.selectedObject.hidden = !this.selectedObject.hidden;
                     document.getElementById('contextMenu').style.display = 'none';
                     this.selectedObject = null;
+                    this.saveState();
                     this.render();
                 }
             }
@@ -27043,6 +27074,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                        droite précédente », APRÈS coup, sans que rien n'ait bougé
                        à l'écran. */
                     if (e.estConstruction) data.estConstruction = true;
+                    /* Un objet caché reste caché : l'historique et le fichier
+                       passent tous les deux par ici. */
+                    if (e.hidden === true) data.hidden = true;
                     if (e.roleDroite) data.roleDroite = e.roleDroite;
                     if (e.motifCle) data.motifCle = e.motifCle;
                     if (e.motifNom) { data.motifNom = e.motifNom; data.motifCm = e.motifCm;
@@ -27250,6 +27284,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             if (data.nomD !== undefined) obj.nomD = data.nomD;
                             if (data.roleDroite) obj.roleDroite = data.roleDroite;
                             if (data.estConstruction) obj.estConstruction = true;
+                            if (data.hidden) obj.hidden = true;
                             if (data.motifCle) obj.motifCle = data.motifCle;
                             if (data.motifNom) { obj.motifNom = data.motifNom; obj.motifCm = data.motifCm;
                                                  obj.motifMot = data.motifMot; }
@@ -48897,7 +48932,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-06 · 09h';
+        window.GM_VERSION = '2026-11-09 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

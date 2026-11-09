@@ -3249,3 +3249,37 @@ on le lit, ou un écran et un PDF qui ne montrent pas la même figure.
 
 La sonde compare les deux dessins **pixel à pixel** : un nombre à l'envers ne
 donnerait pas la même image, et aucune mesure de position ne l'aurait dit.
+
+### Un geste qui n'existait pour personne
+
+*« Quand on fait un undo, les traits que j'avais mis cachés réapparaissent. »*
+
+Deux causes, et il fallait les deux — corriger une seule n'aurait rien changé.
+
+**Cacher ne passait pas par `saveState`.** Mesuré : l'historique restait à **un
+seul état** après avoir caché un côté. Le geste n'existait tout simplement pas
+pour l'historique ; le Ctrl+Z suivant sautait par-dessus et revenait à l'état
+d'avant — celui où le trait était visible.
+
+**Et « hidden » n'était écrit nulle part dans l'état enregistré.** Même en
+enregistrant le geste, revenir à un état, quel qu'il soit, aurait tout rendu
+visible. Le défaut était donc plus large que le rapport : relevé sur les trois
+allers-retours, un trait caché reparaissait au Ctrl+Z, **dans le lien de
+partage** et **dans le fichier enregistré**. Une figure préparée le dimanche, avec
+ses traits d'aide rangés, rouvrait le lundi avec tout en vue.
+
+Les trois sont réparés ensemble : l'état enregistré porte le drapeau — et comme
+l'historique et le fichier passent tous deux par là, les deux sont servis d'un
+coup — et le lien compact gagne un bloc `¦CACHES:` qui porte le **rang des lignes
+émises**, pas celui des objets : un objet sans type n'écrit pas de ligne, et
+c'est sur les lignes que la relecture compte. Un lien d'avant n'a pas ce bloc :
+il se relit exactement comme avant.
+
+**Deux fois, la sonde a failli ne rien mesurer.** D'abord parce que le drapeau
+ne prouve rien : ce qui compte, c'est qu'il n'y ait pas d'encre à l'endroit du
+trait, et c'est cela qu'elle compte. Ensuite parce que `deserialize` **rend** la
+liste des objets, il ne la pose pas : ma première mesure l'appelait sans prendre
+son résultat, laissait une feuille vide, et concluait « aucun objet caché » —
+vrai, et vide de sens. Elle relit maintenant comme le fait l'ouverture d'un
+fichier, et exige de retrouver les trois segments avant de conclure sur l'un
+d'eux.
