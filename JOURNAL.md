@@ -1,6 +1,6 @@
 # Le journal de bord
 
-Près de cent entrées — quatre-vingt-dix-huit à ce jour —, et presque autant de
+Près de cent entrées — quatre-vingt-dix-neuf à ce jour —, et presque autant de
 plaintes réelles. Chacune part d'une phrase dite par quelqu'un qui se servait du
 logiciel — *« Il n'arrive pas
 à faire de centre H »*, *« Quand on écrit plusieurs lignes, la barre cache les
@@ -3549,3 +3549,39 @@ Là encore, mesurer l'angle droit ne suffisait pas : une perpendiculaire relue
 avec la mauvaise référence fait quand même 90° **avec cette référence**, et deux
 des trois passaient au vert. La sonde exige le bon côté — la hauteur issue de A
 perpendiculaire à (BC), et pas à autre chose.
+
+---
+
+### L'unité choisie survit à la séance
+
+*« Oui, garde l'unité de longueur. »*
+
+Le souvenir existait déjà, mais il mourait avec la page : on réglait « cm » une
+fois, et au rechargement suivant — ou le lendemain — il fallait refaire le tour
+mm/cm/dm/m sur le premier segment de la figure. Une façon d'écrire les longueurs
+est un réglage de la classe, pas une décoration de séance. Il se range donc dans
+le navigateur, comme l'horloge.
+
+**Ce qui est intéressant, c'est ce que j'avais écrit pour défendre l'oubli.** Le
+commentaire disait : *« le souvenir ne vit que le temps de la séance : rouvrir une
+figure partagée ne doit pas lui coller une unité que son auteur n'a pas
+écrite »*, et une sonde l'exigeait. Or cette garantie ne venait pas de l'oubli.
+Elle vient des deux autres règles, qui n'ont pas changé : on ne pose l'unité
+retenue QUE si la longueur vient de paraître, et JAMAIS sur un segment qui porte
+déjà la sienne. Oublier en plus ne protégeait personne — cela faisait seulement
+retravailler l'utilisateur à chaque ouverture. Une précaution qui ne protège de
+rien est un défaut comme un autre.
+
+**Et la sonde qui gardait cette règle se trompait de mesure.** Elle rechargeait
+la page après un *tour complet* des unités — qui ramène précisément à
+« aucune » — puis vérifiait qu'aucune unité n'était héritée. Elle aurait vu
+« rien » même d'un logiciel qui se souvient parfaitement : elle mesurait un null
+qui venait du choix, pas de l'oubli. Elle choisit maintenant « cm » pour de bon
+avant de recharger, et exige que le premier segment de la séance suivante
+l'écrive.
+
+**Une garde pour finir.** Le champ `gm_unite` est écrit dans le navigateur de
+l'utilisateur, pas par nous : il peut contenir n'importe quoi. La valeur relue
+est donc vérifiée contre la liste des unités, et la sonde y met « parsec » pour
+voir — une unité qu'on ne sait pas lire doit laisser le logiciel sans
+préférence, et non poser une unité inventée sur la figure.

@@ -278,11 +278,30 @@ const ck = (n, ok, d) => { console.log(`  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31
        « cm » d'avant — ce que la mémoire rend désormais possible. */
     ck('  et ce choix-là se transmet aussi', unites.apresAucune === null,
        String(unites.apresAucune) + ' (le souvenir valait « cm » juste avant)');
-    /* LE SOUVENIR NE VIT QUE LA SÉANCE : une figure partagée ne doit pas
-       hériter d'une unité que son auteur n'a jamais écrite. */
-    await page.reload(); await page.waitForFunction(() => window.app);
-    await page.waitForTimeout(700);
-    const apresRechargement = await page.evaluate(() => {
+    /* LE SOUVENIR TRAVERSE MAINTENANT LE RECHARGEMENT. « Oui, garde l'unité de
+       longueur. » Cette sonde exigeait l'inverse : le souvenir mourait avec la
+       page, et c'était un choix défendable — ne pas coller à une figure partagée
+       une unité que son auteur n'a pas écrite. Mais cette garantie-là ne vient
+       pas de l'oubli : elle vient des deux règles qui n'ont pas changé, et que
+       les lignes ci-dessus mesurent — on ne pose l'unité retenue QUE si la
+       longueur vient de paraître, et JAMAIS sur un segment qui porte la sienne.
+       Oublier en plus ne protégeait personne ; cela obligeait seulement à refaire
+       le tour mm/cm/dm/m sur le premier segment de chaque séance.
+       On choisit donc « cm » POUR DE BON avant de recharger : l'ancienne version
+       de ce passage rechargeait après un tour complet des unités, qui ramène à
+       « aucune » — elle aurait vu « rien » même d'un logiciel qui se souvient. */
+    const choisirCm = () => page.evaluate(() => {
+        const a = window.app;
+        a.entities = []; a.historyPast = [];
+        const A = new Point(200, 300, 'A'), B = new Point(700, 300, 'B');
+        const s = new Segment(A, B);
+        a.entities.push(A, B, s);
+        for (let k = 0; k < 6 && s.lengthUnit !== 'cm'; k++) { a.selectedObject = s; a.styleObject('cycleUnit'); }
+        let rangee = null;
+        try { rangee = localStorage.getItem('gm_unite'); } catch (e) { void e; }
+        return { sur: s.lengthUnit, rangee };
+    });
+    const premierSegmentApres = () => page.evaluate(() => {
         const a = window.app;
         const m = document.getElementById('customModal'); if (m) m.style.display = 'none';
         a.checkAutoSave = () => {};
@@ -293,9 +312,25 @@ const ck = (n, ok, d) => { console.log(`  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31
         a.selectedObject = s; a.styleObject('measureUp');
         return s.lengthUnit;
     });
-    ck('et le souvenir ne traverse pas un rechargement',
-       apresRechargement === null || apresRechargement === undefined,
-       String(apresRechargement));
+    const choix = await choisirCm();
+    ck('choisir « cm » le range dans le navigateur', choix.rangee === 'cm',
+       `sur le segment : ${choix.sur} · rangé : ${JSON.stringify(choix.rangee)}`);
+    await page.reload(); await page.waitForFunction(() => window.app);
+    await page.waitForTimeout(700);
+    const garde = await premierSegmentApres();
+    ck('et le premier segment de la séance suivante l\'écrit en « cm »',
+       garde === 'cm', String(garde));
+    /* RIEN DE CE QUI TRAÎNE DANS LE RANGEMENT N'ENTRE SANS ÊTRE RECONNU. Le
+       champ est écrit par le navigateur de l'utilisateur, pas par nous : une
+       valeur qu'on ne sait pas lire doit laisser le logiciel sans préférence,
+       et non poser une unité inventée sur la figure. */
+    await page.evaluate(() => { try { localStorage.setItem('gm_unite', 'parsec'); } catch (e) { void e; } });
+    await page.reload(); await page.waitForFunction(() => window.app);
+    await page.waitForTimeout(700);
+    const fantaisie = await premierSegmentApres();
+    ck('une unité inconnue dans le rangement est ignorée',
+       fantaisie === null || fantaisie === undefined, String(fantaisie));
+    await page.evaluate(() => { try { localStorage.removeItem('gm_unite'); } catch (e) { void e; } });
 
     ck('aucune erreur JS', errs.length === 0, errs[0] || '');
     await nav.close();

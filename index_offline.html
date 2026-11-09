@@ -21491,9 +21491,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                On ne pose l'unité retenue QUE si la longueur vient de paraître :
                rappuyer sur « Dessus » ne doit pas ajouter une unité à un nombre
                qui n'en avait pas. On ne touche JAMAIS à un segment qui porte
-               déjà la sienne. Et le souvenir ne vit que le temps de la séance :
-               rouvrir une figure partagée ne doit pas lui coller une unité que
-               son auteur n'a pas écrite. */
+               déjà la sienne — rouvrir une figure partagée ne lui colle donc
+               aucune unité que son auteur n'a pas écrite, et ces deux règles-là
+               comptent autant que la mémoire elle-même.
+               Le souvenir, lui, PASSE D'UNE SÉANCE À L'AUTRE depuis qu'on le
+               range dans le navigateur (`gm_unite`) : il est relu une fois à
+               l'ouverture, et vérifié contre la liste des unités. */
             montrerLongueur(seg) {
                 if (!seg || !(seg instanceof Segment)) return;
                 const vientDeParaitre = !seg.showLength;
@@ -25189,6 +25192,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                 this.initCalculatorDrag();
                 this.isGridMagnetActive = false;
                 this.isObjectMagnetActive = true;
+                /* L'UNITÉ CHOISIE SURVIT À LA SÉANCE. « Oui, garde l'unité de
+                   longueur. » Le souvenir ne durait que le temps d'une page : on
+                   réglait « cm » une fois, et le lendemain — ou après un simple
+                   rechargement — il fallait refaire le tour mm/cm/dm/m sur le
+                   premier segment. Une façon d'écrire les longueurs est un
+                   réglage de la classe, pas une décoration de séance.
+                   On relit la valeur ICI, une seule fois, comme l'horloge, et on
+                   la VÉRIFIE contre la liste des unités : rien de ce qui traîne
+                   dans le rangement du navigateur n'entre dans la figure sans
+                   avoir été reconnu. Une unité inconnue laisse simplement le
+                   logiciel sans préférence, comme avant. */
+                this._uniteChoisie = null;
+                try {
+                    const u = localStorage.getItem('gm_unite');
+                    if (u && GM_UNITES.indexOf(u) !== -1) this._uniteChoisie = u;
+                } catch (e) { void e; }
                 /* LE RANGEMENT AUTO EST ACTIF, ET SON BOUTON DOIT LE DIRE. Il
                    l'était déjà — c'est lui qui écarte le nom d'un point du trait
                    qui passe dessous — mais son bouton naissait éteint : le
@@ -26925,8 +26944,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         // Cycle mm → cm → dm → m → aucune, et l'on repart.
                         const i = GM_UNITES.indexOf(this.selectedObject.lengthUnit || null);
                         this.selectedObject.lengthUnit = GM_UNITES[(i + 1) % GM_UNITES.length];
-                        /* Ce tour-là est un choix : le prochain segment en hérite. */
+                        /* Ce tour-là est un choix : le prochain segment en hérite,
+                           et la prochaine séance aussi. « Aucune » est un choix
+                           comme les autres, et s'enregistre de même — en chaîne
+                           vide, puisqu'elle ne s'écrit nulle part. */
                         this._uniteChoisie = this.selectedObject.lengthUnit;
+                        try {
+                            localStorage.setItem('gm_unite', this._uniteChoisie || '');
+                        } catch (e) { void e; }
                         // Choisir une unité, c'est vouloir la voir : si la mesure
                         // était masquée, on l'affiche.
                         if (this.selectedObject.lengthUnit) this.selectedObject.showLength = true;
@@ -49291,7 +49316,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 21h';
+        window.GM_VERSION = '2026-11-09 · 22h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME
