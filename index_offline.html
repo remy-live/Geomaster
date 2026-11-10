@@ -29251,9 +29251,46 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                     if (!e.target.closest('#contextMenu')) document.getElementById('contextMenu').style.display = 'none';
                 });
 
-                this.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+                /* UN GESTE COMMENCÉ SUR LA FEUILLE SE SUIT JUSQU'AU BOUT, MÊME
+                   HORS DE LA FEUILLE.
+                   « Des traits de compas qui ne veulent pas se faire car ils
+                   atteignent une sorte de limite. » La limite, mesurée, c'est le
+                   bord du canevas : `pointermove` était écouté sur le canevas
+                   seul — alors que `pointerup` l'est sur la fenêtre — si bien que
+                   tout geste cessait d'avancer dès que le pointeur passait sur la
+                   barre du haut, sur un panneau, ou sortait de la fenêtre.
+                   Mesuré au compas, un tour complet tenté à la main : écartement
+                   4 cm, l'arc fait 360° ; à 8 cm la mine sort du canevas à 88° et
+                   l'arc se termine quand même (les sauts d'angle inférieurs à un
+                   demi-tour se rattrapent) ; à 14 cm elle en sort dès 4° et il ne
+                   se trace RIEN DU TOUT ; à 18,4 cm, 170° de rotation ne donnaient
+                   que 25° d'arc. Or un cercle de 8 cm de rayon ne tient pas dans
+                   la hauteur visible d'une feuille projetée : c'est le cas
+                   courant, pas le cas extrême.
+                   La capture du pointeur règle cela d'une ligne : le canevas
+                   reçoit tous les mouvements du geste en cours, où que le pointeur
+                   aille. C'est le comportement normal d'un glissement — et c'est
+                   aussi ce que faisaient déjà, chacun pour soi, le cadran du nom,
+                   la poignée des fenêtres flottantes et le menu circulaire. */
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { void err; }
+                    this.handlePointerDown(e);
+                });
                 this.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
                 window.addEventListener('pointerup', this.handlePointerUp.bind(this));
+                /* On rend la capture au lever du doigt. Sans cela, le canevas
+                   garderait les mouvements suivants et la page ne verrait plus
+                   passer personne — plus de survol ailleurs. */
+                const rendreCapture = (e) => {
+                    try {
+                        if (this.canvas.hasPointerCapture && this.canvas.hasPointerCapture(e.pointerId)) {
+                            this.canvas.releasePointerCapture(e.pointerId);
+                        }
+                    } catch (err) { void err; }
+                };
+                this.canvas.addEventListener('pointerup', rendreCapture);
+                this.canvas.addEventListener('pointercancel', rendreCapture);
+                window.addEventListener('pointerup', rendreCapture);
                 /* LE CADRAN DE POSITION DU NOM. Le glissement se suit sur la
                    FENÊTRE et non sur la boîte : le doigt sort du cercle de 60 px
                    bien avant d'avoir fini de tourner. */
@@ -33761,7 +33798,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (snap) { newRadius = MathUtils.dist(w.x, w.y, snap.x, snap.y); w.angle = Math.atan2(snap.y - w.y, snap.x - w.x); }
                         else if (angleImpose !== null) w.angle = angleImpose;
                         else { w.angle = Math.atan2(my - w.y, mx - w.x); }
-                        w.radius = newRadius;
+                        /* L'ÉCARTEMENT S'ARRÊTE À LA LARGEUR DE LA FEUILLE.
+                           Rien ne le bornait, et depuis que le geste se suit hors
+                           du canevas il allait beaucoup plus loin : mesuré, une
+                           seule traction donnait 50,4 cm de rayon, molette
+                           d'ouverture et mine toutes deux à 1 500 px hors de la
+                           fenêtre. L'instrument devenait impossible à reprendre —
+                           on ne pouvait plus ni le refermer ni tracer avec lui.
+                           La feuille fait 19,6 cm de large : au-delà de 20 cm de
+                           rayon, le cercle ne peut de toute façon pas s'y voir. La
+                           borne du bas, elle, empêche l'écartement nul, qui ne
+                           trace rien et dont on ne peut plus ressortir. */
+                        /* …ET LA MOLETTE RESTE À PORTÉE DE MAIN. Plafonner à 20 cm
+                           ne suffisait pas : le compas posé à gauche de la feuille,
+                           sa molette tombait 39 px au-delà du bord de la fenêtre —
+                           mesuré — et l'on ne pouvait plus le refermer. L'écartement
+                           s'arrête donc là où la molette sortirait de ce qu'on voit,
+                           dans la direction où l'on tire. Un vrai compas ne s'ouvre
+                           jamais plus loin que le bras qui l'ouvre.
+                           On ne borne RIEN par le bas : j'avais posé un plancher de
+                           15 px « pour empêcher l'écartement nul », et une sonde
+                           l'a rattrapé aussitôt — elle ouvre exprès le compas à
+                           9 px pour vérifier qu'un segment de 6 px ne lui vole pas
+                           sa petite ouverture. Un écartement minuscule est le choix
+                           de celui qui tient l'instrument, et personne ne s'en
+                           était plaint. */
+                        const borne = (() => {
+                            const z = this.view.zoom || 1;
+                            const x0 = -this.view.x / z, y0 = -this.view.y / z;
+                            const x1 = (this.canvas.width - this.view.x) / z;
+                            const y1 = (this.canvas.height - this.view.y) / z;
+                            const cx = Math.cos(w.angle), cy = Math.sin(w.angle);
+                            let t = 1000;
+                            const limite = (c, p, a2, b2) => {
+                                if (Math.abs(c) < 1e-6) return;
+                                t = Math.min(t, ((c > 0 ? b2 : a2) - p) / c);
+                            };
+                            limite(cx, w.x, x0, x1);
+                            limite(cy, w.y, y0, y1);
+                            /* la molette est à rayon + 32, et large de 13 : on garde
+                               de quoi la viser au doigt. */
+                            return Math.max(60, t - 60);
+                        })();
+                        w.radius = Math.min(newRadius, 1000, borne);
                     }
                     else if (mode === 'resize' && w instanceof ProtractorWidget) {
                         /* Entre 90 et 420 px de rayon : en deçà les crans de 1° se
@@ -49224,7 +49303,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-09 · 23h';
+        window.GM_VERSION = '2026-11-10 · 11h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

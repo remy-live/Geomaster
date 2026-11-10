@@ -1,6 +1,6 @@
 # Le journal de bord
 
-Près de cent entrées — quatre-vingt-dix-neuf à ce jour —, et presque autant de
+Cent entrées à ce jour, et presque autant de
 plaintes réelles. Chacune part d'une phrase dite par quelqu'un qui se servait du
 logiciel — *« Il n'arrive pas
 à faire de centre H »*, *« Quand on écrit plusieurs lignes, la barre cache les
@@ -3611,3 +3611,77 @@ l'utilisateur, pas par nous : il peut contenir n'importe quoi. La valeur relue
 est donc vérifiée contre la liste des unités, et la sonde y met « parsec » pour
 voir — une unité qu'on ne sait pas lire doit laisser le logiciel sans
 préférence, et non poser une unité inventée sur la figure.
+
+---
+
+### La limite du compas, c'était le bord du canevas
+
+*« Je l'utilise au quotidien en classe ; et j'ai eu quelques bugs de textes qui
+disparaissent quand je me déplace dans la page ; des traits de compas qui ne
+veulent pas se faire car ils atteignent une sorte de limite et l'enregistrement
+des séances n'est pas toujours évident. »* — une professeure, qui a conseillé le
+logiciel à une collègue laquelle a eu les mêmes ennuis.
+
+Trois plaintes. J'en ai reproduit une, et elle en cachait une plus large.
+
+**Le compas.** `pointermove` était écouté **sur le canevas seul** — alors que
+`pointerup`, lui, l'était sur la fenêtre. Tout geste cessait donc d'avancer dès
+que le pointeur passait sur la barre du haut, sur un panneau flottant, ou sortait
+de la fenêtre. Le compas est l'instrument qui le paie le plus cher : sa mine
+décrit un cercle, et un cercle de 8 cm de rayon ne tient pas dans la hauteur
+visible d'une feuille projetée.
+
+Mesuré, un tour complet tenté à la main :
+
+| écartement | la mine sort du canevas à | arc obtenu |
+|---|---|---|
+| 4 cm | jamais | 360° |
+| 8 cm | 88° | 360° |
+| 14 cm | 4° | **rien du tout** |
+| 18 cm | 4° | **24°** pour 170° tournés |
+
+La ligne à 8 cm explique pourquoi le défaut paraissait capricieux : un saut
+d'angle de moins d'un demi-tour **se rattrape** à la rentrée du pointeur, si bien
+que le cercle se referme quand même. Selon l'écartement et la place du centre, le
+même geste marchait ou ne marchait pas, sans raison visible.
+
+La capture du pointeur règle cela d'une ligne, et pour **tous** les gestes à la
+fois — le compas, le stylo, la règle, un point qu'on déplace. C'est d'ailleurs ce
+que faisaient déjà, chacun pour soi, le cadran du nom d'un point, la poignée des
+fenêtres flottantes et le menu circulaire : trois endroits qui avaient rencontré
+le problème et l'avaient réglé localement, sans que personne ne remonte à la
+cause commune.
+
+**Et la correction a ouvert un piège, qu'il a fallu refermer.** Rien ne bornait
+l'écartement du compas. Le geste se suivant désormais hors de la fenêtre, une
+seule traction donnait **50,4 cm de rayon**, molette d'ouverture et mine à 1 500
+px hors de l'écran : un instrument qu'on ne pouvait plus ni refermer ni employer.
+L'écartement s'arrête donc là où la molette sortirait de ce qu'on voit, dans la
+direction où l'on tire — un vrai compas ne s'ouvre jamais plus loin que le bras
+qui l'ouvre. Plafonner à 20 cm n'aurait pas suffi : à 20 cm, compas posé à gauche
+de la feuille, la molette tombait encore 39 px au-delà du bord.
+
+**J'ai mis un plancher qui n'avait rien à faire là.** En posant la borne du haut,
+j'ai ajouté un minimum de 15 px « pour empêcher l'écartement nul ». La suite l'a
+rattrapé en une sonde : il en existe une qui ouvre exprès le compas à **9 px**,
+pour vérifier qu'un segment de 6 px ne lui vole pas sa petite ouverture. Un
+écartement minuscule est le choix de celui qui tient l'instrument ; personne ne
+s'en était plaint, et je n'avais rien à y changer.
+
+**Deux mesures de la sonde se trompaient de grandeur.** Elle comptait d'abord les
+points du tracé au stylo pour y chercher un trou : or le stylo **simplifie** son
+tracé, deux segments droits se rangent en quatre points, et le « trou de 290 px »
+qu'elle dénonçait n'était que la droite entre deux sommets. Ce qui se mesure,
+c'est jusqu'**où** l'encre est montée — au-dessus du bord de la feuille, ou
+arrêtée dessus. Et elle mesurait la fermeture du compas **à la suite** du geste
+d'ouverture, en partant d'une molette que ce geste venait de déplacer : elle
+mesurait un enchaînement, pas une fermeture.
+
+**Les deux autres plaintes, je ne les ai pas reproduites, et je le dis plutôt que
+de corriger au hasard.** Les textes : quatre textes posés sur la feuille, la
+feuille déplacée de 2 400 px à la molette — les quatre s'écrivent encore ; un
+texte tapé pendant que la feuille bouge se pose quand même, à l'endroit cliqué.
+Le dessin d'un texte ne dépend d'ailleurs d'aucune donnée de la fenêtre. Il reste
+des pistes — le mode « page » d'un document importé, un texte en cours de frappe
+qu'un clic ailleurs valide — mais aucune n'est mesurée, et une correction non
+mesurée dans ce fichier est une régression qui s'ignore.
