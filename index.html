@@ -30710,7 +30710,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             const w = this.compassWidget;
                             const sAngle = anim.startState.angle;
                             let drawEnd = w.angle;
-                            const sens = nextEnt.counterClockwise;
+                            /* LE SENS DU DESSIN EST CELUI DE L'INTERPOLATION, et non
+                               le drapeau de l'arc rangé. `ctx.arc(…, 0, −0,77, false)`
+                               ne dessine pas 44° : il part de 0 et va EN AVANT
+                               jusqu'à −0,77, soit 316° — l'arc complémentaire. Un
+                               rejeu à rebours montrait donc le grand arc qui se
+                               vide au lieu du petit qui se remplit. */
+                            const sens = (drawEnd < sAngle);
                             if (this.ArcTracing) {
                                 this.ctx.beginPath();
                                 this.ctx.arc(w.x, w.y, w.radius, sAngle, drawEnd, sens)
@@ -33626,6 +33632,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (w.rotMin === undefined) { w.rotMin = 0; w.rotMax = 0; }
                         if (w.totalRotation < w.rotMin) w.rotMin = w.totalRotation;
                         if (w.totalRotation > w.rotMax) w.rotMax = w.totalRotation;
+                        /* LE SENS DU GESTE, RETENU UNE FOIS POUR TOUTES. L'encre
+                           couvre les deux bornes de la rotation et ne s'efface pas
+                           — c'est voulu — mais l'arc ainsi rangé, de la plus petite
+                           à la plus grande, ne dit plus de quel bout la main est
+                           partie. Le rejeu redessinait donc à l'envers tout arc
+                           tracé dans le sens antihoraire. On note le signe du
+                           PREMIER mouvement : revenir sur ses pas ensuite ne change
+                           pas le bout d'où l'on est parti. */
+                        if (!w.sensGeste && Math.abs(w.totalRotation) > 0.001) {
+                            w.sensGeste = (w.totalRotation > 0) ? 1 : -1;
+                        }
                         if (Math.abs(w.rotMax - w.rotMin) > 0.001) {
                             const center = { x: w.x, y: w.y };
                             const centerPoint = this.entities.filter(ent => ent instanceof Point && MathUtils.dist(ent.x, ent.y, center.x, center.y) < 5).pop();
@@ -34166,15 +34183,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                         if (moved) anim = new ToolAnimation(this.draggedWidgetType, s, e2);
                     }
                     if (w instanceof CompassWidget && this.draggedWidgetMode === 'trace') {
-                        /* Le rejeu redessine l'encre telle qu'elle est : un seul balayage
-                           d'une borne à l'autre, dans le sens croissant. */
+                        /* L'ENCRE SE RANGE DANS LE SENS CROISSANT, LE REJEU SUIT LA
+                           MAIN. « Quand je rejoue une animation, le compas ne va pas
+                           dans le sens où j'ai tracé initialement. » Mesuré : un arc
+                           tracé de 0° à −88° était gardé « −88° → 0° » — ses deux
+                           bornes, triées — et l'animation recevait ces mêmes bornes
+                           dans cet ordre : à mi-rejeu la mine était à −44° et l'arc
+                           se remplissait de −88° vers 0°, c'est-à-dire à l'envers du
+                           geste. C'est le prix qu'avait coûté la correction de
+                           l'encre qui s'effaçait : en ne gardant que les bornes, on
+                           avait jeté le sens.
+                           L'arc, lui, ne change pas : ses deux bornes rangées
+                           décrivent exactement la même encre. Seule l'animation sait
+                           désormais de quel bout partir. */
                         const rotMin = w.rotMin || 0, rotMax = w.rotMax || 0;
                         const rawStartAngle = w.startAngle + rotMin;
                         const rawEndAngle = Math.min(w.startAngle + rotMax, rawStartAngle + Math.PI * 2);
                         const isCCW = false;
+                        /* Faute de sens relevé — un geste d'un seul point —, on
+                           retombe sur le sens croissant, comme avant. */
+                        const aRebours = (w.sensGeste === -1);
                         if (anim) {
-                            anim.startState.angle = rawStartAngle;
-                            anim.endState.angle = rawEndAngle; anim.counterClockwise = isCCW;
+                            anim.startState.angle = aRebours ? rawEndAngle : rawStartAngle;
+                            anim.endState.angle = aRebours ? rawStartAngle : rawEndAngle;
+                            anim.counterClockwise = isCCW;
                             if (this.currentTracingArc) {
                                 anim.createdEntityId = this.currentTracingArc.id;
                                 const arcIndex = this.entities.indexOf(this.currentTracingArc);
@@ -34187,7 +34219,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
                             this.currentTracingArc.endAngle = rawEndAngle; this.currentTracingArc.counterClockwise = isCCW; this.saveState();
                         }
                         this.currentTracingArc = null; w.isTracing = false; w.totalRotation = 0; w.lastMouseAngle = null;
-                        w.rotMin = 0; w.rotMax = 0;
+                        w.rotMin = 0; w.rotMax = 0; w.sensGeste = 0;
                     } else {
                         if (anim) { this.addEntity(anim); this.saveState(); }
                     }
@@ -49303,7 +49335,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
            peut pas dire si l'on regarde la correction ou l'ancienne version — et
            l'on signale deux fois un défaut déjà réglé. Elle s'écrit dans l'aide,
            et se lit aussi à la console par window.GM_VERSION. */
-        window.GM_VERSION = '2026-11-10 · 11h';
+        window.GM_VERSION = '2026-11-11 · 09h';
 
         /* ================================================================
            CE QUE LE LOGICIEL SAIT FAIRE, DIT PAR LUI-MÊME

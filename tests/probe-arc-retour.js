@@ -77,9 +77,18 @@ const NAVIGATEUR = process.env.GM_CHROME || undefined;
     ck(`${nom} : de ${att[0]}° à ${att[1]}°`,
        r.arcs.length === 1 && Math.abs(r.arcs[0].d - att[0]) < 0.5 && Math.abs(r.arcs[0].f - att[1]) < 0.5,
        JSON.stringify(r.arcs[0]));
-    // le rejeu doit redessiner exactement ce trait-là
-    ck(`${nom} : le rejeu balaie le même intervalle`,
-       r.anims.length === 1 && Math.abs(r.anims[0].d - att[0]) < 0.5 && Math.abs(r.anims[0].f - att[1]) < 0.5,
+    /* LE REJEU BALAIE LE MÊME INTERVALLE, MAIS DANS LE SENS DE LA MAIN.
+       Cette ligne exigeait les deux bornes TRIÉES — « de −70° à 0° » pour un
+       geste allé de 0° à −70° —, c'est-à-dire exactement le défaut dont une
+       professeure s'est plainte : « quand je rejoue une animation, le compas ne
+       va pas dans le sens où j'ai tracé initialement ». L'intervalle couvert ne
+       change pas (l'encre est la même) ; c'est l'ORDRE qui doit suivre le premier
+       mouvement de la mine. */
+    const versLeHaut = parcours[1] > parcours[0];
+    const attD = versLeHaut ? att[0] : att[1];
+    const attF = versLeHaut ? att[1] : att[0];
+    ck(`${nom} : le rejeu balaie le même intervalle, de ${attD}° vers ${attF}°`,
+       r.anims.length === 1 && Math.abs(r.anims[0].d - attD) < 0.5 && Math.abs(r.anims[0].f - attF) < 0.5,
        JSON.stringify(r.anims));
   }
 

@@ -1,6 +1,6 @@
 # Le journal de bord
 
-Cent entrées à ce jour, et presque autant de
+Cent une entrées à ce jour, et presque autant de
 plaintes réelles. Chacune part d'une phrase dite par quelqu'un qui se servait du
 logiciel — *« Il n'arrive pas
 à faire de centre H »*, *« Quand on écrit plusieurs lignes, la barre cache les
@@ -3685,3 +3685,51 @@ Le dessin d'un texte ne dépend d'ailleurs d'aucune donnée de la fenêtre. Il r
 des pistes — le mode « page » d'un document importé, un texte en cours de frappe
 qu'un clic ailleurs valide — mais aucune n'est mesurée, et une correction non
 mesurée dans ce fichier est une régression qui s'ignore.
+
+---
+
+### Le compas rejoué à l'envers
+
+*« Quand je rejoue une animation, le compas ne va pas dans le sens où j'ai tracé
+initialement. »*
+
+Le défaut était écrit dans le code, en toutes lettres, par moi, avec sa raison :
+
+> *Le rejeu redessine l'encre telle qu'elle est : un seul balayage d'une borne à
+> l'autre, dans le sens croissant.*
+
+Il y a quelques semaines, l'encre du compas s'effaçait quand on revenait sur ses
+pas : l'arc suivait la position courante de la mine et se rétractait. La
+correction fut de ne garder que les deux **bornes** de la rotation — la plus
+petite et la plus grande —, si bien que repasser sur son trait ne l'enlève plus.
+C'était juste. Mais deux bornes rangées de la plus petite à la plus grande ne
+disent plus **de quel bout la main est partie**, et l'animation recevait ces
+bornes dans cet ordre-là.
+
+Mesuré, un arc tracé de 0° vers −88° : arc gardé « −88° → 0° », animation
+« −88° → 0° ». À mi-rejeu la mine était bien à −44° — tout avait l'air normal —
+mais l'encre se remplissait de −88° **vers** 0° : le trait naissait au bout où le
+geste s'était terminé. Une correction qui jette une information en passant, et le
+commentaire qui l'annonce sans voir ce qu'il annonce.
+
+On note donc le signe du **premier** mouvement de la mine. Revenir sur ses pas
+ensuite ne change pas le bout d'où l'on est parti : l'encre couvre tout ce que la
+mine a visité, et le rejeu part d'où la main est partie. L'arc lui-même ne change
+pas d'un iota — ses deux bornes rangées décrivent exactement la même encre —, et
+la sonde l'exige, sans quoi on aurait réparé le rejeu en déplaçant le trait.
+
+**Et un second défaut se cachait derrière le premier.** Le dessin du rejeu passait
+à `ctx.arc` le drapeau de l'arc rangé, toujours horaire. Or
+`ctx.arc(…, 0, −0,77, false)` ne dessine pas 44° : il part de 0 et va **en avant**
+jusqu'à −0,77, soit **316°** — l'arc complémentaire. Corriger le sens de
+l'animation sans corriger ce drapeau aurait donc donné un rejeu qui *vide* le
+grand arc au lieu de remplir le petit : un défaut plus spectaculaire que celui
+qu'on venait de réparer. Les deux moitiés étaient nécessaires.
+
+**Un chiffre mesuré plutôt qu'affirmé.** J'avais écrit « 316° avant la
+correction » dans le détail de la sonde. C'était faux : sur la version d'avant,
+cette ligne-là passait au vert — 44° dessinés, depuis le mauvais bout. Les 316°
+n'apparaissent que si l'on corrige le sens **sans** le drapeau. Je l'ai vérifié
+en remettant ce seul drapeau, et la sonde dit maintenant ce qu'elle mesure. Une
+sonde qui annonce un chiffre qu'elle n'a pas relevé est du même ordre que le
+logiciel qui annonce 59 et trace 58,6.
